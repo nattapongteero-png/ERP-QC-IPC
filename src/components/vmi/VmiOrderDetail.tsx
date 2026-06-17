@@ -251,13 +251,13 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
 
   const lineColumns: DxDataGridColumn[] = [
     { dataField: 'lineNumber', caption: '#', width: 50, alignment: 'center' },
-    { dataField: 'portalItemCode', caption: 'Portal Code', width: 120 },
-    { dataField: 'portalItemName', caption: 'Portal Item Name', width: 200 },
-    { dataField: 'tppCode', caption: 'TPP Code', width: 100 },
-    { dataField: 'ttmtCode', caption: 'TTMT Code', width: 100 },
+    { dataField: 'portalItemCode', caption: 'รหัสพอร์ทัล', width: 120 },
+    { dataField: 'portalItemName', caption: 'ชื่อรายการพอร์ทัล', width: 200 },
+    { dataField: 'tppCode', caption: 'รหัส TPP', width: 100 },
+    { dataField: 'ttmtCode', caption: 'รหัส TTMT', width: 100 },
     {
       dataField: 'matchedItemCode',
-      caption: 'Matched Item',
+      caption: 'รายการที่จับคู่',
       width: 180,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const line = cellInfo.data as VmiOrderLine;
@@ -265,7 +265,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           return (
             <span className="flex items-center gap-1 text-orange-600">
               <AlertTriangle className="h-4 w-4" />
-              Unmatched
+              ยังไม่จับคู่
             </span>
           );
         }
@@ -279,24 +279,24 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     },
     {
       dataField: 'matchMethod',
-      caption: 'Match Method',
+      caption: 'วิธีจับคู่',
       width: 90,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
         const methodLabels: Record<string, string> = {
           tpp: 'TPP',
           ttmt: 'TTMT',
-          code: 'Code',
-          manual: 'Manual',
+          code: 'รหัส',
+          manual: 'ด้วยตนเอง',
         };
         return methodLabels[cellInfo.value as string] || cellInfo.value;
       },
     },
-    { dataField: 'quantity', caption: 'Qty', width: 70, alignment: 'right' },
-    { dataField: 'unit', caption: 'Unit', width: 60 },
+    { dataField: 'quantity', caption: 'จำนวน', width: 70, alignment: 'right' },
+    { dataField: 'unit', caption: 'หน่วย', width: 60 },
     {
       dataField: 'unitPrice',
-      caption: 'Price',
+      caption: 'ราคา',
       width: 80,
       alignment: 'right',
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -306,7 +306,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     },
     {
       dataField: 'lineTotal',
-      caption: 'Total',
+      caption: 'รวม',
       width: 100,
       alignment: 'right',
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -315,7 +315,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       },
     },
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 100,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const line = cellInfo.data as VmiOrderLine;
@@ -323,7 +323,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         if (!line.matchedItemId) {
           return (
             <DxButton
-              text="Match"
+              text="จับคู่"
               type="default"
               stylingMode="text"
               onClick={() => setMatchingLine(line)}
@@ -332,7 +332,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         }
         return (
           <DxButton
-            text="Rematch"
+            text="จับคู่ใหม่"
             type="normal"
             stylingMode="text"
             onClick={() => setMatchingLine(line)}
@@ -346,7 +346,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     return (
       <Card>
         <CardContent className="p-8 text-center text-gray-500">
-          Loading order details...
+          กำลังโหลดรายละเอียดคำสั่งซื้อ...
         </CardContent>
       </Card>
     );
@@ -356,7 +356,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     return (
       <Card>
         <CardContent className="p-8 text-center text-red-600">
-          {error instanceof Error ? error.message : 'Failed to load order'}
+          {error instanceof Error ? error.message : 'โหลดคำสั่งซื้อไม่สำเร็จ'}
         </CardContent>
       </Card>
     );
@@ -372,9 +372,9 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl">Order {order.portalOrderId}</CardTitle>
+              <CardTitle className="text-xl">คำสั่งซื้อ {order.portalOrderId}</CardTitle>
               <p className="text-sm text-gray-500 mt-1">
-                From {order.portalName} - {new Date(order.orderDate).toLocaleDateString()}
+                จาก {order.portalName} - {new Date(order.orderDate).toLocaleDateString()}
               </p>
             </div>
             <div className="flex gap-2 items-center">
@@ -396,34 +396,34 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             <div className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">Customer</p>
-                <p className="font-medium">{order.customerName || 'Unknown'}</p>
+                <p className="text-xs text-gray-500">ลูกค้า</p>
+                <p className="font-medium">{order.customerName || 'ไม่ทราบ'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">Items</p>
+                <p className="text-xs text-gray-500">รายการ</p>
                 <p className="font-medium">
-                  {order.matchedItems}/{order.totalItems} matched
+                  จับคู่แล้ว {order.matchedItems}/{order.totalItems}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">Requested Delivery</p>
+                <p className="text-xs text-gray-500">วันที่ขอจัดส่ง</p>
                 <p className="font-medium">
                   {order.requestedDeliveryDate
                     ? new Date(order.requestedDeliveryDate).toLocaleDateString()
-                    : 'Not specified'}
+                    : 'ไม่ระบุ'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">Priority</p>
+                <p className="text-xs text-gray-500">ความสำคัญ</p>
                 <p className={cn('font-medium', {
                   'text-red-600': order.priority === 'urgent',
                   'text-orange-600': order.priority === 'high',
@@ -438,11 +438,11 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.confirmedAt && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
               <p>
-                <strong>Confirmed:</strong> {new Date(order.confirmedAt).toLocaleString()}
-                {order.confirmedByName && ` by ${order.confirmedByName}`}
+                <strong>ยืนยันเมื่อ:</strong> {new Date(order.confirmedAt).toLocaleString()}
+                {order.confirmedByName && ` โดย ${order.confirmedByName}`}
               </p>
               {order.salesOrderNumber && (
-                <p><strong>Sales Order:</strong> {order.salesOrderNumber}</p>
+                <p><strong>ใบสั่งขาย:</strong> {order.salesOrderNumber}</p>
               )}
             </div>
           )}
@@ -450,14 +450,14 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.shippedAt && (
             <div className="mt-4 p-3 bg-green-50 rounded-lg text-sm">
               <p>
-                <strong>Shipped:</strong> {new Date(order.shippedAt).toLocaleString()}
-                {order.shippedByName && ` by ${order.shippedByName}`}
+                <strong>จัดส่งเมื่อ:</strong> {new Date(order.shippedAt).toLocaleString()}
+                {order.shippedByName && ` โดย ${order.shippedByName}`}
               </p>
               {order.trackingNumber && (
-                <p><strong>Tracking:</strong> {order.trackingNumber}</p>
+                <p><strong>เลขติดตามพัสดุ:</strong> {order.trackingNumber}</p>
               )}
               {order.carrier && (
-                <p><strong>Carrier:</strong> {order.carrier}</p>
+                <p><strong>ผู้จัดส่ง:</strong> {order.carrier}</p>
               )}
             </div>
           )}
@@ -466,7 +466,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           <div className="mt-4 flex gap-2">
             {canConfirm && (
               <DxButton
-                text={confirmMutation.isPending ? 'Confirming...' : 'Confirm Order'}
+                text={confirmMutation.isPending ? 'กำลังยืนยัน...' : 'ยืนยันคำสั่งซื้อ'}
                 type="success"
                 icon="check"
                 onClick={() => confirmMutation.mutate()}
@@ -475,7 +475,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             )}
             {canShip && (
               <DxButton
-                text="Ship Order"
+                text="จัดส่งคำสั่งซื้อ"
                 type="default"
                 onClick={() => setShowShipDialog(true)}
               >
@@ -489,8 +489,8 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
               <div className="text-sm text-yellow-800">
-                <strong>{order.unmatchedItems} unmatched item(s)</strong>
-                <p>Please match all items before confirming the order.</p>
+                <strong>มี {order.unmatchedItems} รายการที่ยังไม่จับคู่</strong>
+                <p>กรุณาจับคู่ทุกรายการก่อนยืนยันคำสั่งซื้อ</p>
               </div>
             </div>
           )}
@@ -500,7 +500,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       {/* Order Lines */}
       <Card elevation="raised">
         <CardHeader>
-          <CardTitle>Order Lines</CardTitle>
+          <CardTitle>รายการในคำสั่งซื้อ</CardTitle>
         </CardHeader>
         <CardContent>
           <DxDataGrid
@@ -509,7 +509,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             keyExpr="id"
             height={300}
             sorting
-            noDataText="No order lines"
+            noDataText="ไม่มีรายการในคำสั่งซื้อ"
           />
         </CardContent>
       </Card>
@@ -523,50 +523,50 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             matchMutation.mutate({ lineId: matchingLine.id, itemId: item.id });
           }
         }}
-        title={matchingLine ? `Match Item: ${matchingLine.portalItemName || matchingLine.portalItemCode}` : 'Select Item'}
+        title={matchingLine ? `จับคู่รายการ: ${matchingLine.portalItemName || matchingLine.portalItemCode}` : 'เลือกรายการ'}
       />
 
       {/* Ship Dialog */}
       <DxPopup
         visible={showShipDialog}
         onHiding={() => setShowShipDialog(false)}
-        title="Ship Order"
+        title="จัดส่งคำสั่งซื้อ"
         width={400}
         height={250}
       >
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tracking Number
+              เลขติดตามพัสดุ
             </label>
             <input
               type="text"
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
-              placeholder="Enter tracking number"
+              placeholder="กรอกเลขติดตามพัสดุ"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Carrier
+              ผู้จัดส่ง
             </label>
             <input
               type="text"
               value={carrier}
               onChange={(e) => setCarrier(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
-              placeholder="e.g., Kerry Express, Flash"
+              placeholder="เช่น Kerry Express, Flash"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               onClick={() => setShowShipDialog(false)}
             />
             <DxButton
-              text={shipMutation.isPending ? 'Shipping...' : 'Confirm Shipment'}
+              text={shipMutation.isPending ? 'กำลังจัดส่ง...' : 'ยืนยันการจัดส่ง'}
               type="success"
               onClick={() => shipMutation.mutate()}
               disabled={shipMutation.isPending}

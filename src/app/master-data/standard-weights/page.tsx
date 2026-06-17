@@ -98,7 +98,7 @@ export default function StandardWeightsPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/master-data" label="Master Data" />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -175,14 +175,14 @@ export default function StandardWeightsPage() {
               (new Date(v).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
             );
             if (days < 0)
-              return <span className="text-rose-700 font-medium">{v} (Expired)</span>;
+              return <span className="text-rose-700 font-medium">{v} (หมดอายุ)</span>;
             if (days <= 30)
-              return <span className="text-amber-700 font-medium">{v} (in {days}d)</span>;
+              return <span className="text-amber-700 font-medium">{v} (อีก {days} วัน)</span>;
             return v;
           }}
         />
-        <Column dataField="ownerDepartment" caption="Owner" />
-        <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
+        <Column dataField="ownerDepartment" caption="หน่วยงานเจ้าของ" />
+        <Column dataField="isActive" caption="ใช้งาน" dataType="boolean" width={80} />
         <Column
           caption={t('table.columns.actions')}
           width={110}

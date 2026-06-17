@@ -100,7 +100,7 @@ export default function DebitNotesPage() {
       <div className="flex gap-1">
         <Button
           icon="search"
-          hint="View"
+          hint="ดู"
           stylingMode="text"
           onClick={() => handleViewNote(note.id)}
         />
@@ -123,7 +123,7 @@ export default function DebitNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            Manage debit notes for customers and vendors
+            จัดการใบเพิ่มหนี้สำหรับลูกค้าและผู้ขาย
           </p>
         </div>
 
@@ -138,17 +138,17 @@ export default function DebitNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="Search debit notes..." />
+            <SearchPanel visible={true} placeholder="ค้นหาใบเพิ่มหนี้..." />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Debit Notes</span>
+                <span className="text-lg font-medium">ใบเพิ่มหนี้</span>
               </Item>
               <Item location="before">
                 <SelectBox
                   items={[
-                    { id: 'ar_debit', text: 'AR Debit Notes' },
-                    { id: 'ap_debit', text: 'AP Debit Notes' },
+                    { id: 'ar_debit', text: 'ใบเพิ่มหนี้ลูกหนี้' },
+                    { id: 'ap_debit', text: 'ใบเพิ่มหนี้เจ้าหนี้' },
                   ]}
                   displayExpr="text"
                   valueExpr="id"
@@ -159,7 +159,7 @@ export default function DebitNotesPage() {
               </Item>
               <Item location="after">
                 <Button
-                  text="New Debit Note"
+                  text="สร้างใบเพิ่มหนี้"
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -171,55 +171,55 @@ export default function DebitNotesPage() {
 
             <Column
               dataField="noteNumber"
-              caption="Note #"
+              caption="เลขที่ใบ"
               width={160}
             />
             <Column
               dataField="noteType"
-              caption="Type"
+              caption="ประเภท"
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="Date"
+              caption="วันที่"
               dataType="date"
               width={100}
               cellRender={formatDate}
             />
             <Column
               dataField="customerName"
-              caption="Customer"
+              caption="ลูกค้า"
               minWidth={150}
               visible={noteTypeFilter === 'ar_debit'}
             />
             <Column
               dataField="vendorName"
-              caption="Vendor"
+              caption="ผู้ขาย"
               minWidth={150}
               visible={noteTypeFilter === 'ap_debit'}
             />
             <Column
               dataField="referenceInvoiceNumber"
-              caption="Invoice Ref"
+              caption="อ้างอิงใบแจ้งหนี้"
               width={140}
             />
             <Column
               dataField="totalAmount"
-              caption="Amount"
+              caption="จำนวนเงิน"
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption="สถานะ"
               width={110}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="Actions"
+              caption="การดำเนินการ"
               width={80}
               alignment="center"
               cellRender={renderActions}

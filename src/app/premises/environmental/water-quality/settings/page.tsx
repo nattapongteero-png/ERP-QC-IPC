@@ -353,7 +353,7 @@ export default function WaterQualitySettingsPage() {
           <div>
             <label className="block text-sm font-medium mb-1">ชื่อ *</label>
             <input className="w-full border rounded px-3 py-2" value={sysForm.name}
-              onChange={(e) => setSysForm({ ...sysForm, name: e.target.value })} placeholder="Purified Water 1" />
+              onChange={(e) => setSysForm({ ...sysForm, name: e.target.value })} placeholder="เช่น น้ำบริสุทธิ์ 1" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">ประเภท *</label>
@@ -389,7 +389,7 @@ export default function WaterQualitySettingsPage() {
           <div>
             <label className="block text-sm font-medium mb-1">ชื่อ *</label>
             <input className="w-full border rounded px-3 py-2" value={ptForm.name}
-              onChange={(e) => setPtForm({ ...ptForm, name: e.target.value })} placeholder="Tank outlet" />
+              onChange={(e) => setPtForm({ ...ptForm, name: e.target.value })} placeholder="เช่น ทางออกถังเก็บ" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">ตำแหน่ง</label>

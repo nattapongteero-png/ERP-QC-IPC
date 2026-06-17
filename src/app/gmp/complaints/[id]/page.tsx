@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ComplaintDataEntryDialog, ComplaintInvestigationForm } from '@/components/complaints';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
+import { StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -422,6 +423,20 @@ export default function ComplaintDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Workflow status — สถานะการดำเนินงาน */}
+      <div className="container mx-auto px-4 mt-6">
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          current={complaint.status}
+          steps={[
+            { key: 'received', label: 'รับเรื่อง' },
+            { key: 'under_investigation', label: 'กำลังสอบสวน' },
+            { key: 'resolved', label: 'แก้ไขแล้ว' },
+            { key: 'closed', label: 'ปิด' },
+          ]}
+        />
       </div>
 
       {/* Key Metrics Cards */}

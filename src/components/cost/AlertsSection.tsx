@@ -25,7 +25,7 @@ const severityConfig = {
 function formatMoMValue(value: number, unit: string): string {
   if (unit === 'currency') return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(value);
   if (unit === 'percent') return `${value.toFixed(1)}%`;
-  if (unit === 'days') return `${value.toFixed(0)} days`;
+  if (unit === 'days') return `${value.toFixed(0)} วัน`;
   return value.toLocaleString('th-TH', { maximumFractionDigits: 1 });
 }
 
@@ -39,7 +39,7 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            Active Alerts ({alerts.length})
+            การแจ้งเตือนที่ใช้งานอยู่ ({alerts.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -47,7 +47,7 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
             <div className="space-y-4">
               {criticalAlerts.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-red-600 mb-2">Critical ({criticalAlerts.length})</p>
+                  <p className="text-sm font-medium text-red-600 mb-2">วิกฤต ({criticalAlerts.length})</p>
                   <div className="space-y-2">
                     {criticalAlerts.map(alert => {
                       const config = severityConfig[alert.severity];
@@ -69,7 +69,7 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
               )}
               {warningAlerts.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-yellow-600 mb-2">Warning ({warningAlerts.length})</p>
+                  <p className="text-sm font-medium text-yellow-600 mb-2">คำเตือน ({warningAlerts.length})</p>
                   <div className="space-y-2">
                     {warningAlerts.slice(0, 5).map(alert => {
                       const config = severityConfig[alert.severity];
@@ -90,13 +90,13 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
                 </div>
               )}
             </div>
-          ) : <p className="text-gray-500">No active alerts</p>}
+          ) : <p className="text-gray-500">ไม่มีการแจ้งเตือนที่ใช้งานอยู่</p>}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-sm">6-Month Trend</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">แนวโน้ม 6 เดือน</CardTitle></CardHeader>
           <CardContent>
             {trends.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -106,26 +106,26 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="grossMargin" stroke="#22c55e" name="Gross Margin %" strokeWidth={2} />
-                  <Line type="monotone" dataKey="avgUnitCost" stroke="#3b82f6" name="Avg Unit Cost" strokeWidth={2} />
+                  <Line type="monotone" dataKey="grossMargin" stroke="#22c55e" name="อัตรากำไรขั้นต้น %" strokeWidth={2} />
+                  <Line type="monotone" dataKey="avgUnitCost" stroke="#3b82f6" name="ต้นทุนต่อหน่วยเฉลี่ย" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
-            ) : <p className="text-gray-500 text-sm">No trend data</p>}
+            ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลแนวโน้ม</p>}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-sm">Month-over-Month Comparison</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">เปรียบเทียบเดือนต่อเดือน</CardTitle></CardHeader>
           <CardContent>
             {momComparison.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Metric</th>
-                      <th className="text-right py-2">This Month</th>
-                      <th className="text-right py-2">Last Month</th>
-                      <th className="text-right py-2">Change</th>
+                      <th className="text-left py-2">ตัวชี้วัด</th>
+                      <th className="text-right py-2">เดือนนี้</th>
+                      <th className="text-right py-2">เดือนที่แล้ว</th>
+                      <th className="text-right py-2">เปลี่ยนแปลง</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -142,7 +142,7 @@ export function AlertsSection({ alerts, trends, momComparison }: AlertsSectionPr
                   </tbody>
                 </table>
               </div>
-            ) : <p className="text-gray-500 text-sm">No comparison data</p>}
+            ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลเปรียบเทียบ</p>}
           </CardContent>
         </Card>
       </div>

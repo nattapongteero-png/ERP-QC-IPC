@@ -18,16 +18,16 @@ import {
 } from 'lucide-react';
 
 const sourceTypeOptions = [
-  { value: '', label: 'Select Source Type...' },
-  { value: 'production', label: 'Production' },
-  { value: 'quality', label: 'Quality Control' },
-  { value: 'warehouse', label: 'Warehouse' },
+  { value: '', label: 'เลือกประเภทแหล่งที่มา...' },
+  { value: 'production', label: 'การผลิต' },
+  { value: 'quality', label: 'ควบคุมคุณภาพ' },
+  { value: 'warehouse', label: 'คลังสินค้า' },
 ];
 
 const severityOptions = [
-  { value: 'minor', label: 'Minor' },
-  { value: 'major', label: 'Major' },
-  { value: 'critical', label: 'Critical' },
+  { value: 'minor', label: 'น้อย' },
+  { value: 'major', label: 'มาก' },
+  { value: 'critical', label: 'วิกฤต' },
 ];
 
 export default function NewDeviationPage() {
@@ -45,12 +45,12 @@ export default function NewDeviationPage() {
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
-      alert('Please enter a title');
+      alert('กรุณากรอกหัวข้อ');
       return;
     }
 
     if (!formData.description.trim()) {
-      alert('Please enter a description');
+      alert('กรุณากรอกรายละเอียด');
       return;
     }
 
@@ -93,11 +93,11 @@ export default function NewDeviationPage() {
   const getSeverityDescription = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'Immediate action required. May impact product safety or efficacy.';
+        return 'ต้องดำเนินการทันที อาจส่งผลต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์';
       case 'major':
-        return 'Significant deviation requiring prompt attention and investigation.';
+        return 'ความเบี่ยงเบนที่มีนัยสำคัญ ต้องให้ความสนใจและสืบสวนโดยเร็ว';
       default:
-        return 'Minor deviation that should be documented and addressed.';
+        return 'ความเบี่ยงเบนเล็กน้อยที่ควรบันทึกและแก้ไข';
     }
   };
 
@@ -125,7 +125,7 @@ export default function NewDeviationPage() {
           description={t('nonConformance.description')}
           backButton={
             <DxButton
-              text="Back"
+              text="กลับ"
               icon="back"
               type="normal"
               stylingMode="text"
@@ -140,16 +140,16 @@ export default function NewDeviationPage() {
             {/* Basic Information */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Deviation Details</CardTitle>
+                <CardTitle>รายละเอียดความเบี่ยงเบน</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Title <span className="text-red-500">*</span>
+                      หัวข้อ <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
-                      placeholder="Brief description of the deviation"
+                      placeholder="คำอธิบายสั้น ๆ ของความเบี่ยงเบน"
                       value={formData.title}
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, title: value }))
@@ -158,12 +158,12 @@ export default function NewDeviationPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description <span className="text-red-500">*</span>
+                      รายละเอียด <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       rows={5}
-                      placeholder="Provide detailed description of what happened, when, where, and any immediate actions taken..."
+                      placeholder="อธิบายรายละเอียดว่าเกิดอะไรขึ้น เมื่อใด ที่ไหน และการดำเนินการเบื้องต้นที่ได้ทำไป..."
                       value={formData.description}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, description: e.target.value }))
@@ -177,13 +177,13 @@ export default function NewDeviationPage() {
             {/* Classification */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Classification</CardTitle>
+                <CardTitle>การจัดประเภท</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Source Type
+                      ประเภทแหล่งที่มา
                     </label>
                     <DxSelectBox
                       items={sourceTypeOptions}
@@ -191,12 +191,12 @@ export default function NewDeviationPage() {
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, sourceType: value }))
                       }
-                      placeholder="Select Source Type..."
+                      placeholder="เลือกประเภทแหล่งที่มา..."
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Severity <span className="text-red-500">*</span>
+                      ความรุนแรง <span className="text-red-500">*</span>
                     </label>
                     <DxSelectBox
                       items={severityOptions}
@@ -222,14 +222,14 @@ export default function NewDeviationPage() {
                 }`}>
                   {getSeverityIcon(formData.severity)}
                   <div>
-                    <p className={`font-medium capitalize ${
+                    <p className={`font-medium ${
                       formData.severity === 'critical'
                         ? 'text-red-800'
                         : formData.severity === 'major'
                         ? 'text-yellow-800'
                         : 'text-blue-800'
                     }`}>
-                      {formData.severity} Severity
+                      ความรุนแรงระดับ{formData.severity === 'critical' ? 'วิกฤต' : formData.severity === 'major' ? 'มาก' : 'น้อย'}
                     </p>
                     <p className={`text-sm ${
                       formData.severity === 'critical'
@@ -248,13 +248,13 @@ export default function NewDeviationPage() {
             {/* Timeline */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Timeline</CardTitle>
+                <CardTitle>กรอบเวลา</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Due Date
+                      วันครบกำหนด
                     </label>
                     <DxDateBox
                       value={formData.dueDate}
@@ -267,12 +267,12 @@ export default function NewDeviationPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Suggested Timeline
+                      กรอบเวลาที่แนะนำ
                     </label>
                     <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                      {formData.severity === 'critical' && 'Critical: Resolve within 3 days'}
-                      {formData.severity === 'major' && 'Major: Resolve within 14 days'}
-                      {formData.severity === 'minor' && 'Minor: Resolve within 30 days'}
+                      {formData.severity === 'critical' && 'วิกฤต: แก้ไขภายใน 3 วัน'}
+                      {formData.severity === 'major' && 'มาก: แก้ไขภายใน 14 วัน'}
+                      {formData.severity === 'minor' && 'น้อย: แก้ไขภายใน 30 วัน'}
                     </div>
                   </div>
                 </div>
@@ -285,11 +285,11 @@ export default function NewDeviationPage() {
             {/* Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Actions</CardTitle>
+                <CardTitle className="text-sm">การดำเนินการ</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DxButton
-                  text={isSaving ? 'Creating...' : 'Report Deviation'}
+                  text={isSaving ? 'กำลังสร้าง...' : 'รายงานความเบี่ยงเบน'}
                   icon="save"
                   type="success"
                   width="100%"
@@ -297,7 +297,7 @@ export default function NewDeviationPage() {
                   disabled={!formData.title || !formData.description || isSaving}
                 />
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   width="100%"
@@ -311,24 +311,23 @@ export default function NewDeviationPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
-                  About Deviations
+                  เกี่ยวกับความเบี่ยงเบน
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-gray-600">
                   <p>
-                    A deviation is any departure from approved procedures, specifications, or
-                    established standards.
+                    ความเบี่ยงเบน คือ การเบี่ยงเบนใด ๆ จากขั้นตอน ข้อกำหนด หรือมาตรฐานที่ได้รับการอนุมัติ
                   </p>
                   <p>
-                    <strong>Report when:</strong>
+                    <strong>รายงานเมื่อ:</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-gray-500">
-                    <li>Process parameters outside limits</li>
-                    <li>Equipment malfunction</li>
-                    <li>Test results out of specification</li>
-                    <li>Documentation errors</li>
-                    <li>Environmental excursions</li>
+                    <li>พารามิเตอร์กระบวนการอยู่นอกขีดจำกัด</li>
+                    <li>เครื่องจักรทำงานผิดปกติ</li>
+                    <li>ผลการทดสอบอยู่นอกข้อกำหนด</li>
+                    <li>ข้อผิดพลาดในเอกสาร</li>
+                    <li>สภาวะแวดล้อมเบี่ยงเบน</li>
                   </ul>
                 </div>
               </CardContent>
@@ -337,34 +336,34 @@ export default function NewDeviationPage() {
             {/* Severity Guide */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Severity Classification</CardTitle>
+                <CardTitle className="text-sm">การจัดระดับความรุนแรง</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <AlertOctagon className="h-4 w-4 text-red-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-red-800">Critical</p>
+                      <p className="font-medium text-red-800">วิกฤต</p>
                       <p className="text-xs text-gray-500">
-                        Direct impact on product safety, patient health, or regulatory compliance
+                        ส่งผลโดยตรงต่อความปลอดภัยของผลิตภัณฑ์ สุขภาพผู้ป่วย หรือการปฏิบัติตามกฎระเบียบ
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-yellow-800">Major</p>
+                      <p className="font-medium text-yellow-800">มาก</p>
                       <p className="text-xs text-gray-500">
-                        Significant impact on product quality or process control
+                        ส่งผลกระทบอย่างมีนัยสำคัญต่อคุณภาพผลิตภัณฑ์หรือการควบคุมกระบวนการ
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-blue-800">Minor</p>
+                      <p className="font-medium text-blue-800">น้อย</p>
                       <p className="text-xs text-gray-500">
-                        Limited impact, easily correctable, no direct quality effect
+                        ผลกระทบจำกัด แก้ไขได้ง่าย ไม่ส่งผลโดยตรงต่อคุณภาพ
                       </p>
                     </div>
                   </div>

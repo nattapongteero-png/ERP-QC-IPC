@@ -143,7 +143,7 @@ export default function NewBOMPage() {
       }
     }
     if (!name) {
-      setName(`BOM for ${item.nameTh}`);
+      setName(`BOM สำหรับ ${item.nameTh}`);
     }
     setProductDialogOpen(false);
   };
@@ -289,8 +289,8 @@ export default function NewBOMPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
         <PageHeader
-          title="Create New BOM"
-          description="Define a new Bill of Materials / Recipe"
+          title="สร้าง BOM ใหม่"
+          description="กำหนดสูตรส่วนประกอบ (BOM) / สูตรการผลิตใหม่"
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -299,13 +299,13 @@ export default function NewBOMPage() {
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Product Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Product <span className="text-red-500">*</span>
+                    สินค้า <span className="text-red-500">*</span>
                   </label>
                   {selectedProduct ? (
                     <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -319,7 +319,7 @@ export default function NewBOMPage() {
                         </div>
                       </div>
                       <DxButton
-                        text="Change"
+                        text="เปลี่ยน"
                         type="normal"
                         stylingMode="outlined"
                         onClick={() => setProductDialogOpen(true)}
@@ -333,7 +333,7 @@ export default function NewBOMPage() {
                     >
                       <div className="flex items-center gap-3 text-gray-500 group-hover:text-emerald-600">
                         <BoxSelect className="h-5 w-5" />
-                        <span>Click to select a product...</span>
+                        <span>คลิกเพื่อเลือกสินค้า...</span>
                       </div>
                       <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-emerald-500" />
                     </button>
@@ -343,17 +343,17 @@ export default function NewBOMPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      BOM Code <span className="text-red-500">*</span>
+                      รหัส BOM <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
                       value={code}
                       onValueChange={setCode}
-                      placeholder="e.g., BOM-PROD001"
+                      placeholder="เช่น BOM-PROD001"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Version
+                      เวอร์ชัน
                     </label>
                     <DxTextBox
                       value={version}
@@ -365,49 +365,49 @@ export default function NewBOMPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    BOM Name <span className="text-red-500">*</span>
+                    ชื่อ BOM <span className="text-red-500">*</span>
                   </label>
                   <DxTextBox
                     value={name}
                     onValueChange={setName}
-                    placeholder="e.g., BOM for Product ABC"
+                    placeholder="เช่น BOM สำหรับสินค้า ABC"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Batch Size <span className="text-red-500">*</span>
+                      ขนาดชุดผลิต <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
                       value={batchSize}
                       onValueChange={setBatchSize}
-                      placeholder="e.g., 1000"
+                      placeholder="เช่น 1000"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Batch Unit <span className="text-red-500">*</span>
+                      หน่วยชุดผลิต <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
                       value={batchUnit}
                       onValueChange={setBatchUnit}
-                      placeholder="e.g., kg, L, pcs"
+                      placeholder="เช่น kg, L, pcs"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Theoretical Yield ({selectedProduct?.primaryUnit || batchUnit || 'unit'})
+                    ผลผลิตตามทฤษฎี ({selectedProduct?.primaryUnit || batchUnit || 'หน่วย'})
                   </label>
                   <DxTextBox
                     value={theoreticalYield}
                     onValueChange={setTheoreticalYield}
-                    placeholder={`Expected output quantity in ${selectedProduct?.primaryUnit || batchUnit || 'unit'}`}
+                    placeholder={`จำนวนผลผลิตที่คาดหวังในหน่วย ${selectedProduct?.primaryUnit || batchUnit || 'หน่วย'}`}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Expected quantity of finished product from this batch
+                    จำนวนสินค้าสำเร็จรูปที่คาดว่าจะได้จากชุดผลิตนี้
                   </p>
                 </div>
 
@@ -437,7 +437,7 @@ export default function NewBOMPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Yield Target (%)
+                      เป้าหมายผลผลิต (%)
                     </label>
                     <DxTextBox
                       value={yieldTarget}
@@ -447,7 +447,7 @@ export default function NewBOMPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Loss Allowance (%)
+                      เผื่อการสูญเสีย (%)
                     </label>
                     <DxTextBox
                       value={lossAllowance}
@@ -459,7 +459,7 @@ export default function NewBOMPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Effective Date
+                    วันที่มีผลบังคับใช้
                   </label>
                   <DxDateBox
                     value={effectiveDate}
@@ -474,9 +474,9 @@ export default function NewBOMPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Materials / Ingredients</CardTitle>
+                  <CardTitle>วัตถุดิบ / ส่วนผสม</CardTitle>
                   <DxButton
-                    text="Add Material"
+                    text="เพิ่มวัตถุดิบ"
                     icon="plus"
                     type="normal"
                     stylingMode="outlined"
@@ -493,12 +493,12 @@ export default function NewBOMPage() {
                       <thead>
                         <tr className="border-b bg-gray-50">
                           <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">#</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Item</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Quantity</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Unit</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Optional</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Notes</th>
-                          <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">สินค้า</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">จำนวน</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">หน่วย</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">ทางเลือก</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">หมายเหตุ</th>
+                          <th className="px-4 py-2 text-center text-sm font-medium text-gray-600">การดำเนินการ</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -550,7 +550,7 @@ export default function NewBOMPage() {
                               <DxTextBox
                                 value={line.notes}
                                 onValueChange={(value) => handleUpdateLine(line.id, 'notes', value)}
-                                placeholder="Notes..."
+                                placeholder="หมายเหตุ..."
                                 width={130}
                               />
                             </td>
@@ -569,8 +569,8 @@ export default function NewBOMPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p>No materials added yet</p>
-                    <p className="text-sm">Click &quot;Add Material&quot; to add ingredients to this BOM</p>
+                    <p>ยังไม่ได้เพิ่มวัตถุดิบ</p>
+                    <p className="text-sm">คลิก &quot;เพิ่มวัตถุดิบ&quot; เพื่อเพิ่มส่วนผสมลงใน BOM นี้</p>
                   </div>
                 )}
               </CardContent>
@@ -581,24 +581,24 @@ export default function NewBOMPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Summary</CardTitle>
+                <CardTitle>สรุป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-500">Product</p>
+                  <p className="text-sm text-gray-500">สินค้า</p>
                   <p className="font-medium">{selectedProduct?.nameTh || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Batch Size</p>
+                  <p className="text-sm text-gray-500">ขนาดชุดผลิต</p>
                   <p className="font-medium">{batchSize ? `${batchSize} ${batchUnit}` : '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Materials</p>
-                  <p className="font-medium">{lines.length} items</p>
+                  <p className="text-sm text-gray-500">วัตถุดิบ</p>
+                  <p className="font-medium">{lines.length} รายการ</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <Badge variant="secondary">Draft</Badge>
+                  <p className="text-sm text-gray-500">สถานะ</p>
+                  <Badge variant="secondary">ฉบับร่าง</Badge>
                 </div>
 
                 {validationErrors.length > 0 && (
@@ -614,7 +614,7 @@ export default function NewBOMPage() {
 
                 <div className="pt-4 border-t space-y-2">
                   <DxButton
-                    text={saving ? 'Creating...' : 'Create BOM'}
+                    text={saving ? 'กำลังสร้าง...' : 'สร้าง BOM'}
                     icon="save"
                     type="success"
                     width="100%"
@@ -622,7 +622,7 @@ export default function NewBOMPage() {
                     disabled={saving}
                   />
                   <DxButton
-                    text="Cancel"
+                    text="ยกเลิก"
                     type="normal"
                     stylingMode="outlined"
                     width="100%"
@@ -639,7 +639,7 @@ export default function NewBOMPage() {
         open={productDialogOpen}
         onOpenChange={setProductDialogOpen}
         onSelect={handleSelectProduct}
-        title="Select Product"
+        title="เลือกสินค้า"
         filterType={['finished_goods', 'wip']}
         allowCreate
       />
@@ -667,7 +667,7 @@ export default function NewBOMPage() {
                 <div>
                   <h2 className="text-xl font-bold leading-tight">เลือกวัตถุดิบ</h2>
                   <p className="text-sm text-emerald-50/90">
-                    Select Materials · เลือกได้หลายรายการพร้อมกัน
+                    เลือกได้หลายรายการพร้อมกัน
                   </p>
                 </div>
               </div>

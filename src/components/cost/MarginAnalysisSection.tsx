@@ -18,26 +18,26 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
   return (
     <Card data-testid="margin-analysis-section">
       <CardHeader>
-        <CardTitle>Margin Analysis</CardTitle>
+        <CardTitle>วิเคราะห์อัตรากำไร</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <KPICard title="Revenue MTD" icon={<Banknote className="h-5 w-5 text-green-600" />} kpi={data.revenueMTD} format="currency" />
-          <KPICard title="Gross Profit MTD" icon={<TrendingUp className="h-5 w-5 text-blue-600" />} kpi={data.grossProfitMTD} format="currency" />
+          <KPICard title="รายได้เดือนนี้" icon={<Banknote className="h-5 w-5 text-green-600" />} kpi={data.revenueMTD} format="currency" />
+          <KPICard title="กำไรขั้นต้นเดือนนี้" icon={<TrendingUp className="h-5 w-5 text-blue-600" />} kpi={data.grossProfitMTD} format="currency" />
         </div>
 
         <Card>
-          <CardHeader><CardTitle className="text-sm">Margin by Category</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">อัตรากำไรตามหมวดหมู่</CardTitle></CardHeader>
           <CardContent>
             {data.marginByCategory.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2">Category</th>
-                      <th className="text-right py-2">Revenue</th>
-                      <th className="text-right py-2">COGS</th>
-                      <th className="text-right py-2">Margin %</th>
+                      <th className="text-left py-2">หมวดหมู่</th>
+                      <th className="text-right py-2">รายได้</th>
+                      <th className="text-right py-2">ต้นทุนขาย</th>
+                      <th className="text-right py-2">อัตรากำไร %</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -52,7 +52,7 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
                   </tbody>
                 </table>
               </div>
-            ) : <p className="text-gray-500 text-sm">No category data</p>}
+            ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลหมวดหมู่</p>}
           </CardContent>
         </Card>
 
@@ -61,7 +61,7 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-500" />
-                Margin Erosion
+                การลดลงของอัตรากำไร
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -74,7 +74,7 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">No margin erosion</p>}
+              ) : <p className="text-gray-500 text-sm">ไม่มีการลดลงของอัตรากำไร</p>}
             </CardContent>
           </Card>
 
@@ -82,7 +82,7 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <Award className="h-4 w-4 text-green-500" />
-                Top Margin Products
+                สินค้าที่มีอัตรากำไรสูงสุด
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -95,7 +95,7 @@ export function MarginAnalysisSection({ data }: MarginAnalysisSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">No product data</p>}
+              ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลสินค้า</p>}
             </CardContent>
           </Card>
         </div>

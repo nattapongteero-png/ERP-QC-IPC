@@ -50,19 +50,19 @@ async function createSchedule(data: SanitationScheduleCreate): Promise<Sanitatio
 // ============================================
 
 const areaTypeOptions = [
-  { value: '', text: 'All Areas' },
-  { value: 'production', text: 'Production' },
-  { value: 'warehouse', text: 'Warehouse' },
-  { value: 'lab', text: 'Laboratory' },
-  { value: 'office', text: 'Office' },
+  { value: '', text: 'ทุกพื้นที่' },
+  { value: 'production', text: 'พื้นที่ผลิต' },
+  { value: 'warehouse', text: 'คลังจัดเก็บ' },
+  { value: 'lab', text: 'ห้องปฏิบัติการ' },
+  { value: 'office', text: 'สำนักงาน' },
 ];
 
 const frequencyOptions = [
-  { value: '', text: 'All Frequencies' },
-  { value: 'daily', text: 'Daily' },
-  { value: 'weekly', text: 'Weekly' },
-  { value: 'monthly', text: 'Monthly' },
-  { value: 'quarterly', text: 'Quarterly' },
+  { value: '', text: 'ทุกความถี่' },
+  { value: 'daily', text: 'รายวัน' },
+  { value: 'weekly', text: 'รายสัปดาห์' },
+  { value: 'monthly', text: 'รายเดือน' },
+  { value: 'quarterly', text: 'รายไตรมาส' },
 ];
 
 export default function SanitationSchedulesPage() {
@@ -116,7 +116,7 @@ export default function SanitationSchedulesPage() {
         onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
-            text="New Schedule"
+            text="เพิ่มกำหนดการ"
             icon="plus"
             onClick={() => setShowCreateDialog(true)}
             type="default"
@@ -133,7 +133,7 @@ export default function SanitationSchedulesPage() {
           displayExpr="text"
           valueExpr="value"
           width={160}
-          placeholder="Area Type"
+          placeholder="ประเภทพื้นที่"
         />
         <DxSelectBox
           items={frequencyOptions}
@@ -142,7 +142,7 @@ export default function SanitationSchedulesPage() {
           displayExpr="text"
           valueExpr="value"
           width={160}
-          placeholder="Frequency"
+          placeholder="ความถี่"
         />
       </div>
 
@@ -164,23 +164,23 @@ export default function SanitationSchedulesPage() {
       <DxPopup
         visible={showCreateDialog}
         onHiding={() => setShowCreateDialog(false)}
-        title="New Sanitation Schedule"
+        title="เพิ่มกำหนดการสุขาภิบาล"
         width={500}
         height="auto"
       >
         <div className="space-y-4 p-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Schedule Name *</label>
+            <label className="block text-sm font-medium mb-1">ชื่อกำหนดการ *</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Enter schedule name"
+              placeholder="กรอกชื่อกำหนดการ"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Area Type *</label>
+              <label className="block text-sm font-medium mb-1">ประเภทพื้นที่ *</label>
               <DxSelectBox
                 items={areaTypeOptions.filter((o) => o.value)}
                 value={formData.areaType || ''}
@@ -192,7 +192,7 @@ export default function SanitationSchedulesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Frequency *</label>
+              <label className="block text-sm font-medium mb-1">ความถี่ *</label>
               <DxSelectBox
                 items={frequencyOptions.filter((o) => o.value)}
                 value={formData.frequency || ''}
@@ -207,16 +207,16 @@ export default function SanitationSchedulesPage() {
 
           {formData.frequency === 'weekly' && (
             <div>
-              <label className="block text-sm font-medium mb-1">Day of Week</label>
+              <label className="block text-sm font-medium mb-1">วันในสัปดาห์</label>
               <DxSelectBox
                 items={[
-                  { value: 0, text: 'Sunday' },
-                  { value: 1, text: 'Monday' },
-                  { value: 2, text: 'Tuesday' },
-                  { value: 3, text: 'Wednesday' },
-                  { value: 4, text: 'Thursday' },
-                  { value: 5, text: 'Friday' },
-                  { value: 6, text: 'Saturday' },
+                  { value: 0, text: 'อาทิตย์' },
+                  { value: 1, text: 'จันทร์' },
+                  { value: 2, text: 'อังคาร' },
+                  { value: 3, text: 'พุธ' },
+                  { value: 4, text: 'พฤหัสบดี' },
+                  { value: 5, text: 'ศุกร์' },
+                  { value: 6, text: 'เสาร์' },
                 ]}
                 value={formData.dayOfWeek}
                 onValueChanged={(e) => setFormData({ ...formData, dayOfWeek: e.value })}
@@ -228,7 +228,7 @@ export default function SanitationSchedulesPage() {
 
           {(formData.frequency === 'monthly' || formData.frequency === 'quarterly') && (
             <div>
-              <label className="block text-sm font-medium mb-1">Day of Month</label>
+              <label className="block text-sm font-medium mb-1">วันที่ของเดือน</label>
               <DxNumberBox
                 value={formData.dayOfMonth}
                 onValueChanged={(e) => setFormData({ ...formData, dayOfMonth: e.value })}
@@ -239,11 +239,11 @@ export default function SanitationSchedulesPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Cleaning Method *</label>
+            <label className="block text-sm font-medium mb-1">วิธีทำความสะอาด *</label>
             <DxTextArea
               value={formData.method || ''}
               onValueChanged={(e) => setFormData({ ...formData, method: e.value })}
-              placeholder="Describe the cleaning method"
+              placeholder="อธิบายวิธีการทำความสะอาด"
               height={80}
             />
           </div>
@@ -255,17 +255,17 @@ export default function SanitationSchedulesPage() {
                 setFormData({ ...formData, verificationRequired: e.value })
               }
             />
-            <label className="text-sm">Verification Required</label>
+            <label className="text-sm">ต้องมีการตรวจสอบ</label>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowCreateDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Create"
+              text="สร้าง"
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

@@ -68,7 +68,7 @@ export default function VATReportPage() {
     a.download = `vat-report-${formatTaxPeriod(taxPeriod)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('VAT report exported successfully', 'success', 3000);
+    notify('ส่งออกรายงานภาษีมูลค่าเพิ่มสำเร็จ', 'success', 3000);
   }, [report, taxPeriod]);
 
   return (
@@ -76,7 +76,7 @@ export default function VATReportPage() {
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="รายงานภาษีมูลค่าเพิ่ม"
-        subtitle="VAT Report (Por Por 30) - Input and Output VAT summary for tax filing"
+        subtitle="รายงานภาษีมูลค่าเพิ่ม (ภ.พ.30) - สรุปภาษีซื้อและภาษีขายสำหรับยื่นแบบ"
         icon="receipt"
       />
 
@@ -84,14 +84,14 @@ export default function VATReportPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AccountingKPICard
           label="งวดภาษี"
-          subtitle="Tax Period"
+          subtitle="งวดภาษี"
           value={formatTaxPeriod(taxPeriod)}
           icon="calendar"
           variant="info"
         />
         <AccountingKPICard
           label="ภาษีขาออก"
-          subtitle="Output VAT (Sales)"
+          subtitle="ภาษีขาย (Output VAT)"
           value={report ? formatCurrency(report.outputVAT.totalVATAmount) : '-'}
           icon="trending-up"
           variant="success"
@@ -99,7 +99,7 @@ export default function VATReportPage() {
         />
         <AccountingKPICard
           label="ภาษีขาเข้า"
-          subtitle="Input VAT (Purchases)"
+          subtitle="ภาษีซื้อ (Input VAT)"
           value={report ? formatCurrency(report.inputVAT.totalVATAmount) : '-'}
           icon="arrow-down"
           variant="danger"
@@ -107,7 +107,7 @@ export default function VATReportPage() {
         />
         <AccountingKPICard
           label="ภาษีสุทธิ"
-          subtitle={report && report.netVAT >= 0 ? 'Net VAT Payable' : 'Net VAT Refundable'}
+          subtitle={report && report.netVAT >= 0 ? 'ภาษีสุทธิที่ต้องชำระ' : 'ภาษีสุทธิที่ขอคืน'}
           value={report ? formatCurrency(Math.abs(report.netVAT)) : '-'}
           icon="calculator"
           variant={report && report.netVAT >= 0 ? 'warning' : 'success'}
@@ -192,7 +192,7 @@ export default function VATReportPage() {
                       ภาษีขาออก (ภาษีจากการขาย)
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Output VAT - {formatTaxPeriod(taxPeriod)}
+                      ภาษีขาย - {formatTaxPeriod(taxPeriod)}
                     </p>
                   </div>
                 </div>
@@ -258,7 +258,7 @@ export default function VATReportPage() {
                       ภาษีขาเข้า (ภาษีจากการซื้อ)
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Input VAT - {formatTaxPeriod(taxPeriod)}
+                      ภาษีซื้อ - {formatTaxPeriod(taxPeriod)}
                     </p>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export default function VATReportPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">สรุปภาษีมูลค่าเพิ่ม</h3>
-                  <p className="text-sm text-blue-100">VAT Summary - {formatTaxPeriod(taxPeriod)}</p>
+                  <p className="text-sm text-blue-100">สรุปภาษีมูลค่าเพิ่ม - {formatTaxPeriod(taxPeriod)}</p>
                 </div>
               </div>
             </div>
@@ -331,7 +331,7 @@ export default function VATReportPage() {
                     <div className="p-2 bg-green-100 rounded-lg">
                       <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
-                    <span className="text-gray-700 font-medium">ภาษีขาออก (Output VAT):</span>
+                    <span className="text-gray-700 font-medium">ภาษีขาย (Output VAT):</span>
                   </div>
                   <span className="text-xl font-bold text-green-600">
                     {formatCurrency(report.outputVAT.totalVATAmount)}
@@ -342,7 +342,7 @@ export default function VATReportPage() {
                     <div className="p-2 bg-red-100 rounded-lg">
                       <TrendingDown className="h-5 w-5 text-red-600" />
                     </div>
-                    <span className="text-gray-700 font-medium">หัก: ภาษีขาเข้า (Input VAT):</span>
+                    <span className="text-gray-700 font-medium">หัก: ภาษีซื้อ (Input VAT):</span>
                   </div>
                   <span className="text-xl font-bold text-red-600">
                     ({formatCurrency(report.inputVAT.totalVATAmount)})
@@ -359,7 +359,7 @@ export default function VATReportPage() {
                         ภาษีมูลค่าเพิ่มสุทธิ
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        Net VAT {report.netVAT >= 0 ? 'Payable (ต้องชำระ)' : 'Refundable (ขอคืน)'}
+                        {report.netVAT >= 0 ? 'ต้องชำระ' : 'ขอคืน'}
                       </p>
                     </div>
                   </div>

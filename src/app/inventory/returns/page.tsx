@@ -82,11 +82,11 @@ function formatDateTh(dateStr: string | null | undefined): string {
 function statusBadge(status: string) {
   switch (status) {
     case 'submitted':
-      return { variant: 'warning' as const, label: 'Submitted', icon: <Clock className="h-3 w-3" /> };
+      return { variant: 'warning' as const, label: 'รออนุมัติ', icon: <Clock className="h-3 w-3" /> };
     case 'received':
-      return { variant: 'success' as const, label: 'Received', icon: <CheckCircle2 className="h-3 w-3" /> };
+      return { variant: 'success' as const, label: 'อนุมัติแล้ว', icon: <CheckCircle2 className="h-3 w-3" /> };
     case 'rejected':
-      return { variant: 'danger' as const, label: 'Rejected', icon: <XCircle className="h-3 w-3" /> };
+      return { variant: 'danger' as const, label: 'ปฏิเสธ', icon: <XCircle className="h-3 w-3" /> };
     default:
       return { variant: 'default' as const, label: status, icon: null };
   }
@@ -254,7 +254,7 @@ export default function MaterialReturnsInboxPage() {
       allowSorting: false,
       cellRender: (cell) => (
         <DxButton
-          text="View"
+          text="ดู"
           stylingMode="outlined"
           type="default"
           onClick={() => router.push(`/inventory/returns/${cell.data.id}`)}
@@ -272,19 +272,19 @@ export default function MaterialReturnsInboxPage() {
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="Material Returns Inbox"
+          title="กล่องรับคืนวัตถุดิบ"
           subtitle="คืนวัตถุดิบจากการผลิต — รออนุมัติ/รับเข้า"
           icon={ArrowDownToLine}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
           breadcrumbs={[
-            { label: 'Inventory', href: '/inventory' },
-            { label: 'Returns' },
+            { label: 'คลังสินค้า', href: '/inventory' },
+            { label: 'การรับคืน' },
           ]}
           actions={
             <DxButton
               icon="refresh"
-              text="Refresh"
+              text="รีเฟรช"
               stylingMode="outlined"
               onClick={fetchReturns}
             />

@@ -95,7 +95,7 @@ export function DocumentList({
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'documentNumber',
-      caption: 'Document No.',
+      caption: 'เลขที่เอกสาร',
       width: 140,
       cellRender: (data: { row?: { data?: Document } }) => {
         const doc = data.row?.data;
@@ -110,28 +110,28 @@ export function DocumentList({
     },
     {
       dataField: 'title',
-      caption: 'Title',
+      caption: 'ชื่อเรื่อง',
       minWidth: 250,
     },
     {
       dataField: 'typeName',
-      caption: 'Type',
+      caption: 'ประเภท',
       width: 180,
     },
     {
       dataField: 'departmentName',
-      caption: 'Department',
+      caption: 'แผนก',
       width: 150,
     },
     {
       dataField: 'currentVersionNumber',
-      caption: 'Version',
+      caption: 'เวอร์ชัน',
       width: 80,
       alignment: 'center',
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
       cellRender: (data: { value?: DocumentStatus }) => {
         if (!data.value) return null;
@@ -140,19 +140,19 @@ export function DocumentList({
     },
     {
       dataField: 'createdByName',
-      caption: 'Created By',
+      caption: 'สร้างโดย',
       width: 130,
     },
     {
       dataField: 'updatedAt',
-      caption: 'Last Updated',
+      caption: 'อัปเดตล่าสุด',
       width: 160,
       dataType: 'datetime',
       format: 'dd/MM/yyyy HH:mm',
       sortOrder: 'desc',
     },
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 100,
       cellRender: (data: { row?: { data?: Document } }) => {
         const doc = data.row?.data;
@@ -165,7 +165,7 @@ export function DocumentList({
                 onDocumentSelect?.(doc);
               }}
               className="p-1.5 hover:bg-muted rounded-md transition-colors"
-              title="View document"
+              title="ดูเอกสาร"
             >
               <Eye className="w-4 h-4" />
             </button>
@@ -186,17 +186,17 @@ export function DocumentList({
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">GMP Documents</h2>
+        <h2 className="text-lg font-semibold">เอกสาร GMP</h2>
         <div className="flex items-center gap-2">
           <DxButton
-            text="Refresh"
+            text="รีเฟรช"
             icon="refresh"
             onClick={() => refetchDocuments()}
             stylingMode="outlined"
           />
           {onNewDocument && (
             <DxButton
-              text="New Document"
+              text="เพิ่มเอกสาร"
               icon="add"
               onClick={onNewDocument}
               type="success"
@@ -216,7 +216,7 @@ export function DocumentList({
         pageSize={20}
         sorting
         columnChooser
-        noDataText="No documents found"
+        noDataText="ไม่พบเอกสาร"
         onRowClick={handleRowClick}
       />
     </div>

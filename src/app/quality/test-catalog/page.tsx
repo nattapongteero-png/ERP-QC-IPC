@@ -26,27 +26,27 @@ interface CatalogRow {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  chemical: 'Chemical',
-  physical: 'Physical',
-  microbial: 'Microbial',
-  sensory: 'Sensory',
-  stability: 'Stability',
-  other: 'Other',
+  chemical: 'เคมี',
+  physical: 'กายภาพ',
+  microbial: 'จุลชีววิทยา',
+  sensory: 'ประสาทสัมผัส',
+  stability: 'ความคงตัว',
+  other: 'อื่นๆ',
 };
 
 const CATEGORY_FILTER_OPTIONS = [
   { value: '', label: 'ทั้งหมด' },
-  { value: 'chemical', label: 'Chemical' },
-  { value: 'physical', label: 'Physical' },
-  { value: 'microbial', label: 'Microbial' },
-  { value: 'sensory', label: 'Sensory' },
-  { value: 'stability', label: 'Stability' },
-  { value: 'other', label: 'Other' },
+  { value: 'chemical', label: 'เคมี' },
+  { value: 'physical', label: 'กายภาพ' },
+  { value: 'microbial', label: 'จุลชีววิทยา' },
+  { value: 'sensory', label: 'ประสาทสัมผัส' },
+  { value: 'stability', label: 'ความคงตัว' },
+  { value: 'other', label: 'อื่นๆ' },
 ];
 
 const ACTIVE_FILTER_OPTIONS = [
-  { value: 'true', label: 'Active' },
-  { value: 'false', label: 'Inactive' },
+  { value: 'true', label: 'ใช้งาน' },
+  { value: 'false', label: 'ไม่ใช้งาน' },
   { value: 'all', label: 'ทั้งหมด' },
 ];
 
@@ -101,11 +101,11 @@ export default function QcTestCatalogPage() {
   return (
     <div className="p-4 space-y-4">
       <PageHeader
-        title="QC Test Catalog"
-        description="Master data รายการทดสอบ QC — ใช้กำหนด Quality Spec"
+        title="แคตตาล็อกการทดสอบ QC"
+        description="ข้อมูลหลักรายการทดสอบ QC — ใช้กำหนดข้อกำหนดคุณภาพ"
         actions={
           <DxButton
-            text="+ เพิ่ม Test ใหม่"
+            text="+ เพิ่มการทดสอบใหม่"
             type="default"
             icon="plus"
             onClick={() => router.push('/quality/test-catalog/new')}
@@ -123,7 +123,7 @@ export default function QcTestCatalogPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-gray-500">Active</div>
+            <div className="text-xs text-gray-500">ใช้งาน</div>
             <div className="text-2xl font-bold text-emerald-600">{stats.activeCount}</div>
           </CardContent>
         </Card>
@@ -182,21 +182,21 @@ export default function QcTestCatalogPage() {
             <Pager showPageSizeSelector allowedPageSizes={[10, 25, 50, 100]} showInfo />
 
             <Column dataField="code" caption="รหัส" width={110} />
-            <Column dataField="name" caption="Test (EN)" />
-            <Column dataField="nameTh" caption="Test (TH)" />
+            <Column dataField="name" caption="ชื่อทดสอบ (EN)" />
+            <Column dataField="nameTh" caption="ชื่อทดสอบ (TH)" />
             <Column
               dataField="category"
               caption="หมวด"
               width={110}
               calculateCellValue={(d: CatalogRow) => CATEGORY_LABELS[d.category] ?? d.category}
             />
-            <Column dataField="defaultUnit" caption="Unit" width={80} />
-            <Column dataField="defaultMin" caption="Min" width={80} dataType="number" />
-            <Column dataField="defaultMax" caption="Max" width={80} dataType="number" />
+            <Column dataField="defaultUnit" caption="หน่วย" width={80} />
+            <Column dataField="defaultMin" caption="ต่ำสุด" width={80} dataType="number" />
+            <Column dataField="defaultMax" caption="สูงสุด" width={80} dataType="number" />
             <Column dataField="testMethod" caption="วิธีทดสอบ" />
             <Column
               dataField="isActive"
-              caption="Active"
+              caption="ใช้งาน"
               width={80}
               dataType="boolean"
             />

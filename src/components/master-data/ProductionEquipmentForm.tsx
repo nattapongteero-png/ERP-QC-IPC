@@ -42,15 +42,15 @@ interface ProductionEquipmentFormProps {
 }
 
 const equipmentTypes = [
-  { value: 'scale', label: 'Scale' },
-  { value: 'mixer', label: 'Mixer' },
-  { value: 'hotplate', label: 'Hotplate' },
-  { value: 'container', label: 'Container' },
-  { value: 'tool', label: 'Tool' },
-  { value: 'filler', label: 'Filler' },
-  { value: 'tank', label: 'Tank' },
-  { value: 'pump', label: 'Pump' },
-  { value: 'other', label: 'Other' },
+  { value: 'scale', label: 'เครื่องชั่ง' },
+  { value: 'mixer', label: 'เครื่องผสม' },
+  { value: 'hotplate', label: 'แผ่นทำความร้อน' },
+  { value: 'container', label: 'ภาชนะ' },
+  { value: 'tool', label: 'เครื่องมือ' },
+  { value: 'filler', label: 'เครื่องบรรจุ' },
+  { value: 'tank', label: 'ถัง' },
+  { value: 'pump', label: 'ปั๊ม' },
+  { value: 'other', label: 'อื่นๆ' },
 ];
 
 export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormProps) {
@@ -71,7 +71,7 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
   if (mode === 'edit' && (isLoadingEquipment || !existingEquipment)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">กำลังโหลด...</div>
       </div>
     );
   }
@@ -130,19 +130,19 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-equipment'] });
       toast.success(
-        mode === 'edit' ? 'Equipment Updated' : 'Equipment Created',
-        `${formData.name} has been ${mode === 'edit' ? 'updated' : 'created'} successfully.`
+        mode === 'edit' ? 'อัปเดตอุปกรณ์แล้ว' : 'สร้างอุปกรณ์แล้ว',
+        `${formData.name} ถูก${mode === 'edit' ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`
       );
       router.push('/master-data/production-equipment');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
   const handleSave = () => {
     if (!formData.name || !formData.nameTh || !formData.equipmentType) {
-      toast.error('Validation Error', 'กรุณากรอก ชื่อ EN, ชื่อ TH, และประเภทอุปกรณ์');
+      toast.error('ข้อมูลไม่ครบถ้วน', 'กรุณากรอก ชื่อ EN, ชื่อ TH, และประเภทอุปกรณ์');
       return;
     }
     saveMutation.mutate(formData);
@@ -156,26 +156,26 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
       {/* Header */}
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'Edit Equipment' : 'New Equipment'}
-        subtitle={mode === 'edit' ? `Editing ${existingEquipment?.name || ''}` : 'Create a new production equipment'}
+        title={mode === 'edit' ? 'แก้ไขอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}
+        subtitle={mode === 'edit' ? `กำลังแก้ไข ${existingEquipment?.name || ''}` : 'สร้างอุปกรณ์การผลิตใหม่'}
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Production Equipment', href: '/master-data/production-equipment' },
-          { label: mode === 'edit' ? 'Edit' : 'New' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'อุปกรณ์การผลิต', href: '/master-data/production-equipment' },
+          { label: mode === 'edit' ? 'แก้ไข' : 'เพิ่มใหม่' },
         ]}
         actions={
           <div className="flex gap-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               icon="back"
               stylingMode="outlined"
               onClick={handleCancel}
             />
             <DxButton
-              text={saveMutation.isPending ? 'Saving...' : 'Save'}
+              text={saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
               icon="save"
               type="success"
               onClick={handleSave}
@@ -190,14 +190,14 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wrench className="h-5 w-5 text-purple-600" />
-            Equipment Information
+            ข้อมูลอุปกรณ์
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code <span className="text-gray-400 font-normal">(สร้างอัตโนมัติ ถ้าไม่กรอก)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รหัส <span className="text-gray-400 font-normal">(สร้างอัตโนมัติ ถ้าไม่กรอก)</span></label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
@@ -205,65 +205,65 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Type *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ประเภทอุปกรณ์ *</label>
               <DxSelectBox
                 dataSource={equipmentTypes}
                 displayExpr="label"
                 valueExpr="value"
                 value={formData.equipmentType}
                 onValueChanged={(e) => setFormData({ ...formData, equipmentType: e.value })}
-                placeholder="Select type"
+                placeholder="เลือกประเภท"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (EN) *</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Equipment name in English"
+              placeholder="ชื่ออุปกรณ์ภาษาอังกฤษ"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (TH) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="Equipment name in Thai"
+              placeholder="ชื่ออุปกรณ์ภาษาไทย"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ความจุ</label>
               <DxTextBox
                 value={formData.capacity || ''}
                 onValueChanged={(e) => setFormData({ ...formData, capacity: e.value })}
-                placeholder="e.g., 200 kg, 50 liters"
+                placeholder="เช่น 200 กก., 50 ลิตร"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Default Room</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ห้องเริ่มต้น</label>
               <DxSelectBox
                 dataSource={(rooms || []).map(r => ({ id: r.id, name: r.name }))}
                 displayExpr="name"
                 valueExpr="id"
                 value={formData.roomId}
                 onValueChanged={(e) => setFormData({ ...formData, roomId: e.value })}
-                placeholder="Select room"
+                placeholder="เลือกห้อง"
                 showClearButton
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
             <DxTextBox
               value={formData.description || ''}
               onValueChanged={(e) => setFormData({ ...formData, description: e.value })}
-              placeholder="Optional description"
+              placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
             />
           </div>
 
@@ -272,7 +272,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               value={formData.isActive !== false}
               onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
             />
-            <span className="text-sm text-gray-700">Active</span>
+            <span className="text-sm text-gray-700">ใช้งาน</span>
           </div>
         </CardContent>
       </Card>
@@ -280,12 +280,12 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
       {/* Bottom Actions */}
       <div className="flex justify-end gap-2 pt-4">
         <DxButton
-          text="Cancel"
+          text="ยกเลิก"
           stylingMode="outlined"
           onClick={handleCancel}
         />
         <DxButton
-          text={saveMutation.isPending ? 'Saving...' : (mode === 'edit' ? 'Update Equipment' : 'Create Equipment')}
+          text={saveMutation.isPending ? 'กำลังบันทึก...' : (mode === 'edit' ? 'อัปเดตอุปกรณ์' : 'สร้างอุปกรณ์')}
           type="success"
           onClick={handleSave}
           disabled={saveMutation.isPending}

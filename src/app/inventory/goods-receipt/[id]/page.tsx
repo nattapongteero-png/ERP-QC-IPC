@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
+import { StatusStepper } from '@/components/shared';
 import type {
   GoodsReceipt,
   GoodsReceiptLine,
@@ -221,7 +222,7 @@ export default function GrnDetailPage() {
   });
 
   if (!data) {
-    return <div className="p-6 text-gray-500">Loading…</div>;
+    return <div className="p-6 text-gray-500">กำลังโหลด…</div>;
   }
 
   const { grn, lines } = data;
@@ -264,6 +265,16 @@ export default function GrnDetailPage() {
           )}
         </div>
       </header>
+
+      {/* Workflow status — สถานะการดำเนินงาน */}
+      <StatusStepper
+        title="สถานะการดำเนินงาน"
+        current={grn.status}
+        steps={[
+          { key: 'in_progress', label: 'กำลังดำเนินการ' },
+          { key: 'released', label: 'ผ่านแล้ว (ปล่อยเข้าคลัง)' },
+        ]}
+      />
 
       <DataGrid
         dataSource={lines}
@@ -314,7 +325,7 @@ export default function GrnDetailPage() {
           dataType="number"
           width={120}
         />
-        <Column dataField="unit" caption="Unit" allowEditing={false} width={80} />
+        <Column dataField="unit" caption="หน่วย" allowEditing={false} width={80} />
         <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} />
         <Column dataField="batchNumber" caption={t('form.batchNumber.label')} />
         <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" />
@@ -348,7 +359,7 @@ export default function GrnDetailPage() {
           )}
         />
         <Column
-          caption="Actions"
+          caption="การดำเนินการ"
           allowEditing={false}
           width={220}
           cellRender={(c) => {
@@ -499,7 +510,7 @@ export default function GrnDetailPage() {
           ))}
 
           <div className="border-t pt-3 mt-3">
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
             <input
               type="password"
               name="esign-password"
@@ -508,7 +519,7 @@ export default function GrnDetailPage() {
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
               className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-              placeholder="Sign with current password"
+              placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
             />
           </div>
 
@@ -616,7 +627,7 @@ export default function GrnDetailPage() {
             </>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
             <input
               type="password"
               name="esign-password"
@@ -625,7 +636,7 @@ export default function GrnDetailPage() {
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
               className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-              placeholder="Sign with current password"
+              placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
             />
           </div>
 

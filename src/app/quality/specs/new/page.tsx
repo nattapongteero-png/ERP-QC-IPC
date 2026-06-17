@@ -138,12 +138,12 @@ export default function NewQualitySpecPage() {
 
   const handleSubmit = async () => {
     if (!selectedItem) {
-      alert('Please select an item');
+      alert('กรุณาเลือกสินค้า');
       return;
     }
 
     if (!formData.testName.trim()) {
-      alert('Please enter a test name');
+      alert('กรุณากรอกชื่อการทดสอบ');
       return;
     }
 
@@ -185,7 +185,7 @@ export default function NewQualitySpecPage() {
           description={t('specifications.description')}
           backButton={
             <DxButton
-              text="Back"
+              text="ย้อนกลับ"
               icon="back"
               type="normal"
               stylingMode="text"
@@ -200,7 +200,7 @@ export default function NewQualitySpecPage() {
             {/* Item Selection */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Select Item</CardTitle>
+                <CardTitle>เลือกสินค้า</CardTitle>
               </CardHeader>
               <CardContent>
                 {selectedItem ? (
@@ -216,7 +216,7 @@ export default function NewQualitySpecPage() {
                       </div>
                     </div>
                     <DxButton
-                      text="Change"
+                      text="เปลี่ยน"
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setItemDialogOpen(true)}
@@ -230,7 +230,7 @@ export default function NewQualitySpecPage() {
                   >
                     <div className="flex items-center gap-3 text-gray-500 group-hover:text-green-600">
                       <BoxSelect className="h-5 w-5" />
-                      <span>Click to select an item...</span>
+                      <span>คลิกเพื่อเลือกสินค้า...</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-green-500" />
                   </button>
@@ -241,7 +241,7 @@ export default function NewQualitySpecPage() {
             {/* Test Details */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Test Details</CardTitle>
+                <CardTitle>รายละเอียดการทดสอบ</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -249,7 +249,7 @@ export default function NewQualitySpecPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                         <span>
-                          Test Name <span className="text-red-500">*</span>
+                          ชื่อการทดสอบ <span className="text-red-500">*</span>
                         </span>
                         <a
                           href="/master-data/ipc-criteria"
@@ -286,10 +286,10 @@ export default function NewQualitySpecPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Test Method
+                        วิธีการทดสอบ
                       </label>
                       <DxTextBox
-                        placeholder="e.g., USP <731>, AOAC 925.10"
+                        placeholder="เช่น USP <731>, AOAC 925.10"
                         value={formData.testMethod}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, testMethod: value }))
@@ -299,10 +299,10 @@ export default function NewQualitySpecPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Specification (Text)
+                      ข้อกำหนด (ข้อความ)
                     </label>
                     <DxTextBox
-                      placeholder="e.g., White to off-white powder, Clear colorless liquid"
+                      placeholder="เช่น ผงสีขาวถึงขาวนวล, ของเหลวใสไม่มีสี"
                       value={formData.specification}
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, specification: value }))
@@ -316,17 +316,17 @@ export default function NewQualitySpecPage() {
             {/* Acceptance Criteria */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>Acceptance Criteria (Numeric)</CardTitle>
+                <CardTitle>เกณฑ์การยอมรับ (ตัวเลข)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Minimum Value
+                        ค่าต่ำสุด
                       </label>
                       <DxTextBox
-                        placeholder="e.g., 5.0"
+                        placeholder="เช่น 5.0"
                         value={formData.minValue?.toString() || ''}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, minValue: value }))
@@ -335,10 +335,10 @@ export default function NewQualitySpecPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Maximum Value
+                        ค่าสูงสุด
                       </label>
                       <DxTextBox
-                        placeholder="e.g., 8.0"
+                        placeholder="เช่น 8.0"
                         value={formData.maxValue?.toString() || ''}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, maxValue: value }))
@@ -347,7 +347,7 @@ export default function NewQualitySpecPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Unit
+                        หน่วย
                       </label>
                       {/* Unit dropdown — strictly driven by the selected
                           Test Name. Disabled until a test is chosen so the
@@ -380,7 +380,7 @@ export default function NewQualitySpecPage() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Leave min/max empty if the test is pass/fail based on text specification only.
+                    เว้นค่าต่ำสุด/สูงสุดว่างไว้ หากการทดสอบเป็นแบบผ่าน/ไม่ผ่านตามข้อกำหนดข้อความเท่านั้น
                   </p>
                 </div>
               </CardContent>
@@ -391,7 +391,7 @@ export default function NewQualitySpecPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                  Critical Test Parameter
+                  พารามิเตอร์การทดสอบวิกฤต
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -401,12 +401,12 @@ export default function NewQualitySpecPage() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, isCritical: value }))
                     }
-                    text="Mark as Critical Test"
+                    text="ทำเครื่องหมายเป็นการทดสอบวิกฤต"
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2 ml-6">
-                  Critical tests are parameters that directly impact product safety or efficacy.
-                  Failure of a critical test may result in batch rejection.
+                  การทดสอบวิกฤตคือพารามิเตอร์ที่ส่งผลโดยตรงต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์
+                  หากการทดสอบวิกฤตไม่ผ่าน อาจส่งผลให้ปฏิเสธรุ่นการผลิต
                 </p>
               </CardContent>
             </Card>
@@ -417,11 +417,11 @@ export default function NewQualitySpecPage() {
             {/* Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Actions</CardTitle>
+                <CardTitle className="text-sm">การดำเนินการ</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DxButton
-                  text={isSaving ? 'Creating...' : 'Create Specification'}
+                  text={isSaving ? 'กำลังสร้าง...' : 'สร้างข้อกำหนด'}
                   icon="save"
                   type="success"
                   width="100%"
@@ -429,7 +429,7 @@ export default function NewQualitySpecPage() {
                   disabled={!selectedItem || !formData.testName || isSaving}
                 />
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   width="100%"
@@ -443,26 +443,26 @@ export default function NewQualitySpecPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <FileCheck className="h-4 w-4" />
-                  About Specifications
+                  เกี่ยวกับข้อกำหนด
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-gray-600">
                   <p>
-                    <strong>Test Name:</strong> The parameter being tested (e.g., pH, moisture,
-                    assay).
+                    <strong>ชื่อการทดสอบ:</strong> พารามิเตอร์ที่ทำการทดสอบ (เช่น pH, ความชื้น,
+                    การวิเคราะห์ปริมาณ)
                   </p>
                   <p>
-                    <strong>Test Method:</strong> Reference to the standard method used (e.g., USP,
-                    EP, in-house).
+                    <strong>วิธีการทดสอบ:</strong> อ้างอิงวิธีมาตรฐานที่ใช้ (เช่น USP,
+                    EP, วิธีภายใน)
                   </p>
                   <p>
-                    <strong>Min/Max Values:</strong> Numeric acceptance limits. Results outside
-                    these limits will fail.
+                    <strong>ค่าต่ำสุด/สูงสุด:</strong> ขีดจำกัดการยอมรับเชิงตัวเลข ผลลัพธ์ที่อยู่นอก
+                    ขีดจำกัดนี้จะไม่ผ่าน
                   </p>
                   <p>
-                    <strong>Specification:</strong> Text description for non-numeric tests like
-                    appearance, odor.
+                    <strong>ข้อกำหนด:</strong> คำอธิบายข้อความสำหรับการทดสอบที่ไม่ใช่ตัวเลข เช่น
+                    ลักษณะภายนอก กลิ่น
                   </p>
                 </div>
               </CardContent>
@@ -511,7 +511,7 @@ export default function NewQualitySpecPage() {
         open={itemDialogOpen}
         onOpenChange={setItemDialogOpen}
         onSelect={handleSelectItem}
-        title="Select Item"
+        title="เลือกสินค้า"
         showStock
       />
     </>

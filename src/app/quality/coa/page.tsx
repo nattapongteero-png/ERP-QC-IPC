@@ -71,26 +71,26 @@ function statusBadge(status: string): {
 } {
   switch (status) {
     case 'draft':
-      return { variant: 'default', label: 'Draft' };
+      return { variant: 'default', label: 'ฉบับร่าง' };
     case 'review':
-      return { variant: 'warning', label: 'Review' };
+      return { variant: 'warning', label: 'รอทบทวน' };
     case 'approved':
-      return { variant: 'info', label: 'Approved' };
+      return { variant: 'info', label: 'อนุมัติ' };
     case 'issued':
-      return { variant: 'success', label: 'Issued' };
+      return { variant: 'success', label: 'ออกแล้ว' };
     case 'superseded':
-      return { variant: 'warning', label: 'Superseded' };
+      return { variant: 'warning', label: 'แทนที่แล้ว' };
     case 'revoked':
-      return { variant: 'danger', label: 'Revoked' };
+      return { variant: 'danger', label: 'เพิกถอน' };
     default:
       return { variant: 'default', label: status };
   }
 }
 
 function conclusionBadge(c: string) {
-  if (c === 'complies') return <Badge variant="success">✓ Complies</Badge>;
-  if (c === 'does_not_comply') return <Badge variant="danger">✗ Fails</Badge>;
-  return <Badge variant="warning">Partial</Badge>;
+  if (c === 'complies') return <Badge variant="success">✓ ผ่านข้อกำหนด</Badge>;
+  if (c === 'does_not_comply') return <Badge variant="danger">✗ ไม่ผ่าน</Badge>;
+  return <Badge variant="warning">ผ่านบางส่วน</Badge>;
 }
 
 export default function CoaListPage() {
@@ -195,7 +195,7 @@ export default function CoaListPage() {
     },
     {
       dataField: 'lotNumber',
-      caption: 'Lot #',
+      caption: 'เลขที่ล็อต',
       width: 140,
       cellRender: (cell) =>
         cell.data.lotNumber ? (
@@ -238,7 +238,7 @@ export default function CoaListPage() {
       allowSorting: false,
       cellRender: (cell) => (
         <DxButton
-          text="View"
+          text="ดู"
           stylingMode="outlined"
           type="default"
           onClick={() => router.push(`/quality/coa/${cell.data.id}`)}
@@ -257,14 +257,14 @@ export default function CoaListPage() {
           iconBgColor="bg-emerald-100"
           iconColor="text-emerald-600"
           breadcrumbs={[
-            { label: 'Quality', href: '/quality' },
+            { label: 'คุณภาพ', href: '/quality' },
             { label: 'COA' },
           ]}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
-                text="Refresh"
+                text="รีเฟรช"
                 stylingMode="outlined"
                 onClick={fetchCoa}
               />
@@ -364,7 +364,7 @@ export default function CoaListPage() {
                 ยังไม่มี COA
               </h3>
               <p className="text-sm text-gray-500 max-w-sm mb-4">
-                COA สร้างจากตัวอย่าง QC ที่ปล่อยใช้งาน — เปิดตัวอย่างแล้วกด &quot;Generate COA&quot;
+                COA สร้างจากตัวอย่าง QC ที่ปล่อยใช้งาน — เปิดตัวอย่างแล้วกด &quot;ออก COA&quot;
               </p>
               <DxButton
                 icon="plus"

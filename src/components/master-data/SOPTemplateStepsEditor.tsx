@@ -81,9 +81,9 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
       queryClient.invalidateQueries({ queryKey });
       setIsAdding(false);
       setFormData(emptyForm);
-      toast.success('Step Added', 'Procedure step added successfully.');
+      toast.success('เพิ่มขั้นตอนแล้ว', 'เพิ่มขั้นตอนการปฏิบัติงานเรียบร้อยแล้ว');
     },
-    onError: (err: Error) => toast.error('Error', err.message),
+    onError: (err: Error) => toast.error('เกิดข้อผิดพลาด', err.message),
   });
 
   const updateMutation = useMutation({
@@ -101,9 +101,9 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
       queryClient.invalidateQueries({ queryKey });
       setEditingId(null);
       setFormData(emptyForm);
-      toast.success('Step Updated', 'Procedure step updated successfully.');
+      toast.success('แก้ไขขั้นตอนแล้ว', 'แก้ไขขั้นตอนการปฏิบัติงานเรียบร้อยแล้ว');
     },
-    onError: (err: Error) => toast.error('Error', err.message),
+    onError: (err: Error) => toast.error('เกิดข้อผิดพลาด', err.message),
   });
 
   const deleteMutation = useMutation({
@@ -117,9 +117,9 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success('Step Removed', 'Procedure step removed.');
+      toast.success('ลบขั้นตอนแล้ว', 'ลบขั้นตอนการปฏิบัติงานเรียบร้อยแล้ว');
     },
-    onError: (err: Error) => toast.error('Error', err.message),
+    onError: (err: Error) => toast.error('เกิดข้อผิดพลาด', err.message),
   });
 
   const reorderMutation = useMutation({
@@ -201,11 +201,11 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (EN)</label>
           <DxTextBox
             value={formData.stepName}
             onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
-            placeholder="e.g., Line Clearance"
+            placeholder="เช่น Line Clearance"
           />
         </div>
       </div>
@@ -219,11 +219,11 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำ (EN)</label>
         <DxTextArea
           value={formData.instructions}
           onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-          placeholder="Instructions in English"
+          placeholder="คำแนะนำเป็นภาษาอังกฤษ"
           height={80}
         />
       </div>
@@ -258,7 +258,7 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <ListOrdered className="h-5 w-5 text-emerald-600" />
-            Procedure Steps ({steps.length})
+            ขั้นตอนการปฏิบัติงาน ({steps.length})
           </CardTitle>
           {!isAdding && !editingId && (
             <button
@@ -266,21 +266,21 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Add Step
+              เพิ่มขั้นตอน
             </button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading && (
-          <div className="text-center py-8 text-gray-400">Loading steps...</div>
+          <div className="text-center py-8 text-gray-400">กำลังโหลดขั้นตอน...</div>
         )}
 
         {!isLoading && steps.length === 0 && !isAdding && (
           <div className="text-center py-8">
             <ListOrdered className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">No procedure steps defined yet.</p>
-            <p className="text-xs text-gray-400 mt-1">Click "Add Step" to define the first procedure step.</p>
+            <p className="text-sm text-gray-500">ยังไม่ได้กำหนดขั้นตอนการปฏิบัติงาน</p>
+            <p className="text-xs text-gray-400 mt-1">กด &quot;เพิ่มขั้นตอน&quot; เพื่อกำหนดขั้นตอนแรก</p>
           </div>
         )}
 
@@ -315,7 +315,7 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
                     onClick={() => handleMoveUp(index)}
                     disabled={index === 0 || reorderMutation.isPending}
                     className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Move up"
+                    title="เลื่อนขึ้น"
                   >
                     <ChevronUp className="h-4 w-4 text-gray-500" />
                   </button>
@@ -323,24 +323,24 @@ export function SOPTemplateStepsEditor({ templateId }: Props) {
                     onClick={() => handleMoveDown(index)}
                     disabled={index >= steps.length - 1 || reorderMutation.isPending}
                     className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Move down"
+                    title="เลื่อนลง"
                   >
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </button>
                   <button
                     onClick={() => startEdit(step)}
                     className="p-1 rounded hover:bg-blue-50"
-                    title="Edit"
+                    title="แก้ไข"
                   >
                     <Pencil className="h-4 w-4 text-blue-500" />
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm('Delete this step?')) deleteMutation.mutate(step.id);
+                      if (confirm('ลบขั้นตอนนี้?')) deleteMutation.mutate(step.id);
                     }}
                     disabled={deleteMutation.isPending}
                     className="p-1 rounded hover:bg-red-50"
-                    title="Delete"
+                    title="ลบ"
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </button>

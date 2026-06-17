@@ -32,17 +32,17 @@ export function AuditPlanList({
     () => [
       {
         dataField: 'planYear',
-        caption: 'Year',
+        caption: 'ปี',
         width: 80,
       },
       {
         dataField: 'name',
-        caption: 'Plan Name',
+        caption: 'ชื่อแผน',
         width: 200,
       },
       {
         dataField: 'status',
-        caption: 'Status',
+        caption: 'สถานะ',
         width: 120,
         cellRender: (data: { value: AuditPlanStatus }) => (
           <WorkflowStatusBadge status={data.value} />
@@ -50,17 +50,17 @@ export function AuditPlanList({
       },
       {
         dataField: 'totalAudits',
-        caption: 'Planned',
+        caption: 'ที่วางแผนไว้',
         width: 80,
       },
       {
         dataField: 'completedAudits',
-        caption: 'Completed',
+        caption: 'เสร็จสิ้น',
         width: 90,
       },
       {
         dataField: 'progress',
-        caption: 'Progress',
+        caption: 'ความคืบหน้า',
         width: 120,
         calculateCellValue: (row: AuditPlan) => {
           if (row.totalAudits === 0) return 0;
@@ -83,7 +83,7 @@ export function AuditPlanList({
       },
       {
         dataField: 'approvedByName',
-        caption: 'Approved By',
+        caption: 'อนุมัติโดย',
         width: 120,
         cellRender: (data: { value: string | undefined }) => {
           return data.value || <span className="text-muted-foreground text-xs">—</span>;
@@ -91,7 +91,7 @@ export function AuditPlanList({
       },
       {
         dataField: 'createdByName',
-        caption: 'Created By',
+        caption: 'สร้างโดย',
         width: 120,
       },
     ],
@@ -106,7 +106,7 @@ export function AuditPlanList({
         {onView && (
           <DxButton
             icon="find"
-            hint="View Details"
+            hint="ดูรายละเอียด"
             onClick={() => onView(data.data)}
             stylingMode="text"
           />
@@ -114,7 +114,7 @@ export function AuditPlanList({
         {canApprovePlan && onApprove && (
           <DxButton
             icon="check"
-            hint="Approve"
+            hint="อนุมัติ"
             onClick={() => onApprove(data.data.id)}
             stylingMode="text"
             type="success"
@@ -128,7 +128,7 @@ export function AuditPlanList({
   const allColumns = [
     ...columns,
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 100,
       cellRender: actionsCellRender,
     },

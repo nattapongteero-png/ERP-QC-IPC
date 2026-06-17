@@ -23,10 +23,10 @@ interface CostLayerListResult {
 }
 
 const transactionTypeLabels: Record<CostLayerTransactionType, string> = {
-  receipt: 'Receipt',
-  landed_cost: 'Landed Cost',
-  adjustment: 'Adjustment',
-  return: 'Return',
+  receipt: 'รับเข้า',
+  landed_cost: 'ต้นทุนนำเข้า',
+  adjustment: 'ปรับปรุง',
+  return: 'คืน',
 };
 
 const transactionTypeColors: Record<CostLayerTransactionType, string> = {
@@ -86,7 +86,7 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
   if (error) {
     return (
       <div className={`p-4 bg-white rounded-lg shadow ${className}`}>
-        <div className="text-red-500">Failed to load cost layer history</div>
+        <div className="text-red-500">ไม่สามารถโหลดประวัติชั้นต้นทุนได้</div>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
 
   return (
     <div className={`p-4 bg-white rounded-lg shadow ${className}`} data-testid="cost-layer-history">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Cost Layer History</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">ประวัติชั้นต้นทุน</h3>
 
       <DataGrid
         dataSource={costLayers}
@@ -117,14 +117,14 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
 
         <Column
           dataField="transactionDate"
-          caption="Date"
+          caption="วันที่"
           dataType="date"
           width={100}
           cellRender={({ data }) => formatDate(data.transactionDate)}
         />
         <Column
           dataField="transactionType"
-          caption="Type"
+          caption="ประเภท"
           width={120}
           cellRender={({ data }) => {
             const type = data.transactionType as CostLayerTransactionType;
@@ -137,7 +137,7 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
         />
         <Column
           dataField="quantityIn"
-          caption="Qty"
+          caption="ปริมาณ"
           dataType="number"
           width={80}
           cellRender={({ data }) => (
@@ -148,35 +148,35 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
         />
         <Column
           dataField="unitCost"
-          caption="Unit Cost"
+          caption="ต้นทุนต่อหน่วย"
           dataType="number"
           width={120}
           cellRender={({ data }) => formatCurrency(data.unitCost)}
         />
         <Column
           dataField="totalCost"
-          caption="Total Cost"
+          caption="ต้นทุนรวม"
           dataType="number"
           width={120}
           cellRender={({ data }) => formatCurrency(data.totalCost)}
         />
         <Column
           dataField="runningQty"
-          caption="Running Qty"
+          caption="ปริมาณสะสม"
           dataType="number"
           width={100}
           cellRender={({ data }) => data.runningQty?.toLocaleString()}
         />
         <Column
           dataField="runningWAC"
-          caption="Running WAC"
+          caption="ต้นทุนเฉลี่ยถ่วงน้ำหนัก"
           dataType="number"
           width={120}
           cellRender={({ data }) => formatCurrency(data.runningWAC)}
         />
         <Column
           dataField="notes"
-          caption="Notes"
+          caption="หมายเหตุ"
           minWidth={150}
         />
 
@@ -190,7 +190,7 @@ export function CostLayerHistory({ itemId, className = '' }: CostLayerHistoryPro
           showPageSizeSelector={true}
           allowedPageSizes={[10, 20, 50]}
           showInfo={true}
-          infoText={`Showing {0}-{1} of ${totalItems}`}
+          infoText={`แสดง {0}-{1} จาก ${totalItems}`}
         />
       </DataGrid>
     </div>

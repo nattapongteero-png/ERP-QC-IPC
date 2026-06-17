@@ -82,7 +82,7 @@ export default function BankReconciliationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('Statement deleted successfully', 'success', 3000);
+      notify('ลบรายการเดินบัญชีสำเร็จ', 'success', 3000);
     },
     onError: (error: Error) => {
       notify(error.message, 'error', 5000);
@@ -103,10 +103,10 @@ export default function BankReconciliationPage() {
 
   const handleDeleteStatement = (statement: BankStatement) => {
     if (statement.status === 'reconciled' || statement.status === 'closed') {
-      notify('Cannot delete reconciled or closed statements', 'warning', 3000);
+      notify('ไม่สามารถลบรายการที่กระทบยอดแล้วหรือปิดแล้วได้', 'warning', 3000);
       return;
     }
-    if (confirm(`Are you sure you want to delete statement "${statement.statementNumber}"?`)) {
+    if (confirm(`คุณต้องการลบรายการเดินบัญชี "${statement.statementNumber}" ใช่หรือไม่?`)) {
       deleteMutation.mutate(statement.id);
     }
   };
@@ -154,7 +154,7 @@ export default function BankReconciliationPage() {
             handleViewStatement(statement.id);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="View/Reconcile"
+          title="ดู/กระทบยอด"
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -164,7 +164,7 @@ export default function BankReconciliationPage() {
             handleEditStatement(statement.id);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="Edit"
+          title="แก้ไข"
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -175,7 +175,7 @@ export default function BankReconciliationPage() {
               handleDeleteStatement(statement);
             }}
             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Delete"
+            title="ลบ"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -196,7 +196,7 @@ export default function BankReconciliationPage() {
         onRefresh={() => refetch()}
         actions={
           <Button
-            text="Import Statement"
+            text="นำเข้ารายการเดินบัญชี"
             icon="upload"
             type="success"
             stylingMode="contained"
@@ -219,32 +219,32 @@ export default function BankReconciliationPage() {
           <>
             <KPICard
               value={summary?.totalStatements || 0}
-              label="Total Statements"
-              subtitle="All imported statements"
+              label="รายการเดินบัญชีทั้งหมด"
+              subtitle="รายการที่นำเข้าทั้งหมด"
               icon={<FileText className="h-6 w-6" />}
               iconBgColor="bg-blue-100"
               iconColor="text-blue-600"
             />
             <KPICard
               value={summary?.pendingReconciliation || 0}
-              label="Pending Reconciliation"
-              subtitle="Awaiting processing"
+              label="รอการกระทบยอด"
+              subtitle="รอดำเนินการ"
               icon={<Clock className="h-6 w-6" />}
               iconBgColor="bg-yellow-100"
               iconColor="text-yellow-600"
             />
             <KPICard
               value={summary?.reconciledThisMonth || 0}
-              label="Reconciled This Month"
-              subtitle="Completed this period"
+              label="กระทบยอดแล้วเดือนนี้"
+              subtitle="เสร็จสิ้นในงวดนี้"
               icon={<CheckCircle className="h-6 w-6" />}
               iconBgColor="bg-green-100"
               iconColor="text-green-600"
             />
             <KPICard
               value={summary?.unmatchedLines || 0}
-              label="Unmatched Lines"
-              subtitle="Require attention"
+              label="รายการที่ยังไม่จับคู่"
+              subtitle="ต้องตรวจสอบ"
               icon={<AlertCircle className="h-6 w-6" />}
               iconBgColor="bg-red-100"
               iconColor="text-red-600"
@@ -280,57 +280,57 @@ export default function BankReconciliationPage() {
 
             <Column
               dataField="statementNumber"
-              caption="Statement #"
+              caption="เลขที่รายการเดินบัญชี"
               width={150}
             />
             <Column
               dataField="bankAccountName"
-              caption="Bank Account"
+              caption="บัญชีธนาคาร"
               minWidth={180}
             />
             <Column
               dataField="statementDate"
-              caption="Date"
+              caption="วันที่"
               dataType="date"
               width={110}
               cellRender={formatDate}
             />
             <Column
               dataField="openingBalance"
-              caption="Opening"
+              caption="ยอดยกมา"
               width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="closingBalance"
-              caption="Closing"
+              caption="ยอดคงเหลือ"
               width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="matchedCount"
-              caption="Matched"
+              caption="จับคู่แล้ว"
               width={90}
               alignment="center"
             />
             <Column
               dataField="unmatchedCount"
-              caption="Unmatched"
+              caption="ยังไม่จับคู่"
               width={100}
               alignment="center"
               cellRender={renderUnmatched}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption="สถานะ"
               width={130}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="Actions"
+              caption="การดำเนินการ"
               width={120}
               alignment="center"
               cellRender={renderActions}

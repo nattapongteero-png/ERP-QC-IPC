@@ -235,7 +235,7 @@ export function ToleranceForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>Loading tolerance...</span>
+            <span>กำลังโหลดค่าความคลาดเคลื่อน...</span>
           </div>
         </CardContent>
       </Card>
@@ -248,20 +248,20 @@ export function ToleranceForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="Back"
+            text="ย้อนกลับ"
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'Create New Tolerance' : `Edit: ${existingTolerance?.name}`}
+            {mode === 'create' ? 'สร้างค่าความคลาดเคลื่อนใหม่' : `แก้ไข: ${existingTolerance?.name}`}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              text="Delete"
+              text="ลบ"
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -271,14 +271,14 @@ export function ToleranceForm({
             />
           )}
           <Button
-            text="Cancel"
+            text="ยกเลิก"
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
           />
           <Button
-            text={mode === 'create' ? 'Create' : 'Save Changes'}
+            text={mode === 'create' ? 'สร้าง' : 'บันทึกการเปลี่ยนแปลง'}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -294,19 +294,19 @@ export function ToleranceForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete this tolerance? This action cannot be undone.
+                  คุณแน่ใจหรือไม่ว่าต้องการลบค่าความคลาดเคลื่อนนี้? การกระทำนี้ไม่สามารถยกเลิกได้
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text="ยกเลิก"
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="Delete"
+                  text="ลบ"
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -324,7 +324,7 @@ export function ToleranceForm({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Tolerance Configuration</CardTitle>
+              <CardTitle className="text-base">การตั้งค่าความคลาดเคลื่อน</CardTitle>
             </CardHeader>
             <CardContent>
               <Form
@@ -340,17 +340,17 @@ export function ToleranceForm({
                 colCount={2}
               >
                 <Item dataField="name" colSpan={2}>
-                  <Label text="Name" />
+                  <Label text="ชื่อ" />
                   <TextBox
                     value={formData.name}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, name: e.value || '' }))}
-                    placeholder="Enter tolerance name (e.g., Default Tolerance)"
+                    placeholder="ระบุชื่อค่าความคลาดเคลื่อน (เช่น ค่าเริ่มต้น)"
                     data-testid="tolerance-name-input"
                   />
-                  <RequiredRule message="Name is required" />
+                  <RequiredRule message="กรุณาระบุชื่อ" />
                 </Item>
                 <Item dataField="toleranceType" colSpan={1}>
-                  <Label text="Tolerance Type" />
+                  <Label text="ประเภทค่าความคลาดเคลื่อน" />
                   <SelectBox
                     dataSource={TOLERANCE_TYPE_OPTIONS}
                     displayExpr="label"
@@ -362,7 +362,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="toleranceMethod" colSpan={1}>
-                  <Label text="Method" />
+                  <Label text="วิธีการ" />
                   <SelectBox
                     dataSource={TOLERANCE_METHOD_OPTIONS}
                     displayExpr="label"
@@ -374,7 +374,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="toleranceValue" colSpan={1}>
-                  <Label text="Tolerance Value" />
+                  <Label text="ค่าความคลาดเคลื่อน" />
                   <NumberBox
                     value={formData.toleranceValue}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, toleranceValue: e.value || 0 }))}
@@ -386,7 +386,7 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="priority" colSpan={1}>
-                  <Label text="Priority (Lower = Higher Priority)" />
+                  <Label text="ลำดับความสำคัญ (ค่าน้อย = สำคัญกว่า)" />
                   <NumberBox
                     value={formData.priority}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, priority: e.value || 10 }))}
@@ -397,12 +397,12 @@ export function ToleranceForm({
                   />
                 </Item>
                 <Item dataField="description" colSpan={2}>
-                  <Label text="Description" />
+                  <Label text="รายละเอียด" />
                   <TextArea
                     value={formData.description}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, description: e.value || '' }))}
                     height={100}
-                    placeholder="Optional description for this tolerance..."
+                    placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)..."
                     data-testid="tolerance-description-input"
                   />
                 </Item>
@@ -413,16 +413,16 @@ export function ToleranceForm({
           {/* Info Box */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="py-4">
-              <h3 className="text-blue-800 font-medium mb-2">About 3-Way Matching Tolerances</h3>
+              <h3 className="text-blue-800 font-medium mb-2">เกี่ยวกับค่าความคลาดเคลื่อนการจับคู่ 3 ทาง</h3>
               <p className="text-blue-700 text-sm">
-                Tolerances define acceptable variance thresholds when comparing Purchase Orders,
-                Goods Receipts, and Invoices. Variances exceeding tolerances will generate
-                exceptions requiring manual approval.
+                ค่าความคลาดเคลื่อนกำหนดเกณฑ์ความแตกต่างที่ยอมรับได้เมื่อเปรียบเทียบใบสั่งซื้อ
+                ใบรับสินค้า และใบแจ้งหนี้ ความแตกต่างที่เกินค่าความคลาดเคลื่อนจะสร้าง
+                ข้อยกเว้นที่ต้องได้รับการอนุมัติด้วยตนเอง
               </p>
               <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
-                <li><strong>Quantity:</strong> Variance in ordered/received/invoiced quantities</li>
-                <li><strong>Price:</strong> Unit price variance between PO and Invoice</li>
-                <li><strong>Amount:</strong> Total amount variance</li>
+                <li><strong>ปริมาณ:</strong> ความแตกต่างของปริมาณที่สั่ง/รับ/แจ้งหนี้</li>
+                <li><strong>ราคา:</strong> ความแตกต่างของราคาต่อหน่วยระหว่างใบสั่งซื้อและใบแจ้งหนี้</li>
+                <li><strong>จำนวนเงิน:</strong> ความแตกต่างของจำนวนเงินรวม</li>
               </ul>
             </CardContent>
           </Card>
@@ -432,11 +432,11 @@ export function ToleranceForm({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Status</CardTitle>
+              <CardTitle className="text-base">สถานะ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Active</span>
+                <span className="text-sm text-gray-700">เปิดใช้งาน</span>
                 <Switch
                   value={formData.isActive}
                   onValueChanged={(e) => setFormData((prev) => ({ ...prev, isActive: e.value }))}
@@ -445,8 +445,8 @@ export function ToleranceForm({
               </div>
               <p className="text-xs text-gray-500">
                 {formData.isActive
-                  ? 'This tolerance is active and will be used in matching validation.'
-                  : 'This tolerance is inactive and will not be used in matching.'}
+                  ? 'ค่าความคลาดเคลื่อนนี้เปิดใช้งานและจะถูกใช้ในการตรวจสอบการจับคู่'
+                  : 'ค่าความคลาดเคลื่อนนี้ปิดใช้งานและจะไม่ถูกใช้ในการจับคู่'}
               </p>
             </CardContent>
           </Card>
@@ -454,29 +454,29 @@ export function ToleranceForm({
           {mode === 'edit' && existingTolerance && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Tolerance Info</CardTitle>
+                <CardTitle className="text-base">ข้อมูลค่าความคลาดเคลื่อน</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ID</span>
+                  <span className="text-gray-500">รหัส</span>
                   <span className="font-mono text-gray-900">{existingTolerance.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Type</span>
+                  <span className="text-gray-500">ประเภท</span>
                   <span className="text-gray-900 capitalize">{existingTolerance.toleranceType}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Method</span>
+                  <span className="text-gray-500">วิธีการ</span>
                   <span className="text-gray-900 capitalize">{existingTolerance.toleranceMethod}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created</span>
+                  <span className="text-gray-500">สร้างเมื่อ</span>
                   <span className="text-gray-900">
                     {new Date(existingTolerance.createdAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Updated</span>
+                  <span className="text-gray-500">แก้ไขเมื่อ</span>
                   <span className="text-gray-900">
                     {new Date(existingTolerance.updatedAt).toLocaleDateString('th-TH')}
                   </span>

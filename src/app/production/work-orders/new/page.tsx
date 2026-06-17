@@ -49,19 +49,19 @@ interface BOMExplosion {
 }
 
 const priorityOptions = [
-  { value: '1', label: 'Critical (1)' },
-  { value: '3', label: 'High (3)' },
-  { value: '5', label: 'Medium (5)' },
-  { value: '7', label: 'Low (7)' },
-  { value: '10', label: 'Very Low (10)' },
+  { value: '1', label: 'วิกฤต (1)' },
+  { value: '3', label: 'สูง (3)' },
+  { value: '5', label: 'ปานกลาง (5)' },
+  { value: '7', label: 'ต่ำ (7)' },
+  { value: '10', label: 'ต่ำมาก (10)' },
 ];
 
 const ROLE_OPTIONS = [
-  { value: 'operator', label: 'Operator (ผู้ปฏิบัติงาน)' },
-  { value: 'supervisor', label: 'Supervisor (หัวหน้าคุม)' },
-  { value: 'qa_verifier', label: 'QA Verifier (ตรวจสอบ QA)' },
-  { value: 'ipc_checker', label: 'IPC Checker (ตรวจ IPC)' },
-  { value: 'pharmacist', label: 'Pharmacist (เภสัชกรผู้ควบคุม)' },
+  { value: 'operator', label: 'ผู้ปฏิบัติงาน (Operator)' },
+  { value: 'supervisor', label: 'หัวหน้าคุม (Supervisor)' },
+  { value: 'qa_verifier', label: 'ตรวจสอบ QA (QA Verifier)' },
+  { value: 'ipc_checker', label: 'ตรวจ IPC (IPC Checker)' },
+  { value: 'pharmacist', label: 'เภสัชกรผู้ควบคุม (Pharmacist)' },
 ];
 
 interface EmployeeOption {
@@ -268,13 +268,13 @@ function NewWorkOrderContent() {
     const newErrors: Record<string, string> = {};
 
     if (!selectedBom) {
-      newErrors.bom = 'Please select a BOM';
+      newErrors.bom = 'กรุณาเลือก BOM';
     }
     if (!formData.batchNumber.trim()) {
-      newErrors.batchNumber = 'Batch number is required';
+      newErrors.batchNumber = 'กรุณาระบุหมายเลขรุ่นการผลิต';
     }
     if (!formData.plannedQuantity || parseFloat(formData.plannedQuantity) <= 0) {
-      newErrors.plannedQuantity = 'Valid planned quantity is required';
+      newErrors.plannedQuantity = 'กรุณาระบุจำนวนวางแผนที่ถูกต้อง';
     }
 
     setErrors(newErrors);
@@ -317,11 +317,11 @@ function NewWorkOrderContent() {
       if (result.success) {
         router.push(`/production/work-orders/${result.data.id}`);
       } else {
-        setErrors({ submit: result.error || 'Failed to create work order' });
+        setErrors({ submit: result.error || 'ไม่สามารถสร้างใบสั่งผลิตได้' });
       }
     } catch (error) {
       console.error('Failed to create work order:', error);
-      setErrors({ submit: 'Failed to create work order. Please try again.' });
+      setErrors({ submit: 'ไม่สามารถสร้างใบสั่งผลิตได้ กรุณาลองใหม่อีกครั้ง' });
     } finally {
       setIsSubmitting(false);
     }
@@ -387,7 +387,7 @@ function NewWorkOrderContent() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <PageHeader
-        title="Create Work Order"
+        title="สร้างใบสั่งผลิต"
         description="สร้างใบสั่งผลิตใหม่"
         backButton={
           <DxButton
@@ -405,13 +405,13 @@ function NewWorkOrderContent() {
             {/* BOM Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>1. Select Recipe (BOM)</CardTitle>
+                <CardTitle>1. เลือกสูตรการผลิต (BOM)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <DxTextBox
-                      placeholder="Search BOM by code or name..."
+                      placeholder="ค้นหา BOM ด้วยรหัสหรือชื่อ..."
                       value={bomSearch}
                       onValueChange={setBomSearch}
                       mode="search"
@@ -420,7 +420,7 @@ function NewWorkOrderContent() {
                     />
                   </div>
                   <DxButton
-                    text="Search"
+                    text="ค้นหา"
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => fetchBoms(bomSearch, !!bomIdParam)}
@@ -430,7 +430,7 @@ function NewWorkOrderContent() {
                 {errors.bom && <p className="text-sm text-red-600">{errors.bom}</p>}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Select BOM</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เลือก BOM</label>
                   <DxSelectBox
                     items={bomOptions}
                     value={selectedBom?.id?.toString() || ''}
@@ -445,22 +445,22 @@ function NewWorkOrderContent() {
                     <div className="flex items-start gap-3">
                       <Package className="h-5 w-5 text-emerald-600 mt-0.5" />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-emerald-800">Selected Product</h4>
+                        <h4 className="font-semibold text-emerald-800">ผลิตภัณฑ์ที่เลือก</h4>
                         <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-600">Product Code:</span>{' '}
+                            <span className="text-gray-600">รหัสผลิตภัณฑ์:</span>{' '}
                             <span className="font-medium">{selectedBom.productCode}</span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Product Name:</span>{' '}
+                            <span className="text-gray-600">ชื่อผลิตภัณฑ์:</span>{' '}
                             <span className="font-medium">{selectedBom.productName}</span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Unit:</span>{' '}
+                            <span className="text-gray-600">หน่วย:</span>{' '}
                             <span className="font-medium">{selectedBom.productUnit || selectedBom.batchUnit}</span>
                           </div>
                           <div>
-                            <span className="text-gray-600">Standard Batch:</span>{' '}
+                            <span className="text-gray-600">ขนาดรุ่นมาตรฐาน:</span>{' '}
                             <span className="font-medium">
                               {formatNumber(selectedBom.standardBatchSize) || '-'} {selectedBom.batchUnit}
                             </span>
@@ -476,7 +476,7 @@ function NewWorkOrderContent() {
             {/* Work Order Details */}
             <Card>
               <CardHeader>
-                <CardTitle>2. Work Order Details</CardTitle>
+                <CardTitle>2. รายละเอียดใบสั่งผลิต</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -484,18 +484,18 @@ function NewWorkOrderContent() {
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Batch Number <span className="text-red-500">*</span>
+                          หมายเลขรุ่นการผลิต <span className="text-red-500">*</span>
                         </label>
                         <DxTextBox
                           value={formData.batchNumber}
                           onValueChange={(value) =>
                             setFormData((prev) => ({ ...prev, batchNumber: value }))
                           }
-                          placeholder="e.g., PRD-240101-001"
+                          placeholder="เช่น PRD-240101-001"
                         />
                       </div>
                       <DxButton
-                        text="Generate"
+                        text="สร้างอัตโนมัติ"
                         type="normal"
                         stylingMode="outlined"
                         onClick={generateBatchNumber}
@@ -509,7 +509,7 @@ function NewWorkOrderContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Planned Quantity <span className="text-red-500">*</span>
+                      จำนวนที่วางแผน <span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
@@ -518,7 +518,7 @@ function NewWorkOrderContent() {
                           onValueChange={(value) =>
                             setFormData((prev) => ({ ...prev, plannedQuantity: value }))
                           }
-                          placeholder="Enter quantity"
+                          placeholder="ระบุจำนวน"
                         />
                       </div>
                       <span className="text-gray-400 text-sm">
@@ -531,7 +531,7 @@ function NewWorkOrderContent() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับความสำคัญ</label>
                     <DxSelectBox
                       items={priorityOptions}
                       value={formData.priority}
@@ -545,7 +545,7 @@ function NewWorkOrderContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Planned Start Date
+                      วันที่เริ่มตามแผน
                     </label>
                     <DxDateBox
                       value={formData.plannedStartDate}
@@ -559,7 +559,7 @@ function NewWorkOrderContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Planned End Date
+                      วันที่สิ้นสุดตามแผน
                     </label>
                     <DxDateBox
                       value={formData.plannedEndDate}
@@ -572,7 +572,7 @@ function NewWorkOrderContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Delivery Date (วันที่ส่งมอบ)
+                      วันที่ส่งมอบ
                     </label>
                     <DxDateBox
                       value={formData.deliveryDate}
@@ -591,11 +591,11 @@ function NewWorkOrderContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                   <DxTextBox
                     value={formData.notes}
                     onValueChange={(value) => setFormData((prev) => ({ ...prev, notes: value }))}
-                    placeholder="Any additional notes..."
+                    placeholder="หมายเหตุเพิ่มเติม..."
                   />
                 </div>
               </CardContent>
@@ -607,7 +607,7 @@ function NewWorkOrderContent() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-emerald-600" />
-                    3. Assigned Team (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                    3. เจ้าหน้าที่ผู้ปฏิบัติงาน
                   </CardTitle>
                   <DxButton
                     icon="plus"
@@ -697,7 +697,7 @@ function NewWorkOrderContent() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>4. Material Requirements Preview</CardTitle>
+                    <CardTitle>4. ดูตัวอย่างความต้องการวัตถุดิบ</CardTitle>
                     {loadingExplosion && (
                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                     )}
@@ -710,17 +710,17 @@ function NewWorkOrderContent() {
                       <div className="mb-4 p-4 rounded-lg border">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                           <div>
-                            <p className="text-sm text-gray-500">Total Materials</p>
+                            <p className="text-sm text-gray-500">จำนวนวัตถุดิบ</p>
                             <p className="text-xl font-bold">{bomExplosion.summary.totalMaterials}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Total Required</p>
+                            <p className="text-sm text-gray-500">ต้องการรวม</p>
                             <p className="text-xl font-bold">
                               {formatNumber(bomExplosion.summary.totalRequired)}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Shortage</p>
+                            <p className="text-sm text-gray-500">ขาดแคลน</p>
                             <p
                               className={`text-xl font-bold ${
                                 bomExplosion.summary.hasShortage ? 'text-red-600' : 'text-green-600'
@@ -730,14 +730,14 @@ function NewWorkOrderContent() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Status</p>
+                            <p className="text-sm text-gray-500">สถานะ</p>
                             {bomExplosion.summary.canProduce ? (
                               <Badge variant="success" dot>
-                                Can Produce
+                                ผลิตได้
                               </Badge>
                             ) : (
                               <Badge variant="danger" dot>
-                                Material Shortage
+                                วัตถุดิบไม่เพียงพอ
                               </Badge>
                             )}
                           </div>
@@ -759,12 +759,11 @@ function NewWorkOrderContent() {
                             <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
                             <div>
                               <p className="text-sm text-yellow-800 font-medium">
-                                Warning: Material Shortage Detected
+                                คำเตือน: ตรวจพบวัตถุดิบไม่เพียงพอ
                               </p>
                               <p className="text-sm text-yellow-700 mt-1">
-                                Some materials are not available in sufficient quantity. You can still
-                                create the work order, but production may be delayed until materials
-                                are available.
+                                วัตถุดิบบางรายการมีจำนวนไม่เพียงพอ คุณยังสามารถสร้างใบสั่งผลิตได้
+                                แต่การผลิตอาจล่าช้าจนกว่าจะมีวัตถุดิบเพียงพอ
                               </p>
                             </div>
                           </div>
@@ -777,7 +776,7 @@ function NewWorkOrderContent() {
                     </div>
                   ) : (
                     <p className="text-center text-gray-500 py-8">
-                      Enter a valid quantity to see material requirements
+                      ระบุจำนวนที่ถูกต้องเพื่อดูความต้องการวัตถุดิบ
                     </p>
                   )}
                 </CardContent>
@@ -789,7 +788,7 @@ function NewWorkOrderContent() {
           <div className="space-y-6">
             <Card className="sticky top-6">
               <CardHeader>
-                <CardTitle>Summary</CardTitle>
+                <CardTitle>สรุป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -798,15 +797,15 @@ function NewWorkOrderContent() {
                     <span className="font-medium">{selectedBom?.code || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Product:</span>
+                    <span className="text-gray-600">ผลิตภัณฑ์:</span>
                     <span className="font-medium">{selectedBom?.productCode || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Batch:</span>
+                    <span className="text-gray-600">รุ่นการผลิต:</span>
                     <span className="font-medium">{formData.batchNumber || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Quantity:</span>
+                    <span className="text-gray-600">จำนวน:</span>
                     <span className="font-medium">
                       {formData.plannedQuantity
                         ? `${formatNumber(parseFloat(formData.plannedQuantity))} ${
@@ -816,7 +815,7 @@ function NewWorkOrderContent() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Priority:</span>
+                    <span className="text-gray-600">ลำดับความสำคัญ:</span>
                     <span className="font-medium">
                       {priorityOptions.find((p) => p.value === formData.priority)?.label || '-'}
                     </span>
@@ -829,17 +828,17 @@ function NewWorkOrderContent() {
                       {bomExplosion.summary.canProduce ? (
                         <>
                           <CheckCircle className="h-5 w-5 text-green-600" />
-                          <span className="text-green-700 font-medium">Ready to Produce</span>
+                          <span className="text-green-700 font-medium">พร้อมผลิต</span>
                         </>
                       ) : (
                         <>
                           <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                          <span className="text-yellow-700 font-medium">Material Shortage</span>
+                          <span className="text-yellow-700 font-medium">วัตถุดิบไม่เพียงพอ</span>
                         </>
                       )}
                     </div>
                     <p className="text-sm text-gray-500">
-                      {bomExplosion.summary.totalMaterials} materials required
+                      ต้องการวัตถุดิบ {bomExplosion.summary.totalMaterials} รายการ
                     </p>
                   </div>
                 )}
@@ -852,14 +851,14 @@ function NewWorkOrderContent() {
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
                 <DxButton
-                  text="Create Work Order"
+                  text="สร้างใบสั่งผลิต"
                   type="success"
                   width="100%"
                   onClick={handleSubmit}
                   disabled={!selectedBom || !formData.batchNumber || !formData.plannedQuantity || isSubmitting}
                 />
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   width="100%"

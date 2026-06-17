@@ -110,7 +110,7 @@ export default function ReceiptChecklistTemplatesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/master-data" label="Master Data" />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -146,7 +146,7 @@ export default function ReceiptChecklistTemplatesPage() {
           width={180}
           cellRender={(c) => t(`category.${c.value as ChecklistCategory}`)}
         />
-        <Column dataField="version" caption="Version" width={100} />
+        <Column dataField="version" caption="เวอร์ชัน" width={100} />
         <Column
           dataField="isCurrent"
           caption={t('checklist.currentVersion')}
@@ -154,7 +154,7 @@ export default function ReceiptChecklistTemplatesPage() {
           width={150}
         />
         <Column
-          caption="Items"
+          caption="รายการตรวจสอบ"
           cellRender={(c) => {
             const items = (c.data as ChecklistTemplate).items;
             return (
@@ -169,9 +169,9 @@ export default function ReceiptChecklistTemplatesPage() {
             );
           }}
         />
-        <Column dataField="createdAt" caption="Created" width={180} />
+        <Column dataField="createdAt" caption="สร้างเมื่อ" width={180} />
         <Column
-          caption="Actions"
+          caption="การดำเนินการ"
           width={110}
           alignment="center"
           allowSorting={false}
@@ -231,7 +231,7 @@ export default function ReceiptChecklistTemplatesPage() {
           </div>
 
           <div className="border-t pt-3">
-            <div className="text-sm font-medium mb-2">Items</div>
+            <div className="text-sm font-medium mb-2">รายการตรวจสอบ</div>
             {newItems.map((item, idx) => (
               <div key={idx} className="flex gap-2 items-center mb-2">
                 <span className="text-sm text-gray-500 w-6 text-right">{idx + 1}.</span>
@@ -244,7 +244,7 @@ export default function ReceiptChecklistTemplatesPage() {
                       prev.map((it, i) => (i === idx ? { ...it, label: e.target.value } : it)),
                     )
                   }
-                  placeholder="Checklist item label"
+                  placeholder="ชื่อรายการตรวจสอบ"
                 />
                 <CheckBox
                   value={item.isMandatory}
@@ -265,7 +265,7 @@ export default function ReceiptChecklistTemplatesPage() {
               </div>
             ))}
             <Button
-              text="+ Add item"
+              text="+ เพิ่มรายการ"
               stylingMode="text"
               onClick={() =>
                 setNewItems((prev) => [

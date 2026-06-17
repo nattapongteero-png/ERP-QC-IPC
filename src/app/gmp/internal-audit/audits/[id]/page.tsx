@@ -116,46 +116,46 @@ export default function AuditDetailPage({ params }: PageProps) {
   const createFindingMutation = useMutation({
     mutationFn: (data: Parameters<typeof createFinding>[0]) => createFinding(data),
     onSuccess: () => {
-      toast.success('Finding recorded');
+      toast.success('บันทึกข้อค้นพบแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audit-detail', auditId] });
       setShowFindingPopup(false);
       resetFindingForm();
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to record finding');
+      toast.error(err.message || 'ไม่สามารถบันทึกข้อค้นพบได้');
     },
   });
 
   const closeFindingMutation = useMutation({
     mutationFn: closeFinding,
     onSuccess: () => {
-      toast.success('Finding closed');
+      toast.success('ปิดข้อค้นพบแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audit-detail', auditId] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to close finding');
+      toast.error(err.message || 'ไม่สามารถปิดข้อค้นพบได้');
     },
   });
 
   const startMutation = useMutation({
     mutationFn: startAudit,
     onSuccess: () => {
-      toast.success('Audit started');
+      toast.success('เริ่มการตรวจประเมินแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audit-detail', auditId] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to start audit');
+      toast.error(err.message || 'ไม่สามารถเริ่มการตรวจประเมินได้');
     },
   });
 
   const completeMutation = useMutation({
     mutationFn: completeAudit,
     onSuccess: () => {
-      toast.success('Audit completed');
+      toast.success('เสร็จสิ้นการตรวจประเมินแล้ว');
       queryClient.invalidateQueries({ queryKey: ['audit-detail', auditId] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to complete audit');
+      toast.error(err.message || 'ไม่สามารถเสร็จสิ้นการตรวจประเมินได้');
     },
   });
 
@@ -172,7 +172,7 @@ export default function AuditDetailPage({ params }: PageProps) {
 
   const handleCreateFinding = () => {
     if (!findingForm.description.trim()) {
-      toast.error('Description is required');
+      toast.error('กรุณากรอกรายละเอียด');
       return;
     }
     createFindingMutation.mutate({
@@ -182,7 +182,7 @@ export default function AuditDetailPage({ params }: PageProps) {
   };
 
   const handleCloseFinding = (findingId: number) => {
-    if (confirm('Are you sure you want to close this finding?')) {
+    if (confirm('ต้องการปิดข้อค้นพบนี้ใช่หรือไม่?')) {
       closeFindingMutation.mutate(findingId);
     }
   };
@@ -192,10 +192,10 @@ export default function AuditDetailPage({ params }: PageProps) {
   };
 
   const categoryOptions = [
-    { id: 'observation', name: 'Observation' },
-    { id: 'minor', name: 'Minor' },
-    { id: 'major', name: 'Major' },
-    { id: 'critical', name: 'Critical' },
+    { id: 'observation', name: 'ข้อสังเกต' },
+    { id: 'minor', name: 'เล็กน้อย' },
+    { id: 'major', name: 'สำคัญ' },
+    { id: 'critical', name: 'วิกฤต' },
   ];
 
   const chapterOptions = (audit?.gmpChapters || []).map((ch) => ({
@@ -220,10 +220,10 @@ export default function AuditDetailPage({ params }: PageProps) {
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
           <p className="text-red-600">
-            {error ? (error as Error).message : 'Audit not found'}
+            {error ? (error as Error).message : 'ไม่พบการตรวจประเมิน'}
           </p>
           <DxButton
-            text="Back to Audits"
+            text="กลับไปหน้าการตรวจประเมิน"
             onClick={() => router.push('/gmp/internal-audit/audits')}
             className="mt-4"
           />
@@ -255,7 +255,7 @@ export default function AuditDetailPage({ params }: PageProps) {
             )}
             {canComplete && (
               <DxButton
-                text="Complete"
+                text="เสร็จสิ้น"
                 icon="check"
                 onClick={() => completeMutation.mutate(auditId)}
                 type="success"
@@ -263,7 +263,7 @@ export default function AuditDetailPage({ params }: PageProps) {
             )}
             {canAddFinding && (
               <DxButton
-                text="Add Finding"
+                text="เพิ่มข้อค้นพบ"
                 icon="plus"
                 onClick={() => {
                   resetFindingForm();
@@ -280,19 +280,19 @@ export default function AuditDetailPage({ params }: PageProps) {
       <div className="bg-card border rounded-lg p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
-            <p className="text-sm text-muted-foreground">Status</p>
+            <p className="text-sm text-muted-foreground">สถานะ</p>
             <WorkflowStatusBadge status={audit.status} />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Type</p>
+            <p className="text-sm text-muted-foreground">ประเภท</p>
             <p className="font-medium capitalize">{audit.auditType}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Scheduled Date</p>
+            <p className="text-sm text-muted-foreground">วันที่นัดหมาย</p>
             <p className="font-medium">{audit.scheduledDate}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Lead Auditor</p>
+            <p className="text-sm text-muted-foreground">หัวหน้าผู้ตรวจประเมิน</p>
             <p className="font-medium">{audit.leadAuditorName || '—'}</p>
           </div>
         </div>
@@ -300,14 +300,14 @@ export default function AuditDetailPage({ params }: PageProps) {
         <div className="mt-4 pt-4 border-t">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-sm text-muted-foreground">GMP Chapters</p>
+              <p className="text-sm text-muted-foreground">หมวด GMP</p>
               <p className="font-medium">
                 {audit.gmpChapters.map((ch) => `หมวด ${ch}`).join(', ')}
               </p>
             </div>
             {audit.objectives && (
               <div>
-                <p className="text-sm text-muted-foreground">Objectives</p>
+                <p className="text-sm text-muted-foreground">วัตถุประสงค์</p>
                 <p className="font-medium">{audit.objectives}</p>
               </div>
             )}
@@ -319,13 +319,13 @@ export default function AuditDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-2 gap-6">
               {audit.startedAt && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Started</p>
+                  <p className="text-sm text-muted-foreground">เริ่มเมื่อ</p>
                   <p className="font-medium">{new Date(audit.startedAt).toLocaleDateString()}</p>
                 </div>
               )}
               {audit.completedAt && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
+                  <p className="text-sm text-muted-foreground">เสร็จสิ้นเมื่อ</p>
                   <p className="font-medium">{new Date(audit.completedAt).toLocaleDateString()}</p>
                 </div>
               )}
@@ -338,37 +338,37 @@ export default function AuditDetailPage({ params }: PageProps) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-card border rounded-lg p-4 text-center">
           <p className="text-2xl font-bold">{audit.findingsCount}</p>
-          <p className="text-sm text-muted-foreground">Total</p>
+          <p className="text-sm text-muted-foreground">ทั้งหมด</p>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-blue-600">
             {audit.findings?.filter((f) => f.category === 'observation').length || 0}
           </p>
-          <p className="text-sm text-blue-600">Observations</p>
+          <p className="text-sm text-blue-600">ข้อสังเกต</p>
         </div>
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-yellow-600">
             {audit.findings?.filter((f) => f.category === 'minor').length || 0}
           </p>
-          <p className="text-sm text-yellow-600">Minor</p>
+          <p className="text-sm text-yellow-600">เล็กน้อย</p>
         </div>
         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-orange-600">
             {audit.findings?.filter((f) => f.category === 'major').length || 0}
           </p>
-          <p className="text-sm text-orange-600">Major</p>
+          <p className="text-sm text-orange-600">สำคัญ</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-red-600">
             {audit.findings?.filter((f) => f.category === 'critical').length || 0}
           </p>
-          <p className="text-sm text-red-600">Critical</p>
+          <p className="text-sm text-red-600">วิกฤต</p>
         </div>
       </div>
 
       {/* Findings List */}
       <div className="bg-card border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Audit Findings</h2>
+        <h2 className="text-lg font-semibold mb-4">ข้อค้นพบจากการตรวจประเมิน</h2>
         <AuditFindingList
           findings={audit.findings || []}
           onAssignCapa={handleAssignCapa}
@@ -381,7 +381,7 @@ export default function AuditDetailPage({ params }: PageProps) {
       <DxPopup
         visible={showFindingPopup}
         onHiding={() => setShowFindingPopup(false)}
-        title="Record Finding"
+        title="บันทึกข้อค้นพบ"
         width={600}
         height="auto"
         showCloseButton
@@ -390,7 +390,7 @@ export default function AuditDetailPage({ params }: PageProps) {
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">GMP Chapter *</label>
+              <label className="block text-sm font-medium mb-1">หมวด GMP *</label>
               <DxSelectBox
                 value={findingForm.gmpChapter}
                 onValueChanged={(e) => setFindingForm({ ...findingForm, gmpChapter: e.value })}
@@ -400,7 +400,7 @@ export default function AuditDetailPage({ params }: PageProps) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category *</label>
+              <label className="block text-sm font-medium mb-1">ประเภท *</label>
               <DxSelectBox
                 value={findingForm.category}
                 onValueChanged={(e) => setFindingForm({ ...findingForm, category: e.value })}
@@ -411,25 +411,25 @@ export default function AuditDetailPage({ params }: PageProps) {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Description *</label>
+            <label className="block text-sm font-medium mb-1">รายละเอียด *</label>
             <DxTextArea
               value={findingForm.description}
               onValueChanged={(e) => setFindingForm({ ...findingForm, description: e.value })}
-              placeholder="Describe the finding"
+              placeholder="อธิบายข้อค้นพบ"
               height={80}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Evidence</label>
+            <label className="block text-sm font-medium mb-1">หลักฐาน</label>
             <DxTextArea
               value={findingForm.evidence}
               onValueChanged={(e) => setFindingForm({ ...findingForm, evidence: e.value })}
-              placeholder="Supporting evidence"
+              placeholder="หลักฐานประกอบ"
               height={60}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">GMP Requirement Reference</label>
+            <label className="block text-sm font-medium mb-1">อ้างอิงข้อกำหนด GMP</label>
             <DxTextBox
               value={findingForm.requirement}
               onValueChanged={(e) => setFindingForm({ ...findingForm, requirement: e.value })}
@@ -440,20 +440,20 @@ export default function AuditDetailPage({ params }: PageProps) {
             <DxCheckBox
               value={findingForm.capaRequired}
               onValueChanged={(e) => setFindingForm({ ...findingForm, capaRequired: e.value })}
-              text="CAPA Required"
+              text="ต้องมี CAPA"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Major and Critical findings typically require CAPA
+              ข้อค้นพบระดับสำคัญและวิกฤตโดยทั่วไปต้องมี CAPA
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowFindingPopup(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Record Finding"
+              text="บันทึกข้อค้นพบ"
               onClick={handleCreateFinding}
               type="default"
               disabled={createFindingMutation.isPending}

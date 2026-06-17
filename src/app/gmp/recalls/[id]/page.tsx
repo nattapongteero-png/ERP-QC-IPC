@@ -18,7 +18,7 @@ import {
   RecallDataEntryDialog,
 } from '@/components/recalls';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -255,6 +255,18 @@ export default function RecallDetailPage() {
             )}
           </div>
         }
+      />
+
+      {/* Workflow status — สถานะการดำเนินงาน */}
+      <StatusStepper
+        title="สถานะการดำเนินงาน"
+        current={recall.status}
+        steps={[
+          { key: 'initiated', label: 'เริ่มเรียกคืน' },
+          { key: 'in_progress', label: 'กำลังดำเนินการ' },
+          { key: 'completed', label: 'เสร็จสิ้น' },
+          { key: 'closed', label: 'ปิด' },
+        ]}
       />
 
       {/* Class Warning */}

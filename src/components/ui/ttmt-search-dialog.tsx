@@ -188,7 +188,7 @@ export function TtmtSearchDialog({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-              <p className="text-sm text-gray-500">Thai Traditional Medicine Terminology codes from VMI Portal</p>
+              <p className="text-sm text-gray-500">รหัสศัพท์บัญญัติยาแผนไทย (TTMT) จาก VMI Portal</p>
             </div>
           </div>
 
@@ -198,7 +198,7 @@ export function TtmtSearchDialog({
             <DxTextBox
               value={search}
               onValueChange={setSearch}
-              placeholder="Type at least 3 characters to search..."
+              placeholder="พิมพ์อย่างน้อย 3 ตัวอักษรเพื่อค้นหา..."
               className="pl-10"
               mode="search"
               showClearButton
@@ -211,21 +211,21 @@ export function TtmtSearchDialog({
           {isSearching ? (
             <div className="flex items-center justify-center h-32">
               <DxLoadIndicator />
-              <span className="ml-2 text-gray-500">Searching VMI Portal...</span>
+              <span className="ml-2 text-gray-500">กำลังค้นหาใน VMI Portal...</span>
             </div>
           ) : results.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-gray-500">
               {hasSearched ? (
                 <>
                   <Search className="h-8 w-8 mb-2 text-gray-300" />
-                  <p>No TTMT codes found</p>
-                  <p className="text-sm">Try a different search term</p>
+                  <p>ไม่พบรหัส TTMT</p>
+                  <p className="text-sm">ลองใช้คำค้นหาอื่น</p>
                 </>
               ) : (
                 <>
                   <Leaf className="h-8 w-8 mb-2 text-gray-300" />
-                  <p>Type at least 3 characters to search TTMT codes</p>
-                  <p className="text-sm text-gray-400">Search by TTMT code, ingredient, or trade name</p>
+                  <p>พิมพ์อย่างน้อย 3 ตัวอักษรเพื่อค้นหารหัส TTMT</p>
+                  <p className="text-sm text-gray-400">ค้นหาด้วยรหัส TTMT ตัวยา หรือชื่อทางการค้า</p>
                 </>
               )}
             </div>
@@ -273,7 +273,7 @@ export function TtmtSearchDialog({
                       </div>
                       {item.tradeName && (
                         <p className="text-xs text-gray-400 mt-1">
-                          Trade: {item.tradeName}
+                          ชื่อการค้า: {item.tradeName}
                         </p>
                       )}
                     </div>
@@ -295,23 +295,23 @@ export function TtmtSearchDialog({
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
                 <Keyboard className="h-3 w-3" />
-                <span>Keyboard:</span>
+                <span>คีย์บอร์ด:</span>
               </div>
               <div className="flex items-center gap-1">
                 <ArrowUp className="h-3 w-3" />
                 <ArrowDown className="h-3 w-3" />
-                <span>Navigate</span>
+                <span>เลื่อน</span>
               </div>
               <div className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" />
-                <span>Select</span>
+                <span>เลือก</span>
               </div>
-              <span>ESC Close</span>
+              <span>ESC ปิด</span>
             </div>
             <div>
               {hasSearched && (
                 <span>
-                  {results.length} of {totalCount} results
+                  {results.length} จาก {totalCount} ผลลัพธ์
                 </span>
               )}
             </div>

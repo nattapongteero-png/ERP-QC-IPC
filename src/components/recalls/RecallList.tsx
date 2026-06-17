@@ -69,41 +69,41 @@ export function RecallList({ recalls, loading }: RecallListProps) {
 
       <DxColumn
         dataField="recallNumber"
-        caption="Recall #"
+        caption="เลขที่การเรียกคืน"
         width={140}
         cellRender={(cellData: { value: string }) => (
           <span className="font-mono text-primary">{cellData.value}</span>
         )}
       />
-      <DxColumn dataField="initiatedDate" caption="Initiated" dataType="date" width={110} />
+      <DxColumn dataField="initiatedDate" caption="วันที่เริ่ม" dataType="date" width={110} />
       <DxColumn
         dataField="recallClass"
-        caption="Class"
+        caption="ระดับ"
         width={100}
         cellRender={renderClassCell}
       />
-      <DxColumn dataField="productName" caption="Product" minWidth={150} />
-      <DxColumn dataField="reason" caption="Reason" minWidth={200} />
+      <DxColumn dataField="productName" caption="ผลิตภัณฑ์" minWidth={150} />
+      <DxColumn dataField="reason" caption="เหตุผล" minWidth={200} />
       <DxColumn
         dataField="status"
-        caption="Status"
+        caption="สถานะ"
         width={130}
         cellRender={renderStatusCell}
       />
       <DxColumn
         dataField="distributedQuantity"
-        caption="Distributed"
+        caption="กระจายแล้ว"
         width={100}
         dataType="number"
         format="#,##0"
       />
       <DxColumn
         dataField="effectivenessRate"
-        caption="Effectiveness"
+        caption="ประสิทธิผล"
         width={110}
         cellRender={renderEffectivenessCell}
       />
-      <DxColumn dataField="coordinatorName" caption="Coordinator" width={130} />
+      <DxColumn dataField="coordinatorName" caption="ผู้ประสานงาน" width={130} />
     </DxDataGrid>
   );
 }

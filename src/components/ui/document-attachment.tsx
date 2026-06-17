@@ -399,7 +399,7 @@ export function DocumentAttachment({
               className="hidden"
             />
             <DxButton
-              text="Upload"
+              text="อัปโหลด"
               icon="upload"
               type="default"
               stylingMode="outlined"
@@ -439,9 +439,9 @@ export function DocumentAttachment({
         ) : attachments.length === 0 ? (
           <div className="py-8 text-center text-gray-500">
             <Paperclip className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2">No attachments yet</p>
+            <p className="mt-2">ยังไม่มีไฟล์แนบ</p>
             {!readOnly && (
-              <p className="mt-1 text-xs">Click Upload to add files</p>
+              <p className="mt-1 text-xs">คลิกอัปโหลดเพื่อเพิ่มไฟล์</p>
             )}
           </div>
         ) : (
@@ -490,7 +490,7 @@ export function DocumentAttachment({
                       <button
                         onClick={() => handlePreview(attachment)}
                         className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
-                        title="Preview"
+                        title="ดูตัวอย่าง"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -498,7 +498,7 @@ export function DocumentAttachment({
                     <button
                       onClick={() => handleDownload(attachment)}
                       className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600"
-                      title="Download"
+                      title="ดาวน์โหลด"
                     >
                       <Download className="h-4 w-4" />
                     </button>
@@ -517,14 +517,14 @@ export function DocumentAttachment({
                         <button
                           onClick={() => handleEdit(attachment)}
                           className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
-                          title="Edit"
+                          title="แก้ไข"
                         >
                           <FileText className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(attachment)}
                           className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-red-600"
-                          title="Delete"
+                          title="ลบ"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -568,7 +568,7 @@ export function DocumentAttachment({
       <DxPopup
         visible={!!editingAttachment}
         onHiding={() => setEditingAttachment(null)}
-        title={`Edit: ${editingAttachment?.fileName || ''}`}
+        title={`แก้ไข: ${editingAttachment?.fileName || ''}`}
         width={500}
         height="auto"
         showCloseButton
@@ -576,18 +576,18 @@ export function DocumentAttachment({
         <div className="space-y-4 p-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Description
+              รายละเอียด
             </label>
             <DxTextBox
               value={editDescription}
               onValueChange={setEditDescription}
-              placeholder="Add a description..."
+              placeholder="เพิ่มรายละเอียด..."
             />
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Category
+              หมวดหมู่
             </label>
             <DxSelectBox
               value={editCategory}
@@ -595,20 +595,20 @@ export function DocumentAttachment({
               dataSource={categoryOptions}
               displayExpr="name"
               valueExpr="id"
-              placeholder="Select category"
+              placeholder="เลือกหมวดหมู่"
               showClearButton
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setEditingAttachment(null)}
             />
             <DxButton
-              text="Save"
+              text="บันทึก"
               type="success"
               onClick={handleSaveEdit}
             />

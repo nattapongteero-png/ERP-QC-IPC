@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
+import { StatusStepper } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { POPrintDocument } from '@/components/purchasing/po-print-document';
 import { thaiBahtText } from '@/lib/utils/thai-baht-text';
@@ -47,13 +48,6 @@ const STATUS_STEP: Record<string, number> = {
   received: 4,
   cancelled: -1,
 };
-
-const WORKFLOW_STEPS: { key: string; label: string }[] = [
-  { key: 'draft', label: 'ร่าง (Draft)' },
-  { key: 'submitted', label: 'ส่งอนุมัติ (Submitted)' },
-  { key: 'approved', label: 'อนุมัติแล้ว (Approved)' },
-  { key: 'completed', label: 'เสร็จสิ้น (Completed)' },
-];
 
 interface WarehouseItem {
   id: number;
@@ -1049,57 +1043,28 @@ export default function PurchaseOrderDetailPage() {
           }
         />
 
-        {/* Workflow Step Bar */}
-        <Card className="!p-4">
-          {isCancelled ? (
+        {/* Workflow status — สถานะการดำเนินงาน */}
+        {isCancelled ? (
+          <Card className="!p-4">
             <div className="flex items-center justify-center gap-2 py-2 text-red-600">
               <XCircle className="h-5 w-5" />
               <span className="font-semibold">PO ถูกยกเลิก (Cancelled)</span>
             </div>
-          ) : (
-            <div className="flex items-center" data-testid="po-workflow-steps">
-              {WORKFLOW_STEPS.map((step, idx) => {
-                const stepNum = idx + 1;
-                const isDone = stepNum < currentStep;
-                const isActive = stepNum === currentStep;
-                return (
-                  <div key={step.key} className="flex items-center flex-1 last:flex-initial">
-                    <div className="flex flex-col items-center gap-1">
-                      <div
-                        className={cn(
-                          'flex items-center justify-center w-9 h-9 rounded-full border-2 font-semibold text-sm transition-colors',
-                          isDone && 'bg-green-500 border-green-500 text-white',
-                          isActive && 'bg-blue-500 border-blue-500 text-white ring-4 ring-blue-100',
-                          !isDone && !isActive && 'bg-white border-gray-300 text-gray-400'
-                        )}
-                      >
-                        {isDone ? <CheckCircle className="h-5 w-5" /> : stepNum}
-                      </div>
-                      <span
-                        className={cn(
-                          'text-xs font-medium text-center whitespace-nowrap',
-                          isActive && 'text-blue-600',
-                          isDone && 'text-green-600',
-                          !isDone && !isActive && 'text-gray-400'
-                        )}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                    {idx < WORKFLOW_STEPS.length - 1 && (
-                      <div
-                        className={cn(
-                          'flex-1 h-0.5 mx-2 mb-5 transition-colors',
-                          isDone ? 'bg-green-500' : 'bg-gray-200'
-                        )}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            // 'partial' (received some) sits on the 'sent' step until fully received
+            current={po.status === 'partial' ? 'sent' : po.status}
+            steps={[
+              { key: 'draft', label: 'ร่าง' },
+              { key: 'pending_approval', label: 'รออนุมัติ' },
+              { key: 'approved', label: 'อนุมัติ' },
+              { key: 'sent', label: 'ส่งผู้ขาย' },
+              { key: 'received', label: 'รับของ' },
+            ]}
+          />
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

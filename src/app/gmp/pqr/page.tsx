@@ -94,7 +94,7 @@ const STATUS_CONFIG: Record<PqrStatus, {
   icon: React.ReactNode;
 }> = {
   draft: {
-    label: 'Draft',
+    label: 'ฉบับร่าง',
     bgColor: 'bg-slate-50',
     textColor: 'text-slate-700',
     borderColor: 'border-slate-200',
@@ -102,7 +102,7 @@ const STATUS_CONFIG: Record<PqrStatus, {
     icon: <Clock className="h-3.5 w-3.5" />,
   },
   under_review: {
-    label: 'Under Review',
+    label: 'รอตรวจสอบ',
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
     borderColor: 'border-amber-200',
@@ -110,7 +110,7 @@ const STATUS_CONFIG: Record<PqrStatus, {
     icon: <Search className="h-3.5 w-3.5" />,
   },
   approved: {
-    label: 'Approved',
+    label: 'อนุมัติแล้ว',
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
@@ -433,14 +433,14 @@ export default function PqrDashboardPage() {
             router.push(`/gmp/pqr/${report.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-          title="View Details"
+          title="ดูรายละเอียด"
         >
           <Eye className="h-4 w-4" />
         </button>
         <button
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-          title="More Options"
+          title="ตัวเลือกเพิ่มเติม"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -480,21 +480,21 @@ export default function PqrDashboardPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${dashboardLoading ? 'animate-spin' : ''}`} />
-                <span className="text-sm font-medium">Refresh</span>
+                <span className="text-sm font-medium">รีเฟรช</span>
               </button>
               <button
                 onClick={() => router.push('/reports')}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               >
                 <BarChart3 className="h-4 w-4" />
-                <span className="text-sm font-medium">Reports</span>
+                <span className="text-sm font-medium">รายงาน</span>
               </button>
               <button
                 onClick={() => setShowNewDialog(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
-                <span className="text-sm">New PQR</span>
+                <span className="text-sm">สร้าง PQR ใหม่</span>
               </button>
             </div>
           </div>
@@ -503,19 +503,19 @@ export default function PqrDashboardPage() {
         {/* Quick Stats Bar */}
         <div className="mx-4 md:mx-6 -mt-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            <MetricCard value={dashboard?.totalReports ?? 0} label="Total Reports" tone="blue" />
-            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="Draft" tone="gray" />
-            <MetricCard value={dashboard?.pendingReview ?? 0} label="Under Review" tone="amber" />
-            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="Approved" tone="emerald" />
-            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`${currentYear} Approved`} tone="blue" />
+            <MetricCard value={dashboard?.totalReports ?? 0} label="รายงานทั้งหมด" tone="blue" />
+            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="ฉบับร่าง" tone="gray" />
+            <MetricCard value={dashboard?.pendingReview ?? 0} label="รอตรวจสอบ" tone="amber" />
+            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="อนุมัติแล้ว" tone="emerald" />
+            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`อนุมัติปี ${currentYear}`} tone="blue" />
             <MetricCard
               value={dashboard?.averageMetrics?.deviationRate != null ? `${dashboard.averageMetrics.deviationRate}%` : 'N/A'}
-              label="Avg Deviation"
+              label="ความเบี่ยงเบนเฉลี่ย"
               tone="rose"
             />
             <MetricCard
               value={dashboard?.averageMetrics?.oosRate != null ? `${dashboard.averageMetrics.oosRate}%` : 'N/A'}
-              label="Avg OOS"
+              label="OOS เฉลี่ย"
               tone="violet"
             />
           </div>
@@ -531,7 +531,7 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">Reports by Status</h3>
+                  <h3 className="font-semibold text-gray-900">รายงานตามสถานะ</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <StatusCard status="draft" count={stats.draft} total={stats.total} />
@@ -546,7 +546,7 @@ export default function PqrDashboardPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-gray-900">Status Distribution</h3>
+                    <h3 className="font-semibold text-gray-900">การกระจายตามสถานะ</h3>
                   </div>
                   {statusChartData.length > 0 ? (
                     <PieChart
@@ -572,7 +572,7 @@ export default function PqrDashboardPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
                       <TrendingUp className="h-12 w-12 mb-2 opacity-50" />
-                      <p className="text-sm">No report data</p>
+                      <p className="text-sm">ไม่มีข้อมูลรายงาน</p>
                     </div>
                   )}
                 </div>
@@ -581,7 +581,7 @@ export default function PqrDashboardPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Calendar className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-gray-900">Reports by Year</h3>
+                    <h3 className="font-semibold text-gray-900">รายงานตามปี</h3>
                   </div>
                   {yearChartData.length > 0 ? (
                     <Chart dataSource={yearChartData} size={{ height: 280 }}>
@@ -603,7 +603,7 @@ export default function PqrDashboardPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
                       <Calendar className="h-12 w-12 mb-2 opacity-50" />
-                      <p className="text-sm">No yearly data</p>
+                      <p className="text-sm">ไม่มีข้อมูลรายปี</p>
                     </div>
                   )}
                 </div>
@@ -616,11 +616,11 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">Average Metrics</h3>
+                  <h3 className="font-semibold text-gray-900">ค่าเฉลี่ยตัวชี้วัด</h3>
                 </div>
                 <div className="space-y-3">
                   <MetricIndicator
-                    label="Deviation Rate"
+                    label="อัตราความเบี่ยงเบน"
                     value={dashboard?.averageMetrics?.deviationRate ?? null}
                     target={5}
                     icon={<AlertTriangle className="h-4 w-4" />}
@@ -628,7 +628,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-red-50 to-rose-50"
                   />
                   <MetricIndicator
-                    label="OOS Rate"
+                    label="อัตรา OOS"
                     value={dashboard?.averageMetrics?.oosRate ?? null}
                     target={2}
                     icon={<FlaskConical className="h-4 w-4" />}
@@ -636,7 +636,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-amber-50 to-yellow-50"
                   />
                   <MetricIndicator
-                    label="CAPA Closure"
+                    label="การปิด CAPA"
                     value={dashboard?.averageMetrics?.capaClosureRate ?? null}
                     target={95}
                     icon={<ClipboardCheck className="h-4 w-4" />}
@@ -644,7 +644,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-emerald-50 to-teal-50"
                   />
                   <MetricIndicator
-                    label="Complaint Rate"
+                    label="อัตราข้อร้องเรียน"
                     value={dashboard?.averageMetrics?.complaintRate ?? null}
                     target={1}
                     icon={<Package className="h-4 w-4" />}
@@ -658,34 +658,34 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Percent className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">Quick Summary</h3>
+                  <h3 className="font-semibold text-gray-900">สรุปโดยย่อ</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700">Total Reports</span>
+                      <span className="text-sm text-emerald-700">รายงานทั้งหมด</span>
                     </div>
                     <span className="text-lg font-bold text-emerald-700">{dashboard?.totalReports ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700">Approved {currentYear}</span>
+                      <span className="text-sm text-emerald-700">อนุมัติแล้ว {currentYear}</span>
                     </div>
                     <span className="text-lg font-bold text-emerald-700">{dashboard?.approvedThisYear ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Search className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm text-amber-700">Pending Review</span>
+                      <span className="text-sm text-amber-700">รอตรวจสอบ</span>
                     </div>
                     <span className="text-lg font-bold text-amber-700">{dashboard?.pendingReview ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-slate-600" />
-                      <span className="text-sm text-slate-700">Draft</span>
+                      <span className="text-sm text-slate-700">ฉบับร่าง</span>
                     </div>
                     <span className="text-lg font-bold text-slate-700">{dashboard?.byStatus?.draft ?? 0}</span>
                   </div>
@@ -757,7 +757,7 @@ export default function PqrDashboardPage() {
                 </Toolbar>
 
                 {/* Features */}
-                <SearchPanel visible placeholder="Search reports..." width={250} />
+                <SearchPanel visible placeholder="ค้นหารายงาน..." width={250} />
                 <Grouping autoExpandAll={false} />
                 <GroupPanel visible />
                 <Scrolling mode="virtual" />
@@ -775,31 +775,31 @@ export default function PqrDashboardPage() {
                 {/* Columns */}
                 <Column
                   dataField="reportNumber"
-                  caption="Report #"
+                  caption="เลขที่รายงาน"
                   width={140}
                   fixed
                   cellRender={renderReportNumber}
                 />
                 <Column
-                  caption="Product"
+                  caption="ผลิตภัณฑ์"
                   minWidth={200}
                   cellRender={renderProduct}
                   allowFiltering={false}
                 />
                 <Column
                   dataField="reviewYear"
-                  caption="Year"
+                  caption="ปี"
                   width={80}
                   alignment="center"
                 />
                 <Column
                   dataField="status"
-                  caption="Status"
+                  caption="สถานะ"
                   width={130}
                   cellRender={renderStatus}
                 />
                 <Column
-                  caption="Key Metrics"
+                  caption="ตัวชี้วัดสำคัญ"
                   width={200}
                   cellRender={renderMetrics}
                   allowFiltering={false}
@@ -807,18 +807,18 @@ export default function PqrDashboardPage() {
                 />
                 <Column
                   dataField="batchesProduced"
-                  caption="Batches"
+                  caption="จำนวนแบทช์"
                   width={90}
                   alignment="center"
                 />
                 <Column
                   dataField="approvedByName"
-                  caption="Approved By"
+                  caption="อนุมัติโดย"
                   width={150}
                 />
                 <Column
                   dataField="createdAt"
-                  caption="Created"
+                  caption="สร้างเมื่อ"
                   dataType="date"
                   format="dd MMM yyyy"
                   width={120}
@@ -836,7 +836,7 @@ export default function PqrDashboardPage() {
 
                 {/* Summary */}
                 <Summary>
-                  <TotalItem column="reportNumber" summaryType="count" displayFormat="Total: {0}" />
+                  <TotalItem column="reportNumber" summaryType="count" displayFormat="รวม: {0}" />
                 </Summary>
               </DataGrid>
 

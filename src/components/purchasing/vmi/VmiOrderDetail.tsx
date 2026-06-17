@@ -237,38 +237,38 @@ export function VmiOrderDetail({
   const lineColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemName',
-      caption: 'Item',
+      caption: 'รายการ',
       minWidth: 200,
     },
     {
       dataField: 'tppCode',
-      caption: 'TPP Code',
+      caption: 'รหัส TPP',
       width: 130,
       cellRender: (cellInfo) => cellInfo.data.tppCode || <span className="text-gray-400">-</span>,
     },
     {
       dataField: 'ttmtCode',
-      caption: 'TTMT Code',
+      caption: 'รหัส TTMT',
       width: 130,
       cellRender: (cellInfo) => cellInfo.data.ttmtCode || <span className="text-gray-400">-</span>,
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวน',
       width: 100,
       alignment: 'right',
       cellRender: (cellInfo) => `${cellInfo.data.quantity} ${cellInfo.data.unit}`,
     },
     {
       dataField: 'unitPrice',
-      caption: 'Unit Price',
+      caption: 'ราคาต่อหน่วย',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
       dataField: 'totalPrice',
-      caption: 'Total',
+      caption: 'รวม',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => (
@@ -295,11 +295,11 @@ export function VmiOrderDetail({
               <h1 className="text-2xl font-bold text-gray-900">{order.poNumber}</h1>
               <Badge variant={statusInfo.variant} className="gap-1">
                 <StatusIcon className="h-3 w-3" />
-                {statusInfo.label}
+                {statusInfo.labelTh}
               </Badge>
             </div>
             <p className="text-gray-500 mt-1">
-              VMI Order #{order.vmiOrderId} from {order.hospitalName}
+              คำสั่งซื้อ VMI #{order.vmiOrderId} จาก {order.hospitalName}
             </p>
           </div>
         </div>
@@ -308,7 +308,7 @@ export function VmiOrderDetail({
         <div className="flex items-center gap-2">
           {order.status === 'submitted' && (
             <DxButton
-              text={isConfirming ? 'Confirming...' : 'Confirm Order'}
+              text={isConfirming ? 'กำลังยืนยัน...' : 'ยืนยันคำสั่งซื้อ'}
               icon="check"
               type="success"
               onClick={onConfirm}
@@ -324,7 +324,7 @@ export function VmiOrderDetail({
                 width={140}
               />
               <DxButton
-                text={isShipping ? 'Shipping...' : 'Ship Order'}
+                text={isShipping ? 'กำลังจัดส่ง...' : 'จัดส่งคำสั่งซื้อ'}
                 icon="export"
                 type="default"
                 onClick={handleShip}
@@ -335,7 +335,7 @@ export function VmiOrderDetail({
 
           {order.status === 'shipped' && (
             <DxButton
-              text={isCheckingReceipt ? 'Checking...' : 'Check Receipt'}
+              text={isCheckingReceipt ? 'กำลังตรวจสอบ...' : 'ตรวจสอบการรับ'}
               icon="refresh"
               type="default"
               onClick={onCheckReceipt}
@@ -345,7 +345,7 @@ export function VmiOrderDetail({
 
           {order.localPoId && onViewLocalPo && (
             <DxButton
-              text={`View PO #${order.localPoId}`}
+              text={`ดูใบสั่งซื้อ #${order.localPoId}`}
               icon="link"
               type="normal"
               stylingMode="outlined"
@@ -362,7 +362,7 @@ export function VmiOrderDetail({
           {/* Order Lines */}
           <SectionCard
             icon={<Package className="h-4 w-4 text-gray-600" />}
-            title={`Order Lines (${order.lines.length})`}
+            title={`รายการสั่งซื้อ (${order.lines.length})`}
           >
             <DxDataGrid
               dataSource={order.lines}
@@ -378,7 +378,7 @@ export function VmiOrderDetail({
           {order.notes && (
             <SectionCard
               icon={<FileText className="h-4 w-4 text-gray-600" />}
-              title="Notes"
+              title="หมายเหตุ"
             >
               <p className="text-gray-700">{order.notes}</p>
             </SectionCard>
@@ -390,13 +390,13 @@ export function VmiOrderDetail({
           {/* Hospital Info */}
           <SectionCard
             icon={<Building2 className="h-4 w-4 text-gray-600" />}
-            title="Hospital"
+            title="โรงพยาบาล"
           >
             <div className="space-y-1">
-              <InfoRow label="Name" value={order.hospitalName} />
-              <InfoRow label="Code" value={order.hospitalCode} />
+              <InfoRow label="ชื่อ" value={order.hospitalName} />
+              <InfoRow label="รหัส" value={order.hospitalCode} />
               {order.warehouseName && (
-                <InfoRow label="Warehouse" value={order.warehouseName} />
+                <InfoRow label="คลังสินค้า" value={order.warehouseName} />
               )}
             </div>
           </SectionCard>
@@ -404,15 +404,15 @@ export function VmiOrderDetail({
           {/* Order Info */}
           <SectionCard
             icon={<ShoppingCart className="h-4 w-4 text-gray-600" />}
-            title="Order Details"
+            title="รายละเอียดคำสั่งซื้อ"
           >
             <div className="space-y-1">
-              <InfoRow label="Order Date" value={formatDate(order.orderDate)} />
-              <InfoRow label="Expected Date" value={formatDate(order.expectedDeliveryDate)} />
-              <InfoRow label="Vendor" value={`${order.vendorName} (${order.vendorCode})`} />
+              <InfoRow label="วันที่สั่งซื้อ" value={formatDate(order.orderDate)} />
+              <InfoRow label="วันที่คาดว่าจะได้รับ" value={formatDate(order.expectedDeliveryDate)} />
+              <InfoRow label="ผู้ขาย" value={`${order.vendorName} (${order.vendorCode})`} />
               {order.localPoId && (
                 <InfoRow
-                  label="Local PO"
+                  label="ใบสั่งซื้อภายใน"
                   value={
                     <button
                       onClick={() => onViewLocalPo?.(order.localPoId!)}
@@ -430,14 +430,14 @@ export function VmiOrderDetail({
           {/* Amount */}
           <SectionCard
             icon={<DollarSign className="h-4 w-4 text-gray-600" />}
-            title="Amount"
+            title="จำนวนเงิน"
           >
             <div className="text-center py-4">
               <div className="text-3xl font-bold text-gray-900">
                 {formatCurrency(order.totalValue)}
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                {order.lines.length} line(s)
+                {order.lines.length} รายการ
               </div>
             </div>
           </SectionCard>
@@ -445,7 +445,7 @@ export function VmiOrderDetail({
           {/* Timeline */}
           <SectionCard
             icon={<Clock className="h-4 w-4 text-gray-600" />}
-            title="Timeline"
+            title="ลำดับเวลา"
           >
             <div className="space-y-3">
               <div className="flex items-start gap-3">
@@ -453,7 +453,7 @@ export function VmiOrderDetail({
                   <Clock className="h-3 w-3 text-gray-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">Created</div>
+                  <div className="text-sm font-medium text-gray-900">สร้างเมื่อ</div>
                   <div className="text-xs text-gray-500">{formatDateTime(order.createdAt)}</div>
                 </div>
               </div>
@@ -464,7 +464,7 @@ export function VmiOrderDetail({
                     <CheckCircle className="h-3 w-3 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">Confirmed</div>
+                    <div className="text-sm font-medium text-gray-900">ยืนยันแล้ว</div>
                     <div className="text-xs text-gray-500">{formatDateTime(order.confirmedAt)}</div>
                   </div>
                 </div>
@@ -476,7 +476,7 @@ export function VmiOrderDetail({
                     <Truck className="h-3 w-3 text-purple-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">Shipped</div>
+                    <div className="text-sm font-medium text-gray-900">จัดส่งแล้ว</div>
                     <div className="text-xs text-gray-500">{formatDateTime(order.shippedAt)}</div>
                   </div>
                 </div>
@@ -488,7 +488,7 @@ export function VmiOrderDetail({
                     <PackageCheck className="h-3 w-3 text-emerald-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">Received</div>
+                    <div className="text-sm font-medium text-gray-900">รับแล้ว</div>
                     <div className="text-xs text-gray-500">{formatDateTime(order.receivedAt)}</div>
                   </div>
                 </div>

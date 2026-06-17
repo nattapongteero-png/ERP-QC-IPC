@@ -230,7 +230,7 @@ export default function InspectionsPage() {
         <Column dataField="nextDue" caption="ครบกำหนดถัดไป" dataType="datetime" />
         <Column dataField="lastDone" caption="ตรวจล่าสุด" dataType="datetime" />
         <Column
-          caption="Actions"
+          caption="การกระทำ"
           width={140}
           cellRender={(c) => (
             <Button
@@ -297,7 +297,7 @@ export default function InspectionsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
             <input
               type="password"
               value={password}

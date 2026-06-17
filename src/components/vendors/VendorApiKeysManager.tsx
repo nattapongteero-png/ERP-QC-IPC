@@ -119,10 +119,10 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
       setNewApiKey(result.apiKey);
       setShowKeyPopup(true);
       setFormData({ name: '', permissions: 'read', expiresInDays: undefined });
-      notify('API key created successfully', 'success', 3000);
+      notify('สร้างคีย์ API สำเร็จ', 'success', 3000);
     },
     onError: (error) => {
-      notify(`Failed to create API key: ${error.message}`, 'error', 5000);
+      notify(`สร้างคีย์ API ไม่สำเร็จ: ${error.message}`, 'error', 5000);
     },
   });
 
@@ -130,74 +130,74 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
     mutationFn: (keyId: number) => revokeApiKey(vendorId, keyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendor-api-keys', vendorId] });
-      notify('API key revoked successfully', 'success', 3000);
+      notify('เพิกถอนคีย์ API สำเร็จ', 'success', 3000);
     },
     onError: (error) => {
-      notify(`Failed to revoke API key: ${error.message}`, 'error', 5000);
+      notify(`เพิกถอนคีย์ API ไม่สำเร็จ: ${error.message}`, 'error', 5000);
     },
   });
 
   const handleCreate = () => {
     if (!formData.name.trim()) {
-      notify('Name is required', 'error', 3000);
+      notify('กรุณากรอกชื่อ', 'error', 3000);
       return;
     }
     createMutation.mutate(formData);
   };
 
   const handleRevoke = (keyId: number) => {
-    if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการเพิกถอนคีย์ API นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
       revokeMutation.mutate(keyId);
     }
   };
 
   const permissionsOptions = [
-    { value: 'read', text: 'Read Only' },
-    { value: 'write', text: 'Read/Write' },
-    { value: 'admin', text: 'Admin' },
+    { value: 'read', text: 'อ่านอย่างเดียว' },
+    { value: 'write', text: 'อ่าน/เขียน' },
+    { value: 'admin', text: 'ผู้ดูแลระบบ' },
   ];
 
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'keyPrefix',
-      caption: 'Key Prefix',
+      caption: 'คำนำหน้าคีย์',
       width: 150,
     },
     {
       dataField: 'name',
-      caption: 'Name',
+      caption: 'ชื่อ',
       width: 200,
     },
     {
       dataField: 'permissions',
-      caption: 'Permissions',
+      caption: 'สิทธิ์การใช้งาน',
       width: 120,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const perm = cellInfo.value as string;
         const labels: Record<string, string> = {
-          read: 'Read Only',
-          write: 'Read/Write',
-          admin: 'Admin',
+          read: 'อ่านอย่างเดียว',
+          write: 'อ่าน/เขียน',
+          admin: 'ผู้ดูแลระบบ',
         };
         return labels[perm] || perm;
       },
     },
     {
       dataField: 'isActive',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 100,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const isActive = cellInfo.value as boolean;
         return (
           <span className={isActive ? 'text-green-600' : 'text-gray-400'}>
-            {isActive ? 'Active' : 'Revoked'}
+            {isActive ? 'ใช้งาน' : 'เพิกถอนแล้ว'}
           </span>
         );
       },
     },
     {
       dataField: 'lastUsedAt',
-      caption: 'Last Used',
+      caption: 'ใช้ล่าสุด',
       width: 150,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
@@ -206,10 +206,10 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
     },
     {
       dataField: 'expiresAt',
-      caption: 'Expires',
+      caption: 'หมดอายุ',
       width: 150,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
-        if (!cellInfo.value) return 'Never';
+        if (!cellInfo.value) return 'ไม่มีวันหมดอายุ';
         const expiryDate = new Date(cellInfo.value as string);
         const now = new Date();
         const isExpired = expiryDate < now;
@@ -222,7 +222,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
     },
     {
       dataField: 'createdAt',
-      caption: 'Created',
+      caption: 'สร้างเมื่อ',
       width: 150,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
@@ -230,14 +230,14 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
       },
     },
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 100,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const apiKey = cellInfo.data as VendorApiKey;
         if (!apiKey.isActive) return null;
         return (
           <DxButton
-            text="Revoke"
+            text="เพิกถอน"
             type="danger"
             stylingMode="text"
             onClick={() => handleRevoke(apiKey.id)}
@@ -251,10 +251,10 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">API Keys</h3>
+        <h3 className="text-lg font-semibold">คีย์ API</h3>
         <div className="flex gap-2">
           <DxButton
-            text="Create API Key"
+            text="สร้างคีย์ API"
             type="default"
             icon="plus"
             onClick={() => setShowCreatePopup(true)}
@@ -263,7 +263,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
             icon="refresh"
             type="normal"
             onClick={() => refetch()}
-            hint="Refresh"
+            hint="รีเฟรช"
           />
         </div>
       </div>
@@ -271,7 +271,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
       {/* Error display */}
       {error && (
         <div className="p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
-          {error instanceof Error ? error.message : 'Failed to load API keys'}
+          {error instanceof Error ? error.message : 'โหลดคีย์ API ไม่สำเร็จ'}
         </div>
       )}
 
@@ -286,7 +286,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
         pageSize={10}
         sorting
         filterRow
-        noDataText="No API keys found. Create one to get started."
+        noDataText="ไม่พบคีย์ API กรุณาสร้างคีย์เพื่อเริ่มต้นใช้งาน"
       />
 
       {/* Create API Key Popup */}
@@ -296,24 +296,24 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
         dragEnabled={false}
         hideOnOutsideClick={false}
         showTitle={true}
-        title="Create API Key"
+        title="สร้างคีย์ API"
         width={500}
         height={350}
       >
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
+            <label className="block text-sm font-medium mb-1">ชื่อ *</label>
             <input
               type="text"
               className="w-full px-3 py-2 border rounded"
-              placeholder="e.g., Production Server"
+              placeholder="เช่น เซิร์ฟเวอร์ Production"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Permissions</label>
+            <label className="block text-sm font-medium mb-1">สิทธิ์การใช้งาน</label>
             <SelectBox
               dataSource={permissionsOptions}
               displayExpr="text"
@@ -326,7 +326,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Expires In (days, optional)</label>
+            <label className="block text-sm font-medium mb-1">หมดอายุใน (วัน, ไม่บังคับ)</label>
             <NumberBox
               value={formData.expiresInDays}
               onValueChanged={(e) =>
@@ -334,18 +334,18 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
               }
               min={1}
               max={365}
-              placeholder="Leave empty for no expiration"
+              placeholder="เว้นว่างไว้หากไม่มีวันหมดอายุ"
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               onClick={() => setShowCreatePopup(false)}
             />
             <DxButton
-              text={createMutation.isPending ? 'Creating...' : 'Create'}
+              text={createMutation.isPending ? 'กำลังสร้าง...' : 'สร้าง'}
               type="default"
               onClick={handleCreate}
               disabled={createMutation.isPending}
@@ -364,19 +364,19 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
         dragEnabled={false}
         hideOnOutsideClick={false}
         showTitle={true}
-        title="API Key Created"
+        title="สร้างคีย์ API แล้ว"
         width={600}
         height={300}
       >
         <div className="p-4 space-y-4">
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
             <p className="text-sm text-yellow-800 font-medium">
-              IMPORTANT: Copy this API key now. You won&apos;t be able to see it again!
+              สำคัญ: กรุณาคัดลอกคีย์ API นี้ทันที คุณจะไม่สามารถดูคีย์นี้ได้อีก!
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">API Key</label>
+            <label className="block text-sm font-medium mb-1">คีย์ API</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -385,12 +385,12 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
                 readOnly
               />
               <DxButton
-                text="Copy"
+                text="คัดลอก"
                 type="default"
                 onClick={() => {
                   if (newApiKey) {
                     navigator.clipboard.writeText(newApiKey);
-                    notify('API key copied to clipboard', 'success', 2000);
+                    notify('คัดลอกคีย์ API ไปยังคลิปบอร์ดแล้ว', 'success', 2000);
                   }
                 }}
               />
@@ -399,7 +399,7 @@ export function VendorApiKeysManager({ vendorId }: VendorApiKeysManagerProps) {
 
           <div className="flex justify-end pt-4">
             <DxButton
-              text="Close"
+              text="ปิด"
               type="default"
               onClick={() => {
                 setShowKeyPopup(false);

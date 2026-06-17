@@ -197,7 +197,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading work center...</span>
+        <span className="ml-2 text-gray-500">กำลังโหลดศูนย์งาน...</span>
       </div>
     );
   }
@@ -207,8 +207,8 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
   return (
     <div className="space-y-6">
       <ResponsivePageHeader
-        title={mode === 'create' ? 'New Work Center' : `Edit Work Center: ${workCenter?.code || ''}`}
-        subtitle="Configure labor and overhead rates for production costing"
+        title={mode === 'create' ? 'เพิ่มศูนย์งาน' : `แก้ไขศูนย์งาน: ${workCenter?.code || ''}`}
+        subtitle="กำหนดอัตราค่าแรงและค่าโสหุ้ยสำหรับการคำนวณต้นทุนการผลิต"
         icon={Factory}
         onBack={() => router.push('/cost/work-centers')}
       />
@@ -219,18 +219,18 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Factory className="h-5 w-5" />
-              Basic Information
+              ข้อมูลพื้นฐาน
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Code <span className="text-red-500">*</span>
+                รหัส <span className="text-red-500">*</span>
               </label>
               <TextBox
                 value={formData.code}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, code: e.value || '' }))}
-                placeholder="e.g., WC-MIX-01"
+                placeholder="เช่น WC-MIX-01"
                 maxLength={20}
                 disabled={mode === 'edit'}
                 data-testid="work-center-code"
@@ -239,12 +239,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name (English) <span className="text-red-500">*</span>
+                ชื่อ (ภาษาอังกฤษ) <span className="text-red-500">*</span>
               </label>
               <TextBox
                 value={formData.name}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, name: e.value || '' }))}
-                placeholder="e.g., Mixing Station 1"
+                placeholder="เช่น Mixing Station 1"
                 maxLength={100}
                 data-testid="work-center-name"
               />
@@ -252,12 +252,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name (Thai)
+                ชื่อ (ภาษาไทย)
               </label>
               <TextBox
                 value={formData.nameTh}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, nameTh: e.value || '' }))}
-                placeholder="e.g., สถานีผสม 1"
+                placeholder="เช่น สถานีผสม 1"
                 maxLength={100}
                 data-testid="work-center-name-th"
               />
@@ -265,7 +265,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Organization Unit
+                หน่วยงาน
               </label>
               <SelectBox
                 dataSource={orgUnits || []}
@@ -273,7 +273,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 valueExpr="id"
                 value={formData.orgUnitId}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, orgUnitId: e.value }))}
-                placeholder="Select org unit..."
+                placeholder="เลือกหน่วยงาน..."
                 showClearButton
                 searchEnabled
                 data-testid="work-center-org-unit"
@@ -287,7 +287,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 data-testid="work-center-active"
               />
               <label className="text-sm font-medium text-gray-700">
-                Active
+                เปิดใช้งาน
               </label>
             </div>
           </CardContent>
@@ -298,13 +298,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Hourly Rates (THB/hour)
+              อัตราต่อชั่วโมง (บาท/ชั่วโมง)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Labor Rate
+                อัตราค่าแรง
               </label>
               <NumberBox
                 value={formData.laborRatePerHour}
@@ -314,12 +314,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-labor-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">Direct labor cost per hour</p>
+              <p className="text-xs text-gray-500 mt-1">ต้นทุนค่าแรงทางตรงต่อชั่วโมง</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Overhead Rate
+                อัตราค่าโสหุ้ย
               </label>
               <NumberBox
                 value={formData.overheadRatePerHour}
@@ -329,12 +329,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-overhead-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">Indirect costs (utilities, supervision, etc.)</p>
+              <p className="text-xs text-gray-500 mt-1">ต้นทุนทางอ้อม (ค่าสาธารณูปโภค การควบคุมงาน ฯลฯ)</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Machine Rate
+                อัตราค่าเครื่องจักร
               </label>
               <NumberBox
                 value={formData.machineRatePerHour}
@@ -344,14 +344,14 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-machine-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">Equipment depreciation and maintenance</p>
+              <p className="text-xs text-gray-500 mt-1">ค่าเสื่อมราคาและค่าบำรุงรักษาอุปกรณ์</p>
             </div>
 
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">Total Rate per Hour:</span>
+                <span className="text-sm font-medium text-gray-700">อัตรารวมต่อชั่วโมง:</span>
                 <span className="text-lg font-bold text-blue-600">
-                  {totalRate.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB
+                  {totalRate.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
                 </span>
               </div>
             </div>
@@ -363,13 +363,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Capacity
+              กำลังการผลิต
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Capacity Hours per Day
+                ชั่วโมงทำงานต่อวัน
               </label>
               <NumberBox
                 value={formData.capacityHoursPerDay}
@@ -380,7 +380,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-capacity"
               />
-              <p className="text-xs text-gray-500 mt-1">Available working hours per day (max 24)</p>
+              <p className="text-xs text-gray-500 mt-1">ชั่วโมงทำงานที่ใช้ได้ต่อวัน (สูงสุด 24)</p>
             </div>
           </CardContent>
         </Card>
@@ -389,13 +389,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <Button
-          text="Cancel"
+          text="ยกเลิก"
           icon="arrowleft"
           stylingMode="outlined"
           onClick={() => router.push('/cost/work-centers')}
         />
         <Button
-          text={isSaving ? 'Saving...' : mode === 'create' ? 'Create Work Center' : 'Save Changes'}
+          text={isSaving ? 'กำลังบันทึก...' : mode === 'create' ? 'สร้างศูนย์งาน' : 'บันทึกการเปลี่ยนแปลง'}
           icon="save"
           type="default"
           onClick={handleSubmit}

@@ -109,7 +109,7 @@ async function fetchPriceOffers(itemId: number): Promise<PriceOffer[]> {
   const response = await fetch(`/api/items/${itemId}/price-offers`);
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to fetch price offers');
+    throw new Error(result.error || 'ไม่สามารถโหลดข้อเสนอราคาได้');
   }
   return result.data;
 }
@@ -122,7 +122,7 @@ async function createPriceOffer(itemId: number, data: PriceOfferFormData): Promi
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to create price offer');
+    throw new Error(result.error || 'ไม่สามารถสร้างข้อเสนอราคาได้');
   }
   return result.data;
 }
@@ -139,7 +139,7 @@ async function updatePriceOffer(
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to update price offer');
+    throw new Error(result.error || 'ไม่สามารถแก้ไขข้อเสนอราคาได้');
   }
 }
 
@@ -149,7 +149,7 @@ async function deletePriceOffer(itemId: number, offerId: number): Promise<void> 
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to delete price offer');
+    throw new Error(result.error || 'ไม่สามารถลบข้อเสนอราคาได้');
   }
 }
 
@@ -267,7 +267,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
   };
 
   const handleDelete = (offer: PriceOffer) => {
-    if (confirm('Are you sure you want to delete this price offer?')) {
+    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อเสนอราคานี้?')) {
       deleteMutation.mutate(offer.id);
     }
   };
@@ -287,13 +287,13 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
           <DollarSign className="h-5 w-5 text-gray-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900">VMI Price Offers</h3>
+          <h3 className="text-sm font-semibold text-gray-900">ข้อเสนอราคา VMI</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {activeOffers.length} active / {offers.length} total
+            ใช้งานอยู่ {activeOffers.length} / ทั้งหมด {offers.length}
           </p>
         </div>
         <DxButton
-          text="Add"
+          text="เพิ่ม"
           icon="plus"
           type="default"
           stylingMode="outlined"
@@ -310,17 +310,17 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
         ) : error ? (
           <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl">
             <AlertTriangle className="h-5 w-5" />
-            <span className="text-sm">Failed to load price offers</span>
+            <span className="text-sm">ไม่สามารถโหลดข้อเสนอราคาได้</span>
           </div>
         ) : offers.length === 0 ? (
           <div className="text-center py-8">
             <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <DollarSign className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">No price offers</p>
-            <p className="text-xs text-gray-500 mb-4">Add price offers for VMI sync</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">ยังไม่มีข้อเสนอราคา</p>
+            <p className="text-xs text-gray-500 mb-4">เพิ่มข้อเสนอราคาสำหรับการซิงค์ VMI</p>
             <DxButton
-              text="Add Price Offer"
+              text="เพิ่มข้อเสนอราคา"
               icon="plus"
               type="success"
               stylingMode="contained"
@@ -347,22 +347,22 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                       <div className="flex items-center gap-2 mb-2">
                         {isActive ? (
                           <Badge variant="success" dot className="text-xs">
-                            Active
+                            ใช้งาน
                           </Badge>
                         ) : (
                           <Badge variant="default" className="text-xs">
-                            Inactive
+                            ไม่ใช้งาน
                           </Badge>
                         )}
                         {offer.syncStatus === 'synced' && (
                           <Badge variant="info" className="text-xs">
                             <RefreshCw className="h-3 w-3 mr-1" />
-                            Synced
+                            ซิงค์แล้ว
                           </Badge>
                         )}
                         {offer.syncStatus === 'pending' && (
                           <Badge variant="warning" className="text-xs">
-                            Pending Sync
+                            รอซิงค์
                           </Badge>
                         )}
                       </div>
@@ -372,12 +372,12 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                         <span className="text-xl font-bold text-gray-900">
                           {formatCurrency(offer.unitPrice)}
                         </span>
-                        <span className="text-sm text-gray-500">/ unit</span>
+                        <span className="text-sm text-gray-500">/ หน่วย</span>
                         {offer.packPrice && (
                           <>
                             <span className="text-gray-300">|</span>
                             <span className="text-sm text-gray-600">
-                              {formatCurrency(offer.packPrice)} / pack
+                              {formatCurrency(offer.packPrice)} / แพ็ค
                             </span>
                           </>
                         )}
@@ -399,7 +399,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                         {offer.leadTimeDays && (
                           <div className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            Lead: {offer.leadTimeDays} days
+                            ระยะเวลานำ: {offer.leadTimeDays} วัน
                           </div>
                         )}
                       </div>
@@ -410,14 +410,14 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
                       <button
                         onClick={() => handleOpenEdit(offer)}
                         className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                        title="Edit"
+                        title="แก้ไข"
                       >
                         <Pencil className="h-4 w-4 text-gray-500" />
                       </button>
                       <button
                         onClick={() => handleDelete(offer)}
                         className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Delete"
+                        title="ลบ"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </button>
@@ -434,7 +434,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
       <DxPopup
         visible={showDialog}
         onHiding={handleCloseDialog}
-        title={editingOffer ? 'Edit Price Offer' : 'Add Price Offer'}
+        title={editingOffer ? 'แก้ไขข้อเสนอราคา' : 'เพิ่มข้อเสนอราคา'}
         showCloseButton
         width={450}
         height="auto"
@@ -451,7 +451,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unit Price (THB) <span className="text-red-500">*</span>
+                ราคาต่อหน่วย (บาท) <span className="text-red-500">*</span>
               </label>
               <DxNumberBox
                 value={formData.unitPrice}
@@ -461,7 +461,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pack Price (THB)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ราคาต่อแพ็ค (บาท)</label>
               <DxNumberBox
                 value={formData.packPrice}
                 onValueChange={(value) => updateFormData('packPrice', value)}
@@ -474,7 +474,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
           {/* MOQ and Lead Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">MOQ (Min Order Qty)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">MOQ (จำนวนสั่งซื้อขั้นต่ำ)</label>
               <DxNumberBox
                 value={formData.moq}
                 onValueChange={(value) => updateFormData('moq', value)}
@@ -484,7 +484,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lead Time (Days)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ระยะเวลานำ (วัน)</label>
               <DxNumberBox
                 value={formData.leadTimeDays}
                 onValueChange={(value) => updateFormData('leadTimeDays', value)}
@@ -499,7 +499,7 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Effective Date <span className="text-red-500">*</span>
+                วันที่มีผล <span className="text-red-500">*</span>
               </label>
               <DxDateBox
                 value={formData.effectiveDate}
@@ -509,14 +509,14 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่หมดอายุ</label>
               <DxDateBox
                 value={formData.expiryDate || undefined}
                 onValueChange={(value) => updateFormData('expiryDate', value || null)}
                 type="date"
                 displayFormat="dd/MM/yyyy"
               />
-              <p className="text-xs text-gray-500 mt-1">Leave empty for no expiry</p>
+              <p className="text-xs text-gray-500 mt-1">เว้นว่างไว้หากไม่มีวันหมดอายุ</p>
             </div>
           </div>
 
@@ -527,22 +527,22 @@ export function ItemPriceOffersSection({ itemId, className }: ItemPriceOffersSec
               onValueChange={(value) => updateFormData('isActive', value)}
             />
             <div>
-              <span className="text-sm font-medium text-gray-700">Active</span>
-              <p className="text-xs text-gray-500">Include in VMI price sync</p>
+              <span className="text-sm font-medium text-gray-700">ใช้งาน</span>
+              <p className="text-xs text-gray-500">รวมในการซิงค์ราคา VMI</p>
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={handleCloseDialog}
               disabled={isSaving}
             />
             <DxButton
-              text={isSaving ? 'Saving...' : editingOffer ? 'Update' : 'Create'}
+              text={isSaving ? 'กำลังบันทึก...' : editingOffer ? 'อัปเดต' : 'สร้าง'}
               icon="save"
               type="success"
               onClick={handleSave}

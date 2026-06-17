@@ -62,8 +62,8 @@ export default function ScaleHistoryPage() {
   const passCount = history.filter((h) => h.result === 'pass').length;
   const failCount = history.filter((h) => h.result === 'fail').length;
   const scaleCode = history[0]
-    ? `Scale #${scaleId}`
-    : `Scale #${scaleId}`;
+    ? `เครื่องชั่ง #${scaleId}`
+    : `เครื่องชั่ง #${scaleId}`;
 
   return (
     <div className="p-6 space-y-4">
@@ -84,7 +84,7 @@ export default function ScaleHistoryPage() {
         </h1>
       </div>
       <p className="text-gray-600 text-sm">
-        ดูประวัติการตรวจสอบทั้งหมดของเครื่องนี้ — read-only audit log
+        ดูประวัติการตรวจสอบทั้งหมดของเครื่องนี้ — บันทึกตรวจสอบแบบอ่านอย่างเดียว
       </p>
 
       {/* Stats */}
@@ -139,7 +139,7 @@ export default function ScaleHistoryPage() {
         <Column dataField="weightCode" caption="ลูกตุ้ม" width={110} />
         <Column dataField="weightDenomination" caption="ขนาดลูกตุ้ม" width={130} />
         <Column
-          caption="Certified"
+          caption="ค่าผ่านการรับรอง"
           width={130}
           cellRender={(c) => {
             const row = c.data as HistoryRow;

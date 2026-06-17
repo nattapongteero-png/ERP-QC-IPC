@@ -23,8 +23,8 @@ import { WHTCertificateDialog } from '@/components/accounting/wht-certificate-di
 import type { WHTCertificateSummary, WHTCertificateEntry, WHTCertificateType } from '@/types/accounting';
 
 const certificateTypeOptions = [
-  { value: 'pnd3', text: 'PND 3 (Individuals)' },
-  { value: 'pnd53', text: 'PND 53 (Companies)' },
+  { value: 'pnd3', text: 'ภ.ง.ด.3 (บุคคลธรรมดา)' },
+  { value: 'pnd53', text: 'ภ.ง.ด.53 (นิติบุคคล)' },
 ];
 
 function formatTaxPeriod(date: Date): string {
@@ -83,7 +83,7 @@ export default function WHTReportPage() {
     a.download = `wht-${certificateType}-${formatTaxPeriod(taxPeriod)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('WHT certificates exported successfully', 'success', 3000);
+    notify('ส่งออกหนังสือรับรองภาษีหัก ณ ที่จ่ายสำเร็จ', 'success', 3000);
   }, [report, taxPeriod, certificateType]);
 
   const handleViewCertificate = useCallback((e: { data: WHTCertificateEntry }) => {
@@ -101,7 +101,7 @@ export default function WHTReportPage() {
       {/* Professional Page Header */}
       <AccountingPageHeader
         title="หนังสือรับรองภาษีหัก ณ ที่จ่าย"
-        subtitle="WHT Certificates Report - Withholding tax certificates for tax filing"
+        subtitle="รายงานหนังสือรับรองการหักภาษี ณ ที่จ่ายสำหรับยื่นแบบ"
         icon="file-text"
       />
 
@@ -109,21 +109,21 @@ export default function WHTReportPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AccountingKPICard
           label="งวดภาษี"
-          subtitle="Tax Period"
+          subtitle="งวดภาษี"
           value={formatTaxPeriod(taxPeriod)}
           icon="clock"
           variant="info"
         />
         <AccountingKPICard
           label="ประเภทแบบ"
-          subtitle="Certificate Type"
-          value={certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
+          subtitle="ประเภทหนังสือรับรอง"
+          value={certificateType === 'pnd3' ? 'ภ.ง.ด.3' : 'ภ.ง.ด.53'}
           icon="file-text"
           variant="default"
         />
         <AccountingKPICard
           label="จำนวนหนังสือ"
-          subtitle="Certificates Count"
+          subtitle="จำนวนหนังสือรับรอง"
           value={report ? report.certificateCount.toString() : '-'}
           icon="package"
           variant="success"
@@ -131,7 +131,7 @@ export default function WHTReportPage() {
         />
         <AccountingKPICard
           label="ภาษีหัก ณ ที่จ่าย"
-          subtitle="Total WHT Amount"
+          subtitle="ยอดภาษีหัก ณ ที่จ่ายรวม"
           value={report ? formatCurrency(report.totalWHTAmount) : '-'}
           icon="wallet"
           variant="warning"
@@ -227,10 +227,10 @@ export default function WHTReportPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      หนังสือรับรองภาษีหัก ณ ที่จ่าย - {certificateType === 'pnd3' ? 'PND 3' : 'PND 53'}
+                      หนังสือรับรองภาษีหัก ณ ที่จ่าย - {certificateType === 'pnd3' ? 'ภ.ง.ด.3' : 'ภ.ง.ด.53'}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      WHT Certificates - {formatTaxPeriod(taxPeriod)}
+                      หนังสือรับรองภาษีหัก ณ ที่จ่าย - {formatTaxPeriod(taxPeriod)}
                     </p>
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export default function WHTReportPage() {
                 <div>
                   <h3 className="text-xl font-bold text-white">สรุปภาษีหัก ณ ที่จ่าย</h3>
                   <p className="text-sm text-orange-100">
-                    WHT Summary - {certificateType === 'pnd3' ? 'PND 3 (บุคคลธรรมดา)' : 'PND 53 (นิติบุคคล)'} - {formatTaxPeriod(taxPeriod)}
+                    สรุปภาษีหัก ณ ที่จ่าย - {certificateType === 'pnd3' ? 'ภ.ง.ด.3 (บุคคลธรรมดา)' : 'ภ.ง.ด.53 (นิติบุคคล)'} - {formatTaxPeriod(taxPeriod)}
                   </p>
                 </div>
               </div>
@@ -326,7 +326,7 @@ export default function WHTReportPage() {
                     <p className="text-sm text-green-700 font-medium">จำนวนเงินจ่าย</p>
                   </div>
                   <p className="text-xl font-bold text-green-900">{formatCurrency(report.totalPaymentAmount)}</p>
-                  <p className="text-xs text-green-600 mt-1">Payment Amount</p>
+                  <p className="text-xs text-green-600 mt-1">ยอดเงินที่จ่าย</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
                   <div className="flex items-center gap-2 mb-2">
@@ -334,7 +334,7 @@ export default function WHTReportPage() {
                     <p className="text-sm text-orange-700 font-medium">ภาษีหัก ณ ที่จ่าย</p>
                   </div>
                   <p className="text-xl font-bold text-orange-900">{formatCurrency(report.totalWHTAmount)}</p>
-                  <p className="text-xs text-orange-600 mt-1">WHT Withheld</p>
+                  <p className="text-xs text-orange-600 mt-1">ภาษีที่หักไว้</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
                   <div className="flex items-center gap-2 mb-2">
@@ -342,7 +342,7 @@ export default function WHTReportPage() {
                     <p className="text-sm text-purple-700 font-medium">จำนวนเงินสุทธิ</p>
                   </div>
                   <p className="text-xl font-bold text-purple-900">{formatCurrency(report.totalNetAmount)}</p>
-                  <p className="text-xs text-purple-600 mt-1">Net Amount Paid</p>
+                  <p className="text-xs text-purple-600 mt-1">ยอดเงินสุทธิที่จ่าย</p>
                 </div>
               </div>
             </div>

@@ -54,10 +54,10 @@ export default function PackagingQCCriteriaPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packaging-qc-criteria'] });
-      toast.success('Criteria Deactivated', 'The packaging QC criteria has been deactivated.');
+      toast.success('ปิดใช้งานเกณฑ์แล้ว', 'ปิดใช้งานเกณฑ์ QC บรรจุภัณฑ์เรียบร้อยแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
@@ -81,7 +81,7 @@ export default function PackagingQCCriteriaPage() {
   const renderSampleCriteria = (data: PackagingQCCriteria) => {
     return (
       <span className="text-gray-600 whitespace-nowrap">
-        {data.maxFailures}/{data.sampleSize} fail
+        {data.maxFailures}/{data.sampleSize} ไม่ผ่าน
       </span>
     );
   };
@@ -90,7 +90,7 @@ export default function PackagingQCCriteriaPage() {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
         <Package className="h-3 w-3" />
-        {data.unitsPerPack}/pack
+        {data.unitsPerPack}/แพ็ก
       </span>
     );
   };
@@ -99,19 +99,19 @@ export default function PackagingQCCriteriaPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Packaging QC Criteria"
-        subtitle="Manage packaging quality control criteria for weight and integrity checks"
+        title="เกณฑ์ QC บรรจุภัณฑ์"
+        subtitle="จัดการเกณฑ์ควบคุมคุณภาพบรรจุภัณฑ์สำหรับการตรวจน้ำหนักและความสมบูรณ์"
         icon={Scale}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Packaging QC Criteria' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'เกณฑ์ QC บรรจุภัณฑ์' },
         ]}
         actions={
           <DxButton
-            text="Add Criteria"
+            text="เพิ่มเกณฑ์"
             icon="plus"
             type="success"
             onClick={handleCreate}
@@ -131,47 +131,47 @@ export default function PackagingQCCriteriaPage() {
           width="100%"
           columnAutoWidth
         >
-          <DxSearchPanel visible placeholder="Search criteria..." width={200} />
+          <DxSearchPanel visible placeholder="ค้นหาเกณฑ์..." width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={170} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="รหัส" width={170} cellRender={(cell) => (
             <span className="font-mono font-medium text-emerald-700 whitespace-nowrap">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Criteria Name" minWidth={200} />
-          <DxColumn caption="Weight Range" minWidth={160} cellRender={(cell) => renderWeightRange(cell.data)} />
-          <DxColumn caption="Sample Criteria" width={140} cellRender={(cell) => renderSampleCriteria(cell.data)} />
-          <DxColumn dataField="checkIntervalMinutes" caption="Check Interval" width={130} cellRender={(cell) => (
-            <span className="text-gray-600">Every {cell.value} min</span>
+          <DxColumn dataField="name" caption="ชื่อเกณฑ์" minWidth={200} />
+          <DxColumn caption="ช่วงน้ำหนัก" minWidth={160} cellRender={(cell) => renderWeightRange(cell.data)} />
+          <DxColumn caption="เกณฑ์ตัวอย่าง" width={140} cellRender={(cell) => renderSampleCriteria(cell.data)} />
+          <DxColumn dataField="checkIntervalMinutes" caption="รอบการตรวจ" width={130} cellRender={(cell) => (
+            <span className="text-gray-600">ทุก {cell.value} นาที</span>
           )} />
-          <DxColumn caption="Units/Pack" width={120} cellRender={(cell) => renderPackInfo(cell.data)} />
-          <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
+          <DxColumn caption="หน่วย/แพ็ก" width={120} cellRender={(cell) => renderPackInfo(cell.data)} />
+          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
             <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'Active' : 'Inactive'}
+              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as PackagingQCCriteria).id)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                title="View"
+                title="ดู"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit((cell.data as PackagingQCCriteria).id)}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="Edit"
+                title="แก้ไข"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as PackagingQCCriteria).name} หรือไม่?`)) deleteMutation.mutate((cell.data as PackagingQCCriteria).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Deactivate"
+                title="ปิดใช้งาน"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

@@ -43,7 +43,7 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
     return (
       <div className="flex items-center justify-center p-8" data-testid="cost-dashboard-loading">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading dashboard...</span>
+        <span className="ml-2 text-gray-500">กำลังโหลดแดชบอร์ด...</span>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
   if (error) {
     return (
       <div className="p-4 text-red-500 bg-red-50 rounded-lg" data-testid="cost-dashboard-error">
-        Failed to load dashboard data. Please try again.
+        ไม่สามารถโหลดข้อมูลแดชบอร์ดได้ กรุณาลองใหม่อีกครั้ง
       </div>
     );
   }
@@ -64,8 +64,8 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
     <div className="space-y-6" data-testid="cost-dashboard">
       {/* Period Info */}
       <div className="text-sm text-gray-500">
-        Showing data for: <span className="font-medium">{data.period.label}</span>
-        {' '}(compared to {data.priorPeriod.label})
+        แสดงข้อมูลของ: <span className="font-medium">{data.period.label}</span>
+        {' '}(เทียบกับ {data.priorPeriod.label})
       </div>
 
       {/* Section 1: Financial Health KPIs */}

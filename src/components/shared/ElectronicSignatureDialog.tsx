@@ -44,7 +44,7 @@ export interface ElectronicSignatureDialogProps {
  */
 export function ElectronicSignatureDialog({
   visible,
-  title = 'Electronic Signature Required',
+  title = 'จำเป็นต้องมีลายเซ็นอิเล็กทรอนิกส์',
   action,
   meaning: defaultMeaning,
   customMeaning = false,
@@ -62,12 +62,12 @@ export function ElectronicSignatureDialog({
 
   const handleSign = useCallback(async () => {
     if (!password) {
-      setError('Password is required');
+      setError('จำเป็นต้องกรอกรหัสผ่าน');
       return;
     }
 
     if (customMeaning && !meaning.trim()) {
-      setError('Signature meaning is required');
+      setError('จำเป็นต้องระบุความหมายของลายเซ็น');
       return;
     }
 
@@ -84,10 +84,10 @@ export function ElectronicSignatureDialog({
           handleClose();
         }, 1500);
       } else {
-        setError(result.error || 'Signature failed. Please check your password and try again.');
+        setError(result.error || 'ลงนามไม่สำเร็จ กรุณาตรวจสอบรหัสผ่านแล้วลองใหม่อีกครั้ง');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,21 +107,21 @@ export function ElectronicSignatureDialog({
       <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-medium text-blue-800">21 CFR Part 11 Compliant Signature</p>
+          <p className="text-sm font-medium text-blue-800">ลายเซ็นที่สอดคล้องกับ 21 CFR Part 11</p>
           <p className="text-xs text-blue-600 mt-1">
-            Your signature will be securely recorded with timestamp and verification hash.
+            ลายเซ็นของคุณจะถูกบันทึกอย่างปลอดภัยพร้อมเวลาประทับและแฮชสำหรับการตรวจสอบ
           </p>
         </div>
       </div>
 
       {/* Meaning Display */}
       <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium text-gray-700 mb-1">Signature Meaning:</p>
+        <p className="text-sm font-medium text-gray-700 mb-1">ความหมายของลายเซ็น:</p>
         {customMeaning ? (
           <TextArea
             value={meaning}
             onValueChange={setMeaning}
-            placeholder="Enter signature meaning..."
+            placeholder="กรอกความหมายของลายเซ็น..."
             height={80}
             disabled={isLoading}
           />
@@ -134,7 +134,7 @@ export function ElectronicSignatureDialog({
       <div>
         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
           <KeyRound className="h-4 w-4" />
-          Enter Your Password to Sign
+          กรอกรหัสผ่านเพื่อลงนาม
         </label>
         <TextBox
           mode="password"
@@ -143,7 +143,7 @@ export function ElectronicSignatureDialog({
             setPassword(value);
             setError(null);
           }}
-          placeholder="Enter your password..."
+          placeholder="กรอกรหัสผ่าน..."
           disabled={isLoading || success}
           onEnterKey={handleSign}
         />
@@ -161,21 +161,21 @@ export function ElectronicSignatureDialog({
       {success && (
         <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
           <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <p className="text-sm text-green-700">Signature recorded successfully!</p>
+          <p className="text-sm text-green-700">บันทึกลายเซ็นเรียบร้อยแล้ว!</p>
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-200">
         <Button
-          text="Cancel"
+          text="ยกเลิก"
           type="normal"
           stylingMode="outlined"
           onClick={handleClose}
           disabled={isLoading}
         />
         <Button
-          text={isSubmitting ? 'Signing...' : 'Sign'}
+          text={isSubmitting ? 'กำลังลงนาม...' : 'ลงนาม'}
           type="success"
           stylingMode="contained"
           onClick={handleSign}

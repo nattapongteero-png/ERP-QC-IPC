@@ -33,18 +33,18 @@ async function fetchTrends(params: Record<string, string>): Promise<SanitationTr
 // ============================================
 
 const periodOptions = [
-  { value: 'week', text: 'Last Week' },
-  { value: 'month', text: 'Last Month' },
-  { value: 'quarter', text: 'Last Quarter' },
-  { value: 'year', text: 'Last Year' },
+  { value: 'week', text: 'สัปดาห์ที่ผ่านมา' },
+  { value: 'month', text: 'เดือนที่ผ่านมา' },
+  { value: 'quarter', text: 'ไตรมาสที่ผ่านมา' },
+  { value: 'year', text: 'ปีที่ผ่านมา' },
 ];
 
 const areaTypeOptions = [
-  { value: '', text: 'All Areas' },
-  { value: 'production', text: 'Production' },
-  { value: 'warehouse', text: 'Warehouse' },
-  { value: 'lab', text: 'Laboratory' },
-  { value: 'office', text: 'Office' },
+  { value: '', text: 'ทุกพื้นที่' },
+  { value: 'production', text: 'พื้นที่ผลิต' },
+  { value: 'warehouse', text: 'คลังจัดเก็บ' },
+  { value: 'lab', text: 'ห้องปฏิบัติการ' },
+  { value: 'office', text: 'สำนักงาน' },
 ];
 
 export default function SanitationTrendsPage() {

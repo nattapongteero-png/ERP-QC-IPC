@@ -55,21 +55,21 @@ interface ApiResponse<T> {
 // API functions
 async function fetchAccessGrants(bomId: number): Promise<BOMConfidentialAccess[]> {
   const res = await fetch(`/api/bom/${bomId}/access`);
-  if (!res.ok) throw new Error('Failed to fetch access grants');
+  if (!res.ok) throw new Error('ไม่สามารถโหลดข้อมูลสิทธิ์การเข้าถึงได้');
   const data: ApiResponse<BOMConfidentialAccess[]> = await res.json();
   return data.data || [];
 }
 
 async function fetchUsers(): Promise<User[]> {
   const res = await fetch('/api/users?limit=1000');
-  if (!res.ok) throw new Error('Failed to fetch users');
+  if (!res.ok) throw new Error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
   const data = await res.json();
   return data.data?.items || data.data || [];
 }
 
 async function fetchGroups(): Promise<ConfidentialAccessGroup[]> {
   const res = await fetch('/api/admin/confidential-groups');
-  if (!res.ok) throw new Error('Failed to fetch groups');
+  if (!res.ok) throw new Error('ไม่สามารถโหลดข้อมูลกลุ่มได้');
   const data: ApiResponse<ConfidentialAccessGroup[]> = await res.json();
   return data.data || [];
 }
@@ -82,7 +82,7 @@ async function grantUserAccess(bomId: number, userId: number): Promise<BOMConfid
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.error || 'Failed to grant user access');
+    throw new Error(error.error || 'ไม่สามารถให้สิทธิ์การเข้าถึงแก่ผู้ใช้ได้');
   }
   const data: ApiResponse<BOMConfidentialAccess> = await res.json();
   return data.data;
@@ -96,7 +96,7 @@ async function grantGroupAccess(bomId: number, groupId: number): Promise<BOMConf
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.error || 'Failed to grant group access');
+    throw new Error(error.error || 'ไม่สามารถให้สิทธิ์การเข้าถึงแก่กลุ่มได้');
   }
   const data: ApiResponse<BOMConfidentialAccess> = await res.json();
   return data.data;
@@ -108,7 +108,7 @@ async function revokeAccess(bomId: number, grantId: number): Promise<void> {
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.error || 'Failed to revoke access');
+    throw new Error(error.error || 'ไม่สามารถเพิกถอนสิทธิ์การเข้าถึงได้');
   }
 }
 
@@ -174,7 +174,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
     mutationFn: (userId: number) => grantUserAccess(bomId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-access-grants', bomId] });
-      notify('User access granted successfully', 'success', 3000);
+      notify('ให้สิทธิ์ผู้ใช้เรียบร้อยแล้ว', 'success', 3000);
       setShowAddUserDialog(false);
       setSelectedUserId(null);
     },
@@ -188,7 +188,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
     mutationFn: (groupId: number) => grantGroupAccess(bomId, groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-access-grants', bomId] });
-      notify('Group access granted successfully', 'success', 3000);
+      notify('ให้สิทธิ์กลุ่มเรียบร้อยแล้ว', 'success', 3000);
       setShowAddGroupDialog(false);
       setSelectedGroupId(null);
     },
@@ -202,7 +202,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
     mutationFn: (grantId: number) => revokeAccess(bomId, grantId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-access-grants', bomId] });
-      notify('Access revoked successfully', 'success', 3000);
+      notify('เพิกถอนสิทธิ์เรียบร้อยแล้ว', 'success', 3000);
       setShowRevokeConfirm(false);
       setGrantToRevoke(null);
     },
@@ -263,12 +263,12 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
         {isUser ? (
           <>
             <UserPlus className="h-4 w-4 text-blue-500" />
-            <span className="text-blue-700 font-medium">User</span>
+            <span className="text-blue-700 font-medium">ผู้ใช้</span>
           </>
         ) : (
           <>
             <Shield className="h-4 w-4 text-amber-500" />
-            <span className="text-amber-700 font-medium">Group</span>
+            <span className="text-amber-700 font-medium">กลุ่ม</span>
           </>
         )}
       </div>
@@ -280,7 +280,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
       return (
         <div>
           <div className="font-medium text-gray-900">
-            {cellData.data.userName || 'Unknown User'}
+            {cellData.data.userName || 'ผู้ใช้ที่ไม่ทราบ'}
           </div>
           {cellData.data.userEmail && (
             <div className="text-sm text-gray-500">{cellData.data.userEmail}</div>
@@ -291,7 +291,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
       return (
         <div>
           <div className="font-medium text-gray-900">
-            {cellData.data.groupName || 'Unknown Group'}
+            {cellData.data.groupName || 'กลุ่มที่ไม่ทราบ'}
           </div>
           {cellData.data.groupCode && (
             <div className="text-sm text-gray-500 font-mono">
@@ -304,7 +304,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
   };
 
   const renderGrantedByCell = (cellData: { data: BOMConfidentialAccess }) => {
-    return cellData.data.grantedByName || `User #${cellData.data.grantedBy}`;
+    return cellData.data.grantedByName || `ผู้ใช้ #${cellData.data.grantedBy}`;
   };
 
   const renderDateCell = (cellData: { value?: string | Date }) => {
@@ -330,7 +330,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             handleRevoke(cellData.data);
           }}
           className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Revoke Access"
+          title="เพิกถอนสิทธิ์การเข้าถึง"
           data-testid={`revoke-btn-${cellData.data.id}`}
         >
           <Trash2 className="h-4 w-4" />
@@ -343,9 +343,9 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
   const getRevokeTargetName = (grant: BOMConfidentialAccess | null): string => {
     if (!grant) return '';
     if (grant.userId) {
-      return grant.userName || grant.userEmail || `User #${grant.userId}`;
+      return grant.userName || grant.userEmail || `ผู้ใช้ #${grant.userId}`;
     } else {
-      return grant.groupName || grant.groupCode || `Group #${grant.groupId}`;
+      return grant.groupName || grant.groupCode || `กลุ่ม #${grant.groupId}`;
     }
   };
 
@@ -356,7 +356,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
         <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
           <p className="text-sm text-blue-700">
-            You can view access grants but cannot modify them.
+            คุณสามารถดูสิทธิ์การเข้าถึงได้แต่ไม่สามารถแก้ไขได้
           </p>
         </div>
       )}
@@ -365,16 +365,16 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-gray-500" />
-          <h3 className="text-lg font-medium text-gray-900">Access Control</h3>
+          <h3 className="text-lg font-medium text-gray-900">การควบคุมสิทธิ์การเข้าถึง</h3>
           <span className="px-2 py-0.5 bg-gray-100 rounded text-sm text-gray-600">
-            {grants.length} {grants.length === 1 ? 'grant' : 'grants'}
+            {grants.length} รายการ
           </span>
         </div>
 
         {canManage && (
           <div className="flex items-center gap-2">
             <Button
-              text="Refresh"
+              text="รีเฟรช"
               icon="refresh"
               stylingMode="text"
               onClick={() => refetch()}
@@ -382,7 +382,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
               data-testid="refresh-access-btn"
             />
             <Button
-              text="Add User"
+              text="เพิ่มผู้ใช้"
               icon="user"
               type="default"
               onClick={openAddUserDialog}
@@ -390,7 +390,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
               data-testid="add-user-access-btn"
             />
             <Button
-              text="Add Group"
+              text="เพิ่มกลุ่ม"
               icon="group"
               type="default"
               onClick={openAddGroupDialog}
@@ -414,7 +414,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             columnAutoWidth
             className="min-h-[300px]"
             data-testid="access-grants-grid"
-            noDataText="No access grants configured. Add users or groups to allow access to confidential items."
+            noDataText="ยังไม่มีการกำหนดสิทธิ์การเข้าถึง เพิ่มผู้ใช้หรือกลุ่มเพื่ออนุญาตให้เข้าถึงรายการที่เป็นความลับ"
           >
             <LoadPanel enabled={isLoadingGrants} />
             <Sorting mode="multiple" />
@@ -427,32 +427,32 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             />
 
             <Column
-              caption="Type"
+              caption="ประเภท"
               width={100}
               cellRender={renderTypeCell}
               allowFiltering={false}
               allowSorting={false}
             />
             <Column
-              caption="Name"
+              caption="ชื่อ"
               minWidth={250}
               cellRender={renderNameCell}
               allowFiltering={false}
             />
             <Column
-              caption="Granted By"
+              caption="ให้สิทธิ์โดย"
               width={150}
               cellRender={renderGrantedByCell}
             />
             <Column
               dataField="grantedAt"
-              caption="Granted At"
+              caption="วันที่ให้สิทธิ์"
               width={180}
               cellRender={renderDateCell}
             />
             {canManage && (
               <Column
-                caption="Actions"
+                caption="ดำเนินการ"
                 width={80}
                 cellRender={renderActionsCell}
                 allowFiltering={false}
@@ -468,7 +468,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
       <DxPopup
         visible={showAddUserDialog}
         onVisibleChange={setShowAddUserDialog}
-        title="Grant User Access"
+        title="ให้สิทธิ์การเข้าถึงแก่ผู้ใช้"
         width={500}
         height="auto"
         showCloseButton
@@ -478,7 +478,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: grantUserMutation.isPending ? 'Granting...' : 'Grant Access',
+              text: grantUserMutation.isPending ? 'กำลังให้สิทธิ์...' : 'ให้สิทธิ์การเข้าถึง',
               type: 'success',
               onClick: handleAddUser,
             },
@@ -488,7 +488,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: 'Cancel',
+              text: 'ยกเลิก',
               stylingMode: 'outlined',
               onClick: closeAddUserDialog,
             },
@@ -498,7 +498,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select User <span className="text-red-500">*</span>
+              เลือกผู้ใช้ <span className="text-red-500">*</span>
             </label>
             <SelectBox
               dataSource={availableUsers}
@@ -512,14 +512,14 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
               searchEnabled
               searchExpr={['name', 'email']}
               searchMode="contains"
-              placeholder="Search and select a user..."
+              placeholder="ค้นหาและเลือกผู้ใช้..."
               showClearButton
-              noDataText="No users available"
+              noDataText="ไม่มีผู้ใช้ให้เลือก"
               data-testid="user-access-select"
             />
             {availableUsers.length === 0 && users.length > 0 && (
               <p className="mt-2 text-sm text-gray-500">
-                All users already have access to this BOM.
+                ผู้ใช้ทุกคนมีสิทธิ์เข้าถึง BOM นี้แล้ว
               </p>
             )}
           </div>
@@ -527,7 +527,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
                 <UserPlus className="inline-block h-4 w-4 mr-1" />
-                Selected user will be granted access to view confidential items in this BOM.
+                ผู้ใช้ที่เลือกจะได้รับสิทธิ์ในการดูรายการที่เป็นความลับใน BOM นี้
               </p>
             </div>
           )}
@@ -538,7 +538,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
       <DxPopup
         visible={showAddGroupDialog}
         onVisibleChange={setShowAddGroupDialog}
-        title="Grant Group Access"
+        title="ให้สิทธิ์การเข้าถึงแก่กลุ่ม"
         width={500}
         height="auto"
         showCloseButton
@@ -548,7 +548,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: grantGroupMutation.isPending ? 'Granting...' : 'Grant Access',
+              text: grantGroupMutation.isPending ? 'กำลังให้สิทธิ์...' : 'ให้สิทธิ์การเข้าถึง',
               type: 'success',
               onClick: handleAddGroup,
             },
@@ -558,7 +558,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             toolbar: 'bottom',
             location: 'after',
             options: {
-              text: 'Cancel',
+              text: 'ยกเลิก',
               stylingMode: 'outlined',
               onClick: closeAddGroupDialog,
             },
@@ -568,7 +568,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Group <span className="text-red-500">*</span>
+              เลือกกลุ่ม <span className="text-red-500">*</span>
             </label>
             <SelectBox
               dataSource={availableGroups}
@@ -582,14 +582,14 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
               searchEnabled
               searchExpr={['name', 'code']}
               searchMode="contains"
-              placeholder="Search and select a group..."
+              placeholder="ค้นหาและเลือกกลุ่ม..."
               showClearButton
-              noDataText="No groups available"
+              noDataText="ไม่มีกลุ่มให้เลือก"
               data-testid="group-access-select"
             />
             {availableGroups.length === 0 && groups.length > 0 && (
               <p className="mt-2 text-sm text-gray-500">
-                All groups already have access to this BOM.
+                กลุ่มทั้งหมดมีสิทธิ์เข้าถึง BOM นี้แล้ว
               </p>
             )}
           </div>
@@ -597,7 +597,7 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
             <div className="p-3 bg-amber-50 rounded-lg">
               <p className="text-sm text-amber-700">
                 <Shield className="inline-block h-4 w-4 mr-1" />
-                All members of this group will be granted access to view confidential items in this BOM.
+                สมาชิกทุกคนในกลุ่มนี้จะได้รับสิทธิ์ในการดูรายการที่เป็นความลับใน BOM นี้
               </p>
             </div>
           )}
@@ -612,9 +612,9 @@ export function BOMAccessControlTab({ bomId, canManage }: BOMAccessControlTabPro
           setShowRevokeConfirm(false);
           setGrantToRevoke(null);
         }}
-        title="Revoke Access"
-        message={`Are you sure you want to revoke access for "${getRevokeTargetName(grantToRevoke)}"? They will no longer be able to view confidential items in this BOM.`}
-        confirmText={revokeMutation.isPending ? 'Revoking...' : 'Revoke'}
+        title="เพิกถอนสิทธิ์การเข้าถึง"
+        message={`คุณแน่ใจหรือไม่ว่าต้องการเพิกถอนสิทธิ์การเข้าถึงของ "${getRevokeTargetName(grantToRevoke)}"? ผู้รับสิทธิ์จะไม่สามารถดูรายการที่เป็นความลับใน BOM นี้ได้อีกต่อไป`}
+        confirmText={revokeMutation.isPending ? 'กำลังเพิกถอน...' : 'เพิกถอน'}
         confirmType="danger"
       />
     </div>

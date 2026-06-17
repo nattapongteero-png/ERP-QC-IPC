@@ -68,7 +68,7 @@ export default function MaintenancePlanTemplatesPage() {
   });
 
   const handleDelete = (r: MaintenancePlanTemplate) => {
-    if (!confirm(`ลบ Template "${r.name}" ?`)) return;
+    if (!confirm(`ลบแม่แบบ "${r.name}" ?`)) return;
     deleteMut.mutate(r.id);
   };
 
@@ -92,7 +92,7 @@ export default function MaintenancePlanTemplatesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/master-data" label="Master Data" />
+      <BackButton href="/master-data" label="ข้อมูลหลัก" />
       <header className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Wrench className="w-6 h-6" />
@@ -105,7 +105,7 @@ export default function MaintenancePlanTemplatesPage() {
           render={() => (
             <span className="inline-flex items-center gap-1">
               <Plus className="w-4 h-4" />
-              เพิ่ม Template
+              เพิ่มแม่แบบ
             </span>
           )}
         />
@@ -134,20 +134,20 @@ export default function MaintenancePlanTemplatesPage() {
       >
         <Paging pageSize={20} />
         <Editing mode="row" allowUpdating useIcons />
-        <Column dataField="name" caption="Name" />
-        <Column dataField="description" caption="Description" />
-        <Column dataField="maintenanceType" caption="Type" width={140} />
+        <Column dataField="name" caption="ชื่อ" />
+        <Column dataField="description" caption="รายละเอียด" />
+        <Column dataField="maintenanceType" caption="ประเภท" width={140} />
         <Column
-          caption="Interval"
+          caption="รอบ"
           cellRender={(c) => {
             const r = c.data as MaintenancePlanTemplate;
             return `${r.intervalValue} ${r.intervalType}`;
           }}
         />
-        <Column dataField="alertDaysBefore" caption="Alert (days before)" width={150} />
-        <Column dataField="isActive" caption="Active" dataType="boolean" width={80} />
+        <Column dataField="alertDaysBefore" caption="แจ้งเตือนล่วงหน้า (วัน)" width={150} />
+        <Column dataField="isActive" caption="ใช้งาน" dataType="boolean" width={80} />
         <Column
-          caption="Actions"
+          caption="การดำเนินการ"
           width={110}
           alignment="center"
           allowSorting={false}
@@ -157,8 +157,8 @@ export default function MaintenancePlanTemplatesPage() {
             return (
               <button
                 type="button"
-                title="Delete"
-                aria-label="Delete"
+                title="ลบ"
+                aria-label="ลบ"
                 onClick={() => handleDelete(r)}
                 disabled={deleteMut.isPending}
                 className="p-1.5 rounded text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50"
@@ -174,23 +174,23 @@ export default function MaintenancePlanTemplatesPage() {
         visible={createOpen}
         onHiding={() => setCreateOpen(false)}
         showCloseButton
-        title="เพิ่ม Maintenance Plan Template"
+        title="เพิ่มแม่แบบแผนบำรุงรักษา"
         width={580}
         height="auto"
       >
         <div className="p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
+            <label className="block text-sm font-medium mb-1">ชื่อ *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full border rounded px-3 py-2"
-              placeholder="6-month preventive"
+              placeholder="เช่น บำรุงรักษาเชิงป้องกันทุก 6 เดือน"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label className="block text-sm font-medium mb-1">รายละเอียด</label>
             <input
               type="text"
               value={form.description}
@@ -200,7 +200,7 @@ export default function MaintenancePlanTemplatesPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Maintenance Type *</label>
+              <label className="block text-sm font-medium mb-1">ประเภทการบำรุงรักษา *</label>
               <SelectBox
                 dataSource={MAINTENANCE_TYPES}
                 value={form.maintenanceType}
@@ -208,7 +208,7 @@ export default function MaintenancePlanTemplatesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Interval Type *</label>
+              <label className="block text-sm font-medium mb-1">หน่วยรอบ *</label>
               <SelectBox
                 dataSource={INTERVAL_TYPES}
                 value={form.intervalType}
@@ -216,7 +216,7 @@ export default function MaintenancePlanTemplatesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Interval Value *</label>
+              <label className="block text-sm font-medium mb-1">ค่ารอบ *</label>
               <NumberBox
                 value={form.intervalValue}
                 min={1}
@@ -226,7 +226,7 @@ export default function MaintenancePlanTemplatesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Alert Days Before</label>
+              <label className="block text-sm font-medium mb-1">แจ้งเตือนล่วงหน้า (วัน)</label>
               <NumberBox
                 value={form.alertDaysBefore}
                 min={0}
@@ -243,7 +243,7 @@ export default function MaintenancePlanTemplatesPage() {
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button text="Cancel" stylingMode="text" onClick={() => setCreateOpen(false)} />
+            <Button text="ยกเลิก" stylingMode="text" onClick={() => setCreateOpen(false)} />
             <Button
               type="default"
               stylingMode="contained"

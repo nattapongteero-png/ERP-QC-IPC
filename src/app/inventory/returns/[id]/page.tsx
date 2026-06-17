@@ -140,7 +140,7 @@ export default function MaterialReturnDetailPage() {
 
   const fetchDetail = useCallback(async () => {
     if (!Number.isFinite(returnId)) {
-      setError('Invalid return ID');
+      setError('รหัสรายการคืนไม่ถูกต้อง');
       setLoading(false);
       return;
     }
@@ -150,7 +150,7 @@ export default function MaterialReturnDetailPage() {
       const res = await fetch(`/api/inventory/returns/${returnId}`);
       const data = await res.json();
       if (!data.success) {
-        setError(data.error || 'Failed to load return detail');
+        setError(data.error || 'ไม่สามารถโหลดรายละเอียดการคืนได้');
         setDetail(null);
       } else {
         setDetail(data.data);
@@ -269,7 +269,7 @@ export default function MaterialReturnDetailPage() {
             <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
             <div className="flex-1">
               <p className="font-medium text-red-800">ไม่สามารถโหลดข้อมูลได้</p>
-              <p className="text-sm text-red-700">{error || 'Material return not found'}</p>
+              <p className="text-sm text-red-700">{error || 'ไม่พบรายการคืนวัตถุดิบ'}</p>
             </div>
             <DxButton
               text="กลับ"
@@ -305,7 +305,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'sourceLot.lotNumber',
-      caption: 'Source Lot',
+      caption: 'ล็อตต้นทาง',
       width: 160,
       cellRender: (cell) =>
         cell.data.sourceLot ? (
@@ -316,7 +316,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'issuedQty',
-      caption: 'Issued',
+      caption: 'เบิกแล้ว',
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -328,7 +328,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'usedQty',
-      caption: 'Used',
+      caption: 'ใช้ไป',
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -340,7 +340,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'returnQty',
-      caption: 'Return',
+      caption: 'คืน',
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -352,7 +352,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'varianceQty',
-      caption: 'Variance qty',
+      caption: 'ผลต่าง',
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -363,7 +363,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'variancePct',
-      caption: 'Variance %',
+      caption: 'ผลต่าง %',
       width: 100,
       alignment: 'right',
       cellRender: (cell) => {
@@ -381,13 +381,13 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'varianceReason',
-      caption: 'Reason',
+      caption: 'เหตุผล',
       width: 140,
       cellRender: (cell) => <span className="text-sm capitalize">{String(cell.data.varianceReason).replace(/_/g, ' ')}</span>,
     },
     {
       dataField: 'isOutsideTolerance',
-      caption: 'Outside tol?',
+      caption: 'เกินเกณฑ์?',
       width: 110,
       alignment: 'center',
       cellRender: (cell) =>
@@ -399,7 +399,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'returnContainerLabel',
-      caption: 'Container',
+      caption: 'ภาชนะ',
       minWidth: 160,
       cellRender: (cell) => (
         <div>
@@ -417,16 +417,16 @@ export default function MaterialReturnDetailPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full print:p-0">
         <div className="print:hidden">
           <ResponsivePageHeader
-            title={`Material Return ${detail.returnNumber}`}
+            title={`การคืนวัตถุดิบ ${detail.returnNumber}`}
             subtitle={
-              detail.woNumber ? `WO #${detail.woNumber}` : 'No work order linked'
+              detail.woNumber ? `WO #${detail.woNumber}` : 'ไม่ได้ผูกกับใบสั่งผลิต'
             }
             icon={ArrowDownToLine}
             iconBgColor="bg-purple-100"
             iconColor="text-purple-600"
             breadcrumbs={[
-              { label: 'Inventory', href: '/inventory' },
-              { label: 'Returns', href: '/inventory/returns' },
+              { label: 'คลังสินค้า', href: '/inventory' },
+              { label: 'การรับคืน', href: '/inventory/returns' },
               { label: detail.returnNumber },
             ]}
             actions={

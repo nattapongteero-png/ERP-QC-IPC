@@ -23,9 +23,9 @@ interface AuditListProps {
 }
 
 const auditTypeLabels: Record<AuditType, string> = {
-  internal: 'Internal',
-  external: 'External',
-  regulatory: 'Regulatory',
+  internal: 'ภายใน',
+  external: 'ภายนอก',
+  regulatory: 'หน่วยงานกำกับ',
 };
 
 export function AuditList({
@@ -40,23 +40,23 @@ export function AuditList({
     () => [
       {
         dataField: 'auditNumber',
-        caption: 'Audit #',
+        caption: 'เลขที่การตรวจประเมิน',
         width: 130,
       },
       {
         dataField: 'auditType',
-        caption: 'Type',
+        caption: 'ประเภท',
         width: 100,
         cellRender: (data: { value: AuditType }) => auditTypeLabels[data.value] || data.value,
       },
       {
         dataField: 'scope',
-        caption: 'Scope',
+        caption: 'ขอบเขต',
         width: 200,
       },
       {
         dataField: 'gmpChapters',
-        caption: 'GMP Chapters',
+        caption: 'หมวด GMP',
         width: 150,
         cellRender: (data: { value: number[] }) => {
           const chapters = data.value || [];
@@ -65,18 +65,18 @@ export function AuditList({
       },
       {
         dataField: 'scheduledDate',
-        caption: 'Scheduled',
+        caption: 'วันที่นัดหมาย',
         dataType: 'date',
         width: 110,
       },
       {
         dataField: 'leadAuditorName',
-        caption: 'Lead Auditor',
+        caption: 'หัวหน้าผู้ตรวจประเมิน',
         width: 130,
       },
       {
         dataField: 'status',
-        caption: 'Status',
+        caption: 'สถานะ',
         width: 110,
         cellRender: (data: { value: AuditStatus }) => (
           <WorkflowStatusBadge status={data.value} />
@@ -84,12 +84,12 @@ export function AuditList({
       },
       {
         dataField: 'findingsCount',
-        caption: 'Findings',
+        caption: 'ข้อค้นพบ',
         width: 80,
       },
       {
         dataField: 'openFindingsCount',
-        caption: 'Open',
+        caption: 'ค้างอยู่',
         width: 70,
         cellRender: (data: { value: number }) => {
           const count = data.value || 0;
@@ -110,7 +110,7 @@ export function AuditList({
         {onView && (
           <DxButton
             icon="find"
-            hint="View Details"
+            hint="ดูรายละเอียด"
             onClick={() => onView(data.data)}
             stylingMode="text"
           />
@@ -118,7 +118,7 @@ export function AuditList({
         {canStart && onStart && (
           <DxButton
             icon="runner"
-            hint="Start Audit"
+            hint="เริ่มการตรวจประเมิน"
             onClick={() => onStart(data.data.id)}
             stylingMode="text"
             type="default"
@@ -127,7 +127,7 @@ export function AuditList({
         {canCompleteAudit && onComplete && (
           <DxButton
             icon="check"
-            hint="Complete"
+            hint="เสร็จสิ้น"
             onClick={() => onComplete(data.data.id)}
             stylingMode="text"
             type="success"
@@ -141,7 +141,7 @@ export function AuditList({
   const allColumns = [
     ...columns,
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 120,
       cellRender: actionsCellRender,
     },

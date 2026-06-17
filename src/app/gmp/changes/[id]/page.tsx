@@ -22,7 +22,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
-import { ResponsivePageHeader } from '@/components/shared';
+import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import {
   FileEdit,
   CheckCircle,
@@ -395,6 +395,19 @@ export default function ChangeDetailPage() {
             )}
           </div>
         }
+      />
+
+      {/* Workflow status — สถานะการดำเนินงาน */}
+      <StatusStepper
+        title="สถานะการดำเนินงาน"
+        current={change.status}
+        steps={[
+          { key: 'draft', label: 'ร่าง' },
+          { key: 'pending_review', label: 'รออนุมัติ' },
+          { key: 'approved', label: 'อนุมัติ' },
+          { key: 'implemented', label: 'ดำเนินการ' },
+          { key: 'closed', label: 'ปิด' },
+        ]}
       />
 
       {/* Validation Warning */}

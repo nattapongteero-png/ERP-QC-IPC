@@ -73,11 +73,11 @@ interface ReceiptSummary {
 }
 
 const paymentMethodOptions = [
-  { value: '', text: 'All Methods' },
-  { value: 'cash', text: 'Cash' },
-  { value: 'bank_transfer', text: 'Bank Transfer' },
-  { value: 'cheque', text: 'Cheque' },
-  { value: 'credit_card', text: 'Credit Card' },
+  { value: '', text: 'ทุกวิธี' },
+  { value: 'cash', text: 'เงินสด' },
+  { value: 'bank_transfer', text: 'โอนเงินผ่านธนาคาร' },
+  { value: 'cheque', text: 'เช็ค' },
+  { value: 'credit_card', text: 'บัตรเครดิต' },
 ];
 
 interface ARInvoice {
@@ -107,11 +107,11 @@ interface ReceiptFormData {
 }
 
 const statusOptions = [
-  { value: '', text: 'All Status' },
-  { value: 'pending', text: 'Pending' },
-  { value: 'cleared', text: 'Cleared' },
-  { value: 'bounced', text: 'Bounced' },
-  { value: 'cancelled', text: 'Cancelled' },
+  { value: '', text: 'ทุกสถานะ' },
+  { value: 'pending', text: 'รอดำเนินการ' },
+  { value: 'cleared', text: 'เคลียร์แล้ว' },
+  { value: 'bounced', text: 'เช็คเด้ง' },
+  { value: 'cancelled', text: 'ยกเลิก' },
 ];
 
 async function fetchReceipts(params: {
@@ -236,10 +236,10 @@ function formatDate(dateStr: string | null): string {
 
 function getPaymentMethodLabel(method: string): string {
   const labels: Record<string, string> = {
-    cash: 'Cash',
-    bank_transfer: 'Bank Transfer',
-    cheque: 'Cheque',
-    credit_card: 'Credit Card',
+    cash: 'เงินสด',
+    bank_transfer: 'โอนเงินผ่านธนาคาร',
+    cheque: 'เช็ค',
+    credit_card: 'บัตรเครดิต',
   };
   return labels[method] || method;
 }
@@ -473,7 +473,7 @@ export default function ARReceiptsPage() {
     a.download = `ar-receipts-${toLocalDateStr(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('Receipts exported successfully', 'success', 3000);
+    notify('ส่งออกใบเสร็จรับเงินสำเร็จ', 'success', 3000);
   }, [receipts]);
 
   const statusCellRender = useCallback((cellData: { value: string }) => {
@@ -511,13 +511,13 @@ export default function ARReceiptsPage() {
         icon="file-text"
         onBack={() => window.location.href = '/accounting/ar'}
         breadcrumbs={[
-          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: 'ลูกหนี้การค้า', href: '/accounting/ar' },
           { label: t('accountsReceivable.receipts.title') },
         ]}
         onRefresh={handleRefresh}
         actions={
           <Button
-            text="Record Receipt"
+            text="บันทึกใบเสร็จรับเงิน"
             icon="plus"
             type="success"
             onClick={handleOpenReceiptDialog}
@@ -538,30 +538,30 @@ export default function ARReceiptsPage() {
           ) : (
             <>
               <AccountingKPICard
-                label="Total Receipts"
+                label="ใบเสร็จทั้งหมด"
                 value={summary?.totalReceipts || 0}
-                subtitle="All time"
+                subtitle="ทั้งหมด"
                 icon="file-text"
                 variant="info"
               />
               <AccountingKPICard
-                label="Total Amount"
+                label="จำนวนเงินรวม"
                 value={formatCurrency(summary?.totalAmount || 0)}
-                subtitle="Total received"
+                subtitle="ยอดรับชำระทั้งหมด"
                 icon="trending-up"
                 variant="success"
               />
               <AccountingKPICard
-                label="Cleared"
+                label="เคลียร์แล้ว"
                 value={formatCurrency(summary?.clearedAmount || 0)}
-                subtitle="Confirmed payments"
+                subtitle="การชำระที่ยืนยันแล้ว"
                 icon="check-circle"
                 variant="success"
               />
               <AccountingKPICard
-                label="Pending"
+                label="รอดำเนินการ"
                 value={formatCurrency(summary?.pendingAmount || 0)}
-                subtitle="Awaiting clearance"
+                subtitle="รอการเคลียร์"
                 icon="clock"
                 variant="warning"
               />
@@ -574,7 +574,7 @@ export default function ARReceiptsPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
-              Payment Method
+              วิธีชำระเงิน
             </label>
             <SelectBox
               items={paymentMethodOptions}
@@ -586,7 +586,7 @@ export default function ARReceiptsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Status</label>
+            <label className="text-sm font-medium text-gray-700">สถานะ</label>
             <SelectBox
               items={statusOptions}
               value={status}
@@ -599,7 +599,7 @@ export default function ARReceiptsPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              From Date
+              ตั้งแต่วันที่
             </label>
             <DateBox
               value={dateFrom}
@@ -610,7 +610,7 @@ export default function ARReceiptsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">To Date</label>
+            <label className="text-sm font-medium text-gray-700">ถึงวันที่</label>
             <DateBox
               value={dateTo}
               onValueChanged={(e) => setDateTo(e.value)}
@@ -621,7 +621,7 @@ export default function ARReceiptsPage() {
           </div>
           <div className="flex gap-2 items-end">
             <Button
-              text="Clear"
+              text="ล้างตัวกรอง"
               stylingMode="outlined"
               onClick={() => {
                 setPaymentMethod('');
@@ -632,7 +632,7 @@ export default function ARReceiptsPage() {
             />
             {receipts.length > 0 && (
               <Button
-                text="Export"
+                text="ส่งออก"
                 icon="export"
                 stylingMode="outlined"
                 onClick={handleExportJSON}
@@ -679,7 +679,7 @@ export default function ARReceiptsPage() {
                 hoverStateEnabled
               >
                 <Paging defaultPageSize={20} />
-                <SearchPanel visible placeholder="Search receipts..." />
+                <SearchPanel visible placeholder="ค้นหาใบเสร็จรับเงิน..." />
 
                 <Toolbar>
                   <ToolbarItem name="searchPanel" location="before" />
@@ -699,34 +699,34 @@ export default function ARReceiptsPage() {
                     </span>
                   )}
                 />
-                <Column dataField="receiptNumber" caption="Receipt #" width={150} />
+                <Column dataField="receiptNumber" caption="เลขที่ใบเสร็จ" width={150} />
                 <Column
                   dataField="receiptDate"
-                  caption="Date"
+                  caption="วันที่"
                   dataType="date"
                   width={120}
                   cellRender={(data) => formatDate(data.value)}
                 />
-                <Column dataField="customerName" caption="Customer" minWidth={200} />
+                <Column dataField="customerName" caption="ลูกค้า" minWidth={200} />
                 <Column
                   dataField="paymentMethod"
-                  caption="Method"
+                  caption="วิธีการ"
                   width={150}
                   cellRender={paymentMethodCellRender}
                 />
                 <Column
                   dataField="amount"
-                  caption="Amount"
+                  caption="จำนวนเงิน"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
                   alignment="right"
                 />
-                <Column dataField="reference" caption="Reference" width={150} />
-                <Column dataField="bankAccountName" caption="Bank Account" width={150} />
+                <Column dataField="reference" caption="อ้างอิง" width={150} />
+                <Column dataField="bankAccountName" caption="บัญชีธนาคาร" width={150} />
                 <Column
                   dataField="status"
-                  caption="Status"
+                  caption="สถานะ"
                   width={120}
                   cellRender={statusCellRender}
                 />

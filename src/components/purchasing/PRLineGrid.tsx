@@ -124,7 +124,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           <Item name="addRowButton" showText="always" />
           <Item location="after">
             <Button
-              text="Select from Inventory"
+              text="เลือกจากคลังสินค้า"
               icon="search"
               stylingMode="outlined"
               onClick={() => setItemSearchOpen(true)}
@@ -135,45 +135,45 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
         <Column
           dataField="itemCode"
-          caption="Item Code"
+          caption="รหัสสินค้า"
           width={120}
           data-testid="col-item-code"
         />
         <Column
           dataField="description"
-          caption="Description"
+          caption="รายละเอียด"
           minWidth={200}
-          validationRules={[{ type: 'required', message: 'Description is required' }]}
+          validationRules={[{ type: 'required', message: 'กรุณากรอกรายละเอียด' }]}
           data-testid="col-description"
         />
         <Column
           dataField="quantity"
-          caption="Qty"
+          caption="จำนวน"
           dataType="number"
           width={80}
           validationRules={[
-            { type: 'required', message: 'Quantity is required' },
-            { type: 'range', min: 0.01, message: 'Quantity must be positive' },
+            { type: 'required', message: 'กรุณากรอกจำนวน' },
+            { type: 'range', min: 0.01, message: 'จำนวนต้องมากกว่า 0' },
           ]}
           data-testid="col-quantity"
         />
         <Column
           dataField="unitOfMeasure"
-          caption="UoM"
+          caption="หน่วยนับ"
           width={80}
-          validationRules={[{ type: 'required', message: 'UoM is required' }]}
+          validationRules={[{ type: 'required', message: 'กรุณาระบุหน่วยนับ' }]}
           data-testid="col-uom"
         />
         <Column
           dataField="estimatedUnitPrice"
-          caption="Unit Price"
+          caption="ราคาต่อหน่วย"
           dataType="number"
           width={120}
           format={{ type: 'fixedPoint', precision: 2 }}
           data-testid="col-unit-price"
         />
         <Column
-          caption="Amount"
+          caption="จำนวนเงิน"
           width={120}
           calculateCellValue={calculateAmount}
           format={{ type: 'fixedPoint', precision: 2 }}
@@ -182,7 +182,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         />
         <Column
           dataField="notes"
-          caption="Notes"
+          caption="หมายเหตุ"
           width={150}
           data-testid="col-notes"
         />
@@ -192,7 +192,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
             column="Amount"
             summaryType="sum"
             valueFormat={{ type: 'fixedPoint', precision: 2 }}
-            displayFormat="Total: {0}"
+            displayFormat="รวม: {0}"
           />
         </Summary>
       </DataGrid>
@@ -201,7 +201,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         open={itemSearchOpen}
         onOpenChange={setItemSearchOpen}
         onSelect={handleSelectFromInventory}
-        title="Select Item from Inventory"
+        title="เลือกสินค้าจากคลัง"
         showPrice="cost"
         excludeIds={lines.filter(l => l.itemId).map(l => l.itemId!)}
         allowCreate

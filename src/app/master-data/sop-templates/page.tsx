@@ -26,23 +26,23 @@ interface SOPTemplate {
 }
 
 const categories = [
-  { value: 'line_clearance', label: 'Line Clearance' },
-  { value: 'dispensing', label: 'Dispensing' },
-  { value: 'preparation', label: 'Preparation' },
-  { value: 'milling', label: 'Milling / Grinding' },
-  { value: 'sieving', label: 'Sieving' },
-  { value: 'drying', label: 'Drying' },
-  { value: 'blending', label: 'Blending / Mixing' },
-  { value: 'mixing', label: 'Mixing' },
-  { value: 'heating', label: 'Heating' },
-  { value: 'cooling', label: 'Cooling' },
-  { value: 'filling', label: 'Filling' },
-  { value: 'packaging', label: 'Packaging' },
-  { value: 'ipc', label: 'In-Process Control' },
-  { value: 'weighing', label: 'Weighing' },
-  { value: 'cleaning', label: 'Cleaning' },
-  { value: 'inspection', label: 'Inspection' },
-  { value: 'other', label: 'Other' },
+  { value: 'line_clearance', label: 'การเคลียร์ไลน์ผลิต' },
+  { value: 'dispensing', label: 'การจ่ายวัตถุดิบ' },
+  { value: 'preparation', label: 'การเตรียม' },
+  { value: 'milling', label: 'การบด / โม่' },
+  { value: 'sieving', label: 'การร่อน' },
+  { value: 'drying', label: 'การอบแห้ง' },
+  { value: 'blending', label: 'การผสมรวม' },
+  { value: 'mixing', label: 'การผสม' },
+  { value: 'heating', label: 'การให้ความร้อน' },
+  { value: 'cooling', label: 'การทำให้เย็น' },
+  { value: 'filling', label: 'การบรรจุ' },
+  { value: 'packaging', label: 'การบรรจุภัณฑ์' },
+  { value: 'ipc', label: 'การควบคุมระหว่างผลิต' },
+  { value: 'weighing', label: 'การชั่ง' },
+  { value: 'cleaning', label: 'การทำความสะอาด' },
+  { value: 'inspection', label: 'การตรวจสอบ' },
+  { value: 'other', label: 'อื่นๆ' },
 ];
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
@@ -93,10 +93,10 @@ export default function SOPTemplatesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sop-templates'] });
-      toast.success('Template Deactivated', 'The SOP template has been deactivated.');
+      toast.success('ปิดใช้งานแม่แบบแล้ว', 'ปิดใช้งานแม่แบบ SOP เรียบร้อยแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
@@ -123,19 +123,19 @@ export default function SOPTemplatesPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="SOP Templates"
-        subtitle="Manage SOP step templates for production processes"
+        title="แม่แบบ SOP"
+        subtitle="จัดการแม่แบบขั้นตอน SOP สำหรับกระบวนการผลิต"
         icon={FileText}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'SOP Templates' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'แม่แบบ SOP' },
         ]}
         actions={
           <DxButton
-            text="Add Template"
+            text="เพิ่มแม่แบบ"
             icon="plus"
             type="success"
             onClick={handleCreate}
@@ -155,43 +155,43 @@ export default function SOPTemplatesPage() {
           width="100%"
           columnAutoWidth
         >
-          <DxSearchPanel visible placeholder="Search templates..." width={200} />
+          <DxSearchPanel visible placeholder="ค้นหาแม่แบบ..." width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" minWidth={140} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="รหัส" minWidth={140} cellRender={(cell) => (
             <span className="font-mono font-medium text-amber-700">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Name (EN)" minWidth={200} />
-          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={200} />
-          <DxColumn dataField="category" caption="Category" minWidth={160} cellRender={(cell) => renderCategoryBadge(cell.value)} />
-          <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
+          <DxColumn dataField="name" caption="ชื่อ (EN)" minWidth={200} />
+          <DxColumn dataField="nameTh" caption="ชื่อ (TH)" minWidth={200} />
+          <DxColumn dataField="category" caption="หมวดหมู่" minWidth={160} cellRender={(cell) => renderCategoryBadge(cell.value)} />
+          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
             <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'Active' : 'Inactive'}
+              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as SOPTemplate).id)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                title="View"
+                title="ดู"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit((cell.data as SOPTemplate).id)}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="Edit"
+                title="แก้ไข"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as SOPTemplate).nameTh || (cell.data as SOPTemplate).name} หรือไม่?`)) deleteMutation.mutate((cell.data as SOPTemplate).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Deactivate"
+                title="ปิดใช้งาน"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

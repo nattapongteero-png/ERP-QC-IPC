@@ -98,9 +98,9 @@ interface BOMRoom {
 const PHASE_MAP = ['pre_production', 'production', 'packaging'] as const;
 
 const PHASE_LABELS: Record<typeof PHASE_MAP[number], string> = {
-  pre_production: 'Pre-Production',
-  production: 'Production',
-  packaging: 'Packaging',
+  pre_production: 'ก่อนการผลิต',
+  production: 'การผลิต',
+  packaging: 'บรรจุภัณฑ์',
 };
 
 export default function EnvironmentalMonitoringPage() {
@@ -245,12 +245,12 @@ export default function EnvironmentalMonitoringPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
-      toast.success('Log Added', 'Environmental reading has been recorded.');
+      toast.success('บันทึกสำเร็จ', 'บันทึกค่าสภาพแวดล้อมเรียบร้อยแล้ว');
       setShowAddDialog(false);
       setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('เกิดข้อผิดพลาด', error.message);
     },
   });
 
@@ -273,7 +273,7 @@ export default function EnvironmentalMonitoringPage() {
       setEditingLogId(null);
       setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('เกิดข้อผิดพลาด', error.message),
   });
 
   // Delete log mutation
@@ -325,12 +325,12 @@ export default function EnvironmentalMonitoringPage() {
     return isNormal ? (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
         <CheckCircle2 className="h-3 w-3" />
-        Normal
+        ปกติ
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
         <AlertCircle className="h-3 w-3" />
-        Abnormal
+        ผิดปกติ
       </span>
     );
   };
@@ -346,9 +346,9 @@ export default function EnvironmentalMonitoringPage() {
   if (!workOrder) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Work Order not found</p>
+        <p className="text-gray-500">ไม่พบใบสั่งผลิต</p>
         <DxButton
-          text="Back to Work Orders"
+          text="กลับไปที่ใบสั่งผลิต"
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -362,28 +362,28 @@ export default function EnvironmentalMonitoringPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Environmental Monitoring"
-        subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}${workOrder.bomCode ? ` | BOM: ${workOrder.bomCode}${workOrder.bomVersion ? ` v${workOrder.bomVersion}` : ''}` : ''}`}
+        title="การเฝ้าระวังสภาพแวดล้อม"
+        subtitle={`${workOrder.woNumber} | แบทช์: ${workOrder.batchNumber}${workOrder.bomCode ? ` | BOM: ${workOrder.bomCode}${workOrder.bomVersion ? ` v${workOrder.bomVersion}` : ''}` : ''}`}
         icon={Thermometer}
         iconBgColor="bg-teal-100"
         iconColor="text-teal-600"
         breadcrumbs={[
-          { label: 'Production', href: '/production' },
-          { label: 'Work Orders', href: '/production/work-orders' },
+          { label: 'การผลิต', href: '/production' },
+          { label: 'ใบสั่งผลิต', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
-          { label: 'Execution', href: `/production/work-orders/${workOrderId}?tab=execution` },
-          { label: 'Environmental Monitoring' },
+          { label: 'การดำเนินการผลิต', href: `/production/work-orders/${workOrderId}?tab=execution` },
+          { label: 'การเฝ้าระวังสภาพแวดล้อม' },
         ]}
         actions={
           <div className="flex gap-2">
             <DxButton
-              text="Back to Execution"
+              text="กลับไปการดำเนินการผลิต"
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
             />
             <DxButton
-              text="Add Reading"
+              text="เพิ่มการบันทึกค่า"
               icon="plus"
               type="success"
               onClick={() => setShowAddDialog(true)}
@@ -427,11 +427,11 @@ export default function EnvironmentalMonitoringPage() {
               rowAlternationEnabled
               loading={logsLoading}
               height={400}
-              noDataText="No environmental readings recorded. Click 'Add Reading' to start."
+              noDataText="ยังไม่มีการบันทึกค่าสภาพแวดล้อม กด 'เพิ่มการบันทึกค่า' เพื่อเริ่มต้น"
             >
               <DxPaging defaultPageSize={15} />
 
-              <DxColumn dataField="roomName" caption="Room" minWidth={120} cellRender={(cell) => {
+              <DxColumn dataField="roomName" caption="ห้อง" minWidth={120} cellRender={(cell) => {
                 const name = cell.data.roomName || cell.data.roomCode;
                 return name ? (
                   <span className="text-sm">{name}</span>
@@ -439,9 +439,9 @@ export default function EnvironmentalMonitoringPage() {
                   <span className="text-xs text-gray-400">-</span>
                 );
               }} />
-              <DxColumn dataField="recordedDate" caption="Date" width={100} />
-              <DxColumn dataField="recordedTime" caption="Time" width={80} />
-              <DxColumn dataField="temperature" caption="Temp (°C)" minWidth={100} cellRender={(cell) => (
+              <DxColumn dataField="recordedDate" caption="วันที่" width={100} />
+              <DxColumn dataField="recordedTime" caption="เวลา" width={80} />
+              <DxColumn dataField="temperature" caption="อุณหภูมิ (°C)" minWidth={100} cellRender={(cell) => (
                 <span className={`font-medium ${
                   condition && (cell.value < condition.temperatureMin || cell.value > condition.temperatureMax)
                     ? 'text-red-600'
@@ -450,7 +450,7 @@ export default function EnvironmentalMonitoringPage() {
                   {cell.value}°C
                 </span>
               )} />
-              <DxColumn dataField="humidity" caption="Humidity (%)" minWidth={100} cellRender={(cell) => (
+              <DxColumn dataField="humidity" caption="ความชื้น (%)" minWidth={100} cellRender={(cell) => (
                 <span className={`font-medium ${
                   condition && cell.value > condition.humidityMax
                     ? 'text-red-600'
@@ -459,9 +459,9 @@ export default function EnvironmentalMonitoringPage() {
                   {cell.value}%
                 </span>
               )} />
-              <DxColumn dataField="isNormal" caption="Status" width={110} cellRender={(cell) => renderStatusBadge(cell.value)} />
-              <DxColumn dataField="operatorName" caption="Recorded By" minWidth={110} />
-              <DxColumn dataField="notes" caption="Notes" minWidth={120} cellRender={(cell) => (
+              <DxColumn dataField="isNormal" caption="สถานะ" width={110} cellRender={(cell) => renderStatusBadge(cell.value)} />
+              <DxColumn dataField="operatorName" caption="ผู้บันทึก" minWidth={110} />
+              <DxColumn dataField="notes" caption="หมายเหตุ" minWidth={120} cellRender={(cell) => (
                 cell.value ? (
                   <span
                     title={cell.value}
@@ -490,7 +490,7 @@ export default function EnvironmentalMonitoringPage() {
       <DxPopup
         visible={showAddDialog}
         onHiding={() => { setShowAddDialog(false); setEditingLogId(null); }}
-        title={editingLogId ? 'แก้ไขข้อมูลสภาวะแวดล้อม' : 'Record Environmental Reading'}
+        title={editingLogId ? 'แก้ไขข้อมูลสภาวะแวดล้อม' : 'บันทึกค่าสภาพแวดล้อม'}
         width={500}
         height="auto"
         showCloseButton
@@ -498,16 +498,16 @@ export default function EnvironmentalMonitoringPage() {
       >
         <div className="p-4 space-y-4">
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-            <strong>Phase:</strong> {currentPhase === 'pre_production' ? 'Pre-Production' : currentPhase === 'production' ? 'Production' : 'Packaging'}
+            <strong>ขั้นตอน:</strong> {currentPhase === 'pre_production' ? 'ก่อนการผลิต' : currentPhase === 'production' ? 'การผลิต' : 'บรรจุภัณฑ์'}
             <br />
-            <strong>Time:</strong> {new Date().toLocaleString()}
+            <strong>เวลา:</strong> {new Date().toLocaleString()}
           </div>
 
           {/* Room Selector */}
           {bomRooms && bomRooms.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ห้อง (Room) *
+                ห้อง *
               </label>
               <DxSelectBox
                 value={formData.roomId}
@@ -528,7 +528,7 @@ export default function EnvironmentalMonitoringPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Temperature (°C) *
+                อุณหภูมิ (°C) *
               </label>
               <DxNumberBox
                 value={formData.temperature}
@@ -540,13 +540,13 @@ export default function EnvironmentalMonitoringPage() {
               />
               {condition && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Limit: {condition.temperatureMin}-{condition.temperatureMax}°C
+                  ค่าที่กำหนด: {condition.temperatureMin}-{condition.temperatureMax}°C
                 </p>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Humidity (% RH) *
+                ความชื้น (% RH) *
               </label>
               <DxNumberBox
                 value={formData.humidity}
@@ -558,7 +558,7 @@ export default function EnvironmentalMonitoringPage() {
               />
               {condition && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Max: ≤{condition.humidityMax}% RH
+                  สูงสุด: ≤{condition.humidityMax}% RH
                 </p>
               )}
             </div>
@@ -574,31 +574,31 @@ export default function EnvironmentalMonitoringPage() {
               {isWithinLimits(formData.temperature, formData.humidity) ? (
                 <>
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="text-green-800 font-medium">Reading within normal limits</span>
+                  <span className="text-green-800 font-medium">ค่าอยู่ในเกณฑ์ปกติ</span>
                 </>
               ) : (
                 <>
                   <AlertCircle className="h-5 w-5 text-red-600" />
-                  <span className="text-red-800 font-medium">Reading outside normal limits</span>
+                  <span className="text-red-800 font-medium">ค่าอยู่นอกเกณฑ์ปกติ</span>
                 </>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
             <DxTextArea
               value={formData.notes}
               onValueChanged={(e) => setFormData({ ...formData, notes: e.value })}
-              placeholder="Any observations or remarks..."
+              placeholder="ข้อสังเกตหรือหมายเหตุเพิ่มเติม..."
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingLogId(null); }} />
+            <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => { setShowAddDialog(false); setEditingLogId(null); }} />
             <DxButton
-              text={editingLogId ? 'บันทึกการแก้ไข' : 'Save Reading'}
+              text={editingLogId ? 'บันทึกการแก้ไข' : 'บันทึกค่า'}
               type="success"
               onClick={handleSave}
               disabled={addLogMutation.isPending || editLogMutation.isPending}

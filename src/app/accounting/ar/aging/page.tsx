@@ -136,7 +136,7 @@ export default function ARAgingPage() {
     a.download = `ar-aging-${asOfDate.toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('AR aging report exported successfully', 'success', 3000);
+    notify('ส่งออกรายงานอายุหนี้ลูกหนี้สำเร็จ', 'success', 3000);
   }, [report, asOfDate]);
 
   // Prepare chart data
@@ -165,14 +165,14 @@ export default function ARAgingPage() {
         icon="clock"
         onBack={() => window.location.href = '/accounting/ar'}
         breadcrumbs={[
-          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: 'บัญชีลูกหนี้', href: '/accounting/ar' },
           { label: t('reports.agingReport') },
         ]}
         onRefresh={handleRefresh}
         actions={
           report && (
             <Button
-              text="Export Report"
+              text="ส่งออกรายงาน"
               icon="export"
               stylingMode="outlined"
               onClick={handleExportJSON}
@@ -196,44 +196,44 @@ export default function ARAgingPage() {
           ) : (
             <>
               <AccountingKPICard
-                label="Current"
+                label="ยังไม่ครบกำหนด"
                 value={formatCurrency(report?.totals?.current || 0)}
-                subtitle="Not yet due"
+                subtitle="ยังไม่ถึงกำหนดชำระ"
                 icon="check-circle"
                 variant="success"
               />
               <AccountingKPICard
-                label="1-30 Days"
+                label="1-30 วัน"
                 value={formatCurrency(report?.totals?.days1to30 || 0)}
-                subtitle="Slightly overdue"
+                subtitle="เกินกำหนดเล็กน้อย"
                 icon="clock"
                 variant="default"
               />
               <AccountingKPICard
-                label="31-60 Days"
+                label="31-60 วัน"
                 value={formatCurrency(report?.totals?.days31to60 || 0)}
-                subtitle="Follow up needed"
+                subtitle="ต้องติดตาม"
                 icon="clock"
                 variant="warning"
               />
               <AccountingKPICard
-                label="61-90 Days"
+                label="61-90 วัน"
                 value={formatCurrency(report?.totals?.days61to90 || 0)}
-                subtitle="Attention required"
+                subtitle="ต้องให้ความสำคัญ"
                 icon="trending-up"
                 variant="warning"
               />
               <AccountingKPICard
-                label="Over 90 Days"
+                label="เกิน 90 วัน"
                 value={formatCurrency(report?.totals?.over90 || 0)}
-                subtitle="Critical"
+                subtitle="วิกฤต"
                 icon="trending-up"
                 variant="danger"
               />
               <AccountingKPICard
-                label="Total AR"
+                label="ลูกหนี้รวม"
                 value={formatCurrency(totalAmount)}
-                subtitle={`${overduePercentage}% overdue`}
+                subtitle={`เกินกำหนด ${overduePercentage}%`}
                 icon="wallet"
                 variant="info"
               />
@@ -246,7 +246,7 @@ export default function ARAgingPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              As of Date
+              ณ วันที่
             </label>
             <DateBox
               value={asOfDate}
@@ -258,7 +258,7 @@ export default function ARAgingPage() {
           </div>
           <div className="flex gap-2 items-end">
             <Button
-              text="Generate Report"
+              text="สร้างรายงาน"
               type="default"
               stylingMode="contained"
               onClick={() => refetch()}
@@ -274,9 +274,9 @@ export default function ARAgingPage() {
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-red-800">Critical Aging Alert</h3>
+                <h3 className="font-semibold text-red-800">แจ้งเตือนหนี้ค้างวิกฤต</h3>
                 <p className="text-sm text-red-600 mt-1">
-                  {formatCurrency(criticalAmount)} is over 60 days past due. Immediate collection action recommended.
+                  {formatCurrency(criticalAmount)} เกินกำหนดชำระมากกว่า 60 วัน ควรดำเนินการเรียกเก็บโดยทันที
                 </p>
               </div>
             </div>
@@ -290,13 +290,13 @@ export default function ARAgingPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-green-500" />
-                Aging Distribution
+                การกระจายตามอายุหนี้
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <div className="h-[300px] flex items-center justify-center">
-                  <div className="animate-pulse text-gray-400">Loading chart...</div>
+                  <div className="animate-pulse text-gray-400">กำลังโหลดกราฟ...</div>
                 </div>
               ) : (
                 <div className="h-[300px]">
@@ -319,7 +319,7 @@ export default function ARAgingPage() {
                         labelStyle={{ fontWeight: 600 }}
                       />
                       <Legend />
-                      <Bar dataKey="amount" name="Amount" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="amount" name="จำนวนเงิน" radius={[4, 4, 0, 0]}>
                         {chartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
@@ -336,7 +336,7 @@ export default function ARAgingPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Clock className="h-5 w-5 text-blue-500" />
-                Aging Summary
+                สรุปอายุหนี้
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -345,7 +345,7 @@ export default function ARAgingPage() {
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="font-medium text-gray-700">Current</span>
+                    <span className="font-medium text-gray-700">ยังไม่ครบกำหนด</span>
                   </div>
                   <span className="font-semibold text-green-700">
                     {formatCurrency(report?.totals?.current || 0)}
@@ -356,7 +356,7 @@ export default function ARAgingPage() {
                 <div className="flex items-center justify-between p-3 bg-lime-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-lime-500"></div>
-                    <span className="font-medium text-gray-700">1-30 Days</span>
+                    <span className="font-medium text-gray-700">1-30 วัน</span>
                   </div>
                   <span className="font-semibold text-lime-700">
                     {formatCurrency(report?.totals?.days1to30 || 0)}
@@ -367,7 +367,7 @@ export default function ARAgingPage() {
                 <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <span className="font-medium text-gray-700">31-60 Days</span>
+                    <span className="font-medium text-gray-700">31-60 วัน</span>
                   </div>
                   <span className="font-semibold text-yellow-700">
                     {formatCurrency(report?.totals?.days31to60 || 0)}
@@ -378,7 +378,7 @@ export default function ARAgingPage() {
                 <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="font-medium text-gray-700">61-90 Days</span>
+                    <span className="font-medium text-gray-700">61-90 วัน</span>
                   </div>
                   <span className="font-semibold text-orange-700">
                     {formatCurrency(report?.totals?.days61to90 || 0)}
@@ -389,7 +389,7 @@ export default function ARAgingPage() {
                 <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span className="font-medium text-gray-700">Over 90 Days</span>
+                    <span className="font-medium text-gray-700">เกิน 90 วัน</span>
                   </div>
                   <span className="font-semibold text-red-700">
                     {formatCurrency(report?.totals?.over90 || 0)}
@@ -398,7 +398,7 @@ export default function ARAgingPage() {
 
                 {/* Total */}
                 <div className="flex items-center justify-between p-4 bg-gray-100 rounded-lg border-t-2 border-gray-300">
-                  <span className="font-bold text-gray-800">Total Outstanding</span>
+                  <span className="font-bold text-gray-800">ยอดค้างชำระรวม</span>
                   <span className="font-bold text-lg text-gray-900">
                     {formatCurrency(totalAmount)}
                   </span>
@@ -446,16 +446,16 @@ export default function ARAgingPage() {
                 hoverStateEnabled
               >
                 <Paging defaultPageSize={20} />
-                <SearchPanel visible placeholder="Search customers..." />
+                <SearchPanel visible placeholder="ค้นหาลูกค้า..." />
 
                 <Toolbar>
                   <ToolbarItem name="searchPanel" location="before" />
                 </Toolbar>
 
-                <Column dataField="entityName" caption="Customer" minWidth={200} />
+                <Column dataField="entityName" caption="ลูกค้า" minWidth={200} />
                 <Column
                   dataField="current"
-                  caption="Current"
+                  caption="ยังไม่ครบกำหนด"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
@@ -464,7 +464,7 @@ export default function ARAgingPage() {
                 />
                 <Column
                   dataField="days1to30"
-                  caption="1-30 Days"
+                  caption="1-30 วัน"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
@@ -472,7 +472,7 @@ export default function ARAgingPage() {
                 />
                 <Column
                   dataField="days31to60"
-                  caption="31-60 Days"
+                  caption="31-60 วัน"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
@@ -481,7 +481,7 @@ export default function ARAgingPage() {
                 />
                 <Column
                   dataField="days61to90"
-                  caption="61-90 Days"
+                  caption="61-90 วัน"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
@@ -490,7 +490,7 @@ export default function ARAgingPage() {
                 />
                 <Column
                   dataField="over90"
-                  caption="Over 90"
+                  caption="เกิน 90 วัน"
                   dataType="number"
                   format="#,##0.00"
                   width={130}
@@ -499,7 +499,7 @@ export default function ARAgingPage() {
                 />
                 <Column
                   dataField="total"
-                  caption="Total"
+                  caption="รวม"
                   dataType="number"
                   format="#,##0.00"
                   width={140}

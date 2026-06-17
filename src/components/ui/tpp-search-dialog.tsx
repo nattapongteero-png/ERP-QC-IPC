@@ -167,7 +167,7 @@ export function TppSearchDialog({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-              <p className="text-sm text-gray-500">Thai Pharmaceutical Product codes from VMI Portal</p>
+              <p className="text-sm text-gray-500">รหัสผลิตภัณฑ์ยาแผนไทย (TPP) จาก VMI Portal</p>
             </div>
           </div>
 
@@ -177,7 +177,7 @@ export function TppSearchDialog({
             <DxTextBox
               value={search}
               onValueChange={setSearch}
-              placeholder="Search by TPP code or product name..."
+              placeholder="ค้นหาด้วยรหัส TPP หรือชื่อผลิตภัณฑ์..."
               className="pl-10"
               mode="search"
               showClearButton
@@ -190,20 +190,20 @@ export function TppSearchDialog({
           {isSearching ? (
             <div className="flex items-center justify-center h-32">
               <DxLoadIndicator />
-              <span className="ml-2 text-gray-500">Searching VMI Portal...</span>
+              <span className="ml-2 text-gray-500">กำลังค้นหาใน VMI Portal...</span>
             </div>
           ) : results.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-gray-500">
               {hasSearched ? (
                 <>
                   <Search className="h-8 w-8 mb-2 text-gray-300" />
-                  <p>No TPP codes found</p>
-                  <p className="text-sm">Try a different search term</p>
+                  <p>ไม่พบรหัส TPP</p>
+                  <p className="text-sm">ลองใช้คำค้นหาอื่น</p>
                 </>
               ) : (
                 <>
                   <Pill className="h-8 w-8 mb-2 text-gray-300" />
-                  <p>Enter a search term to find TPP codes</p>
+                  <p>กรอกคำค้นหาเพื่อค้นหารหัส TPP</p>
                 </>
               )}
             </div>
@@ -242,23 +242,23 @@ export function TppSearchDialog({
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
                 <Keyboard className="h-3 w-3" />
-                <span>Keyboard:</span>
+                <span>คีย์บอร์ด:</span>
               </div>
               <div className="flex items-center gap-1">
                 <ArrowUp className="h-3 w-3" />
                 <ArrowDown className="h-3 w-3" />
-                <span>Navigate</span>
+                <span>เลื่อน</span>
               </div>
               <div className="flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" />
-                <span>Select</span>
+                <span>เลือก</span>
               </div>
-              <span>ESC Close</span>
+              <span>ESC ปิด</span>
             </div>
             <div>
               {hasSearched && (
                 <span>
-                  {results.length} of {totalCount} results
+                  {results.length} จาก {totalCount} ผลลัพธ์
                 </span>
               )}
             </div>

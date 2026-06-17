@@ -213,7 +213,7 @@ export default function NewCreditDebitNotePage() {
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
             {t('page.title')}
           </h1>
-          <p className="text-gray-600">Create a new credit or debit note</p>
+          <p className="text-gray-600">สร้างใบลดหนี้หรือใบเพิ่มหนี้ใหม่</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -221,7 +221,7 @@ export default function NewCreditDebitNotePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Note Type <span className="text-red-500">*</span>
+                ประเภทใบ <span className="text-red-500">*</span>
               </label>
               <SelectBox
                 items={NOTE_TYPE_OPTIONS}
@@ -235,7 +235,7 @@ export default function NewCreditDebitNotePage() {
                     referenceInvoiceId: 0,
                   })
                 }
-                placeholder="Select note type"
+                placeholder="เลือกประเภทใบ"
                 data-testid="note-type-select"
               />
             </div>
@@ -243,7 +243,7 @@ export default function NewCreditDebitNotePage() {
             {formData.noteType.startsWith('ar_') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer <span className="text-red-500">*</span>
+                  ลูกค้า <span className="text-red-500">*</span>
                 </label>
                 <SelectBox
                   items={customers}
@@ -254,7 +254,7 @@ export default function NewCreditDebitNotePage() {
                     setFormData({ ...formData, customerId: e.value })
                   }
                   searchEnabled={true}
-                  placeholder="Select customer"
+                  placeholder="เลือกลูกค้า"
                 />
               </div>
             )}
@@ -262,7 +262,7 @@ export default function NewCreditDebitNotePage() {
             {formData.noteType.startsWith('ap_') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vendor <span className="text-red-500">*</span>
+                  ผู้ขาย <span className="text-red-500">*</span>
                 </label>
                 <SelectBox
                   items={vendors}
@@ -273,14 +273,14 @@ export default function NewCreditDebitNotePage() {
                     setFormData({ ...formData, vendorId: e.value })
                   }
                   searchEnabled={true}
-                  placeholder="Select vendor"
+                  placeholder="เลือกผู้ขาย"
                 />
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Reference Invoice <span className="text-red-500">*</span>
+                ใบแจ้งหนี้อ้างอิง <span className="text-red-500">*</span>
               </label>
               <SelectBox
                 items={invoices}
@@ -291,13 +291,13 @@ export default function NewCreditDebitNotePage() {
                   setFormData({ ...formData, referenceInvoiceId: e.value })
                 }
                 searchEnabled={true}
-                placeholder="Select invoice"
+                placeholder="เลือกใบแจ้งหนี้"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Note Date <span className="text-red-500">*</span>
+                วันที่ <span className="text-red-500">*</span>
               </label>
               <DateBox
                 value={formData.noteDate}
@@ -314,7 +314,7 @@ export default function NewCreditDebitNotePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Reason <span className="text-red-500">*</span>
+                เหตุผล <span className="text-red-500">*</span>
               </label>
               <SelectBox
                 items={REASON_CODE_OPTIONS}
@@ -324,13 +324,13 @@ export default function NewCreditDebitNotePage() {
                 onValueChanged={(e) =>
                   setFormData({ ...formData, reasonCode: e.value })
                 }
-                placeholder="Select reason"
+                placeholder="เลือกเหตุผล"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                VAT Rate
+                อัตราภาษีมูลค่าเพิ่ม
               </label>
               <NumberBox
                 value={formData.vatRate * 100}
@@ -346,7 +346,7 @@ export default function NewCreditDebitNotePage() {
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason Description
+              รายละเอียดเหตุผล
             </label>
             <TextArea
               value={formData.reasonDescription}
@@ -354,26 +354,26 @@ export default function NewCreditDebitNotePage() {
                 setFormData({ ...formData, reasonDescription: e.value || '' })
               }
               height={60}
-              placeholder="Additional details about the reason..."
+              placeholder="รายละเอียดเพิ่มเติมเกี่ยวกับเหตุผล..."
             />
           </div>
 
           {/* Lines Section */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-medium">Line Items</h3>
-              <Button text="Add Line" icon="plus" onClick={addLine} />
+              <h3 className="text-lg font-medium">รายการ</h3>
+              <Button text="เพิ่มรายการ" icon="plus" onClick={addLine} />
             </div>
 
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Description</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Unit Price</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Total</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">GL Account</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">รายละเอียด</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">จำนวน</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">ราคาต่อหน่วย</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">รวม</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">บัญชีแยกประเภท</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -389,7 +389,7 @@ export default function NewCreditDebitNotePage() {
                           handleLineUpdate(line.id, 'description', e.target.value)
                         }
                         className="w-full border rounded px-2 py-1"
-                        placeholder="Description"
+                        placeholder="รายละเอียด"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -425,7 +425,7 @@ export default function NewCreditDebitNotePage() {
                         }
                         className="w-full border rounded px-2 py-1"
                       >
-                        <option value={0}>Select account</option>
+                        <option value={0}>เลือกบัญชี</option>
                         {glAccounts.map((acc: any) => (
                           <option key={acc.id} value={acc.id}>
                             {acc.accountNumber} - {acc.accountName}
@@ -452,7 +452,7 @@ export default function NewCreditDebitNotePage() {
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
+                <span className="text-gray-600">ยอดรวมย่อย:</span>
                 <span className="font-medium">
                   {subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </span>
@@ -464,7 +464,7 @@ export default function NewCreditDebitNotePage() {
                 </span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total:</span>
+                <span>รวมทั้งสิ้น:</span>
                 <span>
                   {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </span>
@@ -475,11 +475,11 @@ export default function NewCreditDebitNotePage() {
           {/* Actions */}
           <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
             <Button
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => router.push('/accounting/credit-debit-notes')}
             />
             <Button
-              text={saving ? 'Saving...' : 'Save as Draft'}
+              text={saving ? 'กำลังบันทึก...' : 'บันทึกเป็นใบร่าง'}
               type="default"
               stylingMode="contained"
               onClick={handleSave}

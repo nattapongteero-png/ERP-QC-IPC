@@ -184,7 +184,7 @@ export function WebhookDeliveryGrid({
     },
     {
       dataField: 'eventType',
-      caption: 'ประเภท Event',
+      caption: 'ประเภทเหตุการณ์',
       width: 150,
       cellRender: ({ data }: { data?: WebhookDelivery }) => {
         if (!data) return null;
@@ -202,7 +202,7 @@ export function WebhookDeliveryGrid({
     },
     {
       dataField: 'signatureValid',
-      caption: 'Signature',
+      caption: 'ลายเซ็น',
       width: 100,
       alignment: 'center',
       cellRender: ({ data }: { data?: WebhookDelivery }) => {
@@ -216,7 +216,7 @@ export function WebhookDeliveryGrid({
     },
     {
       dataField: 'responseCode',
-      caption: 'Response',
+      caption: 'การตอบกลับ',
       width: 100,
       alignment: 'center',
       cellRender: ({ data }: { data?: WebhookDelivery }) => {
@@ -247,7 +247,7 @@ export function WebhookDeliveryGrid({
     },
     {
       dataField: 'deliveryId',
-      caption: 'Delivery ID',
+      caption: 'รหัสการส่ง',
       width: 150,
       cellRender: ({ data }: { data?: WebhookDelivery }) => {
         if (!data) return null;
@@ -278,12 +278,12 @@ export function WebhookDeliveryGrid({
   if (error) {
     return (
       <div className={cn('rounded-lg border border-red-200 bg-red-50 p-4', className)}>
-        <p className="text-red-600">Failed to load delivery history: {(error as Error).message}</p>
+        <p className="text-red-600">โหลดประวัติการส่งไม่สำเร็จ: {(error as Error).message}</p>
         <button
           onClick={() => refetch()}
           className="mt-2 text-sm text-red-700 underline hover:no-underline"
         >
-          Try again
+          ลองอีกครั้ง
         </button>
       </div>
     );

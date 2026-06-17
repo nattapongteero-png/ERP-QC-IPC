@@ -53,10 +53,10 @@ export default function EnvironmentalConditionsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['environmental-conditions'] });
-      toast.success('Condition Deactivated', 'The condition profile has been deactivated.');
+      toast.success('ปิดใช้งานเงื่อนไขแล้ว', 'ปิดใช้งานโปรไฟล์เงื่อนไขเรียบร้อยแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
@@ -88,7 +88,7 @@ export default function EnvironmentalConditionsPage() {
   const renderInterval = (value: number) => {
     return (
       <span className="text-gray-600 whitespace-nowrap">
-        Every {value} min
+        ทุก {value} นาที
       </span>
     );
   };
@@ -97,19 +97,19 @@ export default function EnvironmentalConditionsPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Environmental Conditions"
-        subtitle="Manage environmental condition profiles for production monitoring"
+        title="เงื่อนไขสภาพแวดล้อม"
+        subtitle="จัดการโปรไฟล์เงื่อนไขสภาพแวดล้อมสำหรับการตรวจสอบการผลิต"
         icon={Thermometer}
         iconBgColor="bg-teal-100"
         iconColor="text-teal-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Environmental Conditions' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'เงื่อนไขสภาพแวดล้อม' },
         ]}
         actions={
           <DxButton
-            text="Add Condition"
+            text="เพิ่มเงื่อนไข"
             icon="plus"
             type="success"
             onClick={handleCreate}
@@ -129,45 +129,45 @@ export default function EnvironmentalConditionsPage() {
           width="100%"
           columnAutoWidth
         >
-          <DxSearchPanel visible placeholder="Search conditions..." width={200} />
+          <DxSearchPanel visible placeholder="ค้นหาเงื่อนไข..." width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="รหัส" width={160} cellRender={(cell) => (
             <span className="font-mono font-medium text-teal-700 whitespace-nowrap">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Profile Name" minWidth={200} />
-          <DxColumn caption="Temperature Range" minWidth={170} cellRender={(cell) => renderTempRange(cell.data)} />
-          <DxColumn dataField="humidityMax" caption="Max Humidity" minWidth={130} cellRender={(cell) => renderHumidity(cell.value)} />
-          <DxColumn dataField="monitoringIntervalMinutes" caption="Monitoring Interval" minWidth={170} cellRender={(cell) => renderInterval(cell.value)} />
-          <DxColumn dataField="notes" caption="Notes" minWidth={200} />
-          <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
+          <DxColumn dataField="name" caption="ชื่อโปรไฟล์" minWidth={200} />
+          <DxColumn caption="ช่วงอุณหภูมิ" minWidth={170} cellRender={(cell) => renderTempRange(cell.data)} />
+          <DxColumn dataField="humidityMax" caption="ความชื้นสูงสุด" minWidth={130} cellRender={(cell) => renderHumidity(cell.value)} />
+          <DxColumn dataField="monitoringIntervalMinutes" caption="รอบการตรวจสอบ" minWidth={170} cellRender={(cell) => renderInterval(cell.value)} />
+          <DxColumn dataField="notes" caption="หมายเหตุ" minWidth={200} />
+          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
             <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'Active' : 'Inactive'}
+              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as EnvironmentalCondition).id)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                title="View"
+                title="ดู"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit((cell.data as EnvironmentalCondition).id)}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="Edit"
+                title="แก้ไข"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as EnvironmentalCondition).name} หรือไม่?`)) deleteMutation.mutate((cell.data as EnvironmentalCondition).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Deactivate"
+                title="ปิดใช้งาน"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

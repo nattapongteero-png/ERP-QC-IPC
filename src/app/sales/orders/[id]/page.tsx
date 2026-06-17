@@ -49,6 +49,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { SalesOrderPrintDocument } from '@/components/sales/SalesOrderPrintDocument';
+import { StatusStepper } from '@/components/shared';
 
 // ============================================================================
 // Types
@@ -1194,6 +1195,20 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
         </div>
+
+        {/* Workflow status — สถานะการดำเนินงาน */}
+        <StatusStepper
+          title="สถานะการดำเนินงาน"
+          current={so.status}
+          steps={[
+            { key: 'draft', label: 'ร่าง' },
+            { key: 'confirmed', label: 'ยืนยันแล้ว' },
+            { key: 'processing', label: 'กำลังจัดเตรียม' },
+            { key: 'ready', label: 'พร้อมส่ง' },
+            { key: 'shipped', label: 'จัดส่งแล้ว' },
+            { key: 'delivered', label: 'ส่งมอบแล้ว' },
+          ]}
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">

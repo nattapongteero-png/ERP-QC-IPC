@@ -180,7 +180,7 @@ export function BankStatementForm({
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-statement', statementId] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('Statement updated successfully', 'success', 3000);
+      notify('แก้ไขรายการเดินบัญชีสำเร็จ', 'success', 3000);
       if (onSuccess) {
         onSuccess(statement);
       } else {
@@ -198,7 +198,7 @@ export function BankStatementForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('Statement deleted successfully', 'success', 3000);
+      notify('ลบรายการเดินบัญชีสำเร็จ', 'success', 3000);
       router.push('/accounting/bank-reconciliation');
     },
     onError: (error: Error) => {
@@ -208,7 +208,7 @@ export function BankStatementForm({
 
   const handleSubmit = () => {
     if (!formData.bankAccountId || !formData.statementDate) {
-      notify('Please fill in required fields', 'warning', 3000);
+      notify('กรุณากรอกข้อมูลในช่องที่จำเป็น', 'warning', 3000);
       return;
     }
 
@@ -256,7 +256,7 @@ export function BankStatementForm({
 
     const result = await response.json();
     if (result.success) {
-      notify('Lines imported successfully', 'success', 3000);
+      notify('นำเข้ารายการสำเร็จ', 'success', 3000);
       router.push(`/accounting/bank-reconciliation/reconcile/${createdStatementId}`);
     } else {
       throw new Error(result.error || 'Import failed');
@@ -266,7 +266,7 @@ export function BankStatementForm({
   const handleSkipImport = () => {
     setShowImportDialog(false);
     if (createdStatementId) {
-      notify('Statement created successfully', 'success', 3000);
+      notify('สร้างรายการเดินบัญชีสำเร็จ', 'success', 3000);
       router.push(`/accounting/bank-reconciliation/reconcile/${createdStatementId}`);
     }
   };
@@ -281,7 +281,7 @@ export function BankStatementForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>Loading statement...</span>
+            <span>กำลังโหลดรายการเดินบัญชี...</span>
           </div>
         </CardContent>
       </Card>
@@ -294,20 +294,20 @@ export function BankStatementForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="Back"
+            text="ย้อนกลับ"
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="page-title">
-            {mode === 'create' ? 'Import Bank Statement' : `Edit: ${existingStatement?.statementNumber}`}
+            {mode === 'create' ? 'นำเข้ารายการเดินบัญชีธนาคาร' : `แก้ไข: ${existingStatement?.statementNumber}`}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && !isLocked && (
             <Button
-              text="Delete"
+              text="ลบ"
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -316,14 +316,14 @@ export function BankStatementForm({
             />
           )}
           <Button
-            text="Cancel"
+            text="ยกเลิก"
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
           />
           <Button
-            text={mode === 'create' ? 'Create & Import CSV' : 'Save Changes'}
+            text={mode === 'create' ? 'สร้างและนำเข้า CSV' : 'บันทึกการแก้ไข'}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -338,7 +338,7 @@ export function BankStatementForm({
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="py-4">
             <p className="text-yellow-800">
-              This statement is {existingStatement?.status} and cannot be modified.
+              รายการเดินบัญชีนี้อยู่ในสถานะ {existingStatement?.status} จึงไม่สามารถแก้ไขได้
             </p>
           </CardContent>
         </Card>
@@ -350,19 +350,19 @@ export function BankStatementForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete this statement? This will also delete all associated lines.
+                  คุณต้องการลบรายการเดินบัญชีนี้ใช่หรือไม่? ระบบจะลบรายการที่เกี่ยวข้องทั้งหมดด้วย
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text="ยกเลิก"
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="Delete"
+                  text="ลบ"
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -379,12 +379,12 @@ export function BankStatementForm({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Statement Details</CardTitle>
+              <CardTitle className="text-base">รายละเอียดรายการเดินบัญชี</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bank Account <span className="text-red-500">*</span>
+                  บัญชีธนาคาร <span className="text-red-500">*</span>
                 </label>
                 <SelectBox
                   items={bankAccounts}
@@ -396,7 +396,7 @@ export function BankStatementForm({
                   onValueChanged={(e) =>
                     setFormData({ ...formData, bankAccountId: e.value })
                   }
-                  placeholder="Select bank account"
+                  placeholder="เลือกบัญชีธนาคาร"
                   searchEnabled
                   disabled={mode === 'edit' || isLocked}
                   data-testid="bank-account-select"
@@ -406,7 +406,7 @@ export function BankStatementForm({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Statement Date <span className="text-red-500">*</span>
+                    วันที่รายการเดินบัญชี <span className="text-red-500">*</span>
                   </label>
                   <DateBox
                     value={parseDateValue(formData.statementDate)}
@@ -424,7 +424,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date
+                    วันที่เริ่มต้น
                   </label>
                   <DateBox
                     value={parseDateValue(formData.startDate)}
@@ -441,7 +441,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Date
+                    วันที่สิ้นสุด
                   </label>
                   <DateBox
                     value={parseDateValue(formData.endDate)}
@@ -460,14 +460,14 @@ export function BankStatementForm({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reference
+                  อ้างอิง
                 </label>
                 <TextBox
                   value={formData.reference}
                   onValueChanged={(e) =>
                     setFormData({ ...formData, reference: e.value || '' })
                   }
-                  placeholder="Optional reference"
+                  placeholder="อ้างอิง (ไม่บังคับ)"
                   disabled={isLocked}
                 />
               </div>
@@ -476,13 +476,13 @@ export function BankStatementForm({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Balances</CardTitle>
+              <CardTitle className="text-base">ยอดคงเหลือ</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Opening Balance
+                    ยอดยกมา
                   </label>
                   <NumberBox
                     value={formData.openingBalance}
@@ -496,7 +496,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Closing Balance
+                    ยอดคงเหลือ
                   </label>
                   <NumberBox
                     value={formData.closingBalance}
@@ -514,7 +514,7 @@ export function BankStatementForm({
               {(formData.openingBalance !== 0 || formData.closingBalance !== 0) && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Net Change:</span>
+                    <span className="text-gray-500">ยอดเปลี่ยนแปลงสุทธิ:</span>
                     <span className={`font-mono font-medium ${
                       formData.closingBalance - formData.openingBalance >= 0
                         ? 'text-green-600'
@@ -537,19 +537,19 @@ export function BankStatementForm({
           {mode === 'edit' && existingStatement && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Statement Info</CardTitle>
+                <CardTitle className="text-base">ข้อมูลรายการเดินบัญชี</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ID</span>
+                  <span className="text-gray-500">รหัส</span>
                   <span className="font-mono text-gray-900">{existingStatement.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Statement #</span>
+                  <span className="text-gray-500">เลขที่รายการเดินบัญชี</span>
                   <span className="font-mono text-gray-900">{existingStatement.statementNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Status</span>
+                  <span className="text-gray-500">สถานะ</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     existingStatement.status === 'reconciled'
                       ? 'bg-green-100 text-green-700'
@@ -563,21 +563,21 @@ export function BankStatementForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Bank Account</span>
+                  <span className="text-gray-500">บัญชีธนาคาร</span>
                   <span className="text-gray-900">{existingStatement.bankAccountName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Account #</span>
+                  <span className="text-gray-500">เลขที่บัญชี</span>
                   <span className="font-mono text-gray-900">{existingStatement.bankAccountNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created</span>
+                  <span className="text-gray-500">สร้างเมื่อ</span>
                   <span className="text-gray-900">
                     {new Date(existingStatement.createdAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Updated</span>
+                  <span className="text-gray-500">แก้ไขล่าสุด</span>
                   <span className="text-gray-900">
                     {new Date(existingStatement.updatedAt).toLocaleDateString('th-TH')}
                   </span>
@@ -589,21 +589,21 @@ export function BankStatementForm({
           {mode === 'edit' && existingStatement && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Reconciliation Summary</CardTitle>
+                <CardTitle className="text-base">สรุปการกระทบยอด</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Total Lines</span>
+                  <span className="text-gray-500">จำนวนรายการทั้งหมด</span>
                   <span className="font-semibold text-gray-900">
                     {(existingStatement.matchedCount || 0) + (existingStatement.unmatchedCount || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Matched</span>
+                  <span className="text-gray-500">จับคู่แล้ว</span>
                   <span className="font-semibold text-green-600">{existingStatement.matchedCount || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Unmatched</span>
+                  <span className="text-gray-500">ยังไม่จับคู่</span>
                   <span className={`font-semibold ${
                     (existingStatement.unmatchedCount || 0) > 0 ? 'text-red-600' : 'text-gray-600'
                   }`}>
@@ -611,20 +611,20 @@ export function BankStatementForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Total Debits</span>
+                  <span className="text-gray-500">รวมเดบิต</span>
                   <span className="font-mono text-red-600">
                     -{Number(existingStatement.totalDebits || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Total Credits</span>
+                  <span className="text-gray-500">รวมเครดิต</span>
                   <span className="font-mono text-green-600">
                     +{Number(existingStatement.totalCredits || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="pt-3 border-t">
                   <Button
-                    text="Go to Reconciliation"
+                    text="ไปยังการกระทบยอด"
                     icon="check"
                     type="default"
                     stylingMode="outlined"

@@ -211,7 +211,7 @@ function LineClearanceContent() {
           description={t('lineClearance.description')}
           actions={
             <DxButton
-              text="Back to Work Orders"
+              text="กลับไปยังใบสั่งผลิต"
               icon="arrowleft"
               onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}` : '/production/work-orders')}
               type="normal"
@@ -222,7 +222,7 @@ function LineClearanceContent() {
 
         {/* Work Order Selector */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Select Work Order</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">เลือกใบสั่งผลิต</h3>
           <div className="max-w-lg">
             <DxSelectBox
               items={workOrderItems}
@@ -233,7 +233,7 @@ function LineClearanceContent() {
                   router.push(`/production/line-clearance?workOrderId=${value}`);
                 }
               }}
-              placeholder="Select a work order..."
+              placeholder="เลือกใบสั่งผลิต..."
               searchEnabled
               showClearButton
               disabled={isLoadingWorkOrders}
@@ -242,13 +242,13 @@ function LineClearanceContent() {
           {isLoadingWorkOrders && (
             <div className="flex items-center gap-2 text-gray-500 mt-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading work orders...</span>
+              <span>กำลังโหลดใบสั่งผลิต...</span>
             </div>
           )}
           {workOrders?.length === 0 && !isLoadingWorkOrders && (
             <div className="flex items-center gap-2 text-amber-600 mt-2">
               <AlertCircle className="h-4 w-4" />
-              <span>No released work orders found. Work orders must be in &quot;Released&quot; status for line clearance.</span>
+              <span>ไม่พบใบสั่งผลิตที่ปล่อยแล้ว ใบสั่งผลิตต้องอยู่ในสถานะ &quot;ปล่อยแล้ว&quot; จึงจะเคลียร์ไลน์ได้</span>
             </div>
           )}
         </div>
@@ -260,7 +260,7 @@ function LineClearanceContent() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
                 <div className="flex flex-col items-center justify-center text-gray-500">
                   <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                  <p>Loading line clearance data...</p>
+                  <p>กำลังโหลดข้อมูลการเคลียร์ไลน์...</p>
                 </div>
               </div>
             ) : lineClearanceData ? (
@@ -296,7 +296,7 @@ function LineClearanceContent() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
                 <div className="flex flex-col items-center justify-center text-gray-500">
                   <AlertCircle className="h-8 w-8 mb-4" />
-                  <p>Failed to load line clearance data</p>
+                  <p>ไม่สามารถโหลดข้อมูลการเคลียร์ไลน์ได้</p>
                 </div>
               </div>
             )}
@@ -308,10 +308,10 @@ function LineClearanceContent() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12">
             <div className="flex flex-col items-center justify-center text-gray-500">
               <ClipboardCheck className="h-16 w-16 mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Select a Work Order</h3>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">เลือกใบสั่งผลิต</h3>
               <p className="text-sm text-gray-500 text-center max-w-md">
-                Choose a released work order from the dropdown above to perform or verify line clearance.
-                Line clearance must be completed before production can start.
+                เลือกใบสั่งผลิตที่ปล่อยแล้วจากรายการด้านบนเพื่อดำเนินการหรือตรวจสอบยืนยันการเคลียร์ไลน์
+                ต้องเคลียร์ไลน์ให้เสร็จก่อนจึงจะเริ่มการผลิตได้
               </p>
             </div>
           </div>

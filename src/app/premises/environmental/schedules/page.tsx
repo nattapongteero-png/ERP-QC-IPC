@@ -276,7 +276,7 @@ export default function SchedulesPage() {
           width={130}
           cellRender={(c) => <Badge className="bg-indigo-100 text-indigo-900">{targetLabel(c.value)}</Badge>}
         />
-        <Column dataField="targetName" caption="Target" />
+        <Column dataField="targetName" caption="เป้าหมาย" />
         <Column dataField="templateName" caption="แบบฟอร์ม" />
         <Column
           dataField="frequency"
@@ -328,7 +328,7 @@ export default function SchedulesPage() {
         visible={popupOpen}
         onHiding={closePopup}
         showCloseButton
-        title={editing ? `แก้ไข Schedule — ${editing.targetName}` : '+ Inspection Schedule'}
+        title={editing ? `แก้ไข Schedule — ${editing.targetName}` : '+ สร้างตารางตรวจ'}
         width={620}
         height="auto"
       >

@@ -115,10 +115,10 @@ export function CapaList({
   // Source type render
   const renderSourceType = (cellData: { value: string }) => {
     const labels: Record<string, string> = {
-      deviation: 'Deviation',
-      complaint: 'Complaint',
-      audit_finding: 'Audit Finding',
-      other: 'Other',
+      deviation: 'การเบี่ยงเบน',
+      complaint: 'ข้อร้องเรียน',
+      audit_finding: 'ข้อค้นพบจากการตรวจประเมิน',
+      other: 'อื่น ๆ',
     };
     return labels[cellData.value] || cellData.value;
   };
@@ -129,7 +129,7 @@ export function CapaList({
       return (
         <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
           <AlertTriangle className="h-4 w-4" />
-          <span className="text-xs">Overdue</span>
+          <span className="text-xs">เกินกำหนด</span>
         </span>
       );
     }
@@ -139,7 +139,7 @@ export function CapaList({
   // Action progress render
   const renderActionProgress = (cellData: { data: Capa }) => {
     const { actionCount = 0, actionsCompleted = 0 } = cellData.data;
-    if (actionCount === 0) return <span className="text-muted-foreground text-xs">No actions</span>;
+    if (actionCount === 0) return <span className="text-muted-foreground text-xs">ไม่มีการดำเนินการ</span>;
 
     const isComplete = actionsCompleted === actionCount;
     return (
@@ -165,7 +165,7 @@ export function CapaList({
             <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-red-800 dark:text-red-200">
-                Error: {apiError.message}
+                ข้อผิดพลาด: {apiError.message}
               </h3>
               {apiError.details && (
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">
@@ -179,7 +179,7 @@ export function CapaList({
                     className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 hover:underline"
                   >
                     {showErrorDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    {showErrorDetails ? 'Hide' : 'Show'} Stack Trace
+                    {showErrorDetails ? 'ซ่อน' : 'แสดง'} Stack Trace
                   </button>
                   {showErrorDetails && (
                     <pre className="mt-2 p-3 bg-red-100 dark:bg-red-900/40 rounded text-xs overflow-x-auto text-red-800 dark:text-red-200 font-mono whitespace-pre-wrap">
@@ -190,7 +190,7 @@ export function CapaList({
               )}
               <div className="mt-4">
                 <DxButton
-                  text="Retry"
+                  text="ลองใหม่"
                   onClick={() => refetch()}
                   stylingMode="outlined"
                 />
@@ -205,24 +205,24 @@ export function CapaList({
   const columns = [
     {
       dataField: 'capaNumber',
-      caption: 'CAPA #',
+      caption: 'เลขที่ CAPA',
       width: 140,
       fixed: true,
     },
     {
       dataField: 'title',
-      caption: 'Title',
+      caption: 'ชื่อเรื่อง',
       minWidth: 200,
     },
     {
       dataField: 'sourceType',
-      caption: 'Source',
+      caption: 'แหล่งที่มา',
       width: 120,
       cellRender: renderSourceType,
     },
     {
       dataField: 'type',
-      caption: 'Type',
+      caption: 'ประเภท',
       width: 100,
       cellRender: (cellData: { value?: string }) => (
         <span className="capitalize">{cellData.value || ''}</span>
@@ -230,13 +230,13 @@ export function CapaList({
     },
     {
       dataField: 'priority',
-      caption: 'Priority',
+      caption: 'ความสำคัญ',
       width: 100,
       cellRender: renderPriority,
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 130,
       cellRender: renderStatus,
     },
@@ -248,18 +248,18 @@ export function CapaList({
     },
     {
       dataField: 'actionCount',
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 100,
       cellRender: renderActionProgress,
     },
     {
       dataField: 'ownerName',
-      caption: 'Owner',
+      caption: 'ผู้รับผิดชอบ',
       width: 150,
     },
     {
       dataField: 'dueDate',
-      caption: 'Due Date',
+      caption: 'วันครบกำหนด',
       width: 110,
       dataType: 'date',
     },
@@ -268,17 +268,17 @@ export function CapaList({
   return (
     <div className="bg-card border rounded-lg shadow-sm">
       <div className="p-4 border-b flex items-center justify-between">
-        <h3 className="text-lg font-semibold">CAPAs</h3>
+        <h3 className="text-lg font-semibold">CAPA</h3>
         <div className="flex items-center gap-2">
           <DxButton
-            text="Refresh"
+            text="รีเฟรช"
             icon="refresh"
             onClick={() => refetch()}
             stylingMode="outlined"
           />
           {onNewCapa && (
             <DxButton
-              text="New CAPA"
+              text="เพิ่ม CAPA"
               icon="add"
               onClick={onNewCapa}
               type="success"
@@ -297,7 +297,7 @@ export function CapaList({
         pageSize={pageSize}
         allowedPageSizes={[10, 20, 50]}
         loading={isLoading}
-        noDataText="No CAPAs found"
+        noDataText="ไม่พบ CAPA"
         height="auto"
       />
     </div>

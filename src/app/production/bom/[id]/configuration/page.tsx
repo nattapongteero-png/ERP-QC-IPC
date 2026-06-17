@@ -41,10 +41,10 @@ import {
 // IPC Configuration Section Component
 type IPCPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
 const IPC_PHASE_OPTIONS: Array<{ value: IPCPhase; label: string }> = [
-  { value: 'pre_production', label: 'Pre-Production' },
-  { value: 'production', label: 'Production' },
-  { value: 'post_production', label: 'Post-Production' },
-  { value: 'packaging', label: 'Packaging' },
+  { value: 'pre_production', label: 'ก่อนการผลิต' },
+  { value: 'production', label: 'การผลิต' },
+  { value: 'post_production', label: 'หลังการผลิต' },
+  { value: 'packaging', label: 'การบรรจุ' },
 ];
 
 function IPCConfigSection({ bomId }: { bomId: number }) {
@@ -117,9 +117,9 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
       resetForm();
-      toast.success('Added', `เพิ่ม IPC criteria ${data.added} รายการสำเร็จ`);
+      toast.success('เพิ่มแล้ว', `เพิ่ม IPC criteria ${data.added} รายการสำเร็จ`);
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const editMut = useMutation({
@@ -134,9 +134,9 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
       resetForm();
-      toast.success('Updated', 'IPC criteria updated.');
+      toast.success('อัปเดตแล้ว', 'อัปเดตเกณฑ์ IPC แล้ว');
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const delMut = useMutation({
@@ -147,9 +147,9 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-ipc', bomId] });
-      toast.success('Removed', 'IPC criteria removed.');
+      toast.success('นำออกแล้ว', 'นำเกณฑ์ IPC ออกแล้ว');
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const openEdit = (cfg: any) => {
@@ -166,11 +166,11 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5 text-emerald-600" />
-            <h3 className="text-lg font-medium">In-Process Control (IPC) — Phase Level</h3>
+            <h3 className="text-lg font-medium">การควบคุมระหว่างกระบวนการ (IPC) — ระดับเฟส</h3>
           </div>
           {!showForm && (
             <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200">
-              <Plus className="h-4 w-4" /> Add IPC Criteria
+              <Plus className="h-4 w-4" /> เพิ่มเกณฑ์ IPC
             </button>
           )}
         </div>
@@ -193,10 +193,10 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
           </p>
         </div>
 
-        {isLoading && <div className="text-center py-6 text-gray-400">Loading...</div>}
+        {isLoading && <div className="text-center py-6 text-gray-400">กำลังโหลด...</div>}
 
         {!isLoading && configs.length === 0 && !showForm && (
-          <div className="text-center py-6 text-gray-500 text-sm">No IPC criteria configured.</div>
+          <div className="text-center py-6 text-gray-500 text-sm">ยังไม่ได้กำหนดเกณฑ์ IPC</div>
         )}
 
         <div className="space-y-2">
@@ -219,7 +219,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                     {getCriteriaTypeLabel(cfg.criteriaType || 'numeric')}
                   </span>
-                  {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Critical</span>}
+                  {cfg.isCritical && <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">วิกฤต</span>}
                 </div>
                 <div className="mt-1 space-y-1">
                   {summaryLines.map((line: { icon: string; text: string; tone?: string }, i: number) => (
@@ -244,7 +244,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
               <button onClick={() => openEdit(cfg)} className="p-1 text-gray-400 hover:text-emerald-700 opacity-0 group-hover:opacity-100">
                 <Pencil className="h-4 w-4" />
               </button>
-              <button onClick={() => { if (confirm('Remove?')) delMut.mutate(cfg.id); }} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100">
+              <button onClick={() => { if (confirm('ลบรายการนี้?')) delMut.mutate(cfg.id); }} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -277,7 +277,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
               return (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    IPC Criteria * <span className="text-xs text-gray-500 font-normal">(ติ๊กเลือกได้หลายตัว)</span>
+                    เกณฑ์ IPC * <span className="text-xs text-gray-500 font-normal">(ติ๊กเลือกได้หลายตัว)</span>
                   </label>
                   <input
                     type="text"
@@ -335,7 +335,7 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
                                   <span className="font-mono text-sm text-emerald-600">{c.code}</span>
                                   <span className="text-sm font-medium">{c.nameTh || c.name}</span>
                                   {c.isCritical && (
-                                    <span className="text-[11px] text-red-600 bg-red-50 px-1 py-0.5 rounded">Critical</span>
+                                    <span className="text-[11px] text-red-600 bg-red-50 px-1 py-0.5 rounded">วิกฤต</span>
                                   )}
                                 </div>
                                 {/* Render the spec as readable summary lines, NOT the raw
@@ -388,22 +388,22 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
             {editingIpcId && (
               <>
                 <div className="text-sm font-medium text-gray-700">
-                  Editing: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
+                  กำลังแก้ไข: {configs.find((c: any) => c.id === editingIpcId)?.criteriaNameTh || configs.find((c: any) => c.id === editingIpcId)?.criteriaName}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ขนาดตัวอย่าง</label>
                     <DxNumberBox value={sampleSize} onValueChanged={(e) => setSampleSize(e.value)} min={1} />
                   </div>
                   <div className="flex items-center gap-2 pt-6">
                     <DxSwitch value={isCritical} onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIsCritical(e.value)} />
-                    <span className="text-sm">Critical</span>
+                    <span className="text-sm">วิกฤต</span>
                   </div>
                 </div>
               </>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เฟส *</label>
               <DxSelectBox
                 dataSource={IPC_PHASE_OPTIONS as unknown as Record<string, unknown>[]}
                 displayExpr="label"
@@ -418,14 +418,14 @@ function IPCConfigSection({ bomId }: { bomId: number }) {
               </p>
             </div>
             <div className="flex justify-end gap-2">
-              <DxButton text="Cancel" stylingMode="text" onClick={resetForm} />
+              <DxButton text="ยกเลิก" stylingMode="text" onClick={resetForm} />
               <DxButton
                 text={
                   editingIpcId
-                    ? 'Save'
+                    ? 'บันทึก'
                     : (selectedCriteriaIds.length > 0
-                        ? `Add ${selectedCriteriaIds.length} to BOM`
-                        : 'Add to BOM')
+                        ? `เพิ่ม ${selectedCriteriaIds.length} รายการเข้าสูตรการผลิต`
+                        : 'เพิ่มเข้าสูตรการผลิต')
                 }
                 type="success"
                 onClick={() => editingIpcId ? editMut.mutate() : addMut.mutate()}
@@ -551,10 +551,10 @@ interface BOMPackagingQC {
 // BOM rows with phase='pre_packaging' still render (color mapping kept below)
 // but new rooms/equipment can only be assigned to the 4 phases below.
 const phases = [
-  { value: 'pre_production', label: 'Pre-Production' },
-  { value: 'production', label: 'Production' },
-  { value: 'post_production', label: 'Post-Production' },
-  { value: 'packaging', label: 'Packaging' },
+  { value: 'pre_production', label: 'ก่อนการผลิต' },
+  { value: 'production', label: 'การผลิต' },
+  { value: 'post_production', label: 'หลังการผลิต' },
+  { value: 'packaging', label: 'การบรรจุ' },
 ];
 
 // Packaging QC tab removed — packaging-specific QC criteria are now defined
@@ -567,10 +567,10 @@ const phases = [
 // new per-sub-step linker lives under "SOP Steps → Manage IPC" so operators
 // don't accidentally double-record the same criterion in both places.
 const tabBlueprint: Array<{ id: number; text: string; icon: string }> = [
-  { id: 0, text: 'Rooms', icon: 'home' },
-  { id: 1, text: 'Equipment', icon: 'toolbox' },
-  { id: 2, text: 'SOP Steps', icon: 'textdocument' },
-  { id: 4, text: 'IPC — Phase Level', icon: 'checklist' },
+  { id: 0, text: 'ห้องผลิต', icon: 'home' },
+  { id: 1, text: 'เครื่องจักร', icon: 'toolbox' },
+  { id: 2, text: 'ขั้นตอน SOP', icon: 'textdocument' },
+  { id: 4, text: 'IPC — ระดับเฟส', icon: 'checklist' },
 ];
 
 export default function BOMConfigurationPage() {
@@ -906,10 +906,10 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
-      toast.success('Room Removed', 'Room requirement has been removed.');
+      toast.success('นำห้องผลิตออกแล้ว', 'นำข้อกำหนดห้องผลิตออกแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -922,10 +922,10 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-equipment', bomId] });
-      toast.success('Equipment Removed', 'Equipment requirement has been removed.');
+      toast.success('นำเครื่องจักรออกแล้ว', 'นำข้อกำหนดเครื่องจักรออกแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -938,10 +938,10 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
-      toast.success('Condition Removed', 'Environmental condition has been removed.');
+      toast.success('นำสภาวะแวดล้อมออกแล้ว', 'นำสภาวะแวดล้อมออกแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -956,10 +956,10 @@ export default function BOMConfigurationPage() {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
       // Removing a step cascades the IPC links server-side; clear the cache.
       queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
-      toast.success('SOP Step Removed', 'SOP step has been removed.');
+      toast.success('นำขั้นตอน SOP ออกแล้ว', 'นำขั้นตอน SOP ออกแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -972,10 +972,10 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
-      toast.success('QC Criteria Removed', 'Packaging QC criteria has been removed.');
+      toast.success('นำเกณฑ์ QC ออกแล้ว', 'นำเกณฑ์ QC การบรรจุออกแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -993,11 +993,11 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
-      toast.success('Room Updated', 'Room requirement has been updated.');
+      toast.success('อัปเดตห้องผลิตแล้ว', 'อัปเดตข้อกำหนดห้องผลิตแล้ว');
       setShowAddDialog(false);
       setEditingId(null);
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('ข้อผิดพลาด', error.message),
   });
 
   const editEquipmentMutation = useMutation({
@@ -1013,11 +1013,11 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-equipment', bomId] });
-      toast.success('Equipment Updated', 'Equipment requirement has been updated.');
+      toast.success('อัปเดตเครื่องจักรแล้ว', 'อัปเดตข้อกำหนดเครื่องจักรแล้ว');
       setShowAddDialog(false);
       setEditingId(null);
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('ข้อผิดพลาด', error.message),
   });
 
   const editConditionMutation = useMutation({
@@ -1035,11 +1035,11 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
-      toast.success('Condition Updated', 'Environmental condition has been updated.');
+      toast.success('อัปเดตสภาวะแวดล้อมแล้ว', 'อัปเดตสภาวะแวดล้อมแล้ว');
       setShowAddDialog(false);
       setEditingId(null);
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('ข้อผิดพลาด', error.message),
   });
 
   const editSOPMutation = useMutation({
@@ -1055,11 +1055,11 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-steps', bomId] });
-      toast.success('SOP Step Updated', 'SOP step has been updated.');
+      toast.success('อัปเดตขั้นตอน SOP แล้ว', 'อัปเดตขั้นตอน SOP แล้ว');
       setShowAddDialog(false);
       setEditingId(null);
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('ข้อผิดพลาด', error.message),
   });
 
   const editQCMutation = useMutation({
@@ -1077,11 +1077,11 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
-      toast.success('QC Criteria Updated', 'Packaging QC criteria has been updated.');
+      toast.success('อัปเดตเกณฑ์ QC แล้ว', 'อัปเดตเกณฑ์ QC การบรรจุแล้ว');
       setShowAddDialog(false);
       setEditingId(null);
     },
-    onError: (error: Error) => toast.error('Error', error.message),
+    onError: (error: Error) => toast.error('ข้อผิดพลาด', error.message),
   });
 
   // Add mutations
@@ -1104,12 +1104,12 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-rooms', bomId] });
-      toast.success('Room Added', 'Room requirement has been added.');
+      toast.success('เพิ่มห้องผลิตแล้ว', 'เพิ่มข้อกำหนดห้องผลิตแล้ว');
       setShowAddDialog(false);
       setRoomForm({ roomId: 0, phase: 'production', sequence: 1, isRequired: true, selectedConditionId: null });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1126,12 +1126,12 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-equipment', bomId] });
-      toast.success('Equipment Added', 'Equipment requirement has been added.');
+      toast.success('เพิ่มเครื่องจักรแล้ว', 'เพิ่มข้อกำหนดเครื่องจักรแล้ว');
       setShowAddDialog(false);
       setEquipmentForm({ equipmentId: 0, phase: 'production', sequence: 1, isRequired: true });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1148,12 +1148,12 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-environmental-conditions', bomId] });
-      toast.success('Condition Added', 'Environmental condition has been added.');
+      toast.success('เพิ่มสภาวะแวดล้อมแล้ว', 'เพิ่มสภาวะแวดล้อมแล้ว');
       setShowAddDialog(false);
       setConditionForm({ conditionId: 0, phase: 'production' });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1215,9 +1215,9 @@ export default function BOMConfigurationPage() {
       }
 
       if (linkedCount > 0) {
-        toast.success('SOP Step Added', `บันทึกแล้ว — ${linkedCount} IPC link${linkedCount === 1 ? '' : 's'}${linkErrors > 0 ? ` (${linkErrors} failed)` : ''}`);
+        toast.success('เพิ่มขั้นตอน SOP แล้ว', `บันทึกแล้ว — ${linkedCount} IPC link${linkedCount === 1 ? '' : 's'}${linkErrors > 0 ? ` (${linkErrors} ล้มเหลว)` : ''}`);
       } else {
-        toast.success('SOP Step Added', 'SOP step has been added.');
+        toast.success('เพิ่มขั้นตอน SOP แล้ว', 'เพิ่มขั้นตอน SOP แล้ว');
       }
       setShowAddDialog(false);
       setSOPForm({ templateId: 0, stepName: '', stepNameTh: '', instructions: '', instructionsTh: '', parameters: '', requiresVerification: true, phase: 'production' });
@@ -1235,7 +1235,7 @@ export default function BOMConfigurationPage() {
       });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1252,12 +1252,12 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-packaging-qc', bomId] });
-      toast.success('QC Criteria Added', 'Packaging QC criteria has been added.');
+      toast.success('เพิ่มเกณฑ์ QC แล้ว', 'เพิ่มเกณฑ์ QC การบรรจุแล้ว');
       setShowAddDialog(false);
       setQCForm({ criteriaId: 0 });
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1266,7 +1266,7 @@ export default function BOMConfigurationPage() {
   // form itself only carries criteria-level fields.
   const createIpcLinkMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedStepForIPC) throw new Error('No SOP step selected');
+      if (!selectedStepForIPC) throw new Error('ยังไม่ได้เลือกขั้นตอน SOP');
       if (!ipcLinkForm.criteriaId) throw new Error('กรุณาเลือก IPC Criterion');
       // IPC must bind to a sub-step (procedureStepId) when sub-steps exist —
       // WO Execution renders IPC under sub-steps, so unrooted IPCs are
@@ -1294,14 +1294,14 @@ export default function BOMConfigurationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       resetIpcLinkForm();
-      toast.success('IPC Linked', 'IPC criterion attached to SOP step.');
+      toast.success('ผูก IPC แล้ว', 'ผูกเกณฑ์ IPC เข้ากับขั้นตอน SOP แล้ว');
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const updateIpcLinkMutation = useMutation({
     mutationFn: async () => {
-      if (!editingIpcLinkId) throw new Error('No IPC link selected');
+      if (!editingIpcLinkId) throw new Error('ยังไม่ได้เลือกการผูก IPC');
       const res = await fetch(`/api/production/bom/${bomId}/sop-step-ipc`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1320,9 +1320,9 @@ export default function BOMConfigurationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
       resetIpcLinkForm();
-      toast.success('IPC Updated', 'IPC link updated.');
+      toast.success('อัปเดต IPC แล้ว', 'อัปเดตการผูก IPC แล้ว');
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const deleteIpcLinkMutation = useMutation({
@@ -1335,9 +1335,9 @@ export default function BOMConfigurationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-sop-step-ipc-links', bomId] });
-      toast.success('IPC Removed', 'IPC link removed from step.');
+      toast.success('นำ IPC ออกแล้ว', 'นำการผูก IPC ออกจากขั้นตอนแล้ว');
     },
-    onError: (e: Error) => toast.error('Error', e.message),
+    onError: (e: Error) => toast.error('ข้อผิดพลาด', e.message),
   });
 
   const resetIpcLinkForm = () => {
@@ -1416,7 +1416,7 @@ export default function BOMConfigurationPage() {
       setCopySourceId(null);
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ข้อผิดพลาด', error.message);
     },
   });
 
@@ -1524,7 +1524,7 @@ export default function BOMConfigurationPage() {
     switch (dialogType) {
       case 'room':
         if (!roomForm.roomId) {
-          toast.error('Validation Error', 'Please select a room.');
+          toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกห้องผลิต');
           return;
         }
         if (editingId) {
@@ -1535,7 +1535,7 @@ export default function BOMConfigurationPage() {
         break;
       case 'equipment':
         if (!equipmentForm.equipmentId) {
-          toast.error('Validation Error', 'Please select equipment.');
+          toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกเครื่องจักร');
           return;
         }
         if (editingId) {
@@ -1546,7 +1546,7 @@ export default function BOMConfigurationPage() {
         break;
       case 'condition':
         if (!conditionForm.conditionId) {
-          toast.error('Validation Error', 'Please select a condition profile.');
+          toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกโปรไฟล์สภาวะแวดล้อม');
           return;
         }
         if (editingId) {
@@ -1557,7 +1557,7 @@ export default function BOMConfigurationPage() {
         break;
       case 'sop': {
         if (!sopForm.stepNameTh) {
-          toast.error('Validation Error', 'กรุณากรอกชื่อขั้นตอน (ภาษาไทย)');
+          toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณากรอกชื่อขั้นตอน (ภาษาไทย)');
           return;
         }
         if (editingId) {
@@ -1570,7 +1570,7 @@ export default function BOMConfigurationPage() {
       }
       case 'qc':
         if (!qcForm.criteriaId) {
-          toast.error('Validation Error', 'Please select QC criteria.');
+          toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกเกณฑ์ QC');
           return;
         }
         if (editingId) {
@@ -1615,9 +1615,9 @@ export default function BOMConfigurationPage() {
   if (!bom) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">BOM not found</p>
+        <p className="text-gray-500">ไม่พบสูตรการผลิต</p>
         <DxButton
-          text="Back to BOM List"
+          text="กลับไปยังรายการสูตรการผลิต"
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -1631,27 +1631,27 @@ export default function BOMConfigurationPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title={`Configuration: ${bom.code}`}
-        subtitle={`Configure GMP requirements for ${bom.name}`}
+        title={`การตั้งค่า: ${bom.code}`}
+        subtitle={`ตั้งค่าข้อกำหนด GMP สำหรับ ${bom.name}`}
         icon={Settings}
         iconBgColor="bg-gray-100"
         iconColor="text-gray-600"
         breadcrumbs={[
-          { label: 'Production', href: '/production' },
-          { label: 'BOM', href: '/production/bom' },
+          { label: 'การผลิต', href: '/production' },
+          { label: 'สูตรการผลิต', href: '/production/bom' },
           { label: bom.code, href: `/production/bom/${bomId}` },
-          { label: 'Configuration' },
+          { label: 'การตั้งค่า' },
         ]}
         actions={
           <div className="flex gap-2">
             <DxButton
-              text="Back to BOM"
+              text="กลับไปยังสูตรการผลิต"
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push(`/production/bom/${bomId}`)}
             />
             <DxButton
-              text="Copy Config"
+              text="คัดลอกการตั้งค่า"
               icon="copy"
               type="normal"
               onClick={() => setShowCopyDialog(true)}
@@ -1692,10 +1692,10 @@ export default function BOMConfigurationPage() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-emerald-600" />
-                    <h3 className="text-lg font-medium">Required Rooms</h3>
+                    <h3 className="text-lg font-medium">ห้องผลิตที่ต้องใช้</h3>
                   </div>
                   <DxButton
-                    text="Add Room"
+                    text="เพิ่มห้องผลิต"
                     icon="plus"
                     type="success"
                     onClick={() => openAddDialog('room')}
@@ -1708,35 +1708,35 @@ export default function BOMConfigurationPage() {
                   rowAlternationEnabled
                   loading={roomsLoading}
                   height={400}
-                  noDataText="No rooms configured. Click 'Add Room' to add requirements."
+                  noDataText="ยังไม่ได้กำหนดห้องผลิต คลิก 'เพิ่มห้องผลิต' เพื่อเพิ่มข้อกำหนด"
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
-                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn dataField="room.code" caption="Room Code" width={120} />
-                  <DxColumn dataField="room.name" caption="Room Name" />
-                  <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
+                  <DxColumn dataField="phase" caption="เฟส" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
+                  <DxColumn dataField="room.code" caption="รหัสห้อง" width={120} />
+                  <DxColumn dataField="room.name" caption="ชื่อห้อง" />
+                  <DxColumn dataField="isRequired" caption="จำเป็น" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {cell.value ? 'Yes' : 'Optional'}
+                      {cell.value ? 'ใช่' : 'ไม่บังคับ'}
                     </span>
                   )} />
-                  <DxColumn caption="Env. Conditions" cellRender={(cell) => {
+                  <DxColumn caption="สภาวะแวดล้อม" cellRender={(cell) => {
                     const envConds = cell.data.environmentalConditions || [];
                     if (envConds.length === 0) return <span className="text-xs text-gray-400">-</span>;
                     return (
                       <div className="flex flex-wrap gap-1">
                         {envConds.map((ec: { id: number; conditionName: string }) => (
                           <span key={ec.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800 border border-teal-200">
-                            {ec.conditionName || 'Condition'}
+                            {ec.conditionName || 'สภาวะแวดล้อม'}
                           </span>
                         ))}
                       </div>
                     );
                   }} />
-                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                  <DxColumn caption="การดำเนินการ" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
-                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('room', cell.data)} />
-                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
+                      <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => openEditDialog('room', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => deleteRoomMutation.mutate(cell.data.id)} />
                     </div>
                   )} />
                 </DxDataGrid>
@@ -1749,10 +1749,10 @@ export default function BOMConfigurationPage() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Wrench className="h-5 w-5 text-purple-600" />
-                    <h3 className="text-lg font-medium">Required Equipment</h3>
+                    <h3 className="text-lg font-medium">เครื่องจักรที่ต้องใช้</h3>
                   </div>
                   <DxButton
-                    text="Add Equipment"
+                    text="เพิ่มเครื่องจักร"
                     icon="plus"
                     type="success"
                     onClick={() => openAddDialog('equipment')}
@@ -1765,23 +1765,23 @@ export default function BOMConfigurationPage() {
                   rowAlternationEnabled
                   loading={equipmentLoading}
                   height={400}
-                  noDataText="No equipment configured. Click 'Add Equipment' to add requirements."
+                  noDataText="ยังไม่ได้กำหนดเครื่องจักร คลิก 'เพิ่มเครื่องจักร' เพื่อเพิ่มข้อกำหนด"
                 >
                   <DxPaging defaultPageSize={10} />
                   <DxColumn dataField="sequence" caption="#" width={60} sortOrder="asc" sortIndex={0} />
-                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn dataField="equipment.code" caption="Equipment Code" width={120} />
-                  <DxColumn dataField="equipment.name" caption="Equipment Name" />
-                  <DxColumn dataField="equipment.capacity" caption="Capacity" width={120} />
-                  <DxColumn dataField="isRequired" caption="Required" width={100} cellRender={(cell) => (
+                  <DxColumn dataField="phase" caption="เฟส" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
+                  <DxColumn dataField="equipment.code" caption="รหัสเครื่องจักร" width={120} />
+                  <DxColumn dataField="equipment.name" caption="ชื่อเครื่องจักร" />
+                  <DxColumn dataField="equipment.capacity" caption="ความจุ" width={120} />
+                  <DxColumn dataField="isRequired" caption="จำเป็น" width={100} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {cell.value ? 'Yes' : 'Optional'}
+                      {cell.value ? 'ใช่' : 'ไม่บังคับ'}
                     </span>
                   )} />
-                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                  <DxColumn caption="การดำเนินการ" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
-                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('equipment', cell.data)} />
-                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
+                      <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => openEditDialog('equipment', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => deleteEquipmentMutation.mutate(cell.data.id)} />
                     </div>
                   )} />
                 </DxDataGrid>
@@ -1795,10 +1795,10 @@ export default function BOMConfigurationPage() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-amber-600" />
-                    <h3 className="text-lg font-medium">SOP Production Steps</h3>
+                    <h3 className="text-lg font-medium">ขั้นตอนการผลิต SOP</h3>
                   </div>
                   <DxButton
-                    text="Add Step"
+                    text="เพิ่มขั้นตอน"
                     icon="plus"
                     type="success"
                     onClick={() => openAddDialog('sop')}
@@ -1811,16 +1811,16 @@ export default function BOMConfigurationPage() {
                   rowAlternationEnabled
                   loading={sopLoading}
                   height={400}
-                  noDataText="No SOP steps configured. Click 'Add Step' to add production steps."
+                  noDataText="ยังไม่ได้กำหนดขั้นตอน SOP คลิก 'เพิ่มขั้นตอน' เพื่อเพิ่มขั้นตอนการผลิต"
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="sequence" caption="Step" width={70} sortOrder="asc" sortIndex={0} />
-                  <DxColumn dataField="phase" caption="Phase" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
-                  <DxColumn dataField="stepName" caption="Step Name (EN)" />
-                  <DxColumn dataField="stepNameTh" caption="Step Name (TH)" />
-                  <DxColumn dataField="requiresVerification" caption="Verification" width={120} cellRender={(cell) => (
+                  <DxColumn dataField="sequence" caption="ขั้นตอน" width={70} sortOrder="asc" sortIndex={0} />
+                  <DxColumn dataField="phase" caption="เฟส" width={140} cellRender={(cell) => renderPhaseBadge(cell.value)} />
+                  <DxColumn dataField="stepName" caption="ชื่อขั้นตอน (EN)" />
+                  <DxColumn dataField="stepNameTh" caption="ชื่อขั้นตอน (TH)" />
+                  <DxColumn dataField="requiresVerification" caption="การตรวจสอบยืนยัน" width={120} cellRender={(cell) => (
                     <span className={`px-2 py-0.5 rounded text-xs ${cell.value ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
-                      {cell.value ? 'Required' : 'Not Required'}
+                      {cell.value ? 'จำเป็น' : 'ไม่จำเป็น'}
                     </span>
                   )} />
                   <DxColumn caption="IPC" width={170} cellRender={(cell) => {
@@ -1837,15 +1837,15 @@ export default function BOMConfigurationPage() {
                           onClick={() => openIpcManageDialog(cell.data as BOMSOPStep)}
                           className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 whitespace-nowrap shrink-0"
                         >
-                          <FlaskConical className="h-3 w-3 shrink-0" /> Manage
+                          <FlaskConical className="h-3 w-3 shrink-0" /> จัดการ
                         </button>
                       </div>
                     );
                   }} />
-                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                  <DxColumn caption="การดำเนินการ" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
-                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('sop', cell.data)} />
-                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
+                      <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => openEditDialog('sop', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => deleteSOPMutation.mutate(cell.data.id)} />
                     </div>
                   )} />
                 </DxDataGrid>
@@ -1858,10 +1858,10 @@ export default function BOMConfigurationPage() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Scale className="h-5 w-5 text-emerald-600" />
-                    <h3 className="text-lg font-medium">Packaging QC Criteria</h3>
+                    <h3 className="text-lg font-medium">เกณฑ์ QC การบรรจุ</h3>
                   </div>
                   <DxButton
-                    text="Add Criteria"
+                    text="เพิ่มเกณฑ์"
                     icon="plus"
                     type="success"
                     onClick={() => openAddDialog('qc')}
@@ -1874,21 +1874,21 @@ export default function BOMConfigurationPage() {
                   rowAlternationEnabled
                   loading={qcLoading}
                   height={400}
-                  noDataText="No packaging QC criteria configured. Click 'Add Criteria' to add requirements."
+                  noDataText="ยังไม่ได้กำหนดเกณฑ์ QC การบรรจุ คลิก 'เพิ่มเกณฑ์' เพื่อเพิ่มข้อกำหนด"
                 >
                   <DxPaging defaultPageSize={10} />
-                  <DxColumn dataField="criteria.code" caption="Criteria Code" width={120} />
-                  <DxColumn dataField="criteria.name" caption="Criteria Name" />
-                  <DxColumn caption="Weight Range" width={150} cellRender={(cell) => (
+                  <DxColumn dataField="criteria.code" caption="รหัสเกณฑ์" width={120} />
+                  <DxColumn dataField="criteria.name" caption="ชื่อเกณฑ์" />
+                  <DxColumn caption="ช่วงน้ำหนัก" width={150} cellRender={(cell) => (
                     <span className="text-emerald-700">{cell.data.criteria?.weightMin}-{cell.data.criteria?.weightMax}g</span>
                   )} />
-                  <DxColumn caption="Sample Criteria" width={150} cellRender={(cell) => (
-                    <span className="text-gray-600">≤{cell.data.criteria?.maxFailures}/{cell.data.criteria?.sampleSize} fail</span>
+                  <DxColumn caption="เกณฑ์การสุ่ม" width={150} cellRender={(cell) => (
+                    <span className="text-gray-600">≤{cell.data.criteria?.maxFailures}/{cell.data.criteria?.sampleSize} ไม่ผ่าน</span>
                   )} />
-                  <DxColumn caption="Actions" width={100} cellRender={(cell) => (
+                  <DxColumn caption="การดำเนินการ" width={100} cellRender={(cell) => (
                     <div className="flex gap-0.5">
-                      <DxButton icon="edit" stylingMode="text" hint="Edit" onClick={() => openEditDialog('qc', cell.data)} />
-                      <DxButton icon="trash" stylingMode="text" hint="Remove" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
+                      <DxButton icon="edit" stylingMode="text" hint="แก้ไข" onClick={() => openEditDialog('qc', cell.data)} />
+                      <DxButton icon="trash" stylingMode="text" hint="ลบ" onClick={() => deleteQCMutation.mutate(cell.data.id)} />
                     </div>
                   )} />
                 </DxDataGrid>
@@ -1915,16 +1915,16 @@ export default function BOMConfigurationPage() {
         }}
         title={
           editingId
-            ? (dialogType === 'room' ? 'Edit Room Requirement' :
-               dialogType === 'equipment' ? 'Edit Equipment Requirement' :
-               dialogType === 'condition' ? 'Edit Environmental Condition' :
-               dialogType === 'sop' ? 'Edit SOP Step' :
-               'Edit Packaging QC Criteria')
-            : (dialogType === 'room' ? 'Add Room Requirement' :
-               dialogType === 'equipment' ? 'Add Equipment Requirement' :
-               dialogType === 'condition' ? 'Add Environmental Condition' :
-               dialogType === 'sop' ? 'Add SOP Step' :
-               'Add Packaging QC Criteria')
+            ? (dialogType === 'room' ? 'แก้ไขข้อกำหนดห้องผลิต' :
+               dialogType === 'equipment' ? 'แก้ไขข้อกำหนดเครื่องจักร' :
+               dialogType === 'condition' ? 'แก้ไขสภาวะแวดล้อม' :
+               dialogType === 'sop' ? 'แก้ไขขั้นตอน SOP' :
+               'แก้ไขเกณฑ์ QC การบรรจุ')
+            : (dialogType === 'room' ? 'เพิ่มข้อกำหนดห้องผลิต' :
+               dialogType === 'equipment' ? 'เพิ่มข้อกำหนดเครื่องจักร' :
+               dialogType === 'condition' ? 'เพิ่มสภาวะแวดล้อม' :
+               dialogType === 'sop' ? 'เพิ่มขั้นตอน SOP' :
+               'เพิ่มเกณฑ์ QC การบรรจุ')
         }
         width={dialogType === 'sop' ? 650 : dialogType === 'room' ? 600 : 500}
         height={dialogType === 'sop' ? '90vh' : 'auto'}
@@ -1937,19 +1937,19 @@ export default function BOMConfigurationPage() {
           {dialogType === 'room' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ห้องผลิต *</label>
                 <DxSelectBox
                   dataSource={(rooms || []).filter(r => r.isActive) as unknown as Record<string, unknown>[]}
                   displayExpr="name"
                   valueExpr="id"
                   value={roomForm.roomId}
                   onValueChanged={(e) => setRoomForm({ ...roomForm, roomId: e.value })}
-                  placeholder="Select room"
+                  placeholder="เลือกห้องผลิต"
                   searchEnabled
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เฟส *</label>
                 <DxSelectBox
                   dataSource={phases}
                   displayExpr="label"
@@ -1959,7 +1959,7 @@ export default function BOMConfigurationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
                 <DxNumberBox
                   value={roomForm.sequence}
                   onValueChanged={(e) => setRoomForm({ ...roomForm, sequence: e.value })}
@@ -1972,19 +1972,19 @@ export default function BOMConfigurationPage() {
                   value={roomForm.isRequired}
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setRoomForm({ ...roomForm, isRequired: e.value ?? true })}
                 />
-                <span className="text-sm text-gray-700">Required for production</span>
+                <span className="text-sm text-gray-700">จำเป็นสำหรับการผลิต</span>
               </div>
 
               {/* Environmental Condition — single select */}
               <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Environmental Condition</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">สภาวะแวดล้อม</label>
                 <DxSelectBox
                   dataSource={(conditions || []).filter((c: EnvironmentalCondition) => c.isActive) as unknown as Record<string, unknown>[]}
                   displayExpr="name"
                   valueExpr="id"
                   value={roomForm.selectedConditionId}
                   onValueChanged={(e) => setRoomForm({ ...roomForm, selectedConditionId: e.value })}
-                  placeholder="เลือก Environmental Condition..."
+                  placeholder="เลือกสภาวะแวดล้อม..."
                   searchEnabled
                   showClearButton
                 />
@@ -1996,19 +1996,19 @@ export default function BOMConfigurationPage() {
           {dialogType === 'equipment' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Equipment *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เครื่องจักร *</label>
                 <DxSelectBox
                   dataSource={(equipment || []).filter(e => e.isActive) as unknown as Record<string, unknown>[]}
                   displayExpr="name"
                   valueExpr="id"
                   value={equipmentForm.equipmentId}
                   onValueChanged={(e) => setEquipmentForm({ ...equipmentForm, equipmentId: e.value })}
-                  placeholder="Select equipment"
+                  placeholder="เลือกเครื่องจักร"
                   searchEnabled
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เฟส *</label>
                 <DxSelectBox
                   dataSource={phases}
                   displayExpr="label"
@@ -2018,7 +2018,7 @@ export default function BOMConfigurationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
                 <DxNumberBox
                   value={equipmentForm.sequence}
                   onValueChanged={(e) => setEquipmentForm({ ...equipmentForm, sequence: e.value })}
@@ -2031,7 +2031,7 @@ export default function BOMConfigurationPage() {
                   value={equipmentForm.isRequired}
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setEquipmentForm({ ...equipmentForm, isRequired: e.value ?? true })}
                 />
-                <span className="text-sm text-gray-700">Required for production</span>
+                <span className="text-sm text-gray-700">จำเป็นสำหรับการผลิต</span>
               </div>
             </>
           )}
@@ -2040,19 +2040,19 @@ export default function BOMConfigurationPage() {
           {dialogType === 'condition' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Condition Profile *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">โปรไฟล์สภาวะแวดล้อม *</label>
                 <DxSelectBox
                   dataSource={(conditions || []).filter(c => c.isActive) as unknown as Record<string, unknown>[]}
                   displayExpr="name"
                   valueExpr="id"
                   value={conditionForm.conditionId}
                   onValueChanged={(e) => setConditionForm({ ...conditionForm, conditionId: e.value })}
-                  placeholder="Select condition profile"
+                  placeholder="เลือกโปรไฟล์สภาวะแวดล้อม"
                   searchEnabled
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เฟส *</label>
                 <DxSelectBox
                   dataSource={phases.filter(p => ['pre_production', 'production', 'packaging'].includes(p.value))}
                   displayExpr="label"
@@ -2064,13 +2064,13 @@ export default function BOMConfigurationPage() {
               {conditionForm.conditionId > 0 && (
                 <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
                   <p className="text-sm text-teal-800">
-                    <strong>Selected Profile:</strong>{' '}
+                    <strong>โปรไฟล์ที่เลือก:</strong>{' '}
                     {conditions?.find(c => c.id === conditionForm.conditionId)?.name}
                   </p>
                   <p className="text-sm text-teal-700 mt-1">
-                    Temperature: {conditions?.find(c => c.id === conditionForm.conditionId)?.temperatureMin}-
+                    อุณหภูมิ: {conditions?.find(c => c.id === conditionForm.conditionId)?.temperatureMin}-
                     {conditions?.find(c => c.id === conditionForm.conditionId)?.temperatureMax}°C |
-                    Max Humidity: ≤{conditions?.find(c => c.id === conditionForm.conditionId)?.humidityMax}% RH
+                    ความชื้นสูงสุด: ≤{conditions?.find(c => c.id === conditionForm.conditionId)?.humidityMax}% RH
                   </p>
                 </div>
               )}
@@ -2082,7 +2082,7 @@ export default function BOMConfigurationPage() {
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  From Template <span className="text-gray-400">(Optional)</span>
+                  จากเทมเพลต <span className="text-gray-400">(ไม่บังคับ)</span>
                 </label>
                 <DxSelectBox
                   dataSource={sopTemplateOptions as unknown as Record<string, unknown>[]}
@@ -2117,7 +2117,7 @@ export default function BOMConfigurationPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (TH) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (TH) *</label>
                   <DxTextBox
                     value={sopForm.stepNameTh}
                     onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepNameTh: e.value }))}
@@ -2126,17 +2126,17 @@ export default function BOMConfigurationPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Step Name (EN) <span className="text-gray-400">(Optional)</span>
+                    ชื่อขั้นตอน (EN) <span className="text-gray-400">(ไม่บังคับ)</span>
                   </label>
                   <DxTextBox
                     value={sopForm.stepName}
                     onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, stepName: e.value }))}
-                    placeholder="e.g., Mix ingredients"
+                    placeholder="เช่น Mix ingredients"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (TH)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำ (TH)</label>
                 <DxTextArea
                   value={sopForm.instructionsTh}
                   onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructionsTh: e.value }))}
@@ -2147,11 +2147,11 @@ export default function BOMConfigurationPage() {
                 <summary className="cursor-pointer select-none flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100/70 rounded-lg">
                   <Settings className="h-4 w-4 text-gray-500 transition-transform group-open:rotate-90" />
                   ตั้งค่าขั้นสูง (Advanced)
-                  <span className="ml-auto text-xs text-gray-400 font-normal">Instructions (EN), Parameters JSON</span>
+                  <span className="ml-auto text-xs text-gray-400 font-normal">คำแนะนำ (EN), พารามิเตอร์ JSON</span>
                 </summary>
                 <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-200">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำ (EN)</label>
                     <DxTextArea
                       value={sopForm.instructions}
                       onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, instructions: e.value }))}
@@ -2159,7 +2159,7 @@ export default function BOMConfigurationPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">พารามิเตอร์ (JSON)</label>
                     <DxTextBox
                       value={sopForm.parameters}
                       onValueChanged={(e) => setSOPForm((prev) => ({ ...prev, parameters: e.value }))}
@@ -2173,10 +2173,10 @@ export default function BOMConfigurationPage() {
                   value={sopForm.requiresVerification}
                   onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setSOPForm((prev) => ({ ...prev, requiresVerification: e.value ?? true }))}
                 />
-                <span className="text-sm text-gray-700">Requires verification by supervisor</span>
+                <span className="text-sm text-gray-700">ต้องมีการตรวจสอบยืนยันโดยหัวหน้างาน</span>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phase *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เฟส *</label>
                 <DxSelectBox
                   dataSource={phases as unknown as Record<string, unknown>[]}
                   displayExpr="label"
@@ -2262,7 +2262,7 @@ export default function BOMConfigurationPage() {
 
                   const submitPendingForm = () => {
                     if (!pendingIpcForm.criteriaId) {
-                      toast.error('Validation Error', 'กรุณาเลือก IPC Criterion');
+                      toast.error('ข้อมูลไม่ถูกต้อง', 'กรุณาเลือกเกณฑ์ IPC');
                       return;
                     }
                     if (pendingIpcEditingId !== null) {
@@ -2318,11 +2318,11 @@ export default function BOMConfigurationPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono text-xs text-emerald-700">{criterion?.code ?? '—'}</span>
                             <span className="text-sm font-medium truncate">
-                              {criterion?.nameTh || criterion?.name || 'Unknown criterion'}
+                              {criterion?.nameTh || criterion?.name || 'ไม่ทราบเกณฑ์'}
                             </span>
                             {entry.isCritical && (
                               <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
-                                Critical
+                                วิกฤต
                               </span>
                             )}
                             <span className="text-[10px] text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">
@@ -2330,8 +2330,8 @@ export default function BOMConfigurationPage() {
                             </span>
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5">
-                            Sample: {entry.sampleSize}
-                            {entry.maxRetestRounds != null && <span> · Max retests: {entry.maxRetestRounds}</span>}
+                            ตัวอย่าง: {entry.sampleSize}
+                            {entry.maxRetestRounds != null && <span> · ทดสอบซ้ำสูงสุด: {entry.maxRetestRounds}</span>}
                             {entry.notes && <span> · {entry.notes}</span>}
                           </div>
                         </div>
@@ -2340,7 +2340,7 @@ export default function BOMConfigurationPage() {
                             type="button"
                             onClick={() => editPendingEntry(entry)}
                             className="p-1 text-gray-400 hover:text-emerald-700"
-                            title="Edit"
+                            title="แก้ไข"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -2348,7 +2348,7 @@ export default function BOMConfigurationPage() {
                             type="button"
                             onClick={() => deletePendingEntry(entry.tempId)}
                             className="p-1 text-gray-400 hover:text-red-600"
-                            title="Remove"
+                            title="ลบ"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -2362,7 +2362,7 @@ export default function BOMConfigurationPage() {
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
                           <FlaskConical className="h-4 w-4 text-emerald-600" />
-                          IPC Tests by Sub-Step ({pendingIpcLinks.length})
+                          การทดสอบ IPC ตามขั้นตอนย่อย ({pendingIpcLinks.length})
                         </h4>
                         <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                           จะบันทึกพร้อม step
@@ -2451,7 +2451,7 @@ export default function BOMConfigurationPage() {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">เกณฑ์ IPC *</label>
                             {bomPhaseIpcCriteria.length === 0 ? (
                               <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 space-y-2">
                                 <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
@@ -2485,7 +2485,7 @@ export default function BOMConfigurationPage() {
                                     isCritical: picked?.isCritical ?? f.isCritical,
                                   }));
                                 }}
-                                placeholder="เลือก IPC criterion"
+                                placeholder="เลือกเกณฑ์ IPC"
                                 searchEnabled
                               />
                             )}
@@ -2493,7 +2493,7 @@ export default function BOMConfigurationPage() {
 
                           <div className="grid grid-cols-3 gap-2">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Sequence</label>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">ลำดับ</label>
                               <DxNumberBox
                                 value={pendingIpcForm.sequence}
                                 onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
@@ -2502,7 +2502,7 @@ export default function BOMConfigurationPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Sample Size</label>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">ขนาดตัวอย่าง</label>
                               <DxNumberBox
                                 value={pendingIpcForm.sampleSize}
                                 onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
@@ -2511,7 +2511,7 @@ export default function BOMConfigurationPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Max Retest</label>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">ทดสอบซ้ำสูงสุด</label>
                               <DxNumberBox
                                 value={pendingIpcForm.maxRetestRounds ?? null}
                                 onValueChanged={(e) =>
@@ -2523,7 +2523,7 @@ export default function BOMConfigurationPage() {
                                 }
                                 min={0}
                                 showClearButton
-                                placeholder="default"
+                                placeholder="ค่าเริ่มต้น"
                               />
                             </div>
                           </div>
@@ -2535,16 +2535,16 @@ export default function BOMConfigurationPage() {
                                 setPendingIpcForm((f) => ({ ...f, isCritical: e.value ?? false }))
                               }
                             />
-                            <span className="text-xs text-gray-700">Critical (failure must be flagged for QA review)</span>
+                            <span className="text-xs text-gray-700">วิกฤต (หากไม่ผ่านต้องแจ้ง QA ตรวจสอบ)</span>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ</label>
                             <DxTextArea
                               value={pendingIpcForm.notes}
                               onValueChanged={(e) => setPendingIpcForm((f) => ({ ...f, notes: e.value ?? '' }))}
                               height={48}
-                              placeholder="Optional"
+                              placeholder="ไม่บังคับ"
                             />
                           </div>
 
@@ -2588,7 +2588,7 @@ export default function BOMConfigurationPage() {
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
                         <FlaskConical className="h-4 w-4 text-emerald-600" />
-                        IPC Tests by Sub-Step ({stepLinks.length})
+                        การทดสอบ IPC ตามขั้นตอนย่อย ({stepLinks.length})
                       </h4>
                       <button
                         type="button"
@@ -2609,7 +2609,7 @@ export default function BOMConfigurationPage() {
                     </div>
                     {subSteps.length === 0 ? (
                       <p className="text-xs text-gray-500 italic">
-                        Loading sub-steps... หรือ template นี้ไม่มี sub-step
+                        กำลังโหลดขั้นตอนย่อย... หรือเทมเพลตนี้ไม่มีขั้นตอนย่อย
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -2635,9 +2635,9 @@ export default function BOMConfigurationPage() {
                                       <span className="font-mono text-emerald-700">{link.criteriaCode}</span>
                                       <span className="text-gray-700 truncate">{link.criteriaNameTh || link.criteriaName}</span>
                                       {link.isCritical && (
-                                        <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">Critical</span>
+                                        <span className="text-[10px] text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">วิกฤต</span>
                                       )}
-                                      <span className="text-gray-500">· Sample: {link.sampleSize}</span>
+                                      <span className="text-gray-500">· ตัวอย่าง: {link.sampleSize}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -2660,28 +2660,28 @@ export default function BOMConfigurationPage() {
           {dialogType === 'qc' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">QC Criteria *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เกณฑ์ QC *</label>
                 <DxSelectBox
                   dataSource={(qcCriteria || []).filter(q => q.isActive) as unknown as Record<string, unknown>[]}
                   displayExpr="name"
                   valueExpr="id"
                   value={qcForm.criteriaId}
                   onValueChanged={(e) => setQCForm({ ...qcForm, criteriaId: e.value })}
-                  placeholder="Select QC criteria"
+                  placeholder="เลือกเกณฑ์ QC"
                   searchEnabled
                 />
               </div>
               {qcForm.criteriaId > 0 && (
                 <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                   <p className="text-sm text-emerald-800">
-                    <strong>Selected Criteria:</strong>{' '}
+                    <strong>เกณฑ์ที่เลือก:</strong>{' '}
                     {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.name}
                   </p>
                   <p className="text-sm text-emerald-700 mt-1">
-                    Weight: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.weightMin}-
+                    น้ำหนัก: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.weightMin}-
                     {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.weightMax}g |
-                    Sample: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.sampleSize} units |
-                    Max Failures: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.maxFailures}
+                    ตัวอย่าง: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.sampleSize} หน่วย |
+                    จำนวนที่ไม่ผ่านสูงสุด: {qcCriteria?.find(q => q.id === qcForm.criteriaId)?.maxFailures}
                   </p>
                 </div>
               )}
@@ -2693,7 +2693,7 @@ export default function BOMConfigurationPage() {
             ? 'flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0'
             : 'flex justify-end gap-2 pt-4 border-t'}>
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               stylingMode="outlined"
               onClick={() => {
                 setShowAddDialog(false);
@@ -2703,7 +2703,7 @@ export default function BOMConfigurationPage() {
               }}
             />
             <DxButton
-              text={editingId ? 'Save' : 'Add'}
+              text={editingId ? 'บันทึก' : 'เพิ่ม'}
               type="success"
               onClick={handleSave}
               disabled={
@@ -2724,7 +2724,7 @@ export default function BOMConfigurationPage() {
       <DxPopup
         visible={showIPCLinkDialog}
         onHiding={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
-        title={selectedStepForIPC ? `IPC Tests — Step ${selectedStepForIPC.sequence}: ${selectedStepForIPC.stepNameTh || selectedStepForIPC.stepName}` : 'IPC Tests'}
+        title={selectedStepForIPC ? `การทดสอบ IPC — ขั้นตอนที่ ${selectedStepForIPC.sequence}: ${selectedStepForIPC.stepNameTh || selectedStepForIPC.stepName}` : 'การทดสอบ IPC'}
         width={780}
         height="90vh"
         showCloseButton
@@ -2784,7 +2784,7 @@ export default function BOMConfigurationPage() {
                       {getCriteriaTypeLabel(link.criteriaType || 'numeric')}
                     </span>
                     {link.isCritical && (
-                      <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">Critical</span>
+                      <span className="text-xs text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">วิกฤต</span>
                     )}
                   </div>
                   <div className="mt-1 space-y-0.5">
@@ -2804,9 +2804,9 @@ export default function BOMConfigurationPage() {
                     ))}
                     <div className="text-xs text-gray-500 flex items-start gap-1.5">
                       <span className="flex-none w-4 text-center select-none">↻</span>
-                      <span>Max retests: {link.maxRetestRounds != null
+                      <span>ทดสอบซ้ำสูงสุด: {link.maxRetestRounds != null
                         ? link.maxRetestRounds
-                        : <span className="italic">Master default ({link.masterMaxRetestRounds ?? '—'})</span>}
+                        : <span className="italic">ค่าเริ่มต้นจาก Master ({link.masterMaxRetestRounds ?? '—'})</span>}
                       </span>
                     </div>
                   </div>
@@ -2818,14 +2818,14 @@ export default function BOMConfigurationPage() {
                   <button
                     onClick={() => openEditIpcLink(link)}
                     className="p-1 text-gray-400 hover:text-emerald-700"
-                    title="Edit"
+                    title="แก้ไข"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => { if (confirm('Remove this IPC link?')) deleteIpcLinkMutation.mutate(link.id); }}
+                    onClick={() => { if (confirm('ลบการผูก IPC นี้?')) deleteIpcLinkMutation.mutate(link.id); }}
                     className="p-1 text-gray-400 hover:text-red-600"
-                    title="Remove"
+                    title="ลบ"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -2838,7 +2838,7 @@ export default function BOMConfigurationPage() {
               <>
                 {/* Step header summary */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">SOP Step</div>
+                  <div className="text-xs text-gray-500">ขั้นตอน SOP</div>
                   <div className="font-medium">
                     {selectedStepForIPC.stepName}
                     {selectedStepForIPC.stepNameTh && (
@@ -2856,7 +2856,7 @@ export default function BOMConfigurationPage() {
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                         <FlaskConical className="h-4 w-4 text-emerald-600" />
-                        IPC Tests by Sub-Step ({stepLinks.length})
+                        การทดสอบ IPC ตามขั้นตอนย่อย ({stepLinks.length})
                       </h4>
                     </div>
                     {subStepsForSelectedBomStep.map((sub: any, idx: number) => {
@@ -2918,11 +2918,11 @@ export default function BOMConfigurationPage() {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                         <FlaskConical className="h-4 w-4 text-emerald-600" />
-                        IPC Tests ({stepLinks.length})
+                        การทดสอบ IPC ({stepLinks.length})
                       </h4>
                     </div>
                     {stepIpcLinksLoading ? (
-                      <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                      <div className="text-center py-4 text-gray-400 text-sm">กำลังโหลด...</div>
                     ) : stepLinks.length === 0 ? (
                       <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
                         ยังไม่มี IPC ผูกกับ step นี้
@@ -2940,14 +2940,14 @@ export default function BOMConfigurationPage() {
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
                       <Plus className="h-4 w-4" />
-                      {editingIpcLinkId ? 'Edit IPC link' : 'Add IPC test'}
+                      {editingIpcLinkId ? 'แก้ไขการผูก IPC' : 'เพิ่มการทดสอบ IPC'}
                     </h4>
                     {editingIpcLinkId && (
                       <button
                         onClick={resetIpcLinkForm}
                         className="text-xs text-gray-500 hover:text-gray-700"
                       >
-                        Cancel edit
+                        ยกเลิกการแก้ไข
                       </button>
                     )}
                   </div>
@@ -2975,7 +2975,7 @@ export default function BOMConfigurationPage() {
 
                   {!editingIpcLinkId && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">IPC Criterion *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">เกณฑ์ IPC *</label>
                       {bomPhaseIpcCriteria.length === 0 ? (
                         <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2.5 space-y-2">
                           <p>ยังไม่มี IPC ที่กำหนดใน Phase Level ของ BOM นี้</p>
@@ -3011,7 +3011,7 @@ export default function BOMConfigurationPage() {
                               isCritical: picked?.isCritical ?? f.isCritical,
                             }));
                           }}
-                          placeholder="Select IPC criterion"
+                          placeholder="เลือกเกณฑ์ IPC"
                           searchEnabled
                         />
                       )}
@@ -3019,13 +3019,13 @@ export default function BOMConfigurationPage() {
                   )}
                   {editingIpcLinkId && editingLink && (
                     <div className="text-sm font-medium text-gray-700">
-                      Editing: <span className="font-mono text-xs text-emerald-700">{editingLink.criteriaCode}</span> {editingLink.criteriaNameTh || editingLink.criteriaName}
+                      กำลังแก้ไข: <span className="font-mono text-xs text-emerald-700">{editingLink.criteriaCode}</span> {editingLink.criteriaNameTh || editingLink.criteriaName}
                     </div>
                   )}
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
                       <DxNumberBox
                         value={ipcLinkForm.sequence}
                         onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sequence: e.value ?? 1 }))}
@@ -3034,7 +3034,7 @@ export default function BOMConfigurationPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sample Size</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ขนาดตัวอย่าง</label>
                       <DxNumberBox
                         value={ipcLinkForm.sampleSize}
                         onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, sampleSize: e.value ?? 1 }))}
@@ -3043,7 +3043,7 @@ export default function BOMConfigurationPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Max Retest Rounds</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">จำนวนรอบทดสอบซ้ำสูงสุด</label>
                       <DxNumberBox
                         value={ipcLinkForm.maxRetestRounds ?? null}
                         onValueChanged={(e) => setIpcLinkForm((f) => ({
@@ -3052,7 +3052,7 @@ export default function BOMConfigurationPage() {
                         }))}
                         min={0}
                         showClearButton
-                        placeholder="Use master default"
+                        placeholder="ใช้ค่าเริ่มต้นจาก Master"
                       />
                     </div>
                   </div>
@@ -3062,22 +3062,22 @@ export default function BOMConfigurationPage() {
                       value={ipcLinkForm.isCritical}
                       onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setIpcLinkForm((f) => ({ ...f, isCritical: e.value ?? false }))}
                     />
-                    <span className="text-sm text-gray-700">Critical (failure must be flagged for QA review)</span>
+                    <span className="text-sm text-gray-700">วิกฤต (หากไม่ผ่านต้องแจ้ง QA ตรวจสอบ)</span>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                     <DxTextArea
                       value={ipcLinkForm.notes}
                       onValueChanged={(e) => setIpcLinkForm((f) => ({ ...f, notes: e.value ?? '' }))}
                       height={60}
-                      placeholder="Optional — special instructions for this step's IPC test"
+                      placeholder="ไม่บังคับ — คำแนะนำพิเศษสำหรับการทดสอบ IPC ของขั้นตอนนี้"
                     />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2 border-t border-emerald-200">
                     <DxButton
-                      text={editingIpcLinkId ? 'Save changes' : 'Add IPC'}
+                      text={editingIpcLinkId ? 'บันทึกการแก้ไข' : 'เพิ่ม IPC'}
                       type="success"
                       icon={editingIpcLinkId ? 'save' : 'plus'}
                       onClick={() => editingIpcLinkId ? updateIpcLinkMutation.mutate() : createIpcLinkMutation.mutate()}
@@ -3100,7 +3100,7 @@ export default function BOMConfigurationPage() {
             dismiss the dialog except via the header X. */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t bg-white shrink-0">
           <DxButton
-            text="Close"
+            text="ปิด"
             stylingMode="outlined"
             onClick={() => { setShowIPCLinkDialog(false); resetIpcLinkForm(); setSelectedStepForIPC(null); }}
           />
@@ -3112,7 +3112,7 @@ export default function BOMConfigurationPage() {
       <DxPopup
         visible={showCopyDialog}
         onHiding={() => setShowCopyDialog(false)}
-        title="Copy Configuration from Another BOM"
+        title="คัดลอกการตั้งค่าจากสูตรการผลิตอื่น"
         width={500}
         height="auto"
         showCloseButton

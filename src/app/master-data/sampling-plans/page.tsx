@@ -151,7 +151,7 @@ export default function SamplingPlansPage() {
 
   const submit = async () => {
     if (!form.code.trim() || !form.name.trim()) {
-      toast.error('กรุณากรอก code และชื่อ');
+      toast.error('กรุณากรอกรหัสและชื่อ');
       return;
     }
     const url = editing
@@ -201,47 +201,47 @@ export default function SamplingPlansPage() {
   );
 
   const columns: DxDataGridColumn[] = [
-    { dataField: 'code', caption: 'Code', width: 140 },
+    { dataField: 'code', caption: 'รหัส', width: 140 },
     { dataField: 'name', caption: 'ชื่อแผน' },
     {
-      caption: 'Scope',
+      caption: 'ขอบเขต',
       width: 200,
       cellRender: (c: any) => {
         const d = c.data as PlanRow;
         if (d.itemCode) {
           return (
             <span className="text-xs">
-              Item: <strong>{d.itemCode}</strong>{' '}
+              รายการ: <strong>{d.itemCode}</strong>{' '}
               <span className="text-gray-500">— {d.itemName || ''}</span>
             </span>
           );
         }
-        if (d.category) return <span className="text-xs">Category: <strong>{d.category}</strong></span>;
-        return <span className="text-xs text-gray-500">Global default</span>;
+        if (d.category) return <span className="text-xs">หมวดหมู่: <strong>{d.category}</strong></span>;
+        return <span className="text-xs text-gray-500">ค่าเริ่มต้นทั่วไป</span>;
       },
     },
-    { dataField: 'inspectionLevel', caption: 'Level', width: 70 },
+    { dataField: 'inspectionLevel', caption: 'ระดับ', width: 70 },
     { dataField: 'aql', caption: 'AQL', width: 70 },
     { dataField: 'sampleSize', caption: 'n', width: 70 },
     {
       dataField: 'frequency',
-      caption: 'Frequency',
+      caption: 'ความถี่',
       width: 130,
       cellRender: (c: any) => {
         const opt = FREQ_OPTIONS.find((o) => o.id === c.value);
         return <span className="text-xs">{opt?.name || c.value}</span>;
       },
     },
-    { dataField: 'standardRef', caption: 'Standard', width: 110 },
+    { dataField: 'standardRef', caption: 'มาตรฐาน', width: 110 },
     {
       dataField: 'isActive',
-      caption: 'Active',
+      caption: 'ใช้งาน',
       width: 70,
       cellRender: (c: any) =>
         c.value ? <Badge className="bg-emerald-100 text-emerald-700">✓</Badge> : <Badge className="bg-gray-200 text-gray-600">—</Badge>,
     },
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 110,
       alignment: 'center',
       cellRender: (c: any) => (
@@ -270,12 +270,12 @@ export default function SamplingPlansPage() {
   return (
     <div className="space-y-4 p-4">
         <ResponsivePageHeader
-          title="QC Sampling Plan Master"
-          subtitle="กำหนดแผน sampling ตาม item/category — AQL, sample size, frequency"
+          title="ทะเบียนแผนชักตัวอย่าง QC"
+          subtitle="กำหนดแผนชักตัวอย่างตามรายการ/หมวดหมู่ — AQL, ขนาดตัวอย่าง, ความถี่"
           onBack={() => router.push('/master-data')}
           breadcrumbs={[
-            { label: 'Master Data', href: '/master-data' },
-            { label: 'QC Sampling Plan' },
+            { label: 'ข้อมูลหลัก', href: '/master-data' },
+            { label: 'แผนชักตัวอย่าง QC' },
           ]}
           actions={
             <DxButton
@@ -289,8 +289,8 @@ export default function SamplingPlansPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatCard label="แผนทั้งหมด" value={stats.total} icon={Layers} />
-          <StatCard label="Active" value={stats.active} icon={CheckCircle2} iconColor="text-emerald-500" />
-          <StatCard label="ผูกกับ Item เฉพาะ" value={stats.itemScoped} icon={ListChecks} />
+          <StatCard label="ใช้งาน" value={stats.active} icon={CheckCircle2} iconColor="text-emerald-500" />
+          <StatCard label="ผูกกับรายการเฉพาะ" value={stats.itemScoped} icon={ListChecks} />
         </div>
 
         <div className="flex items-center gap-3 bg-white border border-emerald-100 rounded-xl p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
@@ -301,7 +301,7 @@ export default function SamplingPlansPage() {
               onChange={(e) => setActiveOnly(e.target.checked)}
               data-testid="active-only-filter"
             />
-            แสดงเฉพาะ Active
+            แสดงเฉพาะที่ใช้งาน
           </label>
         </div>
 
@@ -317,7 +317,7 @@ export default function SamplingPlansPage() {
         <DxPopup
           visible={showAdd}
           onHiding={() => setShowAdd(false)}
-          title={editing ? `แก้ไข: ${editing.code}` : 'แผน Sampling ใหม่'}
+          title={editing ? `แก้ไข: ${editing.code}` : 'แผนชักตัวอย่างใหม่'}
           width={720}
           height="auto"
           showCloseButton
@@ -325,7 +325,7 @@ export default function SamplingPlansPage() {
           <div className="space-y-3 p-2">
             <div className="grid grid-cols-2 gap-3">
               <DxTextBox
-                placeholder="Code * (เช่น rm-herb-default)"
+                placeholder="รหัส * (เช่น rm-herb-default)"
                 value={form.code}
                 onValueChanged={(e) => setForm({ ...form, code: (e.value || '').toLowerCase() })}
                 disabled={!!editing}
@@ -340,7 +340,7 @@ export default function SamplingPlansPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <DxSelectBox
-                placeholder="ผูกกับ Item (optional)"
+                placeholder="ผูกกับรายการ (ไม่บังคับ)"
                 dataSource={[
                   { id: null as number | null, name: '— ไม่ผูก —' },
                   ...items.map((i) => ({ id: i.id, name: `${i.code} — ${i.nameTh}` })),
@@ -352,14 +352,14 @@ export default function SamplingPlansPage() {
                 searchEnabled
               />
               <DxTextBox
-                placeholder="หรือผูกกับ Category"
+                placeholder="หรือผูกกับหมวดหมู่"
                 value={form.category}
                 onValueChanged={(e) => setForm({ ...form, category: e.value || '' })}
               />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <DxSelectBox
-                placeholder="Inspection Level"
+                placeholder="ระดับการตรวจสอบ"
                 dataSource={LEVEL_OPTIONS}
                 valueExpr="id"
                 displayExpr="name"
@@ -373,7 +373,7 @@ export default function SamplingPlansPage() {
                 onValueChanged={(e) => setForm({ ...form, aql: Number(e.value || 1.0) })}
               />
               <DxSelectBox
-                placeholder="Frequency"
+                placeholder="ความถี่"
                 dataSource={FREQ_OPTIONS}
                 valueExpr="id"
                 displayExpr="name"
@@ -383,34 +383,34 @@ export default function SamplingPlansPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <DxNumberBox
-                placeholder="Sample Size (n)"
+                placeholder="ขนาดตัวอย่าง (n)"
                 value={form.sampleSize ?? undefined}
                 onValueChanged={(e) => setForm({ ...form, sampleSize: e.value ?? null })}
               />
               <DxNumberBox
-                placeholder="Accept"
+                placeholder="จำนวนยอมรับ (Ac)"
                 value={form.acceptNumber ?? undefined}
                 onValueChanged={(e) => setForm({ ...form, acceptNumber: e.value ?? null })}
               />
               <DxNumberBox
-                placeholder="Reject"
+                placeholder="จำนวนปฏิเสธ (Re)"
                 value={form.rejectNumber ?? undefined}
                 onValueChanged={(e) => setForm({ ...form, rejectNumber: e.value ?? null })}
               />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <DxTextBox
-                placeholder="Standard Ref"
+                placeholder="อ้างอิงมาตรฐาน"
                 value={form.standardRef}
                 onValueChanged={(e) => setForm({ ...form, standardRef: e.value || '' })}
               />
               <DxNumberBox
-                placeholder="Sample qty (default)"
+                placeholder="จำนวนตัวอย่าง (ค่าเริ่มต้น)"
                 value={form.defaultSampleQty ?? undefined}
                 onValueChanged={(e) => setForm({ ...form, defaultSampleQty: e.value ?? null })}
               />
               <DxNumberBox
-                placeholder="Retain qty (default)"
+                placeholder="จำนวนเก็บสำรอง (ค่าเริ่มต้น)"
                 value={form.defaultRetainQty ?? undefined}
                 onValueChanged={(e) => setForm({ ...form, defaultRetainQty: e.value ?? null })}
               />

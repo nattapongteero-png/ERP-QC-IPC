@@ -101,21 +101,21 @@ export default function NewReportPage() {
     const errors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      errors.name = 'Report name is required';
+      errors.name = 'กรุณากรอกชื่อรายงาน';
     } else if (formData.name.length < 3) {
-      errors.name = 'Report name must be at least 3 characters';
+      errors.name = 'ชื่อรายงานต้องมีอย่างน้อย 3 ตัวอักษร';
     } else if (formData.name.length > 100) {
-      errors.name = 'Report name must be less than 100 characters';
+      errors.name = 'ชื่อรายงานต้องไม่เกิน 100 ตัวอักษร';
     }
 
     if (!formData.code.trim()) {
-      errors.code = 'Report code is required';
+      errors.code = 'กรุณากรอกรหัสรายงาน';
     } else if (formData.code.length < 3) {
-      errors.code = 'Report code must be at least 3 characters';
+      errors.code = 'รหัสรายงานต้องมีอย่างน้อย 3 ตัวอักษร';
     } else if (formData.code.length > 50) {
-      errors.code = 'Report code must be less than 50 characters';
+      errors.code = 'รหัสรายงานต้องไม่เกิน 50 ตัวอักษร';
     } else if (!/^[a-z0-9-]+$/.test(formData.code)) {
-      errors.code = 'Report code can only contain lowercase letters, numbers, and hyphens';
+      errors.code = 'รหัสรายงานใช้ได้เฉพาะตัวอักษรพิมพ์เล็ก ตัวเลข และเครื่องหมายขีด';
     }
 
     setFormErrors(errors);
@@ -180,13 +180,13 @@ export default function NewReportPage() {
           <button
             onClick={handleBack}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Back to reports"
+            aria-label="กลับไปหน้ารายงาน"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <PageHeader
-            title="Create New Report"
-            description="Enter report details and start designing"
+            title="สร้างรายงานใหม่"
+            description="กรอกรายละเอียดรายงานและเริ่มออกแบบ"
           />
         </div>
 
@@ -199,7 +199,7 @@ export default function NewReportPage() {
               onClick={() => setError(null)}
               className="ml-auto text-red-500 hover:text-red-700"
             >
-              Dismiss
+              ปิด
             </button>
           </div>
         )}
@@ -209,7 +209,7 @@ export default function NewReportPage() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <FileText className="h-6 w-6 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Report Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900">รายละเอียดรายงาน</h2>
             </div>
           </div>
 
@@ -217,14 +217,14 @@ export default function NewReportPage() {
             {/* Report Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Report Name <span className="text-red-500">*</span>
+                ชื่อรายงาน <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 id="name"
                 value={formData.name}
                 onChange={handleNameChange}
-                placeholder="e.g., Monthly Inventory Valuation"
+                placeholder="เช่น มูลค่าสินค้าคงคลังรายเดือน"
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   formErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
@@ -238,21 +238,21 @@ export default function NewReportPage() {
             {/* Report Code */}
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-                Report Code <span className="text-red-500">*</span>
+                รหัสรายงาน <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 id="code"
                 value={formData.code}
                 onChange={handleCodeChange}
-                placeholder="e.g., monthly-inventory-valuation"
+                placeholder="เช่น monthly-inventory-valuation"
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
                   formErrors.code ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
                 disabled={isSubmitting}
               />
               <p className="mt-1 text-xs text-gray-500">
-                Used in URLs and API. Only lowercase letters, numbers, and hyphens.
+                ใช้ใน URL และ API ใช้ได้เฉพาะตัวอักษรพิมพ์เล็ก ตัวเลข และเครื่องหมายขีด
               </p>
               {formErrors.code && (
                 <p className="mt-1 text-sm text-red-600">{formErrors.code}</p>
@@ -262,14 +262,14 @@ export default function NewReportPage() {
             {/* Description */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                รายละเอียด
               </label>
               <textarea
                 id="description"
                 value={formData.description}
                 onChange={handleDescriptionChange}
                 rows={3}
-                placeholder="Describe the purpose and contents of this report..."
+                placeholder="อธิบายวัตถุประสงค์และเนื้อหาของรายงานนี้..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               />
@@ -278,7 +278,7 @@ export default function NewReportPage() {
             {/* Category */}
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                Category
+                หมวดหมู่
               </label>
               <select
                 id="category"
@@ -287,7 +287,7 @@ export default function NewReportPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting || isLoading}
               >
-                <option value="">Select a category (optional)</option>
+                <option value="">เลือกหมวดหมู่ (ไม่บังคับ)</option>
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -303,11 +303,11 @@ export default function NewReportPage() {
                 onClick={handleOpenDesignerDirectly}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                Skip and open designer directly
+ข้ามและเปิดตัวออกแบบโดยตรง
               </button>
               <div className="flex gap-3">
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   onClick={handleBack}
@@ -321,12 +321,12 @@ export default function NewReportPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating...
+                      กำลังสร้าง...
                     </>
                   ) : (
                     <>
                       <FileText className="h-4 w-4" />
-                      Create & Open Designer
+                      สร้างและเปิดตัวออกแบบ
                     </>
                   )}
                 </button>
@@ -337,7 +337,7 @@ export default function NewReportPage() {
 
         {/* Quick Start Templates */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Start Templates</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">เทมเพลตเริ่มต้นด่วน</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => {
@@ -350,8 +350,8 @@ export default function NewReportPage() {
               }}
               className="text-left p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
             >
-              <div className="font-medium text-gray-900">Inventory Report</div>
-              <div className="text-xs text-gray-500 mt-1">Stock levels and valuation</div>
+              <div className="font-medium text-gray-900">รายงานสินค้าคงคลัง</div>
+              <div className="text-xs text-gray-500 mt-1">ระดับสต็อกและมูลค่า</div>
             </button>
             <button
               onClick={() => {
@@ -364,8 +364,8 @@ export default function NewReportPage() {
               }}
               className="text-left p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
             >
-              <div className="font-medium text-gray-900">Production Report</div>
-              <div className="text-xs text-gray-500 mt-1">Work orders and output</div>
+              <div className="font-medium text-gray-900">รายงานการผลิต</div>
+              <div className="text-xs text-gray-500 mt-1">ใบสั่งผลิตและผลผลิต</div>
             </button>
             <button
               onClick={() => {
@@ -378,8 +378,8 @@ export default function NewReportPage() {
               }}
               className="text-left p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
             >
-              <div className="font-medium text-gray-900">Quality Report</div>
-              <div className="text-xs text-gray-500 mt-1">Test results and analysis</div>
+              <div className="font-medium text-gray-900">รายงานคุณภาพ</div>
+              <div className="text-xs text-gray-500 mt-1">ผลการทดสอบและการวิเคราะห์</div>
             </button>
           </div>
         </div>

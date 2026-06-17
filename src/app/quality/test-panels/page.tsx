@@ -323,12 +323,12 @@ export default function TestPanelsAdminPage() {
             </>
           ) : (
             <span className="text-xs text-gray-500 italic">
-              category-level
+              ระดับหมวดหมู่
             </span>
           )}
           {cell.data.productCategory && (
             <p className="text-xs text-gray-500">
-              cat: {cell.data.productCategory}
+              หมวด: {cell.data.productCategory}
             </p>
           )}
         </div>
@@ -357,26 +357,26 @@ export default function TestPanelsAdminPage() {
     },
     {
       dataField: 'isRequired',
-      caption: 'Required',
+      caption: 'จำเป็น',
       width: 100,
       alignment: 'center',
       cellRender: (cell) =>
         cell.data.isRequired ? (
-          <Badge variant="primary">Required</Badge>
+          <Badge variant="primary">จำเป็น</Badge>
         ) : (
-          <Badge variant="default">Optional</Badge>
+          <Badge variant="default">ไม่บังคับ</Badge>
         ),
     },
     {
       dataField: 'isActive',
-      caption: 'Active',
+      caption: 'ใช้งาน',
       width: 100,
       alignment: 'center',
       cellRender: (cell) =>
         cell.data.isActive ? (
-          <Badge variant="success">Active</Badge>
+          <Badge variant="success">ใช้งาน</Badge>
         ) : (
-          <Badge variant="default">Inactive</Badge>
+          <Badge variant="default">ไม่ใช้งาน</Badge>
         ),
     },
     {
@@ -408,14 +408,14 @@ export default function TestPanelsAdminPage() {
     <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="Test Panels"
+          title="ชุดการทดสอบ"
           subtitle="กำหนดชุดทดสอบเริ่มต้นต่อสินค้า/หมวดหมู่ (สำหรับ apply ตอนลงทะเบียน QC)"
           icon={ListChecks}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
           breadcrumbs={[
-            { label: 'Quality', href: '/quality' },
-            { label: 'Test Panels' },
+            { label: 'คุณภาพ', href: '/quality' },
+            { label: 'ชุดการทดสอบ' },
           ]}
           actions={
             <DxButton
@@ -437,7 +437,7 @@ export default function TestPanelsAdminPage() {
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard
-                label="Total panel rows"
+                label="จำนวน panel ทั้งหมด"
                 value={total}
                 icon={ListChecks}
                 iconColor="text-cyan-500"
@@ -445,7 +445,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="Product-specific"
+                label="เฉพาะสินค้า"
                 value={productSpecific}
                 icon={Package}
                 iconColor="text-emerald-500"
@@ -453,7 +453,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="Category-level"
+                label="ระดับหมวดหมู่"
                 value={categoryLevel}
                 icon={FolderOpen}
                 iconColor="text-amber-500"
@@ -461,7 +461,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="Active"
+                label="ใช้งาน"
                 value={activeCount}
                 icon={CheckCircle2}
                 iconColor="text-green-500"
@@ -624,14 +624,14 @@ export default function TestPanelsAdminPage() {
                     setForm({ ...form, isRequired: Boolean(v) })
                   }
                 />
-                <span>Required</span>
+                <span>จำเป็น</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <DxCheckBox
                   value={form.isActive}
                   onValueChange={(v) => setForm({ ...form, isActive: Boolean(v) })}
                 />
-                <span>Active</span>
+                <span>ใช้งาน</span>
               </label>
             </div>
           </div>

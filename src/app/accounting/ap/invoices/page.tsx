@@ -485,7 +485,7 @@ export default function APInvoicesPage() {
         icon="receipt"
         onBack={() => window.location.href = '/accounting/ap'}
         breadcrumbs={[
-          { label: 'Accounts Payable', href: '/accounting/ap' },
+          { label: 'เจ้าหนี้การค้า', href: '/accounting/ap' },
           { label: t('accountsPayable.bills.title') },
         ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ap-invoices'] })}

@@ -401,7 +401,7 @@ export function ItemSearchDialog({
     const item = cellInfo.data;
     return (
       <DxButton
-        text="Select"
+        text="เลือก"
         type="default"
         stylingMode="contained"
         onClick={() => handleSelect(item)}
@@ -421,7 +421,7 @@ export function ItemSearchDialog({
             </div>
             <div>
               <h2 className="text-xl font-bold">{title}</h2>
-              <p className="text-emerald-100 text-sm">Double-click or select and confirm to choose an item</p>
+              <p className="text-emerald-100 text-sm">ดับเบิลคลิกหรือเลือกแล้วยืนยันเพื่อเลือกรายการ</p>
             </div>
           </div>
 
@@ -430,16 +430,16 @@ export function ItemSearchDialog({
             <div className="flex items-center gap-4">
               <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-emerald-100">Total Items</p>
+                <p className="text-xs text-emerald-100">รายการทั้งหมด</p>
               </div>
               <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                 <p className="text-2xl font-bold text-green-300">{stats.inStock}</p>
-                <p className="text-xs text-emerald-100">In Stock</p>
+                <p className="text-xs text-emerald-100">มีในสต็อก</p>
               </div>
               {stats.lowStock > 0 && (
                 <div className="text-center px-3 py-1 bg-white/10 rounded-lg">
                   <p className="text-2xl font-bold text-amber-300">{stats.lowStock}</p>
-                  <p className="text-xs text-emerald-100">Low Stock</p>
+                  <p className="text-xs text-emerald-100">สต็อกต่ำ</p>
                 </div>
               )}
             </div>
@@ -452,7 +452,7 @@ export function ItemSearchDialog({
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <DxTextBox
-              placeholder="Search by item code, Thai name, or English name..."
+              placeholder="ค้นหาด้วยรหัสสินค้า ชื่อภาษาไทย หรือชื่อภาษาอังกฤษ..."
               value={search}
               onValueChange={setSearch}
               mode="search"
@@ -472,7 +472,7 @@ export function ItemSearchDialog({
           )}
           {selectedItem && (
             <DxButton
-              text="Confirm Selection"
+              text="ยืนยันการเลือก"
               type="success"
               icon="check"
               onClick={() => handleSelect(selectedItem)}
@@ -494,7 +494,7 @@ export function ItemSearchDialog({
         {/* Filter indicator — only for a single pinned type (no tab switching) */}
         {typeof filterType === 'string' && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Filtering by:</span>
+            <span className="text-sm text-gray-500">กรองตาม:</span>
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${itemTypeConfig[filterType]?.bgColor || 'bg-gray-100'} ${itemTypeConfig[filterType]?.color || 'text-gray-700'}`}>
               {itemTypeConfig[filterType]?.label || filterType}
             </span>
@@ -507,7 +507,7 @@ export function ItemSearchDialog({
         {isSearching ? (
           <div className="flex flex-col items-center justify-center h-full">
             <DxLoadIndicator />
-            <p className="text-gray-500 mt-4">Searching items...</p>
+            <p className="text-gray-500 mt-4">กำลังค้นหารายการ...</p>
           </div>
         ) : filteredResults.length > 0 ? (
           <DxDataGrid
@@ -528,21 +528,21 @@ export function ItemSearchDialog({
 
             <DxColumn
               dataField="code"
-              caption="Item Code"
+              caption="รหัสสินค้า"
               width={180}
               cellRender={renderItemCode}
               allowSorting
             />
             <DxColumn
               dataField="nameTh"
-              caption="Item Name"
+              caption="ชื่อสินค้า"
               minWidth={200}
               cellRender={renderItemName}
               allowSorting
             />
             <DxColumn
               dataField="type"
-              caption="Type"
+              caption="ประเภท"
               width={140}
               cellRender={renderItemType}
               allowSorting
@@ -550,7 +550,7 @@ export function ItemSearchDialog({
             {showStock && (
               <DxColumn
                 dataField="onHand"
-                caption="Stock"
+                caption="สต็อก"
                 width={140}
                 cellRender={renderStock}
                 allowSorting
@@ -560,7 +560,7 @@ export function ItemSearchDialog({
             {showStock && (
               <DxColumn
                 dataField="quarantineQty"
-                caption="Quarantine"
+                caption="กักกัน"
                 width={140}
                 cellRender={renderQuarantineStock}
                 allowSorting
@@ -570,7 +570,7 @@ export function ItemSearchDialog({
             {showPrice !== 'none' && (
               <DxColumn
                 dataField={showPrice === 'cost' ? 'costPrice' : 'sellingPrice'}
-                caption="Price"
+                caption="ราคา"
                 width={130}
                 cellRender={renderPrice}
                 allowSorting
@@ -578,7 +578,7 @@ export function ItemSearchDialog({
               />
             )}
             <DxColumn
-              caption="Action"
+              caption="ดำเนินการ"
               width={100}
               cellRender={renderActions}
               allowSorting={false}
@@ -590,11 +590,11 @@ export function ItemSearchDialog({
             <div className="p-6 bg-gray-100 rounded-full mb-4">
               <Search className="h-12 w-12 text-gray-400" />
             </div>
-            <p className="text-xl font-medium text-gray-700 mb-2">No items found</p>
+            <p className="text-xl font-medium text-gray-700 mb-2">ไม่พบรายการ</p>
             {search ? (
-              <p className="text-gray-500 mb-4">No results for &quot;{search}&quot;</p>
+              <p className="text-gray-500 mb-4">ไม่พบผลลัพธ์สำหรับ &quot;{search}&quot;</p>
             ) : (
-              <p className="text-gray-500 mb-4">No items available in the system</p>
+              <p className="text-gray-500 mb-4">ไม่มีรายการในระบบ</p>
             )}
             {allowCreate && (
               <DxButton
@@ -607,11 +607,11 @@ export function ItemSearchDialog({
             )}
             {search && !allowCreate && (
               <div className="bg-white rounded-xl p-4 border max-w-md text-left">
-                <p className="font-medium text-gray-700 mb-2">Search tips:</p>
+                <p className="font-medium text-gray-700 mb-2">คำแนะนำการค้นหา:</p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-gray-500">
-                  <li>Try searching by item code (e.g., &quot;RM001&quot;)</li>
-                  <li>Search by partial name in Thai or English</li>
-                  <li>Check for typos in your search</li>
+                  <li>ลองค้นหาด้วยรหัสสินค้า (เช่น &quot;RM001&quot;)</li>
+                  <li>ค้นหาด้วยชื่อบางส่วนภาษาไทยหรือภาษาอังกฤษ</li>
+                  <li>ตรวจสอบการสะกดคำในคำค้นหาของคุณ</li>
                 </ul>
               </div>
             )}
@@ -628,13 +628,13 @@ export function ItemSearchDialog({
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">
-                    <span className="font-semibold text-gray-800">{filteredResults.length}</span> items shown
+                    แสดง <span className="font-semibold text-gray-800">{filteredResults.length}</span> รายการ
                   </span>
                 </div>
                 {excludeIds.length > 0 && (
                   <div className="flex items-center gap-2 text-gray-500">
                     <Layers className="h-4 w-4" />
-                    <span>{excludeIds.length} already selected</span>
+                    <span>เลือกแล้ว {excludeIds.length} รายการ</span>
                   </div>
                 )}
               </>
@@ -646,12 +646,12 @@ export function ItemSearchDialog({
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200 mr-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-medium text-emerald-700">
-                  Selected: {selectedItem.code}
+                  เลือกแล้ว: {selectedItem.code}
                 </span>
               </div>
             )}
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => onOpenChange(false)}

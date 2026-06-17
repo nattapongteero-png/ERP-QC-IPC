@@ -75,14 +75,14 @@ const transactionTypeConfig: Record<
   string,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  item_sync: { label: 'Item Sync', icon: Package, color: 'text-blue-600' },
-  price_sync: { label: 'Price Sync', icon: DollarSign, color: 'text-emerald-600' },
-  inventory_sync: { label: 'Inventory Sync', icon: Warehouse, color: 'text-purple-600' },
-  order_poll: { label: 'Order Poll', icon: ShoppingCart, color: 'text-amber-600' },
-  order_confirm: { label: 'Order Confirm', icon: CheckCircle, color: 'text-green-600' },
-  order_ship: { label: 'Order Ship', icon: Truck, color: 'text-indigo-600' },
-  receipt_check: { label: 'Receipt Check', icon: FileCheck, color: 'text-teal-600' },
-  connection_test: { label: 'Connection Test', icon: Wifi, color: 'text-gray-600' },
+  item_sync: { label: 'ซิงค์รายการสินค้า', icon: Package, color: 'text-blue-600' },
+  price_sync: { label: 'ซิงค์ราคา', icon: DollarSign, color: 'text-emerald-600' },
+  inventory_sync: { label: 'ซิงค์สต็อก', icon: Warehouse, color: 'text-purple-600' },
+  order_poll: { label: 'ดึงคำสั่งซื้อ', icon: ShoppingCart, color: 'text-amber-600' },
+  order_confirm: { label: 'ยืนยันคำสั่งซื้อ', icon: CheckCircle, color: 'text-green-600' },
+  order_ship: { label: 'จัดส่งคำสั่งซื้อ', icon: Truck, color: 'text-indigo-600' },
+  receipt_check: { label: 'ตรวจรับสินค้า', icon: FileCheck, color: 'text-teal-600' },
+  connection_test: { label: 'ทดสอบการเชื่อมต่อ', icon: Wifi, color: 'text-gray-600' },
 };
 
 // ============================================================================
@@ -93,9 +93,9 @@ const statusConfig: Record<
   string,
   { label: string; icon: React.ElementType; variant: 'success' | 'danger' | 'warning' | 'info' }
 > = {
-  success: { label: 'Success', icon: CheckCircle, variant: 'success' },
-  error: { label: 'Error', icon: XCircle, variant: 'danger' },
-  pending: { label: 'Pending', icon: Clock, variant: 'warning' },
+  success: { label: 'สำเร็จ', icon: CheckCircle, variant: 'success' },
+  error: { label: 'ผิดพลาด', icon: XCircle, variant: 'danger' },
+  pending: { label: 'รอดำเนินการ', icon: Clock, variant: 'warning' },
 };
 
 // ============================================================================
@@ -231,11 +231,11 @@ export function VmiTransactionLog({
     <div className={cn('space-y-4', className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Transaction Log</h3>
+        <h3 className="font-semibold text-gray-900">บันทึกรายการเคลื่อนไหว</h3>
         {onRefresh && (
           <DxButton
             icon="refresh"
-            text="Refresh"
+            text="รีเฟรช"
             type="default"
             stylingMode="text"
             onClick={onRefresh}
@@ -261,13 +261,13 @@ export function VmiTransactionLog({
 
         <Column
           dataField="transactionType"
-          caption="Type"
+          caption="ประเภท"
           width={150}
           cellRender={renderTransactionType}
         />
-        <Column dataField="vendorName" caption="Vendor" width={150} />
-        <Column dataField="method" caption="Method" width={80} />
-        <Column dataField="endpoint" caption="Endpoint" minWidth={200} />
+        <Column dataField="vendorName" caption="ผู้ขาย" width={150} />
+        <Column dataField="method" caption="วิธี" width={80} />
+        <Column dataField="endpoint" caption="ปลายทาง" minWidth={200} />
         <Column
           dataField="httpStatus"
           caption="HTTP"
@@ -277,20 +277,20 @@ export function VmiTransactionLog({
         />
         <Column
           dataField="durationMs"
-          caption="Duration"
+          caption="ระยะเวลา"
           width={100}
           alignment="right"
           cellRender={renderDuration}
         />
         <Column
           dataField="status"
-          caption="Status"
+          caption="สถานะ"
           width={100}
           cellRender={renderStatus}
         />
         <Column
           dataField="createdAt"
-          caption="Time"
+          caption="เวลา"
           width={140}
           dataType="datetime"
           cellRender={renderDate}
@@ -308,7 +308,7 @@ export function VmiTransactionLog({
       {hasMore && onLoadMore && (
         <div className="flex justify-center pt-2">
           <DxButton
-            text="Load More"
+            text="โหลดเพิ่มเติม"
             type="default"
             stylingMode="outlined"
             onClick={onLoadMore}
@@ -324,7 +324,7 @@ export function VmiTransactionLog({
           setShowDetailPopup(false);
           setTransactionDetail(null);
         }}
-        title={`Transaction Details - #${selectedTransaction?.id}`}
+        title={`รายละเอียดรายการเคลื่อนไหว - #${selectedTransaction?.id}`}
         showCloseButton={true}
         width={800}
         height={600}
@@ -338,18 +338,18 @@ export function VmiTransactionLog({
             {/* Summary */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-sm text-gray-500">Vendor</span>
+                <span className="text-sm text-gray-500">ผู้ขาย</span>
                 <p className="font-medium">{transactionDetail.vendorName}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Type</span>
+                <span className="text-sm text-gray-500">ประเภท</span>
                 <p className="font-medium">
                   {transactionTypeConfig[transactionDetail.transactionType]?.label ||
                     transactionDetail.transactionType}
                 </p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Status</span>
+                <span className="text-sm text-gray-500">สถานะ</span>
                 <div className="mt-1">
                   <Badge
                     variant={statusConfig[transactionDetail.status]?.variant || 'info'}
@@ -359,15 +359,15 @@ export function VmiTransactionLog({
                 </div>
               </div>
               <div>
-                <span className="text-sm text-gray-500">HTTP Status</span>
+                <span className="text-sm text-gray-500">สถานะ HTTP</span>
                 <p className="font-medium">{transactionDetail.httpStatus || '-'}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Duration</span>
+                <span className="text-sm text-gray-500">ระยะเวลา</span>
                 <p className="font-medium">{transactionDetail.durationMs}ms</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Time</span>
+                <span className="text-sm text-gray-500">เวลา</span>
                 <p className="font-medium">
                   {transactionDetail.createdAt
                     ? new Date(transactionDetail.createdAt).toLocaleString('th-TH')
@@ -378,7 +378,7 @@ export function VmiTransactionLog({
 
             {/* Endpoint */}
             <div>
-              <span className="text-sm text-gray-500">Endpoint</span>
+              <span className="text-sm text-gray-500">ปลายทาง</span>
               <p className="font-mono text-sm bg-gray-50 p-2 rounded mt-1">
                 {transactionDetail.method} {transactionDetail.endpoint}
               </p>
@@ -387,7 +387,7 @@ export function VmiTransactionLog({
             {/* Error Message */}
             {transactionDetail.errorMessage && (
               <div>
-                <span className="text-sm text-gray-500">Error</span>
+                <span className="text-sm text-gray-500">ข้อผิดพลาด</span>
                 <p className="text-sm text-red-600 bg-red-50 p-2 rounded mt-1">
                   {transactionDetail.errorMessage}
                 </p>
@@ -397,7 +397,7 @@ export function VmiTransactionLog({
             {/* Request Payload */}
             {transactionDetail.requestPayload && (
               <div>
-                <span className="text-sm text-gray-500">Request Payload</span>
+                <span className="text-sm text-gray-500">ข้อมูลคำขอ (Request Payload)</span>
                 <pre className="text-xs bg-gray-50 p-3 rounded mt-1 overflow-auto max-h-40">
                   {JSON.stringify(transactionDetail.requestPayload, null, 2)}
                 </pre>
@@ -407,7 +407,7 @@ export function VmiTransactionLog({
             {/* Response Payload */}
             {transactionDetail.responsePayload && (
               <div>
-                <span className="text-sm text-gray-500">Response Payload</span>
+                <span className="text-sm text-gray-500">ข้อมูลการตอบกลับ (Response Payload)</span>
                 <pre className="text-xs bg-gray-50 p-3 rounded mt-1 overflow-auto max-h-40">
                   {JSON.stringify(transactionDetail.responsePayload, null, 2)}
                 </pre>

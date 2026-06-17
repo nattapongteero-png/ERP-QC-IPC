@@ -144,13 +144,13 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'จำเป็นต้องกรอกชื่อเรื่อง';
     }
     if (!formData.typeId) {
-      newErrors.typeId = 'Document type is required';
+      newErrors.typeId = 'จำเป็นต้องเลือกประเภทเอกสาร';
     }
     if (formData.retentionYears < 1 || formData.retentionYears > 99) {
-      newErrors.retentionYears = 'Retention period must be between 1 and 99 years';
+      newErrors.retentionYears = 'ระยะเวลาจัดเก็บต้องอยู่ระหว่าง 1 ถึง 99 ปี';
     }
 
     setErrors(newErrors);
@@ -185,7 +185,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
     <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          {isEditing ? 'Edit Document' : 'New Document'}
+          {isEditing ? 'แก้ไขเอกสาร' : 'เอกสารใหม่'}
         </h2>
         {onCancel && (
           <button
@@ -207,14 +207,14 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Title <span className="text-destructive">*</span>
+            ชื่อเรื่อง <span className="text-destructive">*</span>
           </label>
           <DxTextBox
             value={formData.title}
             onValueChange={(value) =>
               setFormData((prev) => ({ ...prev, title: value || '' }))
             }
-            placeholder="Enter document title"
+            placeholder="กรอกชื่อเอกสาร"
           />
           {errors.title && (
             <p className="text-sm text-destructive">{errors.title}</p>
@@ -224,7 +224,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
         {/* Document Type */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Document Type <span className="text-destructive">*</span>
+            ประเภทเอกสาร <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
             items={(documentTypes || []).map((t: DocumentType) => ({
@@ -237,7 +237,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
             onValueChange={(value) =>
               setFormData((prev) => ({ ...prev, typeId: value }))
             }
-            placeholder="Select document type"
+            placeholder="เลือกประเภทเอกสาร"
             disabled={isEditing || isLoadingTypes}
           />
           {errors.typeId && (
@@ -247,7 +247,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
 
         {/* Department */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Department</label>
+          <label className="text-sm font-medium">แผนก</label>
           <DxSelectBox
             items={(departments || []).map((d) => ({
               value: d.id,
@@ -259,7 +259,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
             onValueChange={(value) =>
               setFormData((prev) => ({ ...prev, departmentId: value }))
             }
-            placeholder="Select department (optional)"
+            placeholder="เลือกแผนก (ไม่บังคับ)"
             showClearButton
           />
         </div>
@@ -267,7 +267,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
         {/* Retention Period */}
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Retention Period (years)
+            ระยะเวลาจัดเก็บ (ปี)
           </label>
           <DxNumberBox
             value={formData.retentionYears}
@@ -289,13 +289,13 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
         {/* Content (only for new documents) */}
         {!isEditing && (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Initial Content</label>
+            <label className="text-sm font-medium">เนื้อหาเริ่มต้น</label>
             <DxTextArea
               value={formData.content}
               onValueChange={(value) =>
                 setFormData((prev) => ({ ...prev, content: value || '' }))
               }
-              placeholder="Enter initial document content (optional)"
+              placeholder="กรอกเนื้อหาเอกสารเริ่มต้น (ไม่บังคับ)"
               height={150}
             />
           </div>
@@ -304,7 +304,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-4">
           <DxButton
-            text={isEditing ? 'Save Changes' : 'Create Document'}
+            text={isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างเอกสาร'}
             icon="save"
             onClick={handleSubmit}
             type="success"
@@ -312,7 +312,7 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
           />
           {onCancel && (
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={onCancel}
               stylingMode="outlined"
               disabled={isSubmitting}

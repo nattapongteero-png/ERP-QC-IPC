@@ -271,7 +271,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   if (!note) {
     return (
         <div className="p-4">
-          <div className="text-center text-gray-500">Note not found</div>
+          <div className="text-center text-gray-500">ไม่พบใบลด/เพิ่มหนี้</div>
         </div>
     );
   }
@@ -306,14 +306,14 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
           </div>
           <div className="flex gap-2">
             <Button
-              text="Back"
+              text="ย้อนกลับ"
               icon="back"
               onClick={() => router.push('/accounting/credit-debit-notes')}
               data-testid="back-btn"
             />
             {canEdit && (
               <Button
-                text="Edit"
+                text="แก้ไข"
                 icon="edit"
                 onClick={() => router.push(`/accounting/credit-debit-notes/${noteId}/edit`)}
                 data-testid="edit-btn"
@@ -324,49 +324,49 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Note Details */}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
-          <h2 className="text-lg font-semibold mb-4">Note Details</h2>
+          <h2 className="text-lg font-semibold mb-4">รายละเอียดใบ</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-500">Note Type</label>
+              <label className="block text-sm text-gray-500">ประเภทใบ</label>
               <div className="font-medium">{noteTypeLabels[note.noteType]}</div>
             </div>
             <div>
-              <label className="block text-sm text-gray-500">Note Date</label>
+              <label className="block text-sm text-gray-500">วันที่</label>
               <div className="font-medium">{formatDate(note.noteDate)}</div>
             </div>
             <div>
-              <label className="block text-sm text-gray-500">Reference Invoice</label>
+              <label className="block text-sm text-gray-500">ใบแจ้งหนี้อ้างอิง</label>
               <div className="font-medium">
                 {note.referenceInvoiceNumber || `#${note.referenceInvoiceId}`}
               </div>
             </div>
             {note.customerName && (
               <div>
-                <label className="block text-sm text-gray-500">Customer</label>
+                <label className="block text-sm text-gray-500">ลูกค้า</label>
                 <div className="font-medium">{note.customerName}</div>
               </div>
             )}
             {note.vendorName && (
               <div>
-                <label className="block text-sm text-gray-500">Vendor</label>
+                <label className="block text-sm text-gray-500">ผู้ขาย</label>
                 <div className="font-medium">{note.vendorName}</div>
               </div>
             )}
             <div>
-              <label className="block text-sm text-gray-500">Reason</label>
+              <label className="block text-sm text-gray-500">เหตุผล</label>
               <div className="font-medium">
                 {reasonCodeLabels[note.reasonCode] || note.reasonCode}
               </div>
             </div>
             {note.reasonDescription && (
               <div className="md:col-span-3">
-                <label className="block text-sm text-gray-500">Reason Description</label>
+                <label className="block text-sm text-gray-500">รายละเอียดเหตุผล</label>
                 <div className="font-medium">{note.reasonDescription}</div>
               </div>
             )}
             {note.notes && (
               <div className="md:col-span-3">
-                <label className="block text-sm text-gray-500">Notes</label>
+                <label className="block text-sm text-gray-500">หมายเหตุ</label>
                 <div className="font-medium">{note.notes}</div>
               </div>
             )}
@@ -377,11 +377,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             <div className="mt-4 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-500">Approved By</label>
+                  <label className="block text-sm text-gray-500">อนุมัติโดย</label>
                   <div className="font-medium">{note.approvedByName}</div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-500">Approved At</label>
+                  <label className="block text-sm text-gray-500">อนุมัติเมื่อ</label>
                   <div className="font-medium">{formatDateTime(note.approvedAt)}</div>
                 </div>
               </div>
@@ -392,12 +392,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             <div className="mt-4 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-500">Posted At</label>
+                  <label className="block text-sm text-gray-500">ลงบัญชีเมื่อ</label>
                   <div className="font-medium">{formatDateTime(note.postedAt)}</div>
                 </div>
                 {note.journalEntryId && (
                   <div>
-                    <label className="block text-sm text-gray-500">Journal Entry</label>
+                    <label className="block text-sm text-gray-500">รายการบัญชี</label>
                     <div className="font-medium">#{note.journalEntryId}</div>
                   </div>
                 )}
@@ -408,25 +408,25 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Line Items */}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
-          <h2 className="text-lg font-semibold mb-4">Line Items</h2>
+          <h2 className="text-lg font-semibold mb-4">รายการ</h2>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                  Description
+                  รายละเอียด
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  Quantity
+                  จำนวน
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  Unit Price
+                  ราคาต่อหน่วย
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  Line Total
+                  รวมรายการ
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                  GL Account
+                  บัญชีแยกประเภท
                 </th>
               </tr>
             </thead>
@@ -452,7 +452,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
+                <span className="text-gray-600">ยอดรวมย่อย:</span>
                 <span className="font-medium">{formatAmount(note.subtotal)}</span>
               </div>
               <div className="flex justify-between">
@@ -461,12 +461,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
               </div>
               {note.whtAmount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">WHT:</span>
+                  <span className="text-gray-600">ภาษีหัก ณ ที่จ่าย:</span>
                   <span className="font-medium">-{formatAmount(note.whtAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total:</span>
+                <span>รวมทั้งสิ้น:</span>
                 <span>{formatAmount(note.totalAmount)}</span>
               </div>
             </div>
@@ -475,11 +475,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Actions */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          <h2 className="text-lg font-semibold mb-4">การดำเนินการ</h2>
           <div className="flex flex-wrap gap-2">
             {canSubmit && (
               <Button
-                text="Submit for Approval"
+                text="ส่งเพื่ออนุมัติ"
                 type="default"
                 stylingMode="contained"
                 icon="check"
@@ -490,7 +490,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canApprove && (
               <Button
-                text="Approve"
+                text="อนุมัติ"
                 type="success"
                 stylingMode="contained"
                 icon="check"
@@ -501,7 +501,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canReject && (
               <Button
-                text="Reject"
+                text="ปฏิเสธ"
                 type="danger"
                 stylingMode="outlined"
                 icon="close"
@@ -512,7 +512,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canPost && (
               <Button
-                text="Post to GL"
+                text="ลงบัญชีแยกประเภท"
                 type="success"
                 stylingMode="contained"
                 icon="save"
@@ -523,7 +523,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canCancel && (
               <Button
-                text="Cancel Note"
+                text="ยกเลิกใบ"
                 type="danger"
                 stylingMode="outlined"
                 icon="close"
@@ -534,7 +534,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canDelete && (
               <Button
-                text="Delete"
+                text="ลบ"
                 type="danger"
                 stylingMode="text"
                 icon="trash"
@@ -550,27 +550,27 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         <Popup
           visible={showCancelDialog}
           onHiding={() => setShowCancelDialog(false)}
-          title="Cancel Note"
+          title="ยกเลิกใบ"
           width={400}
           height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
-            <p className="mb-4">Please provide a reason for cancellation:</p>
+            <p className="mb-4">กรุณาระบุเหตุผลในการยกเลิก:</p>
             <TextArea
               value={cancelReason}
               onValueChanged={(e) => setCancelReason(e.value || '')}
               height={100}
-              placeholder="Cancellation reason..."
+              placeholder="เหตุผลการยกเลิก..."
               data-testid="cancel-reason-input"
             />
             <div className="flex justify-end gap-2 mt-4">
               <Button
-                text="Cancel"
+                text="ยกเลิก"
                 onClick={() => setShowCancelDialog(false)}
               />
               <Button
-                text="Confirm Cancellation"
+                text="ยืนยันการยกเลิก"
                 type="danger"
                 stylingMode="contained"
                 onClick={handleCancel}
@@ -585,27 +585,27 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         <Popup
           visible={showRejectDialog}
           onHiding={() => setShowRejectDialog(false)}
-          title="Reject Note"
+          title="ปฏิเสธใบ"
           width={400}
           height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
-            <p className="mb-4">Please provide a reason for rejection:</p>
+            <p className="mb-4">กรุณาระบุเหตุผลในการปฏิเสธ:</p>
             <TextArea
               value={rejectReason}
               onValueChanged={(e) => setRejectReason(e.value || '')}
               height={100}
-              placeholder="Rejection reason..."
+              placeholder="เหตุผลการปฏิเสธ..."
               data-testid="reject-reason-input"
             />
             <div className="flex justify-end gap-2 mt-4">
               <Button
-                text="Cancel"
+                text="ยกเลิก"
                 onClick={() => setShowRejectDialog(false)}
               />
               <Button
-                text="Confirm Rejection"
+                text="ยืนยันการปฏิเสธ"
                 type="danger"
                 stylingMode="contained"
                 onClick={handleReject}

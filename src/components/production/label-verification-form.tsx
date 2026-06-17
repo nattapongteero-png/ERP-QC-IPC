@@ -61,10 +61,10 @@ export interface LabelVerificationFormProps {
 }
 
 const LABEL_TYPES: { value: LabelType; label: string }[] = [
-  { value: 'product_label', label: 'Product Label' },
-  { value: 'batch_label', label: 'Batch Label' },
-  { value: 'carton_label', label: 'Carton Label' },
-  { value: 'shipper_label', label: 'Shipper Label' },
+  { value: 'product_label', label: 'ฉลากผลิตภัณฑ์' },
+  { value: 'batch_label', label: 'ฉลากรุ่นการผลิต' },
+  { value: 'carton_label', label: 'ฉลากกล่อง' },
+  { value: 'shipper_label', label: 'ฉลากหีบห่อขนส่ง' },
 ];
 
 /**
@@ -160,11 +160,11 @@ export function LabelVerificationForm({
   const getSignatureMeaning = () => {
     switch (signAction) {
       case 'verify_approve':
-        return 'I verify that the label content is correct and matches the product specifications.';
+        return 'ข้าพเจ้าตรวจสอบยืนยันว่าเนื้อหาบนฉลากถูกต้องและตรงกับข้อกำหนดของผลิตภัณฑ์';
       case 'verify_reject':
-        return `I verify that the label content is incorrect. Reason: ${rejectionReason}`;
+        return `ข้าพเจ้าตรวจสอบยืนยันว่าเนื้อหาบนฉลากไม่ถูกต้อง เหตุผล: ${rejectionReason}`;
       case 'witness':
-        return 'I witness and confirm that the label verification was performed correctly and the label content matches the product specifications.';
+        return 'ข้าพเจ้าเป็นพยานและยืนยันว่าการตรวจสอบฉลากดำเนินการอย่างถูกต้อง และเนื้อหาบนฉลากตรงกับข้อกำหนดของผลิตภัณฑ์';
     }
   };
 
@@ -174,28 +174,28 @@ export function LabelVerificationForm({
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
             <Clock className="h-4 w-4" />
-            Pending Verification
+            รอการตรวจสอบยืนยัน
           </span>
         );
       case 'verified':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700">
             <UserCheck className="h-4 w-4" />
-            Awaiting Witness
+            รอพยานยืนยัน
           </span>
         );
       case 'witnessed':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
             <CheckCircle2 className="h-4 w-4" />
-            Verified & Witnessed
+            ตรวจสอบยืนยันและมีพยานแล้ว
           </span>
         );
       case 'rejected':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
             <XCircle className="h-4 w-4" />
-            Rejected
+            ไม่ผ่าน
           </span>
         );
     }
@@ -215,10 +215,10 @@ export function LabelVerificationForm({
               <Tag className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Label Verification</h3>
+              <h3 className="text-lg font-semibold text-gray-900">การตรวจสอบยืนยันฉลาก</h3>
               <p className="text-sm text-gray-600">
-                Work Order: <span className="font-medium">{workOrderNumber}</span>
-                {batchNumber && <span className="ml-2">• Batch: {batchNumber}</span>}
+                ใบสั่งผลิต: <span className="font-medium">{workOrderNumber}</span>
+                {batchNumber && <span className="ml-2">• รุ่นการผลิต: {batchNumber}</span>}
                 {productName && <span className="ml-2">• {productName}</span>}
               </p>
             </div>
@@ -233,7 +233,7 @@ export function LabelVerificationForm({
         {!hasLabel && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Label Type
+              เลือกประเภทฉลาก
             </label>
             <div className="flex gap-4">
               <div className="flex-1">
@@ -248,7 +248,7 @@ export function LabelVerificationForm({
               </div>
               {onCreate && (
                 <Button
-                  text={isCreating ? 'Creating...' : 'Create Label Record'}
+                  text={isCreating ? 'กำลังสร้าง...' : 'สร้างบันทึกฉลาก'}
                   type="default"
                   stylingMode="contained"
                   icon="plus"
@@ -265,12 +265,12 @@ export function LabelVerificationForm({
           <div className="mb-6">
             <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
-              Label Image
+              รูปฉลาก
             </h4>
             <DocumentAttachment
               moduleName="label_verification"
               entityId={labelId!}
-              title="Label Images"
+              title="รูปฉลาก"
               readOnly={readOnly || status !== 'pending'}
               maxFiles={5}
               allowedExtensions={['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf']}
@@ -283,23 +283,23 @@ export function LabelVerificationForm({
         {/* Label Information Display */}
         {hasLabel && (initialData?.productName || initialData?.batchNumber || initialData?.expiryDate) && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Label Content</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">เนื้อหาบนฉลาก</h4>
             <div className="grid grid-cols-3 gap-4 text-sm">
               {initialData?.productName && (
                 <div>
-                  <span className="text-gray-500">Product Name:</span>
+                  <span className="text-gray-500">ชื่อผลิตภัณฑ์:</span>
                   <span className="ml-2 font-medium text-gray-900">{initialData.productName}</span>
                 </div>
               )}
               {initialData?.batchNumber && (
                 <div>
-                  <span className="text-gray-500">Batch Number:</span>
+                  <span className="text-gray-500">หมายเลขรุ่นการผลิต:</span>
                   <span className="ml-2 font-medium text-gray-900">{initialData.batchNumber}</span>
                 </div>
               )}
               {initialData?.expiryDate && (
                 <div>
-                  <span className="text-gray-500">Expiry Date:</span>
+                  <span className="text-gray-500">วันหมดอายุ:</span>
                   <span className="ml-2 font-medium text-gray-900">{initialData.expiryDate}</span>
                 </div>
               )}
@@ -311,12 +311,12 @@ export function LabelVerificationForm({
         {canVerify && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rejection Reason (if label is incorrect)
+              เหตุผลการปฏิเสธ (กรณีฉลากไม่ถูกต้อง)
             </label>
             <TextArea
               value={rejectionReason}
               onValueChange={setRejectionReason}
-              placeholder="Enter reason if the label content is incorrect..."
+              placeholder="ระบุเหตุผลหากเนื้อหาบนฉลากไม่ถูกต้อง..."
               height={80}
             />
           </div>
@@ -327,7 +327,7 @@ export function LabelVerificationForm({
           <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
             <h4 className="text-sm font-medium text-red-700 mb-2 flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
-              Rejection Reason
+              เหตุผลการปฏิเสธ
             </h4>
             <p className="text-sm text-red-600">{initialData.rejectionReason}</p>
           </div>
@@ -336,19 +336,19 @@ export function LabelVerificationForm({
         {/* Signature Info */}
         {(operatorName || witnessName) && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Electronic Signatures</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">ลายเซ็นอิเล็กทรอนิกส์</h4>
             <div className="space-y-2 text-sm">
               {operatorName && (
                 <div className="flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-emerald-600" />
-                  <span className="text-gray-600">Verified by:</span>
+                  <span className="text-gray-600">ตรวจสอบยืนยันโดย:</span>
                   <span className="font-medium text-gray-900">{operatorName}</span>
                 </div>
               )}
               {witnessName && (
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-green-600" />
-                  <span className="text-gray-600">Witnessed by:</span>
+                  <span className="text-gray-600">พยานยืนยันโดย:</span>
                   <span className="font-medium text-gray-900">{witnessName}</span>
                 </div>
               )}
@@ -365,13 +365,13 @@ export function LabelVerificationForm({
               {canVerify && (
                 <span className="flex items-center gap-1.5 text-emerald-600">
                   <Eye className="h-4 w-4" />
-                  Review the label and verify or reject
+                  ตรวจทานฉลากแล้วยืนยันหรือปฏิเสธ
                 </span>
               )}
               {canWitness && (
                 <span className="flex items-center gap-1.5 text-green-600">
                   <Users className="h-4 w-4" />
-                  Review and witness the verification (dual sign-off)
+                  ตรวจทานและเป็นพยานการตรวจสอบยืนยัน (ลงนามสองฝ่าย)
                 </span>
               )}
             </div>
@@ -380,7 +380,7 @@ export function LabelVerificationForm({
               {canVerify && (
                 <>
                   <Button
-                    text="Reject"
+                    text="ปฏิเสธ"
                     type="danger"
                     stylingMode="outlined"
                     icon="close"
@@ -388,7 +388,7 @@ export function LabelVerificationForm({
                     disabled={isLoading || !rejectionReason.trim()}
                   />
                   <Button
-                    text="Verify Correct"
+                    text="ยืนยันว่าถูกต้อง"
                     type="success"
                     stylingMode="contained"
                     icon="check"
@@ -399,7 +399,7 @@ export function LabelVerificationForm({
               )}
               {canWitness && (
                 <Button
-                  text="Witness & Confirm"
+                  text="เป็นพยานและยืนยัน"
                   type="success"
                   stylingMode="contained"
                   icon="check"
@@ -417,10 +417,10 @@ export function LabelVerificationForm({
         visible={showSignDialog}
         title={
           signAction === 'verify_approve'
-            ? 'Verify Label - Correct'
+            ? 'ตรวจสอบยืนยันฉลาก - ถูกต้อง'
             : signAction === 'verify_reject'
-            ? 'Verify Label - Reject'
-            : 'Witness Label Verification'
+            ? 'ตรวจสอบยืนยันฉลาก - ปฏิเสธ'
+            : 'เป็นพยานการตรวจสอบยืนยันฉลาก'
         }
         action={signAction}
         meaning={getSignatureMeaning()}

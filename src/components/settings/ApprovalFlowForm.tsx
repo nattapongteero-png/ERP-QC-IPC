@@ -401,20 +401,20 @@ export function ApprovalFlowForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="Back"
+            text="ย้อนกลับ"
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="page-title">
-            {mode === 'create' ? 'Create New Workflow' : `Edit: ${existingFlow?.name}`}
+            {mode === 'create' ? 'สร้างเวิร์กโฟลว์ใหม่' : `แก้ไข: ${existingFlow?.name}`}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && (
             <Button
-              text="Delete"
+              text="ลบ"
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -423,7 +423,7 @@ export function ApprovalFlowForm({
             />
           )}
           <Button
-            text="Cancel"
+            text="ยกเลิก"
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
@@ -431,7 +431,7 @@ export function ApprovalFlowForm({
             data-testid="cancel-btn"
           />
           <Button
-            text={mode === 'create' ? 'Create' : 'Save Changes'}
+            text={mode === 'create' ? 'สร้าง' : 'บันทึกการเปลี่ยนแปลง'}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -447,19 +447,19 @@ export function ApprovalFlowForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete this workflow? This action cannot be undone.
+                  คุณแน่ใจหรือไม่ว่าต้องการลบเวิร์กโฟลว์นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text="ยกเลิก"
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="Delete"
+                  text="ลบ"
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -477,26 +477,26 @@ export function ApprovalFlowForm({
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Basic Information</CardTitle>
+              <CardTitle className="text-base">ข้อมูลพื้นฐาน</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Name <span className="text-red-500">*</span>
+                    ชื่อ <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.name}
                     onValueChanged={(e) =>
                       setFormData((prev) => ({ ...prev, name: e.value || '' }))
                     }
-                    placeholder="e.g., High-Value PR Approval"
+                    placeholder="เช่น การอนุมัติใบขอซื้อมูลค่าสูง"
                     data-testid="flow-name"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Type <span className="text-red-500">*</span>
+                    ประเภทเอกสาร <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     items={documentTypes}
@@ -511,14 +511,14 @@ export function ApprovalFlowForm({
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
+                    รายละเอียด
                   </label>
                   <TextArea
                     value={formData.description}
                     onValueChanged={(e) =>
                       setFormData((prev) => ({ ...prev, description: e.value || '' }))
                     }
-                    placeholder="Describe when this workflow applies"
+                    placeholder="อธิบายว่าเวิร์กโฟลว์นี้ใช้เมื่อใด"
                     height={80}
                     data-testid="flow-description"
                   />
@@ -531,9 +531,9 @@ export function ApprovalFlowForm({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base">Trigger Rules</CardTitle>
+                <CardTitle className="text-base">เงื่อนไขทริกเกอร์</CardTitle>
                 <Button
-                  text="Add Rule"
+                  text="เพิ่มเงื่อนไข"
                   icon="plus"
                   type="default"
                   stylingMode="outlined"
@@ -544,8 +544,7 @@ export function ApprovalFlowForm({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500 mb-4">
-                Define conditions that must be met for this workflow to trigger. Leave empty to
-                always trigger.
+                กำหนดเงื่อนไขที่ต้องเป็นจริงเพื่อให้เวิร์กโฟลว์นี้ทำงาน เว้นว่างไว้เพื่อให้ทำงานทุกครั้ง
               </p>
               <DataGrid
                 dataSource={rules}
@@ -562,18 +561,18 @@ export function ApprovalFlowForm({
                 data-testid="rules-grid"
               >
                 <Editing mode="cell" allowUpdating allowDeleting />
-                <Column dataField="ruleOrder" caption="Order" width={70} allowEditing={false} />
-                <Column dataField="fieldName" caption="Field">
+                <Column dataField="ruleOrder" caption="ลำดับ" width={70} allowEditing={false} />
+                <Column dataField="fieldName" caption="ฟิลด์">
                   <RequiredRule />
                 </Column>
-                <Column dataField="operator" caption="Operator">
+                <Column dataField="operator" caption="ตัวดำเนินการ">
                   <RequiredRule />
                 </Column>
-                <Column dataField="value" caption="Value">
+                <Column dataField="value" caption="ค่า">
                   <RequiredRule />
                 </Column>
-                <Column dataField="valueTo" caption="To Value" />
-                <Column dataField="logicOperator" caption="Logic" width={80} />
+                <Column dataField="valueTo" caption="ถึงค่า" />
+                <Column dataField="logicOperator" caption="ตรรกะ" width={80} />
               </DataGrid>
             </CardContent>
           </Card>
@@ -582,9 +581,9 @@ export function ApprovalFlowForm({
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="text-base">Approval Steps</CardTitle>
+                <CardTitle className="text-base">ขั้นตอนการอนุมัติ</CardTitle>
                 <Button
-                  text="Add Step"
+                  text="เพิ่มขั้นตอน"
                   icon="plus"
                   type="default"
                   stylingMode="outlined"
@@ -595,7 +594,7 @@ export function ApprovalFlowForm({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500 mb-4">
-                Define the approval chain. Steps are executed in order.
+                กำหนดลำดับการอนุมัติ ขั้นตอนจะถูกดำเนินการตามลำดับ
               </p>
               <DataGrid
                 dataSource={steps}
@@ -612,23 +611,23 @@ export function ApprovalFlowForm({
                 data-testid="steps-grid"
               >
                 <Editing mode="cell" allowUpdating allowDeleting />
-                <Column dataField="stepOrder" caption="Step" width={70} allowEditing={false} />
-                <Column dataField="stepName" caption="Name">
+                <Column dataField="stepOrder" caption="ขั้นตอน" width={70} allowEditing={false} />
+                <Column dataField="stepName" caption="ชื่อ">
                   <RequiredRule />
                 </Column>
-                <Column dataField="approverType" caption="Approver Type">
+                <Column dataField="approverType" caption="ประเภทผู้อนุมัติ">
                   <RequiredRule />
                 </Column>
-                <Column dataField="approverId" caption="Approver ID" />
+                <Column dataField="approverId" caption="รหัสผู้อนุมัติ" />
                 <Column
                   dataField="canDelegate"
-                  caption="Can Delegate"
+                  caption="มอบหมายได้"
                   dataType="boolean"
                   width={100}
                 />
                 <Column
                   dataField="timeoutDays"
-                  caption="Timeout (days)"
+                  caption="หมดเวลา (วัน)"
                   width={100}
                   dataType="number"
                 />
@@ -641,12 +640,12 @@ export function ApprovalFlowForm({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Status & Priority</CardTitle>
+              <CardTitle className="text-base">สถานะและลำดับความสำคัญ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority (lower = higher priority)
+                  ลำดับความสำคัญ (น้อย = สำคัญมากกว่า)
                 </label>
                 <NumberBox
                   value={formData.priority}
@@ -659,7 +658,7 @@ export function ApprovalFlowForm({
                 />
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Active</label>
+                <label className="text-sm font-medium text-gray-700">เปิดใช้งาน</label>
                 <Switch
                   value={formData.isActive}
                   onValueChanged={(e) =>
@@ -674,7 +673,7 @@ export function ApprovalFlowForm({
           {mode === 'edit' && existingFlow && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Workflow Info</CardTitle>
+                <CardTitle className="text-base">ข้อมูลเวิร์กโฟลว์</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -682,15 +681,15 @@ export function ApprovalFlowForm({
                   <span className="font-mono text-gray-900">{existingFlow.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Rules</span>
+                  <span className="text-gray-500">เงื่อนไข</span>
                   <span className="text-gray-900">{rules.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Steps</span>
+                  <span className="text-gray-500">ขั้นตอน</span>
                   <span className="text-gray-900">{steps.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created</span>
+                  <span className="text-gray-500">สร้างเมื่อ</span>
                   <span className="text-gray-900">
                     {existingFlow.createdAt
                       ? new Date(existingFlow.createdAt).toLocaleDateString('th-TH')
@@ -698,7 +697,7 @@ export function ApprovalFlowForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Updated</span>
+                  <span className="text-gray-500">แก้ไขเมื่อ</span>
                   <span className="text-gray-900">
                     {existingFlow.updatedAt
                       ? new Date(existingFlow.updatedAt).toLocaleDateString('th-TH')

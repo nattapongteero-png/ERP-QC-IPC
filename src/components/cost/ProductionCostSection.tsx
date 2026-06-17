@@ -23,26 +23,26 @@ export function ProductionCostSection({ data }: ProductionCostSectionProps) {
   return (
     <Card data-testid="production-cost-section">
       <CardHeader>
-        <CardTitle>Production Cost Analysis</CardTitle>
+        <CardTitle>วิเคราะห์ต้นทุนการผลิต</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <KPICard title="WIP Value" icon={<Factory className="h-5 w-5 text-blue-600" />} kpi={data.wipValue} format="currency" />
-          <KPICard title="Prod Cost MTD" icon={<Hammer className="h-5 w-5 text-purple-600" />} kpi={data.productionCostMTD} format="currency" />
-          <KPICard title="Labor Eff %" icon={<Users className="h-5 w-5 text-green-600" />} kpi={data.laborEfficiency} format="percent" />
-          <KPICard title="OH Absorption" icon={<Settings className="h-5 w-5 text-orange-600" />} kpi={data.overheadAbsorption} format="percent" />
-          <KPICard title="Avg Unit Cost" icon={<DollarSign className="h-5 w-5 text-teal-600" />} kpi={data.avgUnitCost} format="currency" />
-          <KPICard title="Variance" icon={<AlertCircle className="h-5 w-5 text-red-600" />} kpi={data.productionVariance} format="currency" />
+          <KPICard title="มูลค่างานระหว่างทำ" icon={<Factory className="h-5 w-5 text-blue-600" />} kpi={data.wipValue} format="currency" />
+          <KPICard title="ต้นทุนการผลิตเดือนนี้" icon={<Hammer className="h-5 w-5 text-purple-600" />} kpi={data.productionCostMTD} format="currency" />
+          <KPICard title="ประสิทธิภาพแรงงาน %" icon={<Users className="h-5 w-5 text-green-600" />} kpi={data.laborEfficiency} format="percent" />
+          <KPICard title="การปันส่วนค่าโสหุ้ย" icon={<Settings className="h-5 w-5 text-orange-600" />} kpi={data.overheadAbsorption} format="percent" />
+          <KPICard title="ต้นทุนต่อหน่วยเฉลี่ย" icon={<DollarSign className="h-5 w-5 text-teal-600" />} kpi={data.avgUnitCost} format="currency" />
+          <KPICard title="ผลต่าง" icon={<AlertCircle className="h-5 w-5 text-red-600" />} kpi={data.productionVariance} format="currency" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <CardHeader><CardTitle className="text-sm">Cost Breakdown (MTD)</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">รายละเอียดต้นทุน (เดือนนี้)</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Material</span>
+                    <span>วัตถุดิบ</span>
                     <span>{materialPct}%</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full">
@@ -51,7 +51,7 @@ export function ProductionCostSection({ data }: ProductionCostSectionProps) {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Labor</span>
+                    <span>ค่าแรง</span>
                     <span>{laborPct}%</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full">
@@ -60,7 +60,7 @@ export function ProductionCostSection({ data }: ProductionCostSectionProps) {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Overhead</span>
+                    <span>ค่าโสหุ้ย</span>
                     <span>{overheadPct}%</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full">
@@ -72,7 +72,7 @@ export function ProductionCostSection({ data }: ProductionCostSectionProps) {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-sm">By Work Center</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">ตามศูนย์งาน</CardTitle></CardHeader>
             <CardContent>
               {data.byWorkCenter.length > 0 ? (
                 <div className="space-y-2">
@@ -83,7 +83,7 @@ export function ProductionCostSection({ data }: ProductionCostSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">No work center data</p>}
+              ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลศูนย์งาน</p>}
             </CardContent>
           </Card>
         </div>

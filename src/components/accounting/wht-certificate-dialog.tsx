@@ -76,7 +76,7 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
     <Popup
       visible={visible}
       onHiding={onClose}
-      title={`WHT Certificate - ${certificate.certificateNumber}`}
+      title={`หนังสือรับรองภาษีหัก ณ ที่จ่าย - ${certificate.certificateNumber}`}
       showCloseButton
       width={800}
       height="auto"
@@ -85,7 +85,7 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
       <div className="p-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Loading certificate data...</p>
+            <p className="text-gray-500">กำลังโหลดข้อมูลหนังสือรับรอง...</p>
           </div>
         ) : pdfData ? (
           <div className="space-y-6 print:p-4" id="wht-certificate-content">
@@ -104,10 +104,10 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
                 ) : (
                   <Building2 className="h-5 w-5 text-blue-600" />
                 )}
-                <span className="font-medium">{isPND3 ? 'Individual' : 'Juristic Person'}</span>
+                <span className="font-medium">{isPND3 ? 'บุคคลธรรมดา' : 'นิติบุคคล'}</span>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Certificate No.</p>
+                <p className="text-sm text-gray-600">เลขที่หนังสือรับรอง</p>
                 <p className="font-bold">{pdfData.certificateNumber}</p>
               </div>
             </div>
@@ -117,23 +117,23 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
               <h4 className="font-semibold text-gray-700 mb-2">ผู้จ่ายเงิน / Payer</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500">Name (TH):</span>
+                  <span className="text-gray-500">ชื่อ (ไทย):</span>
                   <p className="font-medium">{pdfData.companyNameTh}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Name (EN):</span>
+                  <span className="text-gray-500">ชื่อ (อังกฤษ):</span>
                   <p className="font-medium">{pdfData.companyName}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Tax ID:</span>
+                  <span className="text-gray-500">เลขประจำตัวผู้เสียภาษี:</span>
                   <p className="font-medium">{pdfData.companyTaxId}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Branch:</span>
-                  <p className="font-medium">{pdfData.companyBranch === '00000' ? 'Head Office' : pdfData.companyBranch}</p>
+                  <span className="text-gray-500">สาขา:</span>
+                  <p className="font-medium">{pdfData.companyBranch === '00000' ? 'สำนักงานใหญ่' : pdfData.companyBranch}</p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-500">Address:</span>
+                  <span className="text-gray-500">ที่อยู่:</span>
                   <p className="font-medium">{pdfData.companyAddress}</p>
                 </div>
               </div>
@@ -144,15 +144,15 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
               <h4 className="font-semibold text-blue-700 mb-2">ผู้รับเงิน / Payee</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500">Name:</span>
+                  <span className="text-gray-500">ชื่อ:</span>
                   <p className="font-medium">{pdfData.vendorName}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Tax ID:</span>
+                  <span className="text-gray-500">เลขประจำตัวผู้เสียภาษี:</span>
                   <p className="font-medium">{pdfData.vendorTaxId || '-'}</p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-500">Address:</span>
+                  <span className="text-gray-500">ที่อยู่:</span>
                   <p className="font-medium">{pdfData.vendorAddress || '-'}</p>
                 </div>
               </div>
@@ -164,12 +164,12 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
               <table className="w-full border-collapse border">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border p-2 text-left text-sm">Type</th>
-                    <th className="border p-2 text-left text-sm">Description</th>
-                    <th className="border p-2 text-right text-sm">Date</th>
-                    <th className="border p-2 text-right text-sm">Amount</th>
-                    <th className="border p-2 text-right text-sm">Rate</th>
-                    <th className="border p-2 text-right text-sm">WHT</th>
+                    <th className="border p-2 text-left text-sm">ประเภท</th>
+                    <th className="border p-2 text-left text-sm">รายละเอียด</th>
+                    <th className="border p-2 text-right text-sm">วันที่</th>
+                    <th className="border p-2 text-right text-sm">จำนวนเงิน</th>
+                    <th className="border p-2 text-right text-sm">อัตรา</th>
+                    <th className="border p-2 text-right text-sm">ภาษีหัก ณ ที่จ่าย</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,7 +186,7 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
                 </tbody>
                 <tfoot>
                   <tr className="bg-gray-50 font-semibold">
-                    <td colSpan={3} className="border p-2 text-right">Total / รวม</td>
+                    <td colSpan={3} className="border p-2 text-right">รวม</td>
                     <td className="border p-2 text-right">{formatCurrency(pdfData.totalPaymentAmount)}</td>
                     <td className="border p-2"></td>
                     <td className="border p-2 text-right">{formatCurrency(pdfData.totalWHTAmount)}</td>
@@ -218,14 +218,14 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
             {/* Action Buttons */}
             <div className="flex justify-end gap-2 pt-4 border-t print:hidden">
               <Button
-                text="Download JSON"
+                text="ดาวน์โหลด JSON"
                 type="normal"
                 stylingMode="outlined"
                 icon="download"
                 onClick={handleDownloadJSON}
               />
               <Button
-                text="Print"
+                text="พิมพ์"
                 type="default"
                 stylingMode="contained"
                 icon="print"
@@ -236,7 +236,7 @@ export function WHTCertificateDialog({ visible, certificate, onClose }: WHTCerti
         ) : (
           <div className="text-center py-8">
             <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Failed to load certificate data</p>
+            <p className="text-gray-500">ไม่สามารถโหลดข้อมูลหนังสือรับรองได้</p>
           </div>
         )}
       </div>

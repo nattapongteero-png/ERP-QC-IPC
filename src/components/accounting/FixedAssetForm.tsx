@@ -73,8 +73,8 @@ async function deleteAsset(id: number): Promise<void> {
 }
 
 const depreciationMethods = [
-  { value: 'straight_line', label: 'Straight Line' },
-  { value: 'declining_balance', label: 'Declining Balance' },
+  { value: 'straight_line', label: 'เส้นตรง' },
+  { value: 'declining_balance', label: 'ยอดลดลง' },
 ];
 
 interface FormData {
@@ -218,7 +218,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
   if (mode === 'edit' && isLoadingAsset) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading asset...</p>
+        <p className="text-gray-500">กำลังโหลดสินทรัพย์...</p>
       </div>
     );
   }
@@ -227,25 +227,25 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
     <div className="space-y-6">
       <ResponsivePageHeader
         title={mode === 'create' ? 'เพิ่มทรัพย์สินถาวร' : 'แก้ไขทรัพย์สินถาวร'}
-        subtitle={mode === 'create' ? 'Create New Fixed Asset' : `Edit: ${existingAsset?.assetCode || ''}`}
+        subtitle={mode === 'create' ? 'เพิ่มทรัพย์สินถาวรใหม่' : `แก้ไข: ${existingAsset?.assetCode || ''}`}
         icon={Building}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
-          { label: 'Accounting', href: '/accounting' },
-          { label: 'Fixed Assets', href: '/accounting/fixed-assets' },
-          { label: mode === 'create' ? 'New' : 'Edit' },
+          { label: 'บัญชี', href: '/accounting' },
+          { label: 'สินทรัพย์ถาวร', href: '/accounting/fixed-assets' },
+          { label: mode === 'create' ? 'เพิ่มใหม่' : 'แก้ไข' },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Button
-              text="Back"
+              text="ย้อนกลับ"
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/accounting/fixed-assets')}
             />
             <Button
-              text={isSubmitting ? 'Saving...' : 'Save'}
+              text={isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
               icon="save"
               type="success"
               onClick={handleSubmit}
@@ -261,19 +261,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete this asset? This action cannot be undone.
+                  คุณแน่ใจหรือไม่ว่าต้องการลบสินทรัพย์นี้? การกระทำนี้ไม่สามารถยกเลิกได้
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text="ยกเลิก"
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
                   icon="trash"
                   type="danger"
                   onClick={() => deleteMutation.mutate()}
@@ -290,13 +290,13 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name (Thai) <span className="text-red-500">*</span>
+                    ชื่อ (ภาษาไทย) <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.nameTh}
@@ -306,7 +306,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name (English) <span className="text-red-500">*</span>
+                    ชื่อ (ภาษาอังกฤษ) <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.nameEn}
@@ -319,7 +319,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category <span className="text-red-500">*</span>
+                    หมวดหมู่ <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     dataSource={categories}
@@ -327,18 +327,18 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                     valueExpr="id"
                     value={formData.categoryId}
                     onValueChanged={(e) => setFormData({ ...formData, categoryId: e.value })}
-                    placeholder="Select Category"
+                    placeholder="เลือกหมวดหมู่"
                     searchEnabled
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
+                    สถานที่
                   </label>
                   <TextBox
                     value={formData.location}
                     onValueChanged={(e) => setFormData({ ...formData, location: e.value || '' })}
-                    placeholder="Location"
+                    placeholder="สถานที่"
                   />
                 </div>
               </div>
@@ -347,13 +347,13 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Acquisition & Depreciation</CardTitle>
+              <CardTitle>การได้มาและค่าเสื่อมราคา</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Acquisition Date <span className="text-red-500">*</span>
+                    วันที่ได้มา <span className="text-red-500">*</span>
                   </label>
                   <DxDateBox
                     value={formData.acquisitionDate}
@@ -362,7 +362,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Acquisition Cost <span className="text-red-500">*</span>
+                    ต้นทุนการได้มา <span className="text-red-500">*</span>
                   </label>
                   <NumberBox
                     value={formData.acquisitionCost}
@@ -376,7 +376,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Salvage Value
+                    มูลค่าซาก
                   </label>
                   <NumberBox
                     value={formData.salvageValue}
@@ -387,7 +387,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Useful Life (Months)
+                    อายุการใช้งาน (เดือน)
                   </label>
                   <NumberBox
                     value={formData.usefulLifeMonths}
@@ -401,7 +401,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Depreciation Method
+                    วิธีคิดค่าเสื่อมราคา
                   </label>
                   <SelectBox
                     dataSource={depreciationMethods}
@@ -413,7 +413,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Depreciation Start Date
+                    วันที่เริ่มคิดค่าเสื่อมราคา
                   </label>
                   <DxDateBox
                     value={formData.depreciationStartDate}
@@ -430,19 +430,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           {mode === 'edit' && existingAsset && (
             <Card>
               <CardHeader>
-                <CardTitle>Asset Details</CardTitle>
+                <CardTitle>รายละเอียดสินทรัพย์</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500">Asset Code</span>
+                  <span className="text-sm text-gray-500">รหัสสินทรัพย์</span>
                   <p className="font-medium">{existingAsset.assetCode}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Status</span>
+                  <span className="text-sm text-gray-500">สถานะ</span>
                   <p className="font-medium capitalize">{existingAsset.status}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Net Book Value</span>
+                  <span className="text-sm text-gray-500">มูลค่าตามบัญชีสุทธิ</span>
                   <p className="font-medium">
                     {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
                       Number(existingAsset.netBookValue) || 0
@@ -450,7 +450,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Accumulated Depreciation</span>
+                  <span className="text-sm text-gray-500">ค่าเสื่อมราคาสะสม</span>
                   <p className="font-medium">
                     {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
                       Number(existingAsset.accumulatedDepreciation) || 0
@@ -466,15 +466,15 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  Audit History
+                  ประวัติการตรวจสอบ
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  View all changes made to this asset.
+                  ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับสินทรัพย์นี้
                 </p>
                 <Button
-                  text="View History"
+                  text="ดูประวัติ"
                   icon="clock"
                   stylingMode="outlined"
                   onClick={() => setAuditDialogOpen(true)}
@@ -487,14 +487,14 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           {mode === 'edit' && (
             <Card className="border-red-100">
               <CardHeader>
-                <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                <CardTitle className="text-red-600">โซนอันตราย</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  Deleting this asset will remove all associated records.
+                  การลบสินทรัพย์นี้จะลบบันทึกที่เกี่ยวข้องทั้งหมด
                 </p>
                 <Button
-                  text="Delete Asset"
+                  text="ลบสินทรัพย์"
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -515,19 +515,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           visible={auditDialogOpen}
           onClose={() => setAuditDialogOpen(false)}
           fieldLabels={{
-            nameTh: 'Name (Thai)',
-            nameEn: 'Name (English)',
-            categoryId: 'Category',
-            acquisitionDate: 'Acquisition Date',
-            acquisitionCost: 'Acquisition Cost',
-            salvageValue: 'Salvage Value',
-            usefulLifeMonths: 'Useful Life (Months)',
-            depreciationMethod: 'Depreciation Method',
-            depreciationStartDate: 'Depreciation Start Date',
-            location: 'Location',
-            departmentId: 'Department',
-            responsiblePersonId: 'Responsible Person',
-            status: 'Status',
+            nameTh: 'ชื่อ (ภาษาไทย)',
+            nameEn: 'ชื่อ (ภาษาอังกฤษ)',
+            categoryId: 'หมวดหมู่',
+            acquisitionDate: 'วันที่ได้มา',
+            acquisitionCost: 'ต้นทุนการได้มา',
+            salvageValue: 'มูลค่าซาก',
+            usefulLifeMonths: 'อายุการใช้งาน (เดือน)',
+            depreciationMethod: 'วิธีคิดค่าเสื่อมราคา',
+            depreciationStartDate: 'วันที่เริ่มคิดค่าเสื่อมราคา',
+            location: 'สถานที่',
+            departmentId: 'แผนก',
+            responsiblePersonId: 'ผู้รับผิดชอบ',
+            status: 'สถานะ',
           }}
         />
       )}

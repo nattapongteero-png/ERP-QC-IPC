@@ -277,7 +277,7 @@ export default function StorageMonitoringPage() {
     },
     { dataField: 'alertMessage', caption: 'รายละเอียด', minWidth: 240 },
     {
-      caption: 'Acknowledged',
+      caption: 'รับทราบ',
       width: 180,
       cellRender: (c: any) => {
         const d = c.data as LogRow;
@@ -335,11 +335,11 @@ export default function StorageMonitoringPage() {
     <>
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
-          title="Storage Environmental Monitoring"
+          title="ติดตามสภาพแวดล้อมคลังจัดเก็บ"
           subtitle="บันทึกและติดตามอุณหภูมิ/ความชื้นของห้องเก็บ"
           breadcrumbs={[
             { label: 'อาคารและสถานที่', href: '/premises' },
-            { label: 'Storage Monitoring' },
+            { label: 'ติดตามสภาพคลังจัดเก็บ' },
           ]}
           actions={
             <DxButton
@@ -353,7 +353,7 @@ export default function StorageMonitoringPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
-            label="Open Alerts"
+            label="แจ้งเตือนค้างรับทราบ"
             value={stats.openAlerts}
             icon={AlertTriangle}
             iconColor="text-red-500"

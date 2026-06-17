@@ -356,7 +356,7 @@ export function MaterialPickerDialog({
               <DxSelection mode="multiple" showCheckBoxesMode="always" />
               <DxScrolling mode="virtual" />
               <DxPaging enabled={false} />
-              <DxColumn dataField="code" caption="Code" width={180} cellRender={renderCode} allowSorting />
+              <DxColumn dataField="code" caption="รหัส" width={180} cellRender={renderCode} allowSorting />
               <DxColumn dataField="nameTh" caption="ชื่อรายการ" minWidth={260} cellRender={renderName} allowSorting />
               <DxColumn dataField="type" caption="ประเภท" width={140} cellRender={renderType} allowSorting />
               <DxColumn

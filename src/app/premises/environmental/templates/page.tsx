@@ -297,7 +297,7 @@ export default function TemplatesPage() {
         visible={popupOpen}
         onHiding={closePopup}
         showCloseButton
-        title={editing ? `แก้ไข Template — ${editing.name}` : '+ Inspection Template'}
+        title={editing ? `แก้ไข Template — ${editing.name}` : '+ สร้างแบบฟอร์มตรวจ'}
         width={760}
         height="auto"
       >

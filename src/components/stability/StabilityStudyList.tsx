@@ -58,28 +58,28 @@ const statusConfig: Record<
   { label: string; bgColor: string; textColor: string; borderColor: string; icon: React.ReactNode }
 > = {
   active: {
-    label: 'Active',
+    label: 'กำลังดำเนินการ',
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
     icon: <Play className="h-3.5 w-3.5" />,
   },
   completed: {
-    label: 'Completed',
+    label: 'เสร็จสิ้น',
     bgColor: 'bg-blue-50',
     textColor: 'text-blue-700',
     borderColor: 'border-blue-200',
     icon: <CheckCircle className="h-3.5 w-3.5" />,
   },
   cancelled: {
-    label: 'Cancelled',
+    label: 'ยกเลิก',
     bgColor: 'bg-red-50',
     textColor: 'text-red-700',
     borderColor: 'border-red-200',
     icon: <XCircle className="h-3.5 w-3.5" />,
   },
   on_hold: {
-    label: 'On Hold',
+    label: 'พักไว้',
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
     borderColor: 'border-amber-200',
@@ -88,9 +88,9 @@ const statusConfig: Record<
 };
 
 const studyTypeConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  long_term: { label: 'Long Term', color: 'text-blue-600', icon: <ThermometerSun className="h-3.5 w-3.5" /> },
-  accelerated: { label: 'Accelerated', color: 'text-red-600', icon: <Zap className="h-3.5 w-3.5" /> },
-  intermediate: { label: 'Intermediate', color: 'text-amber-600', icon: <Beaker className="h-3.5 w-3.5" /> },
+  long_term: { label: 'ระยะยาว', color: 'text-blue-600', icon: <ThermometerSun className="h-3.5 w-3.5" /> },
+  accelerated: { label: 'เร่งสภาวะ', color: 'text-red-600', icon: <Zap className="h-3.5 w-3.5" /> },
+  intermediate: { label: 'ระยะกลาง', color: 'text-amber-600', icon: <Beaker className="h-3.5 w-3.5" /> },
 };
 
 // Helper function to format dates
@@ -213,7 +213,7 @@ export function StabilityStudyList({
     return (
       <div className="min-w-0">
         <p className="font-medium text-gray-900 truncate">{study.productName}</p>
-        <p className="text-xs text-gray-500 truncate">Lot: {study.lotNumber}</p>
+        <p className="text-xs text-gray-500 truncate">ล็อต: {study.lotNumber}</p>
       </div>
     );
   };
@@ -234,8 +234,8 @@ export function StabilityStudyList({
             <AlertTriangle className="h-3.5 w-3.5" />
           </div>
           <div>
-            <p className="text-xs font-semibold">Overdue</p>
-            <p className="text-xs">{Math.abs(daysUntilDue)} days</p>
+            <p className="text-xs font-semibold">เกินกำหนด</p>
+            <p className="text-xs">{Math.abs(daysUntilDue)} วัน</p>
           </div>
         </div>
       );
@@ -247,7 +247,7 @@ export function StabilityStudyList({
           </div>
           <div>
             <p className="text-xs font-semibold">{formatDate(study.nextDueDate)}</p>
-            <p className="text-xs">{daysUntilDue}d remaining</p>
+            <p className="text-xs">เหลือ {daysUntilDue} วัน</p>
           </div>
         </div>
       );
@@ -259,7 +259,7 @@ export function StabilityStudyList({
           </div>
           <div>
             <p className="text-xs font-medium">{formatDate(study.nextDueDate)}</p>
-            <p className="text-xs text-gray-500">{daysUntilDue}d</p>
+            <p className="text-xs text-gray-500">{daysUntilDue} วัน</p>
           </div>
         </div>
       );
@@ -311,14 +311,14 @@ export function StabilityStudyList({
             router.push(`/gmp/stability/studies/${study.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-          title="View Details"
+          title="ดูรายละเอียด"
         >
           <Eye className="h-4 w-4" />
         </button>
         <button
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-          title="More Options"
+          title="ตัวเลือกเพิ่มเติม"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -461,7 +461,7 @@ export function StabilityStudyList({
 
         {/* Summary */}
         <Summary>
-          <TotalItem column="studyNumber" summaryType="count" displayFormat="Total: {0}" />
+          <TotalItem column="studyNumber" summaryType="count" displayFormat="รวม: {0}" />
         </Summary>
       </DataGrid>
 

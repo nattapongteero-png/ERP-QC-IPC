@@ -18,20 +18,20 @@ export function MaterialCostSection({ data }: MaterialCostSectionProps) {
   return (
     <Card data-testid="material-cost-section">
       <CardHeader>
-        <CardTitle>Material Cost Analysis</CardTitle>
+        <CardTitle>วิเคราะห์ต้นทุนวัตถุดิบ</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <KPICard title="Purchases MTD" icon={<ShoppingCart className="h-5 w-5 text-blue-600" />} kpi={data.purchasesMTD} format="currency" />
-          <KPICard title="Landed Cost %" icon={<Truck className="h-5 w-5 text-purple-600" />} kpi={data.landedCostPercent} format="percent" />
-          <KPICard title="Avg Cost Change" icon={<TrendingUp className="h-5 w-5 text-red-600" />} kpi={data.avgMaterialCostChange} format="percent" />
-          <KPICard title="Inv Turnover" icon={<RotateCcw className="h-5 w-5 text-green-600" />} kpi={data.inventoryTurnover} format="number" />
-          <KPICard title="Days Inv" icon={<Clock className="h-5 w-5 text-orange-600" />} kpi={data.daysInventoryOutstanding} format="number" />
+          <KPICard title="ยอดซื้อเดือนนี้" icon={<ShoppingCart className="h-5 w-5 text-blue-600" />} kpi={data.purchasesMTD} format="currency" />
+          <KPICard title="ต้นทุนสินค้าถึงคลัง %" icon={<Truck className="h-5 w-5 text-purple-600" />} kpi={data.landedCostPercent} format="percent" />
+          <KPICard title="การเปลี่ยนแปลงต้นทุนเฉลี่ย" icon={<TrendingUp className="h-5 w-5 text-red-600" />} kpi={data.avgMaterialCostChange} format="percent" />
+          <KPICard title="อัตราหมุนเวียนสินค้า" icon={<RotateCcw className="h-5 w-5 text-green-600" />} kpi={data.inventoryTurnover} format="number" />
+          <KPICard title="จำนวนวันสินค้าคงคลัง" icon={<Clock className="h-5 w-5 text-orange-600" />} kpi={data.daysInventoryOutstanding} format="number" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <CardHeader><CardTitle className="text-sm">Top Cost Increases</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">ต้นทุนที่เพิ่มสูงสุด</CardTitle></CardHeader>
             <CardContent>
               {data.topCostIncreases.length > 0 ? (
                 <div className="space-y-2">
@@ -42,12 +42,12 @@ export function MaterialCostSection({ data }: MaterialCostSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">No significant increases</p>}
+              ) : <p className="text-gray-500 text-sm">ไม่มีการเพิ่มที่มีนัยสำคัญ</p>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-sm">Purchases by Supplier</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">ยอดซื้อตามผู้ขาย</CardTitle></CardHeader>
             <CardContent>
               {data.purchasesBySupplier.length > 0 ? (
                 <div className="space-y-2">
@@ -58,7 +58,7 @@ export function MaterialCostSection({ data }: MaterialCostSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">No purchase data</p>}
+              ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลการซื้อ</p>}
             </CardContent>
           </Card>
         </div>

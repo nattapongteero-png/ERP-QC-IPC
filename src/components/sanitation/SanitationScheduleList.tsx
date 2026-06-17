@@ -47,36 +47,36 @@ export function SanitationScheduleList({
     () => [
       {
         dataField: 'name',
-        caption: 'Schedule Name',
+        caption: 'ชื่อกำหนดการ',
         width: 200,
       },
       {
         dataField: 'areaType',
-        caption: 'Area Type',
+        caption: 'ประเภทพื้นที่',
         width: 120,
         cellRender: (data: { value: AreaType }) => areaTypeLabels[data.value] || data.value,
       },
       {
         dataField: 'frequency',
-        caption: 'Frequency',
+        caption: 'ความถี่',
         width: 100,
         cellRender: (data: { value: SanitationFrequency }) =>
           frequencyLabels[data.value] || data.value,
       },
       {
         dataField: 'method',
-        caption: 'Method',
+        caption: 'วิธีการ',
         width: 200,
       },
       {
         dataField: 'nextDue',
-        caption: 'Next Due',
+        caption: 'ครบกำหนดถัดไป',
         dataType: 'date',
         width: 110,
       },
       {
         dataField: 'complianceRate',
-        caption: 'Compliance',
+        caption: 'การปฏิบัติตาม',
         width: 100,
         cellRender: (data: { value: number }) => {
           const rate = data.value || 0;
@@ -86,7 +86,7 @@ export function SanitationScheduleList({
       },
       {
         dataField: 'isActive',
-        caption: 'Status',
+        caption: 'สถานะ',
         width: 100,
         cellRender: (data: { value: boolean }) => (
           <WorkflowStatusBadge status={data.value ? 'active' : 'inactive'} />
@@ -103,7 +103,7 @@ export function SanitationScheduleList({
         {onRecordLog && data.data.isActive && (
           <DxButton
             icon="plus"
-            hint="Record Log"
+            hint="บันทึกผล"
             onClick={() => onRecordLog(data.data!.id)}
             stylingMode="text"
           />
@@ -111,7 +111,7 @@ export function SanitationScheduleList({
         {onViewLogs && (
           <DxButton
             icon="find"
-            hint="View Logs"
+            hint="ดูบันทึก"
             onClick={() => onViewLogs(data.data!.id)}
             stylingMode="text"
           />
@@ -119,7 +119,7 @@ export function SanitationScheduleList({
         {onEdit && (
           <DxButton
             icon="edit"
-            hint="Edit"
+            hint="แก้ไข"
             onClick={() => onEdit(data.data!)}
             stylingMode="text"
           />
@@ -140,7 +140,7 @@ export function SanitationScheduleList({
         <DxColumn key={col.dataField} {...col as DxColumnProps} />
       ))}
       <DxColumn
-        caption="Actions"
+        caption="การดำเนินการ"
         width={120}
         cellRender={actionsCellRender}
         allowSorting={false}

@@ -89,7 +89,7 @@ export default function StandardCostsPage() {
 
   const handleCreate = async () => {
     if (!formData.itemId) {
-      notify('Please select an item', 'error', 3000);
+      notify('กรุณาเลือกสินค้า', 'error', 3000);
       return;
     }
 
@@ -103,16 +103,16 @@ export default function StandardCostsPage() {
 
       const result = await response.json();
       if (result.success) {
-        notify('Standard cost created successfully', 'success', 3000);
+        notify('สร้างต้นทุนมาตรฐานสำเร็จ', 'success', 3000);
         setShowCreateDialog(false);
         setFormData(defaultFormData);
         await fetchCosts();
       } else {
-        notify(result.error || 'Failed to create standard cost', 'error', 3000);
+        notify(result.error || 'ไม่สามารถสร้างต้นทุนมาตรฐานได้', 'error', 3000);
       }
     } catch (error) {
       console.error('Error creating standard cost:', error);
-      notify('Failed to create standard cost', 'error', 3000);
+      notify('ไม่สามารถสร้างต้นทุนมาตรฐานได้', 'error', 3000);
     } finally {
       setSubmitting(false);
     }
@@ -130,17 +130,17 @@ export default function StandardCostsPage() {
       const result = await response.json();
       if (result.success) {
         notify(
-          `Roll-up complete: ${result.data.itemsUpdated} of ${result.data.itemsProcessed} items updated`,
+          `รวมต้นทุนสำเร็จ: ปรับปรุงสินค้า ${result.data.itemsUpdated} จาก ${result.data.itemsProcessed} รายการ`,
           'success',
           3000
         );
         await fetchCosts();
       } else {
-        notify(result.error || 'Roll-up failed', 'error', 3000);
+        notify(result.error || 'รวมต้นทุนไม่สำเร็จ', 'error', 3000);
       }
     } catch (error) {
       console.error('Error during roll-up:', error);
-      notify('Roll-up failed', 'error', 3000);
+      notify('รวมต้นทุนไม่สำเร็จ', 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -150,11 +150,11 @@ export default function StandardCostsPage() {
     const isCurrent = cellData.value;
     return isCurrent ? (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        Current
+        ปัจจุบัน
       </span>
     ) : (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-        Historical
+        ประวัติ
       </span>
     );
   };
@@ -174,7 +174,7 @@ export default function StandardCostsPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            Manage standard costs for manufacturing variance analysis
+            จัดการต้นทุนมาตรฐานสำหรับการวิเคราะห์ผลต่างการผลิต
           </p>
         </div>
 
@@ -190,12 +190,12 @@ export default function StandardCostsPage() {
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Standard Costs</span>
+                <span className="text-lg font-medium">ต้นทุนมาตรฐาน</span>
               </Item>
               <Item location="after">
                 <Button
                   icon="add"
-                  text="New Cost"
+                  text="เพิ่มต้นทุน"
                   onClick={() => setShowCreateDialog(true)}
                   data-testid="new-cost-btn"
                 />
@@ -203,47 +203,47 @@ export default function StandardCostsPage() {
               <Item location="after">
                 <Button
                   icon="refresh"
-                  text="Roll-up from BOM"
+                  text="รวมต้นทุนจาก BOM"
                   onClick={handleRollup}
                   data-testid="rollup-btn"
                 />
               </Item>
             </Toolbar>
 
-            <Column dataField="itemCode" caption="Item Code" width={120} />
-            <Column dataField="itemName" caption="Item Name" />
-            <Column dataField="effectiveDate" caption="Effective Date" dataType="date" width={120} />
+            <Column dataField="itemCode" caption="รหัสสินค้า" width={120} />
+            <Column dataField="itemName" caption="ชื่อสินค้า" />
+            <Column dataField="effectiveDate" caption="วันที่มีผล" dataType="date" width={120} />
             <Column
               dataField="materialCost"
-              caption="Material"
+              caption="วัตถุดิบ"
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="laborCost"
-              caption="Labor"
+              caption="ค่าแรง"
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="overheadCost"
-              caption="Overhead"
+              caption="ค่าโสหุ้ย"
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="totalCost"
-              caption="Total Cost"
+              caption="ต้นทุนรวม"
               dataType="number"
               format="#,##0.00"
               width={120}
             />
             <Column
               dataField="isCurrent"
-              caption="Status"
+              caption="สถานะ"
               width={100}
               cellRender={renderCurrentBadge}
             />
@@ -254,7 +254,7 @@ export default function StandardCostsPage() {
         <Popup
           visible={showCreateDialog}
           onHiding={() => setShowCreateDialog(false)}
-          title="Create Standard Cost"
+          title="สร้างต้นทุนมาตรฐาน"
           width={500}
           height="auto"
           showCloseButton={true}
@@ -266,7 +266,7 @@ export default function StandardCostsPage() {
                 setFormData((prev) => ({ ...prev, [e.dataField as string]: e.value }))
               }
             >
-              <GroupItem caption="Item Information">
+              <GroupItem caption="ข้อมูลสินค้า">
                 <SimpleItem
                   dataField="itemId"
                   editorType="dxSelectBox"
@@ -275,10 +275,10 @@ export default function StandardCostsPage() {
                     displayExpr: (item: any) => (item ? `${item.code} - ${item.name}` : ''),
                     valueExpr: 'id',
                     searchEnabled: true,
-                    placeholder: 'Select Item',
+                    placeholder: 'เลือกสินค้า',
                   }}
                 >
-                  <RequiredRule message="Item is required" />
+                  <RequiredRule message="กรุณาเลือกสินค้า" />
                 </SimpleItem>
                 <SimpleItem
                   dataField="effectiveDate"
@@ -287,11 +287,11 @@ export default function StandardCostsPage() {
                     displayFormat: 'yyyy-MM-dd',
                   }}
                 >
-                  <RequiredRule message="Effective date is required" />
+                  <RequiredRule message="กรุณาระบุวันที่มีผล" />
                 </SimpleItem>
               </GroupItem>
 
-              <GroupItem caption="Costs">
+              <GroupItem caption="ต้นทุน">
                 <SimpleItem
                   dataField="materialCost"
                   editorType="dxNumberBox"
@@ -309,7 +309,7 @@ export default function StandardCostsPage() {
                 />
               </GroupItem>
 
-              <GroupItem caption="Labor Standards">
+              <GroupItem caption="มาตรฐานค่าแรง">
                 <SimpleItem
                   dataField="standardHours"
                   editorType="dxNumberBox"
@@ -327,9 +327,9 @@ export default function StandardCostsPage() {
             </Form>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="Cancel" onClick={() => setShowCreateDialog(false)} />
+              <Button text="ยกเลิก" onClick={() => setShowCreateDialog(false)} />
               <Button
-                text={submitting ? 'Saving...' : 'Save'}
+                text={submitting ? 'กำลังบันทึก...' : 'บันทึก'}
                 type="success"
                 stylingMode="contained"
                 onClick={handleCreate}

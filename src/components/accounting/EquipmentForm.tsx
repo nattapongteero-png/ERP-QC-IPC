@@ -204,7 +204,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
   if (mode === 'edit' && isLoadingEquipment) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">Loading equipment...</p>
+        <p className="text-gray-500">กำลังโหลดอุปกรณ์...</p>
       </div>
     );
   }
@@ -213,25 +213,25 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
     <div className="space-y-6">
       <ResponsivePageHeader
         title={mode === 'create' ? 'เพิ่มอุปกรณ์' : 'แก้ไขอุปกรณ์'}
-        subtitle={mode === 'create' ? 'Create New Equipment' : `Edit: ${existingEquipment?.asset?.assetCode || ''}`}
+        subtitle={mode === 'create' ? 'เพิ่มอุปกรณ์ใหม่' : `แก้ไข: ${existingEquipment?.asset?.assetCode || ''}`}
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
         breadcrumbs={[
-          { label: 'Accounting', href: '/accounting' },
-          { label: 'Equipment', href: '/accounting/equipment' },
-          { label: mode === 'create' ? 'New' : 'Edit' },
+          { label: 'บัญชี', href: '/accounting' },
+          { label: 'อุปกรณ์', href: '/accounting/equipment' },
+          { label: mode === 'create' ? 'เพิ่มใหม่' : 'แก้ไข' },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Button
-              text="Back"
+              text="ย้อนกลับ"
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/accounting/equipment')}
             />
             <Button
-              text={isSubmitting ? 'Saving...' : 'Save'}
+              text={isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
               icon="save"
               type="success"
               onClick={handleSubmit}
@@ -247,19 +247,19 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">Confirm Delete</p>
+                <p className="font-medium text-red-800">ยืนยันการลบ</p>
                 <p className="text-sm text-red-600">
-                  Are you sure you want to delete this equipment? This action cannot be undone.
+                  คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์นี้? การกระทำนี้ไม่สามารถยกเลิกได้
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="Cancel"
+                  text="ยกเลิก"
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
                   icon="trash"
                   type="danger"
                   onClick={() => deleteMutation.mutate()}
@@ -276,13 +276,13 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {mode === 'create' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fixed Asset <span className="text-red-500">*</span>
+                    สินทรัพย์ถาวร <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     dataSource={fixedAssets}
@@ -290,7 +290,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
                     valueExpr="id"
                     value={formData.fixedAssetId}
                     onValueChanged={(e) => setFormData({ ...formData, fixedAssetId: e.value })}
-                    placeholder="Select Fixed Asset"
+                    placeholder="เลือกสินทรัพย์ถาวร"
                     searchEnabled
                   />
                 </div>
@@ -299,45 +299,45 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Serial Number
+                    หมายเลขซีเรียล
                   </label>
                   <TextBox
                     value={formData.serialNumber}
                     onValueChanged={(e) => setFormData({ ...formData, serialNumber: e.value || '' })}
-                    placeholder="Serial Number"
+                    placeholder="หมายเลขซีเรียล"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Manufacturer
+                    ผู้ผลิต
                   </label>
                   <TextBox
                     value={formData.manufacturer}
                     onValueChanged={(e) => setFormData({ ...formData, manufacturer: e.value || '' })}
-                    placeholder="Manufacturer"
+                    placeholder="ผู้ผลิต"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Model
+                  รุ่น
                 </label>
                 <TextBox
                   value={formData.model}
                   onValueChanged={(e) => setFormData({ ...formData, model: e.value || '' })}
-                  placeholder="Model"
+                  placeholder="รุ่น"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Specifications
+                  ข้อมูลจำเพาะ
                 </label>
                 <TextArea
                   value={formData.specifications}
                   onValueChanged={(e) => setFormData({ ...formData, specifications: e.value || '' })}
-                  placeholder="Equipment specifications..."
+                  placeholder="ข้อมูลจำเพาะของอุปกรณ์..."
                   height={100}
                 />
               </div>
@@ -346,13 +346,13 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Warranty Information</CardTitle>
+              <CardTitle>ข้อมูลการรับประกัน</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Warranty Start Date
+                    วันที่เริ่มรับประกัน
                   </label>
                   <DxDateBox
                     value={formData.warrantyStartDate}
@@ -361,7 +361,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Warranty End Date
+                    วันที่สิ้นสุดรับประกัน
                   </label>
                   <DxDateBox
                     value={formData.warrantyEndDate}
@@ -373,14 +373,14 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               {mode === 'edit' && (
                 <div className="flex items-center gap-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    Available
+                    พร้อมใช้งาน
                   </label>
                   <Switch
                     value={formData.isAvailable}
                     onValueChanged={(e) => setFormData({ ...formData, isAvailable: e.value })}
                   />
                   <span className="text-sm text-gray-500">
-                    {formData.isAvailable ? 'Equipment is available for use' : 'Equipment is not available'}
+                    {formData.isAvailable ? 'อุปกรณ์พร้อมใช้งาน' : 'อุปกรณ์ไม่พร้อมใช้งาน'}
                   </span>
                 </div>
               )}
@@ -393,31 +393,31 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           {mode === 'edit' && existingEquipment && (
             <Card>
               <CardHeader>
-                <CardTitle>Equipment Details</CardTitle>
+                <CardTitle>รายละเอียดอุปกรณ์</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500">Asset Code</span>
+                  <span className="text-sm text-gray-500">รหัสสินทรัพย์</span>
                   <p className="font-medium">{existingEquipment.asset?.assetCode || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Asset Name</span>
+                  <span className="text-sm text-gray-500">ชื่อสินทรัพย์</span>
                   <p className="font-medium">{existingEquipment.asset?.nameTh || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Operating Hours</span>
-                  <p className="font-medium">{existingEquipment.operatingHours?.toLocaleString() || 0} hrs</p>
+                  <span className="text-sm text-gray-500">ชั่วโมงการทำงาน</span>
+                  <p className="font-medium">{existingEquipment.operatingHours?.toLocaleString() || 0} ชม.</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Last Maintenance</span>
+                  <span className="text-sm text-gray-500">บำรุงรักษาล่าสุด</span>
                   <p className="font-medium">
-                    {existingEquipment.lastMaintenanceDate || 'Never'}
+                    {existingEquipment.lastMaintenanceDate || 'ไม่เคย'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Status</span>
+                  <span className="text-sm text-gray-500">สถานะ</span>
                   <p className={`font-medium ${existingEquipment.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                    {existingEquipment.isAvailable ? 'Available' : 'Unavailable'}
+                    {existingEquipment.isAvailable ? 'พร้อมใช้งาน' : 'ไม่พร้อมใช้งาน'}
                   </p>
                 </div>
               </CardContent>
@@ -429,15 +429,15 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  Audit History
+                  ประวัติการตรวจสอบ
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  View all changes made to this equipment.
+                  ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับอุปกรณ์นี้
                 </p>
                 <Button
-                  text="View History"
+                  text="ดูประวัติ"
                   icon="clock"
                   stylingMode="outlined"
                   onClick={() => setAuditDialogOpen(true)}
@@ -450,14 +450,14 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           {mode === 'edit' && (
             <Card className="border-red-100">
               <CardHeader>
-                <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                <CardTitle className="text-red-600">โซนอันตราย</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  Deleting this equipment will remove all associated maintenance records.
+                  การลบอุปกรณ์นี้จะลบบันทึกการบำรุงรักษาที่เกี่ยวข้องทั้งหมด
                 </p>
                 <Button
-                  text="Delete Equipment"
+                  text="ลบอุปกรณ์"
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -478,19 +478,19 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           visible={auditDialogOpen}
           onClose={() => setAuditDialogOpen(false)}
           fieldLabels={{
-            fixedAssetId: 'Fixed Asset',
-            serialNumber: 'Serial Number',
-            manufacturer: 'Manufacturer',
-            model: 'Model',
-            specifications: 'Specifications',
-            warrantyStartDate: 'Warranty Start Date',
-            warrantyEndDate: 'Warranty End Date',
-            operatingHours: 'Operating Hours',
-            operatingUnits: 'Operating Units',
-            lastMeterReading: 'Last Meter Reading',
-            isAvailable: 'Available',
-            lastMaintenanceDate: 'Last Maintenance Date',
-            nextMaintenanceDue: 'Next Maintenance Due',
+            fixedAssetId: 'สินทรัพย์ถาวร',
+            serialNumber: 'หมายเลขซีเรียล',
+            manufacturer: 'ผู้ผลิต',
+            model: 'รุ่น',
+            specifications: 'ข้อมูลจำเพาะ',
+            warrantyStartDate: 'วันที่เริ่มรับประกัน',
+            warrantyEndDate: 'วันที่สิ้นสุดรับประกัน',
+            operatingHours: 'ชั่วโมงการทำงาน',
+            operatingUnits: 'หน่วยการทำงาน',
+            lastMeterReading: 'ค่ามิเตอร์ล่าสุด',
+            isAvailable: 'พร้อมใช้งาน',
+            lastMaintenanceDate: 'วันที่บำรุงรักษาล่าสุด',
+            nextMaintenanceDue: 'กำหนดบำรุงรักษาครั้งถัดไป',
           }}
         />
       )}

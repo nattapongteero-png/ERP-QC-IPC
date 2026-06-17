@@ -235,14 +235,14 @@ export function LotSearchDialog({
           {title}
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Search by lot number, batch number, item code, or item name
+          ค้นหาด้วยเลขล็อต เลขแบทช์ รหัสสินค้า หรือชื่อสินค้า
         </p>
       </div>
 
       {/* Search Input */}
       <div className="py-4 border-b -mx-4 px-4 bg-white">
         <DxTextBox
-          placeholder="Search by lot / batch number, item code, or item name..."
+          placeholder="ค้นหาด้วยเลขล็อต / เลขแบทช์ รหัสสินค้า หรือชื่อสินค้า..."
           value={search}
           onValueChange={setSearch}
           mode="search"
@@ -251,7 +251,7 @@ export function LotSearchDialog({
 
         {filterStatus && (
           <div className="flex items-center gap-2 mt-3">
-            <span className="text-xs text-gray-500">Filtering:</span>
+            <span className="text-xs text-gray-500">กรอง:</span>
             <Badge className={`${getStatusStyle(filterStatus).bg} ${getStatusStyle(filterStatus).text}`}>
               {getStatusStyle(filterStatus).label}
             </Badge>
@@ -264,7 +264,7 @@ export function LotSearchDialog({
         {isSearching ? (
           <div className="flex flex-col items-center justify-center py-12">
             <DxLoadIndicator />
-            <p className="text-gray-500 mt-4">Searching lots...</p>
+            <p className="text-gray-500 mt-4">กำลังค้นหาล็อต...</p>
           </div>
         ) : results.length > 0 ? (
           <div className="space-y-2">
@@ -299,7 +299,7 @@ export function LotSearchDialog({
                           {lot.itemCode} - {lot.itemName}
                         </p>
                         {lot.batchNumber && (
-                          <p className="text-sm text-gray-500">Batch: {lot.batchNumber}</p>
+                          <p className="text-sm text-gray-500">แบทช์: {lot.batchNumber}</p>
                         )}
                       </div>
 
@@ -310,7 +310,7 @@ export function LotSearchDialog({
                           <span className="text-gray-900">{formatNumber(availableQty)} {lot.unit}</span>
                           {lot.reservedQuantity && Number(lot.reservedQuantity) > 0 && (
                             <span className="text-gray-400">
-                              (Reserved: {formatNumber(lot.reservedQuantity)})
+                              (จองแล้ว: {formatNumber(lot.reservedQuantity)})
                             </span>
                           )}
                         </div>
@@ -325,7 +325,7 @@ export function LotSearchDialog({
                         {lot.expiryDate && (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />
-                            <span>Exp: {formatDate(lot.expiryDate)}</span>
+                            <span>หมดอายุ: {formatDate(lot.expiryDate)}</span>
                           </div>
                         )}
                       </div>
@@ -334,7 +334,7 @@ export function LotSearchDialog({
                     {/* Right: Action */}
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <DxButton
-                        text="Select"
+                        text="เลือก"
                         type="default"
                         onClick={(e) => { e?.event?.stopPropagation(); handleSelect(lot); }}
                       />
@@ -347,23 +347,23 @@ export function LotSearchDialog({
         ) : hasSearched ? (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <Package className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2 text-gray-900">No lots found</p>
+            <p className="text-lg font-medium mb-2 text-gray-900">ไม่พบล็อต</p>
             {search ? (
               <p className="text-sm text-gray-400 mb-4">
-                No results for &quot;{search}&quot;
+                ไม่พบผลลัพธ์สำหรับ &quot;{search}&quot;
               </p>
             ) : (
               <p className="text-sm text-gray-400 mb-4">
-                No lots available in the system
+                ไม่มีล็อตในระบบ
               </p>
             )}
             {search && (
               <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 max-w-md">
-                <p className="font-medium mb-2 text-gray-700">Search tips:</p>
+                <p className="font-medium mb-2 text-gray-700">คำแนะนำการค้นหา:</p>
                 <ul className="list-disc list-inside space-y-1 text-gray-500">
-                  <li>Try searching by lot number (e.g., &quot;LOT001&quot;)</li>
-                  <li>Search by batch number</li>
-                  <li>Check for typos in your search</li>
+                  <li>ลองค้นหาด้วยเลขล็อต (เช่น &quot;LOT001&quot;)</li>
+                  <li>ค้นหาด้วยเลขแบทช์</li>
+                  <li>ตรวจสอบการสะกดคำในคำค้นหาของคุณ</li>
                 </ul>
               </div>
             )}
@@ -371,7 +371,7 @@ export function LotSearchDialog({
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <Search className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2 text-gray-900">Loading lots...</p>
+            <p className="text-lg font-medium mb-2 text-gray-900">กำลังโหลดล็อต...</p>
           </div>
         )}
       </div>
@@ -381,7 +381,7 @@ export function LotSearchDialog({
         {results.length > 0 ? (
           <>
             <div className="text-sm text-gray-500">
-              <span className="font-medium text-gray-700">{results.length}</span> lot{results.length !== 1 ? 's' : ''} found
+              พบ <span className="font-medium text-gray-700">{results.length}</span> ล็อต
             </div>
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-1">
@@ -391,24 +391,24 @@ export function LotSearchDialog({
                 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
                   <ArrowDown className="h-3 w-3 inline" />
                 </kbd>
-                <span className="ml-1">Navigate</span>
+                <span className="ml-1">เลื่อน</span>
               </div>
               <div className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
                   <CornerDownLeft className="h-3 w-3 inline" />
                 </kbd>
-                <span className="ml-1">Select</span>
+                <span className="ml-1">เลือก</span>
               </div>
               <div className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd>
-                <span className="ml-1">Close</span>
+                <span className="ml-1">ปิด</span>
               </div>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-2 text-xs text-gray-400 w-full justify-center">
             <Keyboard className="h-4 w-4" />
-            <span>Use keyboard shortcuts for faster navigation</span>
+            <span>ใช้แป้นพิมพ์ลัดเพื่อการนำทางที่รวดเร็วขึ้น</span>
           </div>
         )}
       </div>

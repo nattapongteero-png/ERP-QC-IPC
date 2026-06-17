@@ -67,9 +67,9 @@ import {
 const ROLE_OPTIONS = [
   { value: 'operator', label: 'Operator (ผู้ปฏิบัติงาน)' },
   { value: 'supervisor', label: 'Supervisor (หัวหน้าคุม)' },
-  { value: 'qa_verifier', label: 'QA Verifier' },
-  { value: 'ipc_checker', label: 'IPC Checker' },
-  { value: 'pharmacist', label: 'Pharmacist' },
+  { value: 'qa_verifier', label: 'QA Verifier (ผู้ตรวจสอบ QA)' },
+  { value: 'ipc_checker', label: 'IPC Checker (ผู้ตรวจ IPC)' },
+  { value: 'pharmacist', label: 'Pharmacist (เภสัชกร)' },
 ];
 
 interface EmployeeOption {
@@ -487,13 +487,13 @@ export default function WorkOrdersPage() {
   // Chart data
   const statusChartData = useMemo(() => {
     return [
-      { status: 'Planned', count: stats.planned, color: STATUS_CONFIG.planned.color },
-      { status: 'Released', count: stats.released, color: STATUS_CONFIG.released.color },
-      { status: 'In Progress', count: stats.inProgress, color: STATUS_CONFIG.in_progress.color },
-      { status: 'Completed', count: stats.completed, color: STATUS_CONFIG.completed.color },
-      { status: 'Cancelled', count: stats.cancelled, color: STATUS_CONFIG.cancelled.color },
+      { status: t('workOrders.status.planned'), count: stats.planned, color: STATUS_CONFIG.planned.color },
+      { status: t('workOrders.status.released'), count: stats.released, color: STATUS_CONFIG.released.color },
+      { status: t('workOrders.status.inProgress'), count: stats.inProgress, color: STATUS_CONFIG.in_progress.color },
+      { status: t('workOrders.status.completed'), count: stats.completed, color: STATUS_CONFIG.completed.color },
+      { status: t('workOrders.status.cancelled'), count: stats.cancelled, color: STATUS_CONFIG.cancelled.color },
     ].filter(d => d.count > 0);
-  }, [stats]);
+  }, [stats, t]);
 
   // Active = WO ที่ยังทำงานอยู่ (ไม่นับ completed / cancelled). Priority
   // ค่าน้อย = สำคัญสูง (1-3 = High, 4-6 = Medium, 7+ = Low) ตาม
@@ -823,9 +823,9 @@ export default function WorkOrdersPage() {
               {priorityChartData.map((d) => {
                 const pct = priorityChartTotal > 0 ? Math.round((d.count / priorityChartTotal) * 100) : 0;
                 const meta: Record<string, { label: string; hint: string; bar: string; text: string }> = {
-                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'priority 1–3', bar: 'bg-red-500', text: 'text-red-600' },
-                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'priority 4–6', bar: 'bg-amber-500', text: 'text-amber-600' },
-                  'Low (7+)': { label: 'ต่ำ', hint: 'priority 7+', bar: 'bg-emerald-500', text: 'text-emerald-600' },
+                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'ลำดับ 1–3', bar: 'bg-red-500', text: 'text-red-600' },
+                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'ลำดับ 4–6', bar: 'bg-amber-500', text: 'text-amber-600' },
+                  'Low (7+)': { label: 'ต่ำ', hint: 'ลำดับ 7+', bar: 'bg-emerald-500', text: 'text-emerald-600' },
                 };
                 const m = meta[d.priority] || { label: d.priority, hint: '', bar: 'bg-gray-400', text: 'text-gray-600' };
                 return (
@@ -1201,7 +1201,7 @@ export default function WorkOrdersPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Delivery Date (วันที่ส่งมอบ)
+              วันที่ส่งมอบ
             </label>
             <DateBox
               value={editForm.deliveryDate}
@@ -1233,7 +1233,7 @@ export default function WorkOrdersPage() {
             <div className="flex items-center justify-between mb-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <Users className="h-4 w-4 text-emerald-600" />
-                Assigned Team (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                เจ้าหน้าที่ผู้ปฏิบัติงาน
                 {editAssignees.length > 0 && (
                   <span className="text-xs text-gray-500 font-normal">({editAssignees.length})</span>
                 )}
@@ -1335,7 +1335,7 @@ export default function WorkOrdersPage() {
                 {selectedWO.productName}
                 {selectedWO.batchNumber && (
                   <span className="ml-2 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
-                    Batch: {selectedWO.batchNumber}
+                    รุ่นการผลิต: {selectedWO.batchNumber}
                   </span>
                 )}
               </p>

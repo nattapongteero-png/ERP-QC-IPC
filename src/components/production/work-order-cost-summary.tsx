@@ -85,7 +85,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Loading cost summary...</span>
+        <span className="ml-2 text-gray-500">กำลังโหลดสรุปต้นทุน...</span>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
     return (
       <div className="flex items-center justify-center p-8 text-red-500">
         <AlertCircle className="h-6 w-6 mr-2" />
-        <span>Failed to load cost summary</span>
+        <span>โหลดสรุปต้นทุนไม่สำเร็จ</span>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
     return (
       <div className="flex items-center justify-center p-8 text-gray-500">
         <AlertCircle className="h-6 w-6 mr-2" />
-        <span>No cost data available</span>
+        <span>ไม่มีข้อมูลต้นทุน</span>
       </div>
     );
   }
@@ -121,7 +121,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
                 <Package className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Material Cost</p>
+                <p className="text-sm text-gray-500">ต้นทุนวัตถุดิบ</p>
                 <p className="text-xl font-bold">{formatCurrency(summary.materialCost)}</p>
               </div>
             </div>
@@ -135,7 +135,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
                 <Clock className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Labor Cost</p>
+                <p className="text-sm text-gray-500">ต้นทุนค่าแรง</p>
                 <p className="text-xl font-bold">{formatCurrency(summary.laborCost)}</p>
               </div>
             </div>
@@ -149,7 +149,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
                 <Factory className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Overhead Cost</p>
+                <p className="text-sm text-gray-500">ต้นทุนค่าโสหุ้ย</p>
                 <p className="text-xl font-bold">{formatCurrency(summary.overheadCost)}</p>
               </div>
             </div>
@@ -163,13 +163,13 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
                 <Calculator className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total / Unit Cost</p>
+                <p className="text-sm text-gray-500">ต้นทุนรวม / ต่อหน่วย</p>
                 <p className="text-xl font-bold">
                   {formatCurrency(summary.totalCost)}
                 </p>
                 {summary.unitCost !== null && (
                   <p className="text-sm text-gray-500">
-                    @ {formatCurrency(summary.unitCost)}/unit
+                    @ {formatCurrency(summary.unitCost)}/หน่วย
                   </p>
                 )}
               </div>
@@ -181,25 +181,25 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
       {/* Work Order Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Production Information</CardTitle>
+          <CardTitle className="text-lg">ข้อมูลการผลิต</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Work Order</p>
+              <p className="text-gray-500">ใบสั่งผลิต</p>
               <p className="font-medium">{workOrder.woNumber}</p>
             </div>
             <div>
-              <p className="text-gray-500">Product</p>
+              <p className="text-gray-500">ผลิตภัณฑ์</p>
               <p className="font-medium">{workOrder.productCode}</p>
             </div>
             <div>
-              <p className="text-gray-500">Product Name</p>
+              <p className="text-gray-500">ชื่อผลิตภัณฑ์</p>
               <p className="font-medium">{workOrder.productName}</p>
             </div>
             <div>
-              <p className="text-gray-500">Produced Quantity</p>
-              <p className="font-medium">{formatNumber(workOrder.producedQty)} units</p>
+              <p className="text-gray-500">จำนวนที่ผลิตได้</p>
+              <p className="font-medium">{formatNumber(workOrder.producedQty)} หน่วย</p>
             </div>
           </div>
         </CardContent>
@@ -211,7 +211,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Material Costs
+              ต้นทุนวัตถุดิบ
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -221,25 +221,25 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
               columnAutoWidth
               rowAlternationEnabled
             >
-              <Column dataField="itemCode" caption="Item Code" width={120} />
-              <Column dataField="itemName" caption="Item Name" />
+              <Column dataField="itemCode" caption="รหัสสินค้า" width={120} />
+              <Column dataField="itemName" caption="ชื่อสินค้า" />
               <Column
                 dataField="quantity"
-                caption="Quantity"
+                caption="จำนวน"
                 dataType="number"
                 width={100}
                 cellRender={({ data }) => formatNumber(data.quantity)}
               />
               <Column
                 dataField="unitCost"
-                caption="Unit Cost (WAC)"
+                caption="ต้นทุนต่อหน่วย (WAC)"
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => formatCurrency(data.unitCost)}
               />
               <Column
                 dataField="totalCost"
-                caption="Total Cost"
+                caption="ต้นทุนรวม"
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => formatCurrency(data.totalCost)}
@@ -255,7 +255,7 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Operation Costs
+              ต้นทุนการดำเนินงาน
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -266,30 +266,30 @@ export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOr
               rowAlternationEnabled
             >
               <Column dataField="sequence" caption="#" width={50} />
-              <Column dataField="workCenterCode" caption="Work Center" width={150} />
+              <Column dataField="workCenterCode" caption="ศูนย์งาน" width={150} />
               <Column
                 dataField="actualHours"
-                caption="Actual Hours"
+                caption="ชั่วโมงจริง"
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => formatNumber(data.actualHours)}
               />
               <Column
                 dataField="laborCost"
-                caption="Labor Cost"
+                caption="ต้นทุนค่าแรง"
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => formatCurrency(data.laborCost)}
               />
               <Column
                 dataField="overheadCost"
-                caption="Overhead Cost"
+                caption="ต้นทุนค่าโสหุ้ย"
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => formatCurrency(data.overheadCost)}
               />
               <Column
-                caption="Total"
+                caption="รวม"
                 dataType="number"
                 width={140}
                 cellRender={({ data }) => {

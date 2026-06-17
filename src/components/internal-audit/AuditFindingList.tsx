@@ -29,6 +29,13 @@ const categoryColors: Record<AuditFindingCategory, string> = {
   critical: 'text-red-600 bg-red-100',
 };
 
+const categoryLabels: Record<AuditFindingCategory, string> = {
+  observation: 'ข้อสังเกต',
+  minor: 'เล็กน้อย',
+  major: 'สำคัญ',
+  critical: 'วิกฤต',
+};
+
 export function AuditFindingList({
   findings,
   onEdit,
@@ -41,41 +48,41 @@ export function AuditFindingList({
     () => [
       {
         dataField: 'findingNumber',
-        caption: 'Finding #',
+        caption: 'เลขที่ข้อค้นพบ',
         width: 90,
       },
       {
         dataField: 'auditNumber',
-        caption: 'Audit #',
+        caption: 'เลขที่การตรวจประเมิน',
         width: 120,
       },
       {
         dataField: 'category',
-        caption: 'Category',
+        caption: 'ประเภท',
         width: 100,
         cellRender: (data: { value: AuditFindingCategory }) => {
           const colors = categoryColors[data.value] || '';
           return (
             <span className={`px-2 py-1 rounded text-xs font-medium ${colors}`}>
-              {data.value.charAt(0).toUpperCase() + data.value.slice(1)}
+              {categoryLabels[data.value] || data.value}
             </span>
           );
         },
       },
       {
         dataField: 'gmpChapter',
-        caption: 'GMP Chapter',
+        caption: 'หมวด GMP',
         width: 100,
         cellRender: (data: { value: number }) => `หมวด ${data.value}`,
       },
       {
         dataField: 'description',
-        caption: 'Description',
+        caption: 'รายละเอียด',
         width: 250,
       },
       {
         dataField: 'areaOwnerName',
-        caption: 'Owner',
+        caption: 'ผู้รับผิดชอบ',
         width: 120,
         cellRender: (data: { value: string | undefined }) => {
           return data.value || <span className="text-muted-foreground text-xs">—</span>;
@@ -88,14 +95,14 @@ export function AuditFindingList({
         cellRender: (data: { value: string | undefined; data: AuditFinding }) => {
           if (data.value) return data.value;
           if (data.data.capaRequired) {
-            return <span className="text-orange-600 text-xs">Required</span>;
+            return <span className="text-orange-600 text-xs">จำเป็น</span>;
           }
           return <span className="text-muted-foreground text-xs">—</span>;
         },
       },
       {
         dataField: 'status',
-        caption: 'Status',
+        caption: 'สถานะ',
         width: 110,
         cellRender: (data: { value: AuditFindingStatus }) => (
           <WorkflowStatusBadge status={data.value} />
@@ -116,7 +123,7 @@ export function AuditFindingList({
         {canEdit && onEdit && data.data.status === 'open' && (
           <DxButton
             icon="edit"
-            hint="Edit"
+            hint="แก้ไข"
             onClick={() => onEdit(data.data)}
             stylingMode="text"
           />
@@ -124,7 +131,7 @@ export function AuditFindingList({
         {canEdit && needsCapa && onAssignCapa && (
           <DxButton
             icon="link"
-            hint="Assign CAPA"
+            hint="กำหนด CAPA"
             onClick={() => onAssignCapa(data.data.id)}
             stylingMode="text"
             type="default"
@@ -133,7 +140,7 @@ export function AuditFindingList({
         {canEdit && canCloseFinding && onClose && (
           <DxButton
             icon="check"
-            hint="Close"
+            hint="ปิด"
             onClick={() => onClose(data.data.id)}
             stylingMode="text"
             type="success"
@@ -147,7 +154,7 @@ export function AuditFindingList({
   const allColumns = [
     ...columns,
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 120,
       cellRender: actionsCellRender,
     },

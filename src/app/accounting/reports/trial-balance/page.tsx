@@ -123,7 +123,7 @@ function TrialBalanceContent() {
       {data && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">{t('debit')} vs {t('credit')} by Category</CardTitle>
+            <CardTitle className="text-base">{t('debit')} เทียบกับ {t('credit')} แยกตามหมวดหมู่</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -157,7 +157,7 @@ function TrialBalanceContent() {
             <Grouping autoExpandAll />
             <Column dataField="accountCode" caption={t('accountCode')} width={100} />
             <Column dataField="accountName" caption={t('accountName')} />
-            <Column dataField="category" caption="Category" groupIndex={0} />
+            <Column dataField="category" caption="หมวดหมู่" groupIndex={0} />
             <Column dataField="openingDebit" caption={`${t('openingBalance')} ${t('debit')}`} dataType="number" format="#,##0.00" />
             <Column dataField="openingCredit" caption={`${t('openingBalance')} ${t('credit')}`} dataType="number" format="#,##0.00" />
             <Column dataField="periodDebit" caption={`${t('periodActivity')} ${t('debit')}`} dataType="number" format="#,##0.00" />

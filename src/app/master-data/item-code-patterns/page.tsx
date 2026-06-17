@@ -65,8 +65,8 @@ const YEAR_FORMAT_OPTIONS = [
 ];
 
 const YEAR_POS_OPTIONS = [
-  { id: 'after_prefix', name: 'หลัง prefix  (เช่น RM-2026-0001)' },
-  { id: 'before_seq', name: 'ก่อน sequence  (เช่น RM-2026-0001)' },
+  { id: 'after_prefix', name: 'หลังคำนำหน้า  (เช่น RM-2026-0001)' },
+  { id: 'before_seq', name: 'ก่อนลำดับ  (เช่น RM-2026-0001)' },
 ];
 
 function previewLocal(p: {
@@ -168,7 +168,7 @@ export default function ItemCodePatternsPage() {
 
   const submit = async () => {
     if (!form.prefix.trim()) {
-      toast.error('กรุณากรอก prefix');
+      toast.error('กรุณากรอกคำนำหน้า');
       return;
     }
     try {
@@ -242,7 +242,7 @@ export default function ItemCodePatternsPage() {
         </span>
       ),
     },
-    { dataField: 'prefix', caption: 'Prefix', width: 100 },
+    { dataField: 'prefix', caption: 'คำนำหน้า', width: 100 },
     {
       dataField: 'separator',
       caption: 'คั่น',
@@ -276,7 +276,7 @@ export default function ItemCodePatternsPage() {
     },
     {
       dataField: 'isActive',
-      caption: 'Active',
+      caption: 'ใช้งาน',
       width: 80,
       cellRender: (c: any) =>
         c.value ? (
@@ -316,7 +316,7 @@ export default function ItemCodePatternsPage() {
           subtitle="กำหนดรูปแบบรหัสที่ใช้สร้างอัตโนมัติเมื่อกดปุ่ม 'สร้างรหัส' ในหน้าเพิ่ม/แก้ไขสินค้า"
           onBack={() => router.push('/master-data')}
           breadcrumbs={[
-            { label: 'Master Data', href: '/master-data' },
+            { label: 'ข้อมูลหลัก', href: '/master-data' },
             { label: 'รูปแบบรหัสสินค้า' },
           ]}
         />
@@ -329,7 +329,7 @@ export default function ItemCodePatternsPage() {
 
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <strong>วิธีอ่าน:</strong> ตัวอย่างรหัสคือสิ่งที่ระบบจะสร้างเมื่อกดปุ่ม "สร้างรหัส" ในหน้าเพิ่มสินค้า
-          ระบบจะหาเลข sequence ที่ว่างถัดไปอัตโนมัติเสมอ (เติมช่องว่างที่ลบไปแล้ว)
+          ระบบจะหาเลขลำดับที่ว่างถัดไปอัตโนมัติเสมอ (เติมช่องว่างที่ลบไปแล้ว)
         </div>
 
         <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
@@ -367,7 +367,7 @@ export default function ItemCodePatternsPage() {
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-600 block mb-1">Prefix *</label>
+                <label className="text-xs text-gray-600 block mb-1">คำนำหน้า *</label>
                 <DxTextBox
                   placeholder="เช่น RM, FG, ม."
                   value={form.prefix}
@@ -386,7 +386,7 @@ export default function ItemCodePatternsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-600 block mb-1">จำนวนหลัก sequence</label>
+                <label className="text-xs text-gray-600 block mb-1">จำนวนหลักของลำดับ</label>
                 <DxNumberBox
                   min={2}
                   max={10}
@@ -432,7 +432,7 @@ export default function ItemCodePatternsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-600 block mb-1">Sequence เริ่มต้นที่</label>
+                <label className="text-xs text-gray-600 block mb-1">ลำดับเริ่มต้นที่</label>
                 <DxNumberBox
                   min={1}
                   value={form.sequenceStart}
@@ -451,7 +451,7 @@ export default function ItemCodePatternsPage() {
             <div>
               <label className="text-xs text-gray-600 block mb-1">หมายเหตุ</label>
               <DxTextArea
-                placeholder="(optional)"
+                placeholder="(ไม่บังคับ)"
                 value={form.notes}
                 onValueChanged={(e) => setForm({ ...form, notes: e.value || '' })}
               />

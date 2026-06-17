@@ -44,14 +44,14 @@ interface InspectionRow {
 }
 
 const typeLabel = (t: string) =>
-  ({ incoming: 'Incoming', in_process: 'In-process', finished: 'Finished', ad_hoc: 'Ad-hoc' })[t] ||
+  ({ incoming: 'ตรวจรับ', in_process: 'ระหว่างผลิต', finished: 'สำเร็จรูป', ad_hoc: 'ทั่วไป' })[t] ||
   t;
 
 const resultBadge = (r: string) => {
   const map: Record<string, { label: string; cls: string }> = {
     pending: { label: 'รอผล', cls: 'bg-amber-100 text-amber-700' },
-    pass: { label: '✓ Pass', cls: 'bg-emerald-100 text-emerald-700' },
-    fail: { label: '✗ Fail', cls: 'bg-red-100 text-red-700' },
+    pass: { label: '✓ ผ่าน', cls: 'bg-emerald-100 text-emerald-700' },
+    fail: { label: '✗ ไม่ผ่าน', cls: 'bg-red-100 text-red-700' },
   };
   const m = map[r] || map.pending;
   return <Badge className={m.cls}>{m.label}</Badge>;
@@ -255,8 +255,8 @@ export default function QcInspectionsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="ทั้งหมด" value={stats.total} icon={ClipboardList} />
           <StatCard label="รอผล" value={stats.pending} icon={Clock} iconColor="text-amber-500" />
-          <StatCard label="Pass" value={stats.pass} icon={CheckCircle2} iconColor="text-emerald-500" />
-          <StatCard label="Fail" value={stats.fail} icon={XCircle} iconColor="text-red-500" />
+          <StatCard label="ผ่าน" value={stats.pass} icon={CheckCircle2} iconColor="text-emerald-500" />
+          <StatCard label="ไม่ผ่าน" value={stats.fail} icon={XCircle} iconColor="text-red-500" />
         </div>
 
         <div className="flex items-center gap-3 bg-white border rounded-lg p-3">
@@ -264,10 +264,10 @@ export default function QcInspectionsPage() {
             placeholder="ประเภท..."
             dataSource={[
               { id: null, name: 'ทุกประเภท' },
-              { id: 'incoming', name: 'Incoming' },
-              { id: 'in_process', name: 'In-process' },
-              { id: 'finished', name: 'Finished' },
-              { id: 'ad_hoc', name: 'Ad-hoc' },
+              { id: 'incoming', name: 'ตรวจรับ' },
+              { id: 'in_process', name: 'ระหว่างผลิต' },
+              { id: 'finished', name: 'สำเร็จรูป' },
+              { id: 'ad_hoc', name: 'ทั่วไป' },
             ]}
             valueExpr="id"
             displayExpr="name"
@@ -299,10 +299,10 @@ export default function QcInspectionsPage() {
             <DxSelectBox
               placeholder="ประเภทการตรวจ *"
               dataSource={[
-                { id: 'incoming', name: 'Incoming (ตรวจรับ)' },
-                { id: 'in_process', name: 'In-process (ระหว่างผลิต)' },
-                { id: 'finished', name: 'Finished (สำเร็จรูป)' },
-                { id: 'ad_hoc', name: 'Ad-hoc (ทั่วไป)' },
+                { id: 'incoming', name: 'ตรวจรับ' },
+                { id: 'in_process', name: 'ระหว่างผลิต' },
+                { id: 'finished', name: 'สำเร็จรูป' },
+                { id: 'ad_hoc', name: 'ทั่วไป' },
               ]}
               valueExpr="id"
               displayExpr="name"
@@ -365,7 +365,7 @@ export default function QcInspectionsPage() {
               data-testid="qc-inspection-subject"
             />
             <DxTextArea
-              placeholder="Findings / ผลที่พบ"
+              placeholder="ผลที่พบ"
               value={form.findings}
               onValueChanged={(e) => setForm({ ...form, findings: e.value || '' })}
               height={100}
@@ -374,8 +374,8 @@ export default function QcInspectionsPage() {
               placeholder="ผลโดยรวม"
               dataSource={[
                 { id: 'pending', name: 'รอผล' },
-                { id: 'pass', name: '✓ Pass' },
-                { id: 'fail', name: '✗ Fail' },
+                { id: 'pass', name: '✓ ผ่าน' },
+                { id: 'fail', name: '✗ ไม่ผ่าน' },
               ]}
               valueExpr="id"
               displayExpr="name"
@@ -433,7 +433,7 @@ export default function QcInspectionsPage() {
                 </div>
                 {!detail.workOrderId && detail.batchNumber && (
                   <div className="col-span-2">
-                    <span className="text-gray-500">Batch:</span> {detail.batchNumber}
+                    <span className="text-gray-500">รุ่นการผลิต:</span> {detail.batchNumber}
                   </div>
                 )}
                 {detail.workOrderId && (
@@ -454,7 +454,7 @@ export default function QcInspectionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Findings</label>
+                <label className="block text-sm font-medium mb-1">ผลที่พบ</label>
                 <DxTextArea
                   value={detail.findings || ''}
                   onValueChanged={(e) => setDetail({ ...detail, findings: e.value || '' })}
@@ -481,13 +481,13 @@ export default function QcInspectionsPage() {
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <DxButton text="ปิด" onClick={() => setDetail(null)} />
                 <DxButton
-                  text="บันทึกผล Fail"
+                  text="บันทึกผลไม่ผ่าน"
                   type="danger"
                   onClick={() => updateDetail('fail')}
                   data-testid="qc-inspection-fail"
                 />
                 <DxButton
-                  text="บันทึกผล Pass"
+                  text="บันทึกผลผ่าน"
                   type="success"
                   onClick={() => updateDetail('pass')}
                   data-testid="qc-inspection-pass"

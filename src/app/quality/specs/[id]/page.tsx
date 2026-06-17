@@ -205,7 +205,7 @@ export default function QualitySpecDetailPage() {
   const testColumns: DxDataGridColumn[] = [
     {
       dataField: 'testType',
-      caption: 'Type',
+      caption: 'ประเภท',
       width: 100,
       cellRender: (cellInfo) => (
         <Badge variant="secondary" size="sm">
@@ -215,12 +215,12 @@ export default function QualitySpecDetailPage() {
     },
     {
       dataField: 'sampleNumber',
-      caption: 'Sample',
+      caption: 'ตัวอย่าง',
       cellRender: (cellInfo) => cellInfo.data.sampleNumber || '-',
     },
     {
       dataField: 'result',
-      caption: 'Result',
+      caption: 'ผลลัพธ์',
       cellRender: (cellInfo) => (
         <span className="font-medium">
           {cellInfo.data.numericResult !== null ? cellInfo.data.numericResult : cellInfo.data.result || '-'}
@@ -229,7 +229,7 @@ export default function QualitySpecDetailPage() {
     },
     {
       dataField: 'specMinValue',
-      caption: 'Spec Range (at test)',
+      caption: 'ช่วงข้อกำหนด (ณ เวลาทดสอบ)',
       cellRender: (cellInfo) => {
         const d = cellInfo.data;
         const min = d.specMinValue ?? spec?.minValue;
@@ -247,12 +247,12 @@ export default function QualitySpecDetailPage() {
     },
     {
       dataField: 'testDate',
-      caption: 'Test Date',
+      caption: 'วันที่ทดสอบ',
       cellRender: (cellInfo) => formatDate(cellInfo.data.testDate),
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       cellRender: (cellInfo) => (
         <Badge variant={getStatusBadgeVariant(cellInfo.data.status)} dot size="sm">
           {cellInfo.data.status}
@@ -275,10 +275,10 @@ export default function QualitySpecDetailPage() {
     return (
       
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-gray-900">Specification not found</h2>
-          <p className="text-gray-500 mt-2">The specification you are looking for does not exist.</p>
+          <h2 className="text-xl font-semibold text-gray-900">ไม่พบข้อกำหนด</h2>
+          <p className="text-gray-500 mt-2">ไม่มีข้อกำหนดที่คุณกำลังค้นหา</p>
           <DxButton
-            text="Back to Specifications"
+            text="กลับไปหน้าข้อกำหนด"
             type="normal"
             stylingMode="outlined"
             className="mt-4"
@@ -297,7 +297,7 @@ export default function QualitySpecDetailPage() {
           description={`${spec.itemCode} - ${spec.itemName}`}
           backButton={
             <DxButton
-              text="Back"
+              text="ย้อนกลับ"
               icon="back"
               type="normal"
               stylingMode="text"
@@ -309,11 +309,11 @@ export default function QualitySpecDetailPage() {
               {spec.isCritical && (
                 <Badge variant="danger" size="md">
                   <AlertTriangle className="h-3 w-3 mr-1" />
-                  Critical
+                  วิกฤต
                 </Badge>
               )}
               <Badge variant={spec.isActive ? 'primary' : 'default'} dot size="md">
-                {spec.isActive ? 'Active' : 'Inactive'}
+                {spec.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
           }
@@ -327,21 +327,21 @@ export default function QualitySpecDetailPage() {
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                   <div>
-                    <p className="font-medium text-red-800">Delete this specification?</p>
+                    <p className="font-medium text-red-800">ลบข้อกำหนดนี้?</p>
                     <p className="text-sm text-red-600">
-                      This action cannot be undone. Specifications with tests cannot be deleted.
+                      การดำเนินการนี้ไม่สามารถยกเลิกได้ ข้อกำหนดที่มีการทดสอบไม่สามารถลบได้
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <DxButton
-                    text="Cancel"
+                    text="ยกเลิก"
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => setShowDeleteConfirm(false)}
                   />
                   <DxButton
-                    text="Delete"
+                    text="ลบ"
                     type="danger"
                     onClick={handleDelete}
                     disabled={isSaving}

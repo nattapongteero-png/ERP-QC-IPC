@@ -34,12 +34,12 @@ interface ProductionRoomFormProps {
 }
 
 const roomTypes = [
-  { value: 'weighing', label: 'Weighing Room' },
-  { value: 'mixing', label: 'Mixing Room' },
-  { value: 'packaging', label: 'Packaging Room' },
-  { value: 'storage', label: 'Storage Area' },
-  { value: 'preparation', label: 'Preparation Room' },
-  { value: 'production', label: 'Production Room' },
+  { value: 'weighing', label: 'ห้องชั่ง' },
+  { value: 'mixing', label: 'ห้องผสม' },
+  { value: 'packaging', label: 'ห้องบรรจุ' },
+  { value: 'storage', label: 'พื้นที่จัดเก็บ' },
+  { value: 'preparation', label: 'ห้องเตรียม' },
+  { value: 'production', label: 'ห้องผลิต' },
 ];
 
 export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
@@ -60,7 +60,7 @@ export function ProductionRoomForm({ mode, id }: ProductionRoomFormProps) {
   if (mode === 'edit' && (isLoadingRoom || !existingRoom)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">กำลังโหลด...</div>
       </div>
     );
   }
@@ -106,19 +106,19 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-rooms'] });
       toast.success(
-        mode === 'edit' ? 'Room Updated' : 'Room Created',
-        `${formData.name} has been ${mode === 'edit' ? 'updated' : 'created'} successfully.`
+        mode === 'edit' ? 'อัปเดตห้องแล้ว' : 'สร้างห้องแล้ว',
+        `${formData.name} ถูก${mode === 'edit' ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`
       );
       router.push('/master-data/production-rooms');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
   const handleSave = () => {
     if (!formData.code || !formData.nameTh || !formData.roomType) {
-      toast.error('Validation Error', 'Please fill in all required fields.');
+      toast.error('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลที่จำเป็นทั้งหมด');
       return;
     }
     saveMutation.mutate(formData);
@@ -132,26 +132,26 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
       {/* Header */}
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'Edit Room' : 'New Room'}
-        subtitle={mode === 'edit' ? `Editing ${existingRoom?.name || ''}` : 'Create a new production room'}
+        title={mode === 'edit' ? 'แก้ไขห้อง' : 'เพิ่มห้องใหม่'}
+        subtitle={mode === 'edit' ? `กำลังแก้ไข ${existingRoom?.name || ''}` : 'สร้างห้องผลิตใหม่'}
         icon={Building2}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Production Rooms', href: '/master-data/production-rooms' },
-          { label: mode === 'edit' ? 'Edit' : 'New' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'ห้องผลิต', href: '/master-data/production-rooms' },
+          { label: mode === 'edit' ? 'แก้ไข' : 'เพิ่มใหม่' },
         ]}
         actions={
           <div className="flex gap-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               icon="back"
               stylingMode="outlined"
               onClick={handleCancel}
             />
             <DxButton
-              text={saveMutation.isPending ? 'Saving...' : 'Save'}
+              text={saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
               icon="save"
               type="success"
               onClick={handleSave}
@@ -166,56 +166,56 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-blue-600" />
-            Room Information
+            ข้อมูลห้อง
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รหัส *</label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="e.g., ROOM-001"
+                placeholder="เช่น ROOM-001"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room Type *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ประเภทห้อง *</label>
               <DxSelectBox
                 dataSource={roomTypes}
                 displayExpr="label"
                 valueExpr="value"
                 value={formData.roomType}
                 onValueChanged={(e) => setFormData({ ...formData, roomType: e.value })}
-                placeholder="Select type"
+                placeholder="เลือกประเภท"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (EN)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (EN)</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="Room name in English"
+              placeholder="ชื่อห้องภาษาอังกฤษ"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name (TH) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="Room name in Thai"
+              placeholder="ชื่อห้องภาษาไทย"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
             <DxTextBox
               value={formData.description || ''}
               onValueChanged={(e) => setFormData({ ...formData, description: e.value })}
-              placeholder="Optional description"
+              placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
             />
           </div>
 
@@ -224,7 +224,7 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
               value={formData.isActive !== false}
               onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
             />
-            <span className="text-sm text-gray-700">Active</span>
+            <span className="text-sm text-gray-700">ใช้งาน</span>
           </div>
         </CardContent>
       </Card>
@@ -232,12 +232,12 @@ function ProductionRoomFormInner({ mode, id, initialData, existingRoom }: Produc
       {/* Bottom Actions */}
       <div className="flex justify-end gap-2 pt-4">
         <DxButton
-          text="Cancel"
+          text="ยกเลิก"
           stylingMode="outlined"
           onClick={handleCancel}
         />
         <DxButton
-          text={saveMutation.isPending ? 'Saving...' : (mode === 'edit' ? 'Update Room' : 'Create Room')}
+          text={saveMutation.isPending ? 'กำลังบันทึก...' : (mode === 'edit' ? 'อัปเดตห้อง' : 'สร้างห้อง')}
           type="success"
           onClick={handleSave}
           disabled={saveMutation.isPending}

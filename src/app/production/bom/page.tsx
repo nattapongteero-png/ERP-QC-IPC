@@ -180,10 +180,10 @@ export default function BOMDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bom-list'] });
       queryClient.invalidateQueries({ queryKey: ['bom-dashboard'] });
-      toast.success('BOM Deleted', 'Draft BOM has been deleted.');
+      toast.success('ลบ BOM สำเร็จ', 'ลบ BOM ฉบับร่างเรียบร้อยแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('เกิดข้อผิดพลาด', error.message);
     },
   });
 
@@ -378,11 +378,12 @@ export default function BOMDashboardPage() {
                 innerRadius={0.65}
               >
                 <Series argumentField="status" valueField="count">
-                  <Label visible format="fixedPoint">
-                    <Connector visible width={1} />
-                  </Label>
+                  {/* numbers shown in the legend + tooltip, not on the ring, so
+                      the doughnut stays small and the legend gets full width for
+                      Thai labels (no more clipped "แบบร่าง"). */}
+                  <Label visible={false} />
                 </Series>
-                <Legend orientation="vertical" horizontalAlignment="right" verticalAlignment="top" itemTextPosition="right" />
+                <Legend orientation="bottom" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
                 <Tooltip enabled format="fixedPoint" />
               </PieChart>
             </div>
@@ -696,7 +697,7 @@ export default function BOMDashboardPage() {
                           handleView(bom);
                         }}
                         className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                        title="View"
+                        title="ดู"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -708,7 +709,7 @@ export default function BOMDashboardPage() {
                               handleEdit(bom);
                             }}
                             className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                            title="Edit"
+                            title="แก้ไข"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -719,7 +720,7 @@ export default function BOMDashboardPage() {
                             }}
                             disabled={deleteBomMutation.isPending}
                             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                            title="Delete"
+                            title="ลบ"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -871,7 +872,7 @@ function BomCardList({
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 active:bg-red-100 transition-colors min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <Trash2 className="h-4 w-4" />
-                <span>Delete</span>
+                <span>{t('bom.actions.deleteBOM') || 'ลบ'}</span>
               </button>
             </div>
           </div>
@@ -958,10 +959,10 @@ function NoResultsState({ onClear, t }: { onClear: () => void; t: TranslateFn })
         {t('bom.charts.noBOMsFound') || 'No matching BOMs'}
       </h3>
       <p className="text-sm text-gray-500 max-w-sm mb-4">
-        Try changing your search or filter selection.
+        ลองเปลี่ยนคำค้นหาหรือตัวกรองที่เลือก
       </p>
       <DxButton
-        text="Clear Filters"
+        text="ล้างตัวกรอง"
         icon="clear"
         stylingMode="outlined"
         onClick={onClear}

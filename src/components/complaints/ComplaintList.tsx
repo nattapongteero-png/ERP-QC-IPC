@@ -111,10 +111,10 @@ export function ComplaintList({
   // Source render
   const renderSource = (cellData: { value: string }) => {
     const labels: Record<string, string> = {
-      customer: 'Customer',
-      distributor: 'Distributor',
-      regulatory: 'Regulatory',
-      internal: 'Internal',
+      customer: 'ลูกค้า',
+      distributor: 'ผู้จัดจำหน่าย',
+      regulatory: 'หน่วยงานกำกับ',
+      internal: 'ภายใน',
     };
     return labels[cellData.value] || cellData.value;
   };
@@ -122,12 +122,12 @@ export function ComplaintList({
   // Category render
   const renderCategory = (cellData: { value: string }) => {
     const labels: Record<string, string> = {
-      quality: 'Quality',
-      efficacy: 'Efficacy',
-      safety: 'Safety',
-      packaging: 'Packaging',
-      labeling: 'Labeling',
-      other: 'Other',
+      quality: 'คุณภาพ',
+      efficacy: 'ประสิทธิภาพ',
+      safety: 'ความปลอดภัย',
+      packaging: 'บรรจุภัณฑ์',
+      labeling: 'ฉลาก',
+      other: 'อื่น ๆ',
     };
     return labels[cellData.value] || cellData.value;
   };
@@ -138,7 +138,7 @@ export function ComplaintList({
       return (
         <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
           <AlertTriangle className="h-4 w-4" />
-          <span className="text-xs">Regulatory</span>
+          <span className="text-xs">หน่วยงานกำกับ</span>
         </span>
       );
     }
@@ -150,9 +150,9 @@ export function ComplaintList({
     return (
       <div className="bg-card border rounded-lg shadow-sm p-6">
         <div className="text-center py-8">
-          <p className="text-destructive mb-4">Failed to load complaints</p>
+          <p className="text-destructive mb-4">ไม่สามารถโหลดข้อร้องเรียนได้</p>
           <DxButton
-            text="Retry"
+            text="ลองใหม่"
             onClick={() => refetch()}
             stylingMode="outlined"
           />
@@ -164,47 +164,47 @@ export function ComplaintList({
   const columns = [
     {
       dataField: 'complaintNumber',
-      caption: 'Complaint #',
+      caption: 'เลขที่ข้อร้องเรียน',
       width: 150,
       fixed: true,
     },
     {
       dataField: 'receivedDate',
-      caption: 'Received',
+      caption: 'รับเมื่อ',
       width: 110,
       dataType: 'date',
     },
     {
       dataField: 'source',
-      caption: 'Source',
+      caption: 'แหล่งที่มา',
       width: 110,
       cellRender: renderSource,
     },
     {
       dataField: 'customerName',
-      caption: 'Customer',
+      caption: 'ลูกค้า',
       width: 150,
     },
     {
       dataField: 'productName',
-      caption: 'Product',
+      caption: 'ผลิตภัณฑ์',
       minWidth: 150,
     },
     {
       dataField: 'category',
-      caption: 'Category',
+      caption: 'หมวดหมู่',
       width: 100,
       cellRender: renderCategory,
     },
     {
       dataField: 'severity',
-      caption: 'Severity',
+      caption: 'ความรุนแรง',
       width: 100,
       cellRender: renderSeverity,
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 150,
       cellRender: renderStatus,
     },
@@ -234,18 +234,18 @@ export function ComplaintList({
       <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquareWarning className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Complaints</h3>
+          <h3 className="text-lg font-semibold">ข้อร้องเรียน</h3>
         </div>
         <div className="flex items-center gap-2">
           <DxButton
-            text="Refresh"
+            text="รีเฟรช"
             icon="refresh"
             onClick={() => refetch()}
             stylingMode="outlined"
           />
           {onNewComplaint && (
             <DxButton
-              text="New Complaint"
+              text="เพิ่มข้อร้องเรียน"
               icon="add"
               onClick={onNewComplaint}
               type="success"
@@ -264,7 +264,7 @@ export function ComplaintList({
         pageSize={pageSize}
         allowedPageSizes={[10, 20, 50]}
         loading={isLoading}
-        noDataText="No complaints found"
+        noDataText="ไม่พบข้อร้องเรียน"
         height="auto"
       />
     </div>

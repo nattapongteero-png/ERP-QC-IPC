@@ -54,13 +54,13 @@ interface ApprovalDashboard {
 }
 
 const documentTypeLabels: Record<DocumentType, string> = {
-  purchase_requisition: 'Purchase Requisition',
-  purchase_order: 'Purchase Order',
-  ap_invoice: 'AP Invoice',
-  ar_invoice: 'AR Invoice',
-  payment: 'Payment',
-  credit_note: 'Credit Note',
-  debit_note: 'Debit Note',
+  purchase_requisition: 'ใบขอซื้อ',
+  purchase_order: 'ใบสั่งซื้อ',
+  ap_invoice: 'ใบแจ้งหนี้เจ้าหนี้',
+  ar_invoice: 'ใบแจ้งหนี้ลูกหนี้',
+  payment: 'การชำระเงิน',
+  credit_note: 'ใบลดหนี้',
+  debit_note: 'ใบเพิ่มหนี้',
 };
 
 const statusColors = {
@@ -156,7 +156,7 @@ export default function ApprovalDashboardPage() {
       <div className="flex gap-1">
         <Button
           icon="check"
-          hint="Approve"
+          hint="อนุมัติ"
           stylingMode="text"
           type="success"
           onClick={() => handleAction(approval, 'approve')}
@@ -164,7 +164,7 @@ export default function ApprovalDashboardPage() {
         />
         <Button
           icon="close"
-          hint="Reject"
+          hint="ปฏิเสธ"
           stylingMode="text"
           type="danger"
           onClick={() => handleAction(approval, 'reject')}
@@ -207,19 +207,19 @@ export default function ApprovalDashboardPage() {
         {dashboard && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">Pending Approvals</div>
+              <div className="text-sm text-gray-500">รออนุมัติ</div>
               <div className="text-3xl font-bold text-yellow-600">
                 {dashboard.stats.pendingCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">Approved Today</div>
+              <div className="text-sm text-gray-500">อนุมัติวันนี้</div>
               <div className="text-3xl font-bold text-green-600">
                 {dashboard.stats.approvedToday}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-              <div className="text-sm text-gray-500">Rejected Today</div>
+              <div className="text-sm text-gray-500">ปฏิเสธวันนี้</div>
               <div className="text-3xl font-bold text-red-600">
                 {dashboard.stats.rejectedToday}
               </div>
@@ -240,44 +240,44 @@ export default function ApprovalDashboardPage() {
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Pending Approvals</span>
+                <span className="text-lg font-medium">รายการรออนุมัติ</span>
               </Item>
               <Item location="after">
                 <Button
                   icon="refresh"
                   onClick={fetchDashboard}
-                  hint="Refresh"
+                  hint="รีเฟรช"
                   data-testid="refresh-btn"
                 />
               </Item>
             </Toolbar>
 
-            <Column dataField="id" caption="Request ID" width={100} />
+            <Column dataField="id" caption="รหัสคำขอ" width={100} />
             <Column
               dataField="documentType"
-              caption="Type"
+              caption="ประเภท"
               width={180}
               cellRender={renderDocType}
             />
-            <Column dataField="documentId" caption="Doc ID" width={80} />
-            <Column dataField="flowName" caption="Workflow" width={150} />
-            <Column dataField="currentStepOrder" caption="Step" width={60} />
-            <Column dataField="requestedByName" caption="Requested By" width={150} />
+            <Column dataField="documentId" caption="รหัสเอกสาร" width={80} />
+            <Column dataField="flowName" caption="ขั้นตอน" width={150} />
+            <Column dataField="currentStepOrder" caption="ขั้น" width={60} />
+            <Column dataField="requestedByName" caption="ขอโดย" width={150} />
             <Column
               dataField="amount"
-              caption="Amount"
+              caption="จำนวนเงิน"
               width={120}
               dataType="number"
               format="#,##0.00"
             />
             <Column
               dataField="requestedAt"
-              caption="Requested At"
+              caption="ขอเมื่อ"
               width={180}
               dataType="datetime"
             />
             <Column
-              caption="Actions"
+              caption="การดำเนินการ"
               width={100}
               cellRender={renderActions}
             />
@@ -296,26 +296,26 @@ export default function ApprovalDashboardPage() {
             <Paging defaultPageSize={5} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Recent Actions</span>
+                <span className="text-lg font-medium">การดำเนินการล่าสุด</span>
               </Item>
             </Toolbar>
 
-            <Column dataField="documentType" caption="Type" width={150} />
-            <Column dataField="documentId" caption="Doc ID" width={80} />
+            <Column dataField="documentType" caption="ประเภท" width={150} />
+            <Column dataField="documentId" caption="รหัสเอกสาร" width={80} />
             <Column
               dataField="action"
-              caption="Action"
+              caption="การดำเนินการ"
               width={100}
               cellRender={renderRecentAction}
             />
-            <Column dataField="actionByName" caption="By" width={150} />
+            <Column dataField="actionByName" caption="โดย" width={150} />
             <Column
               dataField="actionAt"
-              caption="When"
+              caption="เมื่อ"
               width={180}
               dataType="datetime"
             />
-            <Column dataField="comments" caption="Comments" />
+            <Column dataField="comments" caption="ความคิดเห็น" />
           </DataGrid>
         </div>
 
@@ -323,7 +323,7 @@ export default function ApprovalDashboardPage() {
         <Popup
           visible={showActionDialog}
           onHiding={() => setShowActionDialog(false)}
-          title={actionType === 'approve' ? 'Approve Request' : 'Reject Request'}
+          title={actionType === 'approve' ? 'อนุมัติคำขอ' : 'ปฏิเสธคำขอ'}
           width={400}
           height="auto"
           showCloseButton={true}
@@ -331,33 +331,33 @@ export default function ApprovalDashboardPage() {
           <div className="p-4">
             {selectedApproval && (
               <div className="mb-4 p-3 bg-gray-50 rounded">
-                <div className="text-sm text-gray-500">Request Details</div>
+                <div className="text-sm text-gray-500">รายละเอียดคำขอ</div>
                 <div className="font-medium">
                   {documentTypeLabels[selectedApproval.documentType]} #{selectedApproval.documentId}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Requested by: {selectedApproval.requestedByName}
+                  ขอโดย: {selectedApproval.requestedByName}
                 </div>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Comments {actionType === 'reject' && <span className="text-red-500">*</span>}
+                ความคิดเห็น {actionType === 'reject' && <span className="text-red-500">*</span>}
               </label>
               <TextArea
                 value={actionComments}
                 onValueChanged={(e) => setActionComments(e.value || '')}
                 height={100}
-                placeholder={`Enter ${actionType} comments...`}
+                placeholder={actionType === 'approve' ? 'กรอกความคิดเห็นการอนุมัติ...' : 'กรอกความคิดเห็นการปฏิเสธ...'}
                 data-testid="action-comments-input"
               />
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="Cancel" onClick={() => setShowActionDialog(false)} />
+              <Button text="ยกเลิก" onClick={() => setShowActionDialog(false)} />
               <Button
-                text={actionLoading ? 'Processing...' : actionType === 'approve' ? 'Approve' : 'Reject'}
+                text={actionLoading ? 'กำลังดำเนินการ...' : actionType === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}
                 type={actionType === 'approve' ? 'success' : 'danger'}
                 stylingMode="contained"
                 onClick={submitAction}

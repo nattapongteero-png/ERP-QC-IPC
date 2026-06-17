@@ -339,7 +339,7 @@ export default function WaterQualityRecordsPage() {
             <TextArea value={notes} height={60} onValueChanged={(e) => setNotes(String(e.value ?? ''))} />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" />
           </div>
           {recordMut.error && (

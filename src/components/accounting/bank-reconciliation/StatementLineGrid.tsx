@@ -89,7 +89,7 @@ export function StatementLineGrid({
         {isUnmatched && onMatch && (
           <Button
             icon="link"
-            hint="Match"
+            hint="จับคู่"
             stylingMode="text"
             onClick={() => onMatch(line.id)}
           />
@@ -97,7 +97,7 @@ export function StatementLineGrid({
         {isUnmatched && onCreateJournal && (
           <Button
             icon="doc"
-            hint="Create Journal"
+            hint="สร้างรายการบันทึก"
             stylingMode="text"
             onClick={() => onCreateJournal(line.id)}
           />
@@ -105,7 +105,7 @@ export function StatementLineGrid({
         {isUnmatched && onIgnore && (
           <Button
             icon="remove"
-            hint="Ignore"
+            hint="ละเว้น"
             stylingMode="text"
             onClick={() => onIgnore(line.id)}
           />
@@ -113,7 +113,7 @@ export function StatementLineGrid({
         {isMatched && onUnmatch && (
           <Button
             icon="revert"
-            hint="Unmatch"
+            hint="ยกเลิกการจับคู่"
             stylingMode="text"
             onClick={() => onUnmatch(line.id)}
           />
@@ -152,44 +152,44 @@ export function StatementLineGrid({
       />
       <Column
         dataField="transactionDate"
-        caption="Date"
+        caption="วันที่"
         dataType="date"
         width={100}
         cellRender={formatDate}
       />
       <Column
         dataField="description"
-        caption="Description"
+        caption="รายละเอียด"
         minWidth={200}
       />
       <Column
         dataField="reference"
-        caption="Reference"
+        caption="อ้างอิง"
         width={120}
       />
       <Column
         dataField="amount"
-        caption="Amount"
+        caption="จำนวนเงิน"
         width={120}
         alignment="right"
         cellRender={renderAmount}
       />
       <Column
         dataField="transactionType"
-        caption="Type"
+        caption="ประเภท"
         width={80}
         alignment="center"
       />
       <Column
         dataField="status"
-        caption="Status"
+        caption="สถานะ"
         width={120}
         alignment="center"
         cellRender={renderStatus}
       />
       <Column
         dataField="matchConfidence"
-        caption="Confidence"
+        caption="ความเชื่อมั่น"
         width={90}
         alignment="center"
         cellRender={(cellData: any) =>
@@ -198,7 +198,7 @@ export function StatementLineGrid({
       />
       {!readOnly && (
         <Column
-          caption="Actions"
+          caption="การดำเนินการ"
           width={120}
           alignment="center"
           cellRender={renderActions}

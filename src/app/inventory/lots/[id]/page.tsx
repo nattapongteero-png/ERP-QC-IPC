@@ -280,12 +280,12 @@ export default function LotDetailPage() {
 
   const getTransactionTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'receive': 'Receive',
-      'issue': 'Issue',
-      'transfer': 'Transfer',
-      'adjust': 'Adjust',
-      'scrap': 'Scrap',
-      'return': 'Return',
+      'receive': 'รับเข้า',
+      'issue': 'เบิกออก',
+      'transfer': 'โอนย้าย',
+      'adjust': 'ปรับยอด',
+      'scrap': 'ตัดทิ้ง',
+      'return': 'คืน',
     };
     return labels[type] || type;
   };
@@ -324,13 +324,13 @@ export default function LotDetailPage() {
   const transactionColumns: DxDataGridColumn[] = [
     {
       dataField: 'createdAt',
-      caption: 'Date/Time',
+      caption: 'วันที่/เวลา',
       width: 160,
       cellRender: (cellInfo) => formatDateTime(cellInfo.data.createdAt)
     },
     {
       dataField: 'transactionType',
-      caption: 'Type',
+      caption: 'ประเภท',
       width: 120,
       cellRender: (cellInfo) => (
         <Badge variant={
@@ -344,7 +344,7 @@ export default function LotDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวน',
       width: 130,
       cellRender: (cellInfo) => (
         <span className={
@@ -358,36 +358,36 @@ export default function LotDetailPage() {
     },
     {
       dataField: 'referenceNumber',
-      caption: 'Reference',
+      caption: 'อ้างอิง',
       cellRender: (cellInfo) => cellInfo.data.referenceType && cellInfo.data.referenceNumber ? (
         <span className="text-emerald-600">{cellInfo.data.referenceType}: {cellInfo.data.referenceNumber}</span>
       ) : '-'
     },
-    { dataField: 'reason', caption: 'Reason', cellRender: (cellInfo) => cellInfo.data.reason || '-' },
-    { dataField: 'performedByName', caption: 'Performed By', width: 130, cellRender: (cellInfo) => cellInfo.data.performedByName || '-' },
+    { dataField: 'reason', caption: 'เหตุผล', cellRender: (cellInfo) => cellInfo.data.reason || '-' },
+    { dataField: 'performedByName', caption: 'ดำเนินการโดย', width: 130, cellRender: (cellInfo) => cellInfo.data.performedByName || '-' },
   ];
 
   // QC tests table columns
   const qcTestColumns: DxDataGridColumn[] = [
-    { dataField: 'testName', caption: 'Test Name', width: 160, cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testName || cellInfo.data.sampleNumber || '-'}</span> },
-    { dataField: 'testType', caption: 'Type', width: 100, cellRender: (cellInfo) => {
-      const typeLabels: Record<string, string> = { incoming: 'Incoming', in_process: 'In-Process', final: 'Final' };
+    { dataField: 'testName', caption: 'ชื่อการทดสอบ', width: 160, cellRender: (cellInfo) => <span className="font-medium">{cellInfo.data.testName || cellInfo.data.sampleNumber || '-'}</span> },
+    { dataField: 'testType', caption: 'ประเภท', width: 100, cellRender: (cellInfo) => {
+      const typeLabels: Record<string, string> = { incoming: 'รับเข้า', in_process: 'ระหว่างผลิต', final: 'ขั้นสุดท้าย' };
       return <span className="text-xs">{typeLabels[cellInfo.data.testType] || cellInfo.data.testType}</span>;
     }},
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 90,
       cellRender: (cellInfo) => <Badge variant={getQcStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>
     },
-    { dataField: 'numericResult', caption: 'Result', width: 120, cellRender: (cellInfo) => {
+    { dataField: 'numericResult', caption: 'ผลลัพธ์', width: 120, cellRender: (cellInfo) => {
       const d = cellInfo.data;
       if (d.numericResult != null) {
         return <span className="font-medium">{Number(d.numericResult).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
       }
       return <span>{d.result || '-'}</span>;
     }},
-    { dataField: 'specMinValue', caption: 'Spec Range', width: 130, cellRender: (cellInfo) => {
+    { dataField: 'specMinValue', caption: 'ช่วงข้อกำหนด', width: 130, cellRender: (cellInfo) => {
       const d = cellInfo.data;
       if (d.specMinValue != null && d.specMaxValue != null) {
         return <span className="text-xs text-gray-600">{Number(d.specMinValue).toFixed(2)} - {Number(d.specMaxValue).toFixed(2)}{d.specUnit ? ` ${d.specUnit}` : ''}</span>;
@@ -395,28 +395,28 @@ export default function LotDetailPage() {
       if (d.specSpecification) return <span className="text-xs text-gray-600">{d.specSpecification}</span>;
       return <span className="text-gray-400">-</span>;
     }},
-    { dataField: 'disposition', caption: 'Disposition', width: 110, cellRender: (cellInfo) => {
+    { dataField: 'disposition', caption: 'การจัดการ', width: 110, cellRender: (cellInfo) => {
       const d = cellInfo.data.disposition;
       if (!d) return <span className="text-gray-400">-</span>;
       const colors: Record<string, string> = { accept: 'bg-green-100 text-green-800', reject: 'bg-red-100 text-red-800', rework: 'bg-amber-100 text-amber-800', pending: 'bg-gray-100 text-gray-600' };
       return <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${colors[d] || 'bg-gray-100 text-gray-600'}`}>{d}</span>;
     }},
-    { dataField: 'testedByName', caption: 'Tested By', width: 120, cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
-    { dataField: 'approvedByName', caption: 'Approved By', width: 120, cellRender: (cellInfo) => cellInfo.data.approvedByName || '-' },
-    { dataField: 'testDate', caption: 'Test Date', width: 110, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
-    { dataField: 'notes', caption: 'Notes', cellRender: (cellInfo) => cellInfo.data.notes ? <span className="text-xs text-gray-600 truncate block max-w-[200px]" title={cellInfo.data.notes}>{cellInfo.data.notes}</span> : '-' },
+    { dataField: 'testedByName', caption: 'ทดสอบโดย', width: 120, cellRender: (cellInfo) => cellInfo.data.testedByName || '-' },
+    { dataField: 'approvedByName', caption: 'อนุมัติโดย', width: 120, cellRender: (cellInfo) => cellInfo.data.approvedByName || '-' },
+    { dataField: 'testDate', caption: 'วันที่ทดสอบ', width: 110, cellRender: (cellInfo) => formatDate(cellInfo.data.testDate) },
+    { dataField: 'notes', caption: 'หมายเหตุ', cellRender: (cellInfo) => cellInfo.data.notes ? <span className="text-xs text-gray-600 truncate block max-w-[200px]" title={cellInfo.data.notes}>{cellInfo.data.notes}</span> : '-' },
   ];
 
   // Work orders table columns
   const workOrderColumns: DxDataGridColumn[] = [
     {
       dataField: 'woNumber',
-      caption: 'WO Number',
+      caption: 'เลขที่ใบสั่งผลิต',
       cellRender: (cellInfo) => <span className="font-medium text-emerald-600 cursor-pointer hover:underline">{cellInfo.data.woNumber}</span>
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
       cellRender: (cellInfo) => (
         <Badge variant={
@@ -426,10 +426,10 @@ export default function LotDetailPage() {
         }>{cellInfo.data.status}</Badge>
       )
     },
-    { dataField: 'plannedQuantity', caption: 'Planned Qty', width: 120, cellRender: (cellInfo) => cellInfo.data.plannedQuantity?.toLocaleString() || '-' },
-    { dataField: 'actualQuantity', caption: 'Actual Qty', width: 120, cellRender: (cellInfo) => cellInfo.data.actualQuantity?.toLocaleString() || '-' },
-    { dataField: 'startDate', caption: 'Start Date', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.actualStartDate || cellInfo.data.plannedStartDate) },
-    { dataField: 'actualEndDate', caption: 'Completed Date', width: 140, cellRender: (cellInfo) => formatDate(cellInfo.data.actualEndDate) },
+    { dataField: 'plannedQuantity', caption: 'จำนวนตามแผน', width: 120, cellRender: (cellInfo) => cellInfo.data.plannedQuantity?.toLocaleString() || '-' },
+    { dataField: 'actualQuantity', caption: 'จำนวนจริง', width: 120, cellRender: (cellInfo) => cellInfo.data.actualQuantity?.toLocaleString() || '-' },
+    { dataField: 'startDate', caption: 'วันที่เริ่ม', width: 130, cellRender: (cellInfo) => formatDate(cellInfo.data.actualStartDate || cellInfo.data.plannedStartDate) },
+    { dataField: 'actualEndDate', caption: 'วันที่เสร็จ', width: 140, cellRender: (cellInfo) => formatDate(cellInfo.data.actualEndDate) },
   ];
 
   if (loading) {
@@ -446,9 +446,9 @@ export default function LotDetailPage() {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-red-500 mb-4">{error || 'Lot not found'}</p>
+          <p className="text-red-500 mb-4">{error || 'ไม่พบล็อต'}</p>
           <DxButton
-            text="Back to Lots"
+            text="กลับไปหน้ารายการล็อต"
             type="default"
             onClick={() => router.push('/inventory/lots')}
           />
@@ -465,7 +465,7 @@ export default function LotDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="Back"
+                text="กลับ"
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -474,7 +474,7 @@ export default function LotDetailPage() {
               <h1 className="text-2xl font-bold text-gray-900">{t('lots.detail.pageTitle')}: {lot.lotNumber}</h1>
               <Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge>
             </div>
-            <p className="text-gray-500 mt-1">Lot/Batch inventory details</p>
+            <p className="text-gray-500 mt-1">รายละเอียดสินค้าคงคลังตามล็อต/แบตช์</p>
           </div>
           <div className="flex gap-2">
             {/* QC Flow item 6 — Step 1: QC quality disposition (role: QC) */}
@@ -517,7 +517,7 @@ export default function LotDetailPage() {
               )}
             {lot.status === 'released' && (
               <DxButton
-                text="Block"
+                text="ระงับการใช้งาน"
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => handleStatusChange('blocked')}
@@ -526,7 +526,7 @@ export default function LotDetailPage() {
             )}
             {lot.status === 'blocked' && (
               <DxButton
-                text="Unblock"
+                text="ยกเลิกการระงับ"
                 type="success"
                 onClick={() => handleStatusChange('released')}
                 disabled={statusLoading}
@@ -618,7 +618,7 @@ export default function LotDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
                 <div>
-                  <p className="text-sm text-gray-500">Total Quantity</p>
+                  <p className="text-sm text-gray-500">จำนวนทั้งหมด</p>
                   <p className="text-2xl font-bold text-gray-900">{lot.quantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
@@ -632,7 +632,7 @@ export default function LotDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm text-gray-500">Available</p>
+                  <p className="text-sm text-gray-500">พร้อมใช้งาน</p>
                   <p className="text-2xl font-bold text-gray-900">{lot.availableQuantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
@@ -646,7 +646,7 @@ export default function LotDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm text-gray-500">Reserved</p>
+                  <p className="text-sm text-gray-500">จองไว้</p>
                   <p className="text-2xl font-bold text-gray-900">{lot.reservedQuantity.toLocaleString()} {lot.unit}</p>
                 </div>
               </div>
@@ -660,7 +660,7 @@ export default function LotDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm text-gray-500">Total Cost</p>
+                  <p className="text-sm text-gray-500">ต้นทุนรวม</p>
                   <p className="text-2xl font-bold text-gray-900">
                     ฿{((lot.quantity || 0) * (lot.cost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
@@ -686,10 +686,10 @@ export default function LotDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <div>
-                  <p className="text-sm text-gray-500">Days Until Expiry</p>
+                  <p className="text-sm text-gray-500">จำนวนวันก่อนหมดอายุ</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {lot.daysUntilExpiry !== null ? (
-                      lot.daysUntilExpiry < 0 ? `Expired ${Math.abs(lot.daysUntilExpiry)} days ago` : `${lot.daysUntilExpiry} days`
+                      lot.daysUntilExpiry < 0 ? `หมดอายุแล้ว ${Math.abs(lot.daysUntilExpiry)} วัน` : `${lot.daysUntilExpiry} วัน`
                     ) : 'N/A'}
                   </p>
                 </div>
@@ -702,11 +702,11 @@ export default function LotDetailPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'info', label: 'Lot Information' },
-              { id: 'documents', label: 'Documents' },
-              { id: 'transactions', label: 'Transaction History' },
-              { id: 'qc', label: 'QC Tests' },
-              { id: 'traceability', label: 'Traceability' },
+              { id: 'info', label: 'ข้อมูลล็อต' },
+              { id: 'documents', label: 'เอกสาร' },
+              { id: 'transactions', label: 'ประวัติการเคลื่อนไหว' },
+              { id: 'qc', label: 'การทดสอบ QC' },
+              { id: 'traceability', label: 'การสอบกลับ' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -729,35 +729,35 @@ export default function LotDetailPage() {
             {/* Item Information */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Item Information</CardTitle>
+                <CardTitle>ข้อมูลสินค้า</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Item Code</label>
+                      <label className="text-sm text-gray-500">รหัสสินค้า</label>
                       <p className="font-medium">{lot.itemCode}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Type</label>
+                      <label className="text-sm text-gray-500">ประเภท</label>
                       <p className="font-medium">{lot.itemType}</p>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Item Name (TH)</label>
+                    <label className="text-sm text-gray-500">ชื่อสินค้า (ไทย)</label>
                     <p className="font-medium">{lot.itemNameTh}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Item Name (EN)</label>
+                    <label className="text-sm text-gray-500">ชื่อสินค้า (อังกฤษ)</label>
                     <p className="font-medium">{lot.itemNameEn}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Category</label>
+                      <label className="text-sm text-gray-500">หมวดหมู่</label>
                       <p className="font-medium">{lot.itemCategory || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Unit</label>
+                      <label className="text-sm text-gray-500">หน่วย</label>
                       <p className="font-medium">{lot.unit}</p>
                     </div>
                   </div>
@@ -768,10 +768,10 @@ export default function LotDetailPage() {
             {/* Lot Details */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Lot Details</CardTitle>
+                <CardTitle>รายละเอียดล็อต</CardTitle>
                 {!isEditing ? (
                   <DxButton
-                    text="Edit"
+                    text="แก้ไข"
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => setIsEditing(true)}
@@ -779,13 +779,13 @@ export default function LotDetailPage() {
                 ) : (
                   <div className="flex gap-2">
                     <DxButton
-                      text="Cancel"
+                      text="ยกเลิก"
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setIsEditing(false)}
                     />
                     <DxButton
-                      text="Save"
+                      text="บันทึก"
                       type="success"
                       onClick={handleSave}
                     />
@@ -796,11 +796,11 @@ export default function LotDetailPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Lot Number</label>
+                      <label className="text-sm text-gray-500">หมายเลขล็อต</label>
                       <p className="font-medium">{lot.lotNumber}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Vendor Lot Number</label>
+                      <label className="text-sm text-gray-500">หมายเลขล็อตของผู้ขาย</label>
                       {isEditing ? (
                         <DxTextBox
                           value={editForm.vendorLotNumber}
@@ -813,7 +813,7 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Batch Number</label>
+                      <label className="text-sm text-gray-500">หมายเลขแบตช์</label>
                       {isEditing ? (
                         <DxTextBox
                           value={editForm.batchNumber}
@@ -824,7 +824,7 @@ export default function LotDetailPage() {
                       )}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">COA Number</label>
+                      <label className="text-sm text-gray-500">หมายเลข COA</label>
                       {isEditing ? (
                         <DxTextBox
                           value={editForm.coaNumber}
@@ -837,7 +837,7 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Quantity</label>
+                      <label className="text-sm text-gray-500">จำนวน</label>
                       {isEditing ? (
                         <input
                           type="number"
@@ -852,11 +852,11 @@ export default function LotDetailPage() {
                       )}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Unit</label>
+                      <label className="text-sm text-gray-500">หน่วย</label>
                       <p className="font-medium">{lot.unit}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Cost Per Unit</label>
+                      <label className="text-sm text-gray-500">ต้นทุนต่อหน่วย</label>
                       {isEditing ? (
                         <input
                           type="number"
@@ -878,7 +878,7 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500 block mb-1">Manufacturing Date</label>
+                      <label className="text-sm text-gray-500 block mb-1">วันที่ผลิต</label>
                       {isEditing ? (
                         <DxDateBox
                           value={editForm.manufacturingDate}
@@ -890,7 +890,7 @@ export default function LotDetailPage() {
                       )}
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500 block mb-1">Expiry Date</label>
+                      <label className="text-sm text-gray-500 block mb-1">วันที่หมดอายุ</label>
                       {isEditing ? (
                         <DxDateBox
                           value={editForm.expiryDate}
@@ -904,11 +904,11 @@ export default function LotDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Received Date</label>
+                      <label className="text-sm text-gray-500">วันที่รับเข้า</label>
                       <p className="font-medium">{formatDate(lot.receivedDate)}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">PO Number</label>
+                      <label className="text-sm text-gray-500">เลขที่ใบสั่งซื้อ</label>
                       <p className="font-medium">{lot.poNumber || '-'}</p>
                     </div>
                   </div>
@@ -919,17 +919,17 @@ export default function LotDetailPage() {
             {/* Storage Location */}
             <Card>
               <CardHeader>
-                <CardTitle>Storage Location</CardTitle>
+                <CardTitle>สถานที่จัดเก็บ</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-500">Warehouse Code</label>
+                      <label className="text-sm text-gray-500">รหัสคลัง</label>
                       <p className="font-medium">{lot.warehouseCode}</p>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Warehouse Name</label>
+                      <label className="text-sm text-gray-500">ชื่อคลัง</label>
                       <p className="font-medium">{lot.warehouseName}</p>
                     </div>
                   </div>
@@ -940,38 +940,38 @@ export default function LotDetailPage() {
             {/* Vendor Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Vendor Information</CardTitle>
+                <CardTitle>ข้อมูลผู้ขาย</CardTitle>
               </CardHeader>
               <CardContent>
                 {lot.vendor ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-gray-500">Vendor Code</label>
+                        <label className="text-sm text-gray-500">รหัสผู้ขาย</label>
                         <p className="font-medium">{lot.vendor.code}</p>
                       </div>
                       <div>
-                        <label className="text-sm text-gray-500">Vendor Name</label>
+                        <label className="text-sm text-gray-500">ชื่อผู้ขาย</label>
                         <p className="font-medium">{lot.vendor.name}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm text-gray-500">Contact Person</label>
+                        <label className="text-sm text-gray-500">ผู้ติดต่อ</label>
                         <p className="font-medium">{lot.vendor.contactPerson || '-'}</p>
                       </div>
                       <div>
-                        <label className="text-sm text-gray-500">Phone</label>
+                        <label className="text-sm text-gray-500">โทรศัพท์</label>
                         <p className="font-medium">{lot.vendor.phone || '-'}</p>
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm text-gray-500">Email</label>
+                      <label className="text-sm text-gray-500">อีเมล</label>
                       <p className="font-medium">{lot.vendor.email || '-'}</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-500">No vendor information available</p>
+                  <p className="text-gray-500">ไม่มีข้อมูลผู้ขาย</p>
                 )}
               </CardContent>
             </Card>
@@ -994,7 +994,7 @@ export default function LotDetailPage() {
         {activeTab === 'transactions' && (
           <Card>
             <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
+              <CardTitle>ประวัติการเคลื่อนไหว</CardTitle>
             </CardHeader>
             <CardContent>
               <DxDataGrid
@@ -1003,7 +1003,7 @@ export default function LotDetailPage() {
                 columns={transactionColumns}
                 showBorders
                 height={400}
-                noDataText="No transactions found"
+                noDataText="ไม่พบรายการเคลื่อนไหว"
               />
             </CardContent>
           </Card>
@@ -1129,7 +1129,7 @@ export default function LotDetailPage() {
                     columns={qcTestColumns}
                     showBorders
                     height={280}
-                    noDataText="No QC tests found"
+                    noDataText="ไม่พบการทดสอบ QC"
                   />
                 </CardContent>
               </Card>
@@ -1141,8 +1141,8 @@ export default function LotDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Forward Traceability</CardTitle>
-                <p className="text-sm text-gray-500">Work orders and finished products that used this lot</p>
+                <CardTitle>การสอบกลับไปข้างหน้า</CardTitle>
+                <p className="text-sm text-gray-500">ใบสั่งผลิตและสินค้าสำเร็จรูปที่ใช้ล็อตนี้</p>
               </CardHeader>
               <CardContent>
                 <DxDataGrid
@@ -1151,15 +1151,15 @@ export default function LotDetailPage() {
                   columns={workOrderColumns}
                   showBorders
                   height={300}
-                  noDataText="No related work orders found"
+                  noDataText="ไม่พบใบสั่งผลิตที่เกี่ยวข้อง"
                 />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Backward Traceability</CardTitle>
-                <p className="text-sm text-gray-500">Source materials and suppliers for this lot</p>
+                <CardTitle>การสอบกลับย้อนหลัง</CardTitle>
+                <p className="text-sm text-gray-500">วัตถุดิบต้นทางและผู้ขายสำหรับล็อตนี้</p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -1171,8 +1171,8 @@ export default function LotDetailPage() {
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium">Vendor: {lot.vendor?.name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-500">PO: {lot.poNumber || 'N/A'}</p>
+                        <p className="font-medium">ผู้ขาย: {lot.vendor?.name || 'ไม่ทราบ'}</p>
+                        <p className="text-sm text-gray-500">ใบสั่งซื้อ: {lot.poNumber || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -1184,8 +1184,8 @@ export default function LotDetailPage() {
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium">COA: {lot.coaNumber || 'Not Available'}</p>
-                        <p className="text-sm text-gray-500">Certificate of Analysis</p>
+                        <p className="font-medium">COA: {lot.coaNumber || 'ไม่มี'}</p>
+                        <p className="text-sm text-gray-500">ใบรับรองผลการวิเคราะห์</p>
                       </div>
                     </div>
                   </div>
@@ -1199,8 +1199,8 @@ export default function LotDetailPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Created: {formatDateTime(lot.createdAt)}</span>
-              <span>Last Updated: {formatDateTime(lot.updatedAt)}</span>
+              <span>สร้างเมื่อ: {formatDateTime(lot.createdAt)}</span>
+              <span>อัปเดตล่าสุด: {formatDateTime(lot.updatedAt)}</span>
             </div>
           </CardContent>
         </Card>

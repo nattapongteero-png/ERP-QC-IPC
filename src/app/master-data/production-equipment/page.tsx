@@ -31,18 +31,18 @@ interface ProductionEquipment {
 // identical purple badges. Includes mill/sieve/balance (seen in data, were
 // previously missing → fell back to the raw value + default purple).
 const equipmentTypes = [
-  { value: 'scale', label: 'Scale', badge: 'bg-emerald-100 text-emerald-800' },
-  { value: 'balance', label: 'Balance', badge: 'bg-teal-100 text-teal-800' },
-  { value: 'mixer', label: 'Mixer', badge: 'bg-blue-100 text-blue-800' },
-  { value: 'hotplate', label: 'Hotplate', badge: 'bg-red-100 text-red-800' },
-  { value: 'container', label: 'Container', badge: 'bg-amber-100 text-amber-800' },
-  { value: 'tool', label: 'Tool', badge: 'bg-purple-100 text-purple-800' },
-  { value: 'filler', label: 'Filler', badge: 'bg-cyan-100 text-cyan-800' },
-  { value: 'mill', label: 'Mill', badge: 'bg-orange-100 text-orange-800' },
-  { value: 'sieve', label: 'Sieve', badge: 'bg-lime-100 text-lime-800' },
-  { value: 'tank', label: 'Tank', badge: 'bg-indigo-100 text-indigo-800' },
-  { value: 'pump', label: 'Pump', badge: 'bg-pink-100 text-pink-800' },
-  { value: 'other', label: 'Other', badge: 'bg-gray-100 text-gray-700' },
+  { value: 'scale', label: 'เครื่องชั่ง', badge: 'bg-emerald-100 text-emerald-800' },
+  { value: 'balance', label: 'ตาชั่ง', badge: 'bg-teal-100 text-teal-800' },
+  { value: 'mixer', label: 'เครื่องผสม', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'hotplate', label: 'แผ่นทำความร้อน', badge: 'bg-red-100 text-red-800' },
+  { value: 'container', label: 'ภาชนะ', badge: 'bg-amber-100 text-amber-800' },
+  { value: 'tool', label: 'เครื่องมือ', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'filler', label: 'เครื่องบรรจุ', badge: 'bg-cyan-100 text-cyan-800' },
+  { value: 'mill', label: 'เครื่องบด', badge: 'bg-orange-100 text-orange-800' },
+  { value: 'sieve', label: 'ตะแกรงร่อน', badge: 'bg-lime-100 text-lime-800' },
+  { value: 'tank', label: 'ถัง', badge: 'bg-indigo-100 text-indigo-800' },
+  { value: 'pump', label: 'ปั๊ม', badge: 'bg-pink-100 text-pink-800' },
+  { value: 'other', label: 'อื่นๆ', badge: 'bg-gray-100 text-gray-700' },
 ];
 
 export default function ProductionEquipmentPage() {
@@ -73,10 +73,10 @@ export default function ProductionEquipmentPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-equipment'] });
-      toast.success('Equipment Deactivated', 'The equipment has been deactivated.');
+      toast.success('ปิดใช้งานอุปกรณ์แล้ว', 'ปิดใช้งานอุปกรณ์เรียบร้อยแล้ว');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
@@ -102,19 +102,19 @@ export default function ProductionEquipmentPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Production Equipment"
-        subtitle="Manage production equipment for GMP compliance"
+        title="อุปกรณ์การผลิต"
+        subtitle="จัดการอุปกรณ์การผลิตเพื่อให้สอดคล้องกับ GMP"
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Production Equipment' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'อุปกรณ์การผลิต' },
         ]}
         actions={
           <DxButton
-            text="Add Equipment"
+            text="เพิ่มอุปกรณ์"
             icon="plus"
             type="success"
             onClick={handleCreate}
@@ -134,50 +134,50 @@ export default function ProductionEquipmentPage() {
           width="100%"
           columnAutoWidth
         >
-          <DxSearchPanel visible placeholder="Search equipment..." width={200} />
+          <DxSearchPanel visible placeholder="ค้นหาอุปกรณ์..." width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="รหัส" width={160} cellRender={(cell) => (
             <span className="font-mono font-medium text-purple-700 whitespace-nowrap">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
-          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
-          <DxColumn dataField="equipmentType" caption="Type" minWidth={160} cellRender={(cell) => renderTypeBadge(cell.value)} />
-          <DxColumn dataField="capacity" caption="Capacity" minWidth={140} cellRender={(cell) => (
+          <DxColumn dataField="name" caption="ชื่อ (EN)" minWidth={150} />
+          <DxColumn dataField="nameTh" caption="ชื่อ (TH)" minWidth={150} />
+          <DxColumn dataField="equipmentType" caption="ประเภท" minWidth={160} cellRender={(cell) => renderTypeBadge(cell.value)} />
+          <DxColumn dataField="capacity" caption="ความจุ" minWidth={140} cellRender={(cell) => (
             <span className="whitespace-nowrap">{cell.value || '-'}</span>
           )} />
-          <DxColumn caption="Default Room" minWidth={150} cellRender={(cell) => {
+          <DxColumn caption="ห้องเริ่มต้น" minWidth={150} cellRender={(cell) => {
             const data = cell.data as ProductionEquipment;
             return data.room?.name || data.roomName || '-';
           }} />
-          <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
+          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
             <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'Active' : 'Inactive'}
+              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
               <button
                 onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                title="View"
+                title="ดู"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="Edit"
+                title="แก้ไข"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as ProductionEquipment).name} หรือไม่?`)) deleteMutation.mutate((cell.data as ProductionEquipment).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Deactivate"
+                title="ปิดใช้งาน"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

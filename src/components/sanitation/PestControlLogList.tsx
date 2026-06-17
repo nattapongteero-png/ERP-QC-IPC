@@ -40,13 +40,13 @@ export function PestControlLogList({
     () => [
       {
         dataField: 'serviceDate',
-        caption: 'Service Date',
+        caption: 'วันที่ให้บริการ',
         dataType: 'date',
         width: 110,
       },
       {
         dataField: 'serviceType',
-        caption: 'Type',
+        caption: 'ประเภท',
         width: 100,
         cellRender: (data: { value: PestControlServiceType }) => (
           <WorkflowStatusBadge status={data.value} />
@@ -54,23 +54,23 @@ export function PestControlLogList({
       },
       {
         dataField: 'contractorName',
-        caption: 'Contractor',
+        caption: 'ผู้รับเหมา',
         width: 150,
       },
       {
         dataField: 'technicianName',
-        caption: 'Technician',
+        caption: 'ช่างเทคนิค',
         width: 130,
       },
       {
         dataField: 'areasServiced',
-        caption: 'Areas',
+        caption: 'พื้นที่',
         width: 180,
         cellRender: (data: { value: string[] }) => (data.value || []).join(', '),
       },
       {
         dataField: 'findingsCount',
-        caption: 'Findings',
+        caption: 'ข้อค้นพบ',
         width: 80,
         cellRender: (data: { value: number }) => {
           const count = data.value || 0;
@@ -80,24 +80,24 @@ export function PestControlLogList({
       },
       {
         dataField: 'followUpRequired',
-        caption: 'Follow-up',
+        caption: 'การติดตาม',
         width: 90,
         cellRender: (data: { value: boolean; data: PestControlLog }) => {
-          if (!data.value) return <span className="text-muted-foreground">No</span>;
+          if (!data.value) return <span className="text-muted-foreground">ไม่</span>;
           return (
             <span className="text-orange-600 font-medium">
-              {data.data.followUpDate || 'Required'}
+              {data.data.followUpDate || 'ต้องติดตาม'}
             </span>
           );
         },
       },
       {
         dataField: 'verifiedByName',
-        caption: 'Verified By',
+        caption: 'ตรวจสอบโดย',
         width: 120,
         cellRender: (data: { value: string | undefined }) => {
           if (data.value) return data.value;
-          return <span className="text-muted-foreground text-xs">Pending</span>;
+          return <span className="text-muted-foreground text-xs">รอตรวจสอบ</span>;
         },
       },
     ],
@@ -113,7 +113,7 @@ export function PestControlLogList({
         {canVerify && needsVerification && onVerify && (
           <DxButton
             icon="check"
-            hint="Verify"
+            hint="ตรวจสอบ"
             onClick={() => onVerify(data.data!.id)}
             stylingMode="text"
             type="success"
@@ -122,7 +122,7 @@ export function PestControlLogList({
         {onEdit && !data.data.verifiedBy && (
           <DxButton
             icon="edit"
-            hint="Edit"
+            hint="แก้ไข"
             onClick={() => onEdit(data.data!)}
             stylingMode="text"
           />
@@ -143,7 +143,7 @@ export function PestControlLogList({
         <DxColumn key={col.dataField} {...col as DxColumnProps} />
       ))}
       <DxColumn
-        caption="Actions"
+        caption="การดำเนินการ"
         width={100}
         cellRender={actionsCellRender}
         allowSorting={false}

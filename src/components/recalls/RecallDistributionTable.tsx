@@ -40,21 +40,21 @@ export function RecallDistributionTable({ recallId }: RecallDistributionTablePro
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Users className="h-4 w-4" />
-            <span className="text-sm">Customers Affected</span>
+            <span className="text-sm">ลูกค้าที่ได้รับผลกระทบ</span>
           </div>
           <div className="text-2xl font-bold">{uniqueCustomers}</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Package className="h-4 w-4" />
-            <span className="text-sm">Total Distributed</span>
+            <span className="text-sm">กระจายทั้งหมด</span>
           </div>
           <div className="text-2xl font-bold">{totalQuantity.toLocaleString()}</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <TrendingUp className="h-4 w-4" />
-            <span className="text-sm">Shipments</span>
+            <span className="text-sm">การจัดส่ง</span>
           </div>
           <div className="text-2xl font-bold">{distribution.length}</div>
         </div>
@@ -69,24 +69,24 @@ export function RecallDistributionTable({ recallId }: RecallDistributionTablePro
       >
         <DxPaging defaultPageSize={10} />
 
-        <DxColumn dataField="customerName" caption="Customer" minWidth={150} />
-        <DxColumn dataField="contactInfo" caption="Contact" width={150} />
-        <DxColumn dataField="lotNumber" caption="Lot #" width={120} />
+        <DxColumn dataField="customerName" caption="ลูกค้า" minWidth={150} />
+        <DxColumn dataField="contactInfo" caption="ข้อมูลติดต่อ" width={150} />
+        <DxColumn dataField="lotNumber" caption="เลขที่ล็อต" width={120} />
         <DxColumn
           dataField="quantityDistributed"
-          caption="Quantity"
+          caption="จำนวน"
           width={100}
           dataType="number"
           format="#,##0"
         />
-        <DxColumn dataField="shipDate" caption="Ship Date" dataType="date" width={110} />
+        <DxColumn dataField="shipDate" caption="วันที่จัดส่ง" dataType="date" width={110} />
 
         <DxSummary>
           <DxTotalItem
             column="quantityDistributed"
             summaryType="sum"
             valueFormat="#,##0"
-            displayFormat="Total: {0}"
+            displayFormat="รวม: {0}"
           />
         </DxSummary>
       </DxDataGrid>

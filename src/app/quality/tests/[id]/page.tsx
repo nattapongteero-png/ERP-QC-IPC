@@ -107,10 +107,10 @@ interface TestDetail {
 }
 
 const resultOptions = [
-  { value: '', label: 'Select Result' },
-  { value: 'pass', label: 'Pass' },
-  { value: 'fail', label: 'Fail' },
-  { value: 'retest', label: 'Retest Required' },
+  { value: '', label: 'เลือกผลลัพธ์' },
+  { value: 'pass', label: 'ผ่าน' },
+  { value: 'fail', label: 'ไม่ผ่าน' },
+  { value: 'retest', label: 'ต้องทดสอบซ้ำ' },
 ];
 
 export default function QualityTestDetailPage() {
@@ -179,7 +179,7 @@ export default function QualityTestDetailPage() {
         });
         const result = await response.json();
         if (result.success) {
-          toast.success('Disposition decision recorded');
+          toast.success('บันทึกการตัดสินใจจัดการแล้ว');
           fetchDispositionDetails();
           fetchTestDetail();
           return { success: true };
@@ -205,7 +205,7 @@ export default function QualityTestDetailPage() {
         });
         const result = await response.json();
         if (result.success) {
-          toast.success(`Disposition approved${result.data.lotStatusUpdated ? `. Lot status updated to: ${result.data.newLotStatus}` : ''}`);
+          toast.success(`อนุมัติการจัดการแล้ว${result.data.lotStatusUpdated ? ` อัปเดตสถานะล็อตเป็น: ${result.data.newLotStatus}` : ''}`);
           fetchDispositionDetails();
           fetchTestDetail();
           return { success: true };
@@ -249,11 +249,11 @@ export default function QualityTestDetailPage() {
 
   const getTestTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'incoming': 'Incoming Inspection',
-      'in_process': 'In-Process Control',
-      'finished': 'Finished Product',
-      'stability': 'Stability Test',
-      'release': 'Release Test',
+      'incoming': 'การตรวจสอบขาเข้า',
+      'in_process': 'การควบคุมระหว่างกระบวนการ',
+      'finished': 'ผลิตภัณฑ์สำเร็จรูป',
+      'stability': 'การทดสอบความคงตัว',
+      'release': 'การทดสอบเพื่อปล่อยจำหน่าย',
     };
     return labels[type] || type;
   };
@@ -269,7 +269,7 @@ export default function QualityTestDetailPage() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Quality Test not found</p>
+        <p className="text-gray-500">ไม่พบการทดสอบคุณภาพ</p>
         <DxButton
           text={t('page.title')}
           type="normal"
@@ -290,7 +290,7 @@ export default function QualityTestDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="Back"
+                text="กลับ"
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -311,7 +311,7 @@ export default function QualityTestDetailPage() {
           <div className="flex gap-2">
             {test.status === 'pending' && !isEditing && (
               <DxButton
-                text="Enter Result"
+                text="กรอกผลลัพธ์"
                 type="default"
                 onClick={() => setIsEditing(true)}
               />
@@ -319,13 +319,13 @@ export default function QualityTestDetailPage() {
             {isEditing && (
               <>
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setIsEditing(false)}
                 />
                 <DxButton
-                  text={isSaving ? 'Saving...' : 'Save Result'}
+                  text={isSaving ? 'กำลังบันทึก...' : 'บันทึกผลลัพธ์'}
                   type="success"
                   onClick={handleSubmitResult}
                   disabled={isSaving}
@@ -333,7 +333,7 @@ export default function QualityTestDetailPage() {
               </>
             )}
             <DxButton
-              text="Print Report"
+              text="พิมพ์รายงาน"
               icon="print"
               type="normal"
               stylingMode="outlined"
@@ -347,7 +347,7 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Status</p>
+                <p className="text-sm text-gray-600">สถานะ</p>
                 <Badge variant={getStatusVariant(test.status)} className="text-lg mt-1">
                   {test.status}
                 </Badge>
@@ -357,13 +357,13 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Result</p>
+                <p className="text-sm text-gray-600">ผลลัพธ์</p>
                 {test.result ? (
                   <Badge variant={getStatusVariant(test.result)} className="text-lg mt-1">
                     {test.result.toUpperCase()}
                   </Badge>
                 ) : (
-                  <p className="text-lg font-bold text-gray-400 mt-1">Pending</p>
+                  <p className="text-lg font-bold text-gray-400 mt-1">รอดำเนินการ</p>
                 )}
               </div>
             </CardContent>
@@ -371,7 +371,7 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Actual Value</p>
+                <p className="text-sm text-gray-600">ค่าที่วัดได้</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {test.actualValue || '-'}
                 </p>
@@ -382,13 +382,13 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Spec Compliance</p>
+                <p className="text-sm text-gray-600">ความสอดคล้องกับข้อกำหนด</p>
                 {analysis.specCompliance ? (
                   <Badge variant={getStatusVariant(analysis.specCompliance)} className="text-lg mt-1">
-                    {analysis.isWithinSpec ? 'Within Spec' : 'Out of Spec'}
+                    {analysis.isWithinSpec ? 'อยู่ในข้อกำหนด' : 'นอกข้อกำหนด'}
                   </Badge>
                 ) : (
-                  <p className="text-lg font-bold text-gray-400 mt-1">N/A</p>
+                  <p className="text-lg font-bold text-gray-400 mt-1">ไม่มีข้อมูล</p>
                 )}
               </div>
             </CardContent>
@@ -399,30 +399,30 @@ export default function QualityTestDetailPage() {
           {/* Test Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Test Information</CardTitle>
+              <CardTitle>ข้อมูลการทดสอบ</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-gray-500">Test Code</dt>
+                  <dt className="text-sm text-gray-500">รหัสการทดสอบ</dt>
                   <dd className="font-medium">{test.testCode}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Test Type</dt>
+                  <dt className="text-sm text-gray-500">ประเภทการทดสอบ</dt>
                   <dd className="font-medium">{getTestTypeLabel(test.testType)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Tested By</dt>
+                  <dt className="text-sm text-gray-500">ทดสอบโดย</dt>
                   <dd className="font-medium">{tester?.name || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Tested At</dt>
+                  <dt className="text-sm text-gray-500">วันที่ทดสอบ</dt>
                   <dd className="font-medium">
                     {test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}
                   </dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-sm text-gray-500">Notes</dt>
+                  <dt className="text-sm text-gray-500">หมายเหตุ</dt>
                   <dd className="font-medium">{test.notes || '-'}</dd>
                 </div>
               </dl>
@@ -432,48 +432,48 @@ export default function QualityTestDetailPage() {
           {/* Specification */}
           <Card>
             <CardHeader>
-              <CardTitle>Specification</CardTitle>
+              <CardTitle>ข้อกำหนด</CardTitle>
             </CardHeader>
             <CardContent>
               {specification ? (
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Spec Code</dt>
+                    <dt className="text-sm text-gray-500">รหัสข้อกำหนด</dt>
                     <dd className="font-medium">{specification.specCode}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Parameter</dt>
+                    <dt className="text-sm text-gray-500">พารามิเตอร์</dt>
                     <dd className="font-medium">{specification.parameter}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Method</dt>
+                    <dt className="text-sm text-gray-500">วิธี</dt>
                     <dd className="font-medium">{specification.method || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Unit</dt>
+                    <dt className="text-sm text-gray-500">หน่วย</dt>
                     <dd className="font-medium">{specification.unit || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Min Value</dt>
+                    <dt className="text-sm text-gray-500">ค่าต่ำสุด</dt>
                     <dd className="font-medium">{specification.minValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Max Value</dt>
+                    <dt className="text-sm text-gray-500">ค่าสูงสุด</dt>
                     <dd className="font-medium">{specification.maxValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Target Value</dt>
+                    <dt className="text-sm text-gray-500">ค่าเป้าหมาย</dt>
                     <dd className="font-medium">{specification.targetValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Actual Value</dt>
+                    <dt className="text-sm text-gray-500">ค่าที่วัดได้</dt>
                     <dd className={`font-medium ${analysis.isWithinSpec ? 'text-green-600' : 'text-red-600'}`}>
                       {test.actualValue || '-'}
                     </dd>
                   </div>
                 </dl>
               ) : (
-                <p className="text-gray-500">No specification linked</p>
+                <p className="text-gray-500">ไม่มีข้อกำหนดที่เชื่อมโยง</p>
               )}
             </CardContent>
           </Card>
@@ -481,18 +481,18 @@ export default function QualityTestDetailPage() {
           {/* Sample Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Sample Information</CardTitle>
+              <CardTitle>ข้อมูลตัวอย่าง</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 {item && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">Item Code</dt>
+                      <dt className="text-sm text-gray-500">รหัสรายการ</dt>
                       <dd className="font-medium">{item.code}</dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">Item Name</dt>
+                      <dt className="text-sm text-gray-500">ชื่อรายการ</dt>
                       <dd className="font-medium">{item.nameTh}</dd>
                     </div>
                   </>
@@ -500,17 +500,17 @@ export default function QualityTestDetailPage() {
                 {lot && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">Lot Number</dt>
+                      <dt className="text-sm text-gray-500">หมายเลขล็อต</dt>
                       <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/inventory/lots/${lot.id}`)}>
                         {lot.lotNumber}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">Lot Status</dt>
+                      <dt className="text-sm text-gray-500">สถานะล็อต</dt>
                       <dd><Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge></dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">Expiry Date</dt>
+                      <dt className="text-sm text-gray-500">วันหมดอายุ</dt>
                       <dd className="font-medium">
                         {lot.expiryDate ? new Date(lot.expiryDate).toLocaleDateString('th-TH') : '-'}
                       </dd>
@@ -520,13 +520,13 @@ export default function QualityTestDetailPage() {
                 {workOrder && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">Work Order</dt>
+                      <dt className="text-sm text-gray-500">ใบสั่งผลิต</dt>
                       <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/production/work-orders/${workOrder.id}`)}>
                         {workOrder.woNumber}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">Batch Number</dt>
+                      <dt className="text-sm text-gray-500">หมายเลขแบทช์</dt>
                       <dd className="font-medium">{workOrder.batchNumber || '-'}</dd>
                     </div>
                   </>
@@ -539,22 +539,22 @@ export default function QualityTestDetailPage() {
           {isEditing && (
             <Card>
               <CardHeader>
-                <CardTitle>Enter Test Result</CardTitle>
+                <CardTitle>กรอกผลการทดสอบ</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Actual Value {specification?.unit && `(${specification.unit})`}
+                      ค่าที่วัดได้ {specification?.unit && `(${specification.unit})`}
                     </label>
                     <DxTextBox
                       value={editForm.actualValue}
                       onValueChange={(value) => setEditForm({ ...editForm, actualValue: value })}
-                      placeholder={specification ? `Range: ${specification.minValue || '-'} to ${specification.maxValue || '-'}` : 'Enter value'}
+                      placeholder={specification ? `ช่วง: ${specification.minValue || '-'} ถึง ${specification.maxValue || '-'}` : 'กรอกค่า'}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Result</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ผลลัพธ์</label>
                     <DxSelectBox
                       items={resultOptions}
                       value={editForm.result}
@@ -564,11 +564,11 @@ export default function QualityTestDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                     <DxTextArea
                       value={editForm.notes}
                       onValueChange={(value) => setEditForm({ ...editForm, notes: value })}
-                      placeholder="Enter any observations or notes"
+                      placeholder="กรอกข้อสังเกตหรือหมายเหตุ"
                       height={80}
                     />
                   </div>

@@ -26,12 +26,12 @@ interface ProductionRoom {
 // Each room type gets a DISTINCT colour so the Type column isn't a wall of
 // identical green badges. Hues kept within a warm/cool spread for legibility.
 const roomTypes = [
-  { value: 'weighing', label: 'Weighing Room', badge: 'bg-emerald-100 text-emerald-800' },
-  { value: 'mixing', label: 'Mixing Room', badge: 'bg-blue-100 text-blue-800' },
-  { value: 'packaging', label: 'Packaging Room', badge: 'bg-purple-100 text-purple-800' },
-  { value: 'storage', label: 'Storage Area', badge: 'bg-amber-100 text-amber-800' },
-  { value: 'preparation', label: 'Preparation Room', badge: 'bg-cyan-100 text-cyan-800' },
-  { value: 'production', label: 'Production Room', badge: 'bg-rose-100 text-rose-800' },
+  { value: 'weighing', label: 'ห้องชั่ง', badge: 'bg-emerald-100 text-emerald-800' },
+  { value: 'mixing', label: 'ห้องผสม', badge: 'bg-blue-100 text-blue-800' },
+  { value: 'packaging', label: 'ห้องบรรจุ', badge: 'bg-purple-100 text-purple-800' },
+  { value: 'storage', label: 'พื้นที่จัดเก็บ', badge: 'bg-amber-100 text-amber-800' },
+  { value: 'preparation', label: 'ห้องเตรียม', badge: 'bg-cyan-100 text-cyan-800' },
+  { value: 'production', label: 'ห้องผลิต', badge: 'bg-rose-100 text-rose-800' },
 ];
 
 export default function ProductionRoomsPage() {
@@ -61,7 +61,7 @@ export default function ProductionRoomsPage() {
       toast.success('ลบสำเร็จ', 'ลบห้องผลิตเรียบร้อย');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('ผิดพลาด', error.message);
     },
   });
 
@@ -78,19 +78,19 @@ export default function ProductionRoomsPage() {
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       <ResponsivePageHeader
-        title="Production Rooms"
-        subtitle="Manage production rooms and areas for GMP compliance"
+        title="ห้องผลิต"
+        subtitle="จัดการห้องและพื้นที่การผลิตเพื่อให้สอดคล้องกับ GMP"
         icon={Building2}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'Production Rooms' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'ห้องผลิต' },
         ]}
         actions={
           <DxButton
-            text="Add Room"
+            text="เพิ่มห้อง"
             icon="plus"
             type="success"
             onClick={() => router.push('/master-data/production-rooms/new')}
@@ -109,44 +109,44 @@ export default function ProductionRoomsPage() {
           width="100%"
           columnAutoWidth
         >
-          <DxSearchPanel visible placeholder="Search rooms..." width={200} />
+          <DxSearchPanel visible placeholder="ค้นหาห้อง..." width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={60} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn dataField="code" caption="Code" width={160} cellRender={(cell) => (
+          <DxColumn dataField="code" caption="รหัส" width={160} cellRender={(cell) => (
             <span className="font-mono font-medium text-emerald-700 whitespace-nowrap">{cell.value}</span>
           )} />
-          <DxColumn dataField="name" caption="Name (EN)" minWidth={150} />
-          <DxColumn dataField="nameTh" caption="Name (TH)" minWidth={150} />
-          <DxColumn dataField="roomType" caption="Type" minWidth={170} cellRender={(cell) => renderRoomTypeBadge(cell.value)} />
-          <DxColumn dataField="description" caption="Description" minWidth={200} />
-          <DxColumn dataField="isActive" caption="Status" width={100} cellRender={(cell) => (
+          <DxColumn dataField="name" caption="ชื่อ (EN)" minWidth={150} />
+          <DxColumn dataField="nameTh" caption="ชื่อ (TH)" minWidth={150} />
+          <DxColumn dataField="roomType" caption="ประเภท" minWidth={170} cellRender={(cell) => renderRoomTypeBadge(cell.value)} />
+          <DxColumn dataField="description" caption="รายละเอียด" minWidth={200} />
+          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
             <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'Active' : 'Inactive'}
+              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
             </span>
           )} />
-          <DxColumn caption="Actions" width={120} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
             <div className="flex gap-1">
               <button
                 onClick={() => router.push(`/master-data/production-rooms/${(cell.data as ProductionRoom).id}`)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                title="View"
+                title="ดู"
               >
                 <Eye className="h-4 w-4" />
               </button>
               <button
                 onClick={() => router.push(`/master-data/production-rooms/${(cell.data as ProductionRoom).id}`)}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="Edit"
+                title="แก้ไข"
               >
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => { if (confirm(`ต้องการลบ ${(cell.data as ProductionRoom).name} หรือไม่?`)) deleteMutation.mutate((cell.data as ProductionRoom).id); }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Delete"
+                title="ลบ"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

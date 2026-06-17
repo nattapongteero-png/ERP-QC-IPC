@@ -110,19 +110,19 @@ function statusBadge(status: string): {
 } {
   switch (status) {
     case 'registered':
-      return { variant: 'info', label: 'Registered' };
+      return { variant: 'info', label: 'ลงทะเบียน' };
     case 'testing':
-      return { variant: 'warning', label: 'Testing' };
+      return { variant: 'warning', label: 'กำลังทดสอบ' };
     case 'reviewed':
-      return { variant: 'info', label: 'Reviewed' };
+      return { variant: 'info', label: 'ทบทวนแล้ว' };
     case 'approved':
-      return { variant: 'success', label: 'Approved' };
+      return { variant: 'success', label: 'อนุมัติ' };
     case 'released':
-      return { variant: 'success', label: 'Released' };
+      return { variant: 'success', label: 'ปล่อยใช้งาน' };
     case 'rejected':
-      return { variant: 'danger', label: 'Rejected' };
+      return { variant: 'danger', label: 'ปฏิเสธ' };
     case 'quarantine':
-      return { variant: 'warning', label: 'Quarantine' };
+      return { variant: 'warning', label: 'กักกัน' };
     case 'oos':
       return { variant: 'danger', label: 'OOS' };
     default:
@@ -232,7 +232,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'sampleNumber',
-      caption: 'Sample #',
+      caption: 'เลขที่ตัวอย่าง',
       width: 170,
       cellRender: (cell) => (
         <span className="font-mono font-semibold text-gray-900">{cell.data.sampleNumber}</span>
@@ -257,7 +257,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'lotNumber',
-      caption: 'Lot #',
+      caption: 'เลขที่ล็อต',
       width: 140,
       cellRender: (cell) =>
         cell.data.lotNumber ? (
@@ -268,7 +268,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'sourceType',
-      caption: 'Source',
+      caption: 'แหล่งที่มา',
       width: 150,
       hideOnMobile: true,
       cellRender: (cell) => {
@@ -287,7 +287,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'testCounts',
-      caption: 'Tests',
+      caption: 'การทดสอบ',
       width: 130,
       alignment: 'center',
       cellRender: (cell) => {
@@ -299,10 +299,10 @@ export default function QcEntryListPage() {
               {done}/{c.total}
             </span>
             {c.fail > 0 && (
-              <span className="ml-2 text-red-600 font-medium">{c.fail} fail</span>
+              <span className="ml-2 text-red-600 font-medium">{c.fail} ไม่ผ่าน</span>
             )}
             {c.pending > 0 && (
-              <span className="ml-2 text-amber-600">{c.pending} pending</span>
+              <span className="ml-2 text-amber-600">{c.pending} รอ</span>
             )}
           </div>
         );
@@ -331,7 +331,7 @@ export default function QcEntryListPage() {
         return (
           <div className="flex justify-center gap-1">
             <DxButton
-              text="View"
+              text="ดู"
               stylingMode="outlined"
               type="default"
               onClick={() => router.push(`/quality/qc-entry/${sampleId}`)}
@@ -386,14 +386,14 @@ export default function QcEntryListPage() {
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
           breadcrumbs={[
-            { label: 'Quality', href: '/quality' },
+            { label: 'คุณภาพ', href: '/quality' },
             { label: 'QC Entry' },
           ]}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
-                text="Refresh"
+                text="รีเฟรช"
                 stylingMode="outlined"
                 onClick={() => {
                   void fetchSamples();

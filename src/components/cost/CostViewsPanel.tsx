@@ -101,7 +101,7 @@ export function CostViewsPanel({
   if (error) {
     return (
       <div className={`p-4 bg-white rounded-lg shadow ${className}`}>
-        <div className="text-red-500">Failed to load cost views</div>
+        <div className="text-red-500">ไม่สามารถโหลดมุมมองต้นทุนได้</div>
       </div>
     );
   }
@@ -109,45 +109,45 @@ export function CostViewsPanel({
   if (!costViews) {
     return (
       <div className={`p-4 bg-white rounded-lg shadow ${className}`}>
-        <div className="text-gray-500">No cost data available</div>
+        <div className="text-gray-500">ไม่มีข้อมูลต้นทุน</div>
       </div>
     );
   }
 
   const costCards = [
     {
-      label: 'Weighted Avg Cost (WAC)',
+      label: 'ต้นทุนเฉลี่ยถ่วงน้ำหนัก (WAC)',
       value: costViews.inventoryCost,
-      description: 'Calculated from all receipts',
+      description: 'คำนวณจากการรับเข้าทั้งหมด',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
       isPrimary: true,
     },
     {
-      label: 'Standard Cost',
+      label: 'ต้นทุนมาตรฐาน',
       value: costViews.standardCost,
-      description: 'Predefined standard',
+      description: 'มาตรฐานที่กำหนดไว้ล่วงหน้า',
       bgColor: 'bg-gray-50',
       borderColor: 'border-gray-200',
     },
     {
-      label: 'Last Purchase',
+      label: 'ซื้อครั้งล่าสุด',
       value: costViews.lastPurchaseCost,
-      description: costViews.lastPurchaseDate ? formatDate(costViews.lastPurchaseDate) : 'Never',
+      description: costViews.lastPurchaseDate ? formatDate(costViews.lastPurchaseDate) : 'ไม่เคย',
       bgColor: 'bg-green-50',
       borderColor: 'border-green-200',
     },
     {
-      label: 'Last Production',
+      label: 'ผลิตครั้งล่าสุด',
       value: costViews.lastProductionCost,
-      description: costViews.lastProductionDate ? formatDate(costViews.lastProductionDate) : 'Never',
+      description: costViews.lastProductionDate ? formatDate(costViews.lastProductionDate) : 'ไม่เคย',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-200',
     },
     {
-      label: 'Full Absorption Cost',
+      label: 'ต้นทุนเต็มรูปแบบ',
       value: costViews.fullCost,
-      description: 'WAC + SG&A allocation',
+      description: 'WAC + การปันส่วน SG&A',
       bgColor: 'bg-orange-50',
       borderColor: 'border-orange-200',
     },
@@ -155,7 +155,7 @@ export function CostViewsPanel({
 
   return (
     <div className={`p-4 bg-white rounded-lg shadow ${className}`} data-testid="cost-views-panel">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Cost Views</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">มุมมองต้นทุน</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {costCards.map((card) => (
           <div
@@ -177,12 +177,12 @@ export function CostViewsPanel({
         <div className="mt-6 pt-4 border-t border-gray-200" data-testid="suggested-price-section">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-5 w-5 text-teal-600" />
-            <h4 className="text-md font-semibold text-gray-700">Suggested Selling Price</h4>
+            <h4 className="text-md font-semibold text-gray-700">ราคาขายที่แนะนำ</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             {/* Margin Input */}
             <div data-testid="margin-input-container">
-              <label className="block text-sm text-gray-600 mb-1">Target Margin %</label>
+              <label className="block text-sm text-gray-600 mb-1">อัตรากำไรเป้าหมาย %</label>
               <NumberBox
                 value={marginPercent}
                 onValueChanged={(e) => setMarginPercent(e.value ?? 30)}
@@ -195,27 +195,27 @@ export function CostViewsPanel({
             </div>
             {/* Full Cost */}
             <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="text-sm text-gray-600">Full Absorption Cost</div>
+              <div className="text-sm text-gray-600">ต้นทุนเต็มรูปแบบ</div>
               <div className="text-lg font-bold text-orange-700">{formatCurrency(costViews.fullCost)}</div>
             </div>
             {/* Suggested Price */}
             <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
               <div className="text-sm text-gray-600 flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                Suggested Price
+                ราคาที่แนะนำ
               </div>
               <div className="text-xl font-bold text-teal-700" data-testid="suggested-price-value">
                 {formatCurrency(suggestedPrice)}
               </div>
-              <div className="text-xs text-gray-500">at {marginPercent}% margin</div>
+              <div className="text-xs text-gray-500">ที่อัตรากำไร {marginPercent}%</div>
             </div>
           </div>
         </div>
       )}
 
       <div className="mt-4 text-xs text-gray-400">
-        On Hand: {costViews.onHand?.toLocaleString() || 0} units |
-        Total Value: {formatCurrency(costViews.onHandValue)}
+        คงเหลือ: {costViews.onHand?.toLocaleString() || 0} หน่วย |
+        มูลค่ารวม: {formatCurrency(costViews.onHandValue)}
       </div>
     </div>
   );

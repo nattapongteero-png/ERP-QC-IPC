@@ -144,17 +144,17 @@ export function VmiOrdersGrid({
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'portalOrderId',
-      caption: 'Portal Order ID',
+      caption: 'รหัสคำสั่งซื้อพอร์ทัล',
       width: 140,
     },
     {
       dataField: 'portalName',
-      caption: 'Portal',
+      caption: 'พอร์ทัล',
       width: 120,
     },
     {
       dataField: 'orderDate',
-      caption: 'Order Date',
+      caption: 'วันที่สั่งซื้อ',
       dataType: 'date',
       width: 110,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -164,12 +164,12 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'customerName',
-      caption: 'Customer',
+      caption: 'ลูกค้า',
       width: 180,
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 100,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const statusColors: Record<string, string> = {
@@ -181,12 +181,12 @@ export function VmiOrdersGrid({
           cancelled: 'bg-red-50 text-red-700',
         };
         const statusLabels: Record<string, string> = {
-          pending: 'Pending',
-          confirmed: 'Confirmed',
-          processing: 'Processing',
-          shipped: 'Shipped',
-          delivered: 'Delivered',
-          cancelled: 'Cancelled',
+          pending: 'รอดำเนินการ',
+          confirmed: 'ยืนยันแล้ว',
+          processing: 'กำลังดำเนินการ',
+          shipped: 'จัดส่งแล้ว',
+          delivered: 'ส่งถึงแล้ว',
+          cancelled: 'ยกเลิก',
         };
         const st = cellInfo.value as string;
         return (
@@ -198,7 +198,7 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'priority',
-      caption: 'Priority',
+      caption: 'ความสำคัญ',
       width: 90,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const priorityColors: Record<string, string> = {
@@ -213,13 +213,13 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'totalItems',
-      caption: 'Items',
+      caption: 'รายการ',
       width: 70,
       alignment: 'center',
     },
     {
       dataField: 'matchedItems',
-      caption: 'Match Status',
+      caption: 'สถานะการจับคู่',
       width: 100,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const rowData = cellInfo.data as VmiOrder;
@@ -235,7 +235,7 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'totalAmount',
-      caption: 'Amount',
+      caption: 'จำนวนเงิน',
       width: 100,
       dataType: 'number',
       format: { type: 'fixedPoint', precision: 2 },
@@ -246,7 +246,7 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'requestedDeliveryDate',
-      caption: 'Requested Delivery',
+      caption: 'วันที่ขอจัดส่ง',
       width: 130,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
@@ -254,21 +254,21 @@ export function VmiOrdersGrid({
       },
     },
     {
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 150,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const order = cellInfo.data as VmiOrder;
         return (
           <div className="flex gap-1">
             <DxButton
-              text="View"
+              text="ดู"
               type="normal"
               stylingMode="text"
               onClick={() => onOrderSelect?.(order)}
             />
             {order.status === 'pending' && order.matchedItems === order.totalItems && (
               <DxButton
-                text="Confirm"
+                text="ยืนยัน"
                 type="success"
                 stylingMode="text"
                 onClick={() => onOrderConfirm?.(order.id)}
@@ -276,7 +276,7 @@ export function VmiOrdersGrid({
             )}
             {(order.status === 'confirmed' || order.status === 'processing') && (
               <DxButton
-                text="Ship"
+                text="จัดส่ง"
                 type="default"
                 stylingMode="text"
                 onClick={() => onOrderShip?.(order.id)}
@@ -294,7 +294,7 @@ export function VmiOrdersGrid({
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
           <DxButton
-            text={pollMutation.isPending ? 'Polling...' : 'Poll for Orders'}
+            text={pollMutation.isPending ? 'กำลังดึงข้อมูล...' : 'ดึงคำสั่งซื้อ'}
             icon={pollMutation.isPending ? undefined : 'refresh'}
             type="default"
             onClick={() => pollMutation.mutate()}
@@ -307,14 +307,14 @@ export function VmiOrdersGrid({
           icon="refresh"
           type="normal"
           onClick={() => refetch()}
-          hint="Refresh"
+          hint="รีเฟรช"
         />
       </div>
 
       {/* Error display */}
       {error && (
         <div className="p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">
-          {error instanceof Error ? error.message : 'Failed to load orders'}
+          {error instanceof Error ? error.message : 'โหลดคำสั่งซื้อไม่สำเร็จ'}
         </div>
       )}
 
@@ -330,7 +330,7 @@ export function VmiOrdersGrid({
         sorting
         filterRow
         columnChooser
-        noDataText="No VMI orders found"
+        noDataText="ไม่พบคำสั่งซื้อ VMI"
         onRowClick={(e) => {
           if (e.data && onOrderSelect) {
             onOrderSelect(e.data as VmiOrder);

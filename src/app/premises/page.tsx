@@ -27,7 +27,7 @@ const cards = [
     icon: Thermometer,
     iconBg: 'bg-blue-100',
     iconColor: 'text-blue-600',
-    titleTh: 'Storage Monitoring',
+    titleTh: 'ติดตามสภาพคลังจัดเก็บ',
     titleEn: 'Storage Monitoring',
     desc: 'ติดตามอุณหภูมิ/ความชื้นของคลังจัดเก็บตามเวลา',
   },

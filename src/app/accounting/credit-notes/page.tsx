@@ -117,7 +117,7 @@ export default function CreditNotesPage() {
       <div className="flex gap-1">
         <Button
           icon="search"
-          hint="View"
+          hint="ดู"
           stylingMode="text"
           onClick={() => handleViewNote(note.id)}
         />
@@ -140,7 +140,7 @@ export default function CreditNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            Manage credit notes for customers and vendors
+            จัดการใบลดหนี้สำหรับลูกค้าและผู้ขาย
           </p>
         </div>
 
@@ -148,25 +148,25 @@ export default function CreditNotesPage() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
-              <div className="text-sm text-gray-500">Draft Notes</div>
+              <div className="text-sm text-gray-500">ใบร่าง</div>
               <div className="text-2xl font-bold text-gray-900">
                 {summary.draftCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">Pending Approval</div>
+              <div className="text-sm text-gray-500">รออนุมัติ</div>
               <div className="text-2xl font-bold text-yellow-600">
                 {summary.pendingApprovalCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">Posted This Month</div>
+              <div className="text-sm text-gray-500">ลงบัญชีเดือนนี้</div>
               <div className="text-2xl font-bold text-green-600">
                 {summary.postedThisMonth}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">Total Credited (Month)</div>
+              <div className="text-sm text-gray-500">ยอดลดหนี้รวม (เดือนนี้)</div>
               <div className="text-2xl font-bold text-blue-600">
                 {summary.totalCreditedThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
               </div>
@@ -185,17 +185,17 @@ export default function CreditNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="Search credit notes..." />
+            <SearchPanel visible={true} placeholder="ค้นหาใบลดหนี้..." />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Credit Notes</span>
+                <span className="text-lg font-medium">ใบลดหนี้</span>
               </Item>
               <Item location="before">
                 <SelectBox
                   items={[
-                    { id: 'ar_credit', text: 'AR Credit Notes' },
-                    { id: 'ap_credit', text: 'AP Credit Notes' },
+                    { id: 'ar_credit', text: 'ใบลดหนี้ลูกหนี้' },
+                    { id: 'ap_credit', text: 'ใบลดหนี้เจ้าหนี้' },
                   ]}
                   displayExpr="text"
                   valueExpr="id"
@@ -206,7 +206,7 @@ export default function CreditNotesPage() {
               </Item>
               <Item location="after">
                 <Button
-                  text="New Credit Note"
+                  text="สร้างใบลดหนี้"
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -218,55 +218,55 @@ export default function CreditNotesPage() {
 
             <Column
               dataField="noteNumber"
-              caption="Note #"
+              caption="เลขที่ใบ"
               width={160}
             />
             <Column
               dataField="noteType"
-              caption="Type"
+              caption="ประเภท"
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="Date"
+              caption="วันที่"
               dataType="date"
               width={100}
               cellRender={formatDate}
             />
             <Column
               dataField="customerName"
-              caption="Customer"
+              caption="ลูกค้า"
               minWidth={150}
               visible={noteTypeFilter === 'ar_credit'}
             />
             <Column
               dataField="vendorName"
-              caption="Vendor"
+              caption="ผู้ขาย"
               minWidth={150}
               visible={noteTypeFilter === 'ap_credit'}
             />
             <Column
               dataField="referenceInvoiceNumber"
-              caption="Invoice Ref"
+              caption="อ้างอิงใบแจ้งหนี้"
               width={140}
             />
             <Column
               dataField="totalAmount"
-              caption="Amount"
+              caption="จำนวนเงิน"
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption="สถานะ"
               width={110}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="Actions"
+              caption="การดำเนินการ"
               width={80}
               alignment="center"
               cellRender={renderActions}

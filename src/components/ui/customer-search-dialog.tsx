@@ -212,14 +212,14 @@ export function CustomerSearchDialog({
           {title}
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Search by customer code, name, email, or phone
+          ค้นหาด้วยรหัสลูกค้า ชื่อ อีเมล หรือเบอร์โทร
         </p>
       </div>
 
       {/* Search Input */}
       <div className="py-4 border-b -mx-4 px-4 bg-white" data-testid="customer-search-container">
         <DxTextBox
-          placeholder="Search customers..."
+          placeholder="ค้นหาลูกค้า..."
           value={search}
           onValueChange={setSearch}
           mode="search"
@@ -233,7 +233,7 @@ export function CustomerSearchDialog({
         {isSearching ? (
           <div className="flex flex-col items-center justify-center py-12">
             <DxLoadIndicator />
-            <p className="text-gray-500 mt-4">Searching customers...</p>
+            <p className="text-gray-500 mt-4">กำลังค้นหาลูกค้า...</p>
           </div>
         ) : results.length > 0 ? (
           <div className="space-y-2">
@@ -263,7 +263,7 @@ export function CustomerSearchDialog({
                         </Badge>
                         {!customer.isActive && (
                           <Badge variant="danger" className="text-xs">
-                            Inactive
+                            ไม่ใช้งาน
                           </Badge>
                         )}
                       </div>
@@ -297,7 +297,7 @@ export function CustomerSearchDialog({
                         {customer.taxId && (
                           <div className="flex items-center gap-1">
                             <FileText className="h-3.5 w-3.5" />
-                            <span>Tax ID: {customer.taxId}</span>
+                            <span>เลขประจำตัวผู้เสียภาษี: {customer.taxId}</span>
                           </div>
                         )}
                         {customer.address && (
@@ -315,21 +315,21 @@ export function CustomerSearchDialog({
                         <div className="text-right">
                           <div className="flex items-center gap-1 text-gray-600">
                             <CreditCard className="h-3.5 w-3.5" />
-                            <span className="text-sm">Credit Limit</span>
+                            <span className="text-sm">วงเงินเครดิต</span>
                           </div>
                           <p className="font-semibold text-emerald-600">
                             {formatCurrency(customer.creditLimit)}
                           </p>
                           {customer.creditTermDays && (
                             <p className="text-xs text-gray-500">
-                              {customer.creditTermDays} days term
+                              เครดิต {customer.creditTermDays} วัน
                             </p>
                           )}
                         </div>
                       )}
 
                       <DxButton
-                        text="Select"
+                        text="เลือก"
                         type="default"
                         onClick={(e) => { e?.event?.stopPropagation(); handleSelect(customer); }}
                       />
@@ -342,23 +342,23 @@ export function CustomerSearchDialog({
         ) : hasSearched ? (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <Users className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2">No customers found</p>
+            <p className="text-lg font-medium mb-2">ไม่พบลูกค้า</p>
             {search ? (
               <p className="text-sm text-gray-400 mb-4">
-                No results for &quot;{search}&quot;
+                ไม่พบผลลัพธ์สำหรับ &quot;{search}&quot;
               </p>
             ) : (
               <p className="text-sm text-gray-400 mb-4">
-                No customers available in the system
+                ไม่มีลูกค้าในระบบ
               </p>
             )}
             {search && (
               <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 max-w-md">
-                <p className="font-medium mb-2">Search tips:</p>
+                <p className="font-medium mb-2">คำแนะนำการค้นหา:</p>
                 <ul className="list-disc list-inside space-y-1 text-gray-400">
-                  <li>Try searching by customer code (e.g., &quot;CUS001&quot;)</li>
-                  <li>Search by company name or contact person</li>
-                  <li>Try phone number or email</li>
+                  <li>ลองค้นหาด้วยรหัสลูกค้า (เช่น &quot;CUS001&quot;)</li>
+                  <li>ค้นหาด้วยชื่อบริษัทหรือผู้ติดต่อ</li>
+                  <li>ลองใช้เบอร์โทรหรืออีเมล</li>
                 </ul>
               </div>
             )}
@@ -366,7 +366,7 @@ export function CustomerSearchDialog({
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <Search className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium mb-2">Loading customers...</p>
+            <p className="text-lg font-medium mb-2">กำลังโหลดลูกค้า...</p>
           </div>
         )}
       </div>
@@ -376,12 +376,12 @@ export function CustomerSearchDialog({
         <div className="flex items-center gap-4">
           {results.length > 0 ? (
             <div className="text-sm text-gray-500">
-              <span className="font-medium text-gray-700">{results.length}</span> customer{results.length !== 1 ? 's' : ''} found
+              พบ <span className="font-medium text-gray-700">{results.length}</span> ลูกค้า
             </div>
           ) : (
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <Keyboard className="h-4 w-4" />
-              <span>Use keyboard shortcuts for faster navigation</span>
+              <span>ใช้แป้นพิมพ์ลัดเพื่อการนำทางที่รวดเร็วขึ้น</span>
             </div>
           )}
         </div>
@@ -396,19 +396,19 @@ export function CustomerSearchDialog({
               <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
                 <ArrowDown className="h-3 w-3 inline" />
               </kbd>
-              <span className="ml-1">Navigate</span>
+              <span className="ml-1">เลื่อน</span>
             </div>
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">
                 <CornerDownLeft className="h-3 w-3 inline" />
               </kbd>
-              <span className="ml-1">Select</span>
+              <span className="ml-1">เลือก</span>
             </div>
           </div>
 
           {/* Close Button */}
           <DxButton
-            text="Close"
+            text="ปิด"
             icon="close"
             type="normal"
             stylingMode="outlined"

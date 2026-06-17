@@ -68,10 +68,10 @@ const AREA_COLORS: Record<AreaType, string> = {
 };
 
 const AREA_LABELS: Record<AreaType, string> = {
-  production: 'Production',
-  warehouse: 'Warehouse',
-  lab: 'Laboratory',
-  office: 'Office',
+  production: 'พื้นที่ผลิต',
+  warehouse: 'คลังจัดเก็บ',
+  lab: 'ห้องปฏิบัติการ',
+  office: 'สำนักงาน',
 };
 
 const AREA_ICONS: Record<AreaType, typeof Beaker> = {
@@ -198,12 +198,12 @@ export default function SanitationDashboardPage() {
     },
     {
       dataField: 'scheduleName',
-      caption: 'Task',
+      caption: 'งาน',
       minWidth: 200,
     },
     {
       dataField: 'areaType',
-      caption: 'Area',
+      caption: 'พื้นที่',
       width: 140,
       cellRender: (cellData: { value?: AreaType }) => {
         const areaType = cellData.value || 'production';
@@ -221,7 +221,7 @@ export default function SanitationDashboardPage() {
     },
     {
       dataField: 'frequency',
-      caption: 'Frequency',
+      caption: 'ความถี่',
       width: 110,
       cellRender: (cellData: { value?: string }) => (
         <span className="capitalize">{cellData.value || '-'}</span>
@@ -229,20 +229,20 @@ export default function SanitationDashboardPage() {
     },
     {
       dataField: 'dueDate',
-      caption: 'Due Date',
+      caption: 'กำหนดส่ง',
       width: 130,
       dataType: 'date',
     },
     {
       dataField: 'isOverdue',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 130,
       cellRender: (cellData: { data?: PendingTask }) => {
         if (!cellData.data) return null;
         if (cellData.data.isOverdue) {
           return (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-              {cellData.data.daysOverdue}d overdue
+              เกินกำหนด {cellData.data.daysOverdue} วัน
             </span>
           );
         }
@@ -683,7 +683,7 @@ export default function SanitationDashboardPage() {
               showBorders={false}
               rowAlternationEnabled
               height="auto"
-              noDataText="No pending tasks"
+              noDataText="ไม่มีงานค้าง"
             />
           </div>
         )}
@@ -770,11 +770,11 @@ function TaskCardList({
                   </p>
                   {task.isOverdue ? (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 whitespace-nowrap">
-                      {task.daysOverdue}d overdue
+                      เกินกำหนด {task.daysOverdue} วัน
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
-                      Upcoming
+                      ใกล้ถึงกำหนด
                     </span>
                   )}
                 </div>
@@ -806,7 +806,7 @@ function TaskCardList({
                 className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <FileCheck className="h-4 w-4" />
-                <span>Record Log</span>
+                <span>บันทึกผล</span>
               </button>
             </div>
           </div>
@@ -902,9 +902,9 @@ function AllCaughtUpState() {
       <div className="p-3 bg-green-100 rounded-full w-14 h-14 mx-auto mb-4 flex items-center justify-center">
         <CheckCircle className="h-7 w-7 text-green-600" />
       </div>
-      <h3 className="font-semibold text-green-800 mb-1">All Caught Up!</h3>
+      <h3 className="font-semibold text-green-800 mb-1">ไม่มีงานค้าง!</h3>
       <p className="text-sm text-green-700 max-w-sm">
-        No pending sanitation tasks for the next 14 days.
+        ไม่มีงานสุขาภิบาลที่ค้างในอีก 14 วันข้างหน้า
       </p>
     </div>
   );

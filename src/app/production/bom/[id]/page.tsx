@@ -509,18 +509,18 @@ export default function BOMDetailPage() {
 
     switch (bom.status) {
       case 'draft':
-        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'อนุมัติเพื่อผลิต', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
       case 'active':
         // Legacy status - allow transition to approved
-        actions.push({ label: 'Approve for Production', status: 'approved', icon: CheckCircle, variant: 'primary' });
-        actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
+        actions.push({ label: 'อนุมัติเพื่อผลิต', status: 'approved', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'ตั้งเป็นเลิกใช้', status: 'obsolete', icon: Archive, variant: 'warning' });
         break;
       case 'approved':
-        actions.push({ label: 'Set Obsolete', status: 'obsolete', icon: Archive, variant: 'warning' });
+        actions.push({ label: 'ตั้งเป็นเลิกใช้', status: 'obsolete', icon: Archive, variant: 'warning' });
         break;
       case 'obsolete':
-        actions.push({ label: 'Reactivate', status: 'approved', icon: CheckCircle, variant: 'primary' });
+        actions.push({ label: 'เปิดใช้งานอีกครั้ง', status: 'approved', icon: CheckCircle, variant: 'primary' });
         break;
     }
 
@@ -537,7 +537,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'itemCode',
-      caption: 'Item Code',
+      caption: 'รหัสสินค้า',
       width: 180,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
@@ -547,7 +547,7 @@ export default function BOMDetailPage() {
         return (
           <div className="flex items-center gap-1 flex-nowrap">
             {line.isConfidential && (
-              <span title="Confidential Item" className="shrink-0">
+              <span title="รายการลับ" className="shrink-0">
                 <Lock className="h-3.5 w-3.5 text-amber-500" />
               </span>
             )}
@@ -558,14 +558,14 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'itemName',
-      caption: 'Item Name',
+      caption: 'ชื่อสินค้า',
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
         if (line.isHidden) {
           return (
             <div className="flex items-center gap-2 text-gray-400">
               <Lock className="h-4 w-4" />
-              <span className="italic">{line.placeholder || '[Confidential Item]'}</span>
+              <span className="italic">{line.placeholder || '[รายการลับ]'}</span>
             </div>
           );
         }
@@ -574,7 +574,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'itemType',
-      caption: 'Type',
+      caption: 'ประเภท',
       width: 120,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
@@ -586,7 +586,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'Quantity',
+      caption: 'จำนวน',
       width: 140,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
@@ -598,7 +598,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'unitCost',
-      caption: 'Unit Cost',
+      caption: 'ต้นทุนต่อหน่วย',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => {
@@ -612,7 +612,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'totalCost',
-      caption: 'Total Cost',
+      caption: 'ต้นทุนรวม',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => {
@@ -626,7 +626,7 @@ export default function BOMDetailPage() {
     },
     {
       dataField: 'isOptional',
-      caption: 'Optional',
+      caption: 'ทางเลือก',
       width: 100,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
@@ -634,13 +634,13 @@ export default function BOMDetailPage() {
           return <span className="text-gray-400">-</span>;
         }
         return line.isOptional ?
-          <Badge variant="warning">Optional</Badge> :
-          <Badge variant="primary">Required</Badge>;
+          <Badge variant="warning">ไม่บังคับ</Badge> :
+          <Badge variant="primary">จำเป็น</Badge>;
       },
     },
     {
       dataField: 'actions',
-      caption: 'Actions',
+      caption: 'การดำเนินการ',
       width: 120,
       cellRender: (cellInfo) => {
         const line = cellInfo.data as BOMLine;
@@ -655,14 +655,14 @@ export default function BOMDetailPage() {
               type="normal"
               stylingMode="text"
               onClick={() => openEditLineDialog(line)}
-              hint="Edit"
+              hint="แก้ไข"
             />
             <DxButton
               icon="trash"
               type="danger"
               stylingMode="text"
               onClick={() => openDeleteLineDialog(line)}
-              hint="Delete"
+              hint="ลบ"
             />
           </div>
         );
@@ -681,9 +681,9 @@ export default function BOMDetailPage() {
   if (!bom) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">BOM not found</p>
+        <p className="text-gray-500">ไม่พบ BOM</p>
         <DxButton
-          text="Back to List"
+          text="กลับไปหน้ารายการ"
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -702,7 +702,7 @@ export default function BOMDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="Back"
+                text="กลับ"
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -714,7 +714,7 @@ export default function BOMDetailPage() {
                 <button
                   onClick={() => setShowStatusMenu(!showStatusMenu)}
                   className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-                  title="Click to change status"
+                  title="คลิกเพื่อเปลี่ยนสถานะ"
                 >
                   <Badge variant={getStatusVariant(bom.status)}>
                     {bom.status}
@@ -727,7 +727,7 @@ export default function BOMDetailPage() {
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                     <div className="py-1">
                       <p className="px-4 py-2 text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        Change Status
+                        เปลี่ยนสถานะ
                       </p>
                       {statusActions.map((action) => (
                         <button
@@ -751,15 +751,15 @@ export default function BOMDetailPage() {
           </div>
           <div className="flex gap-2">
             <DxButton
-              text="Configuration"
+              text="การตั้งค่า"
               icon="preferences"
               type="normal"
               stylingMode="outlined"
               onClick={() => router.push(`/production/bom/${bom.id}/configuration`)}
-              hint="Configure rooms, equipment, SOP steps, and QC criteria"
+              hint="กำหนดห้อง อุปกรณ์ ขั้นตอน SOP และเกณฑ์ QC"
             />
             <DxButton
-              text="Create Work Order"
+              text="สร้างใบสั่งผลิต"
               type="default"
               onClick={() => router.push(`/production/work-orders/new?bomId=${bom.id}`)}
             />
@@ -768,7 +768,7 @@ export default function BOMDetailPage() {
                 icon="overflow"
                 type="normal"
                 stylingMode="outlined"
-                hint="More actions"
+                hint="การดำเนินการเพิ่มเติม"
                 onClick={() => setShowActionsMenu(!showActionsMenu)}
               />
               {showActionsMenu && (
@@ -779,7 +779,7 @@ export default function BOMDetailPage() {
                       onClick={() => { setEditDialogOpen(true); setShowActionsMenu(false); }}
                     >
                       <Edit className="h-4 w-4 text-gray-700" />
-                      Edit BOM
+                      แก้ไข BOM
                     </button>
                     <button
                       className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-gray-900"
@@ -794,7 +794,7 @@ export default function BOMDetailPage() {
                       }}
                     >
                       <Copy className="h-4 w-4 text-gray-700" />
-                      Copy BOM
+                      คัดลอก BOM
                     </button>
                     <div className="border-t my-1" />
                     {statusActions.map((action) => (
@@ -815,7 +815,7 @@ export default function BOMDetailPage() {
                           onClick={() => { setDeleteDialogOpen(true); setShowActionsMenu(false); }}
                         >
                           <Trash2 className="h-4 w-4" />
-                          Delete BOM
+                          ลบ BOM
                         </button>
                       </>
                     )}
@@ -831,7 +831,7 @@ export default function BOMDetailPage() {
           <Card className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-500">Batch Size</p>
+                <p className="text-sm text-gray-500">ขนาดชุดผลิต</p>
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(bom.batchSize) || 0}</p>
                 <p className="text-xs text-gray-500">{bom.batchUnit}</p>
               </div>
@@ -840,7 +840,7 @@ export default function BOMDetailPage() {
           <Card className="bg-white border border-gray-200 border-l-4 border-l-violet-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-500">Theoretical Yield</p>
+                <p className="text-sm text-gray-500">ผลผลิตตามทฤษฎี</p>
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(bom.theoreticalYield) || '-'}</p>
                 <p className="text-xs text-gray-500">{bom.productUnit}</p>
               </div>
@@ -849,7 +849,7 @@ export default function BOMDetailPage() {
           <Card className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-500">Yield Target</p>
+                <p className="text-sm text-gray-500">เป้าหมายผลผลิต</p>
                 <p className="text-2xl font-bold text-gray-900">{bom.yieldTarget || '-'}%</p>
               </div>
             </CardContent>
@@ -857,7 +857,7 @@ export default function BOMDetailPage() {
           <Card className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-500">Loss Allowance</p>
+                <p className="text-sm text-gray-500">เผื่อการสูญเสีย</p>
                 <p className="text-2xl font-bold text-gray-900">{bom.lossAllowance || '-'}%</p>
               </div>
             </CardContent>
@@ -865,9 +865,9 @@ export default function BOMDetailPage() {
           <Card className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-500">Materials</p>
+                <p className="text-sm text-gray-500">วัตถุดิบ</p>
                 <p className="text-2xl font-bold text-gray-900">{bom.lines?.length || 0}</p>
-                <p className="text-xs text-gray-500">items</p>
+                <p className="text-xs text-gray-500">รายการ</p>
               </div>
             </CardContent>
           </Card>
@@ -876,7 +876,7 @@ export default function BOMDetailPage() {
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <DollarSign className="h-4 w-4 text-teal-500" />
-                  <p className="text-sm text-gray-500 font-medium">Material Cost</p>
+                  <p className="text-sm text-gray-500 font-medium">ต้นทุนวัตถุดิบ</p>
                 </div>
                 {loadingCost ? (
                   <div className="flex justify-center">
@@ -904,24 +904,24 @@ export default function BOMDetailPage() {
           {/* Product Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Information</CardTitle>
+              <CardTitle>ข้อมูลสินค้า</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-gray-500">Product Code</dt>
+                  <dt className="text-sm text-gray-500">รหัสสินค้า</dt>
                   <dd className="font-medium text-gray-900">{bom.productCode}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Product Name</dt>
+                  <dt className="text-sm text-gray-500">ชื่อสินค้า</dt>
                   <dd className="font-medium text-gray-900">{bom.productName}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Unit</dt>
+                  <dt className="text-sm text-gray-500">หน่วย</dt>
                   <dd className="font-medium text-gray-900">{bom.productUnit}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Version</dt>
+                  <dt className="text-sm text-gray-500">เวอร์ชัน</dt>
                   <dd className="font-medium text-gray-900">{bom.version}</dd>
                 </div>
               </dl>
@@ -931,24 +931,24 @@ export default function BOMDetailPage() {
           {/* Validity */}
           <Card>
             <CardHeader>
-              <CardTitle>Validity Period</CardTitle>
+              <CardTitle>ระยะเวลาที่มีผลบังคับใช้</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-gray-500">Effective Date</dt>
+                  <dt className="text-sm text-gray-500">วันที่มีผลบังคับใช้</dt>
                   <dd className="font-medium text-gray-900">{formatDate(bom.effectiveDate)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Expiry Date</dt>
+                  <dt className="text-sm text-gray-500">วันที่หมดอายุ</dt>
                   <dd className="font-medium text-gray-900">{formatDate(bom.expiryDate)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Created</dt>
+                  <dt className="text-sm text-gray-500">สร้างเมื่อ</dt>
                   <dd className="font-medium text-gray-900">{formatDate(bom.createdAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Updated</dt>
+                  <dt className="text-sm text-gray-500">อัปเดตเมื่อ</dt>
                   <dd className="font-medium text-gray-900">{formatDate(bom.updatedAt)}</dd>
                 </div>
               </dl>
@@ -970,9 +970,9 @@ export default function BOMDetailPage() {
                   }`}
                   data-testid="tab-materials"
                 >
-                  Bill of Materials
+                  สูตรส่วนประกอบ (BOM)
                   {bom.confidentialityInfo?.hasConfidentialItems && (
-                    <span title="Contains confidential items">
+                    <span title="มีรายการลับ">
                       <Lock className="inline-block ml-1.5 h-3.5 w-3.5 text-amber-500" />
                     </span>
                   )}
@@ -988,7 +988,7 @@ export default function BOMDetailPage() {
                     data-testid="tab-access-control"
                   >
                     <Shield className="inline-block mr-1.5 h-4 w-4" />
-                    Access Control
+                    การควบคุมการเข้าถึง
                   </button>
                 )}
               </div>
@@ -996,7 +996,7 @@ export default function BOMDetailPage() {
               {/* Actions for Materials tab */}
               {activeTab === 'materials' && (
                 <DxButton
-                  text="Add Material"
+                  text="เพิ่มวัตถุดิบ"
                   icon="plus"
                   type="normal"
                   stylingMode="outlined"
@@ -1033,7 +1033,7 @@ export default function BOMDetailPage() {
                 columns={bomLinesColumns}
                 showBorders
                 rowAlternationEnabled
-                noDataText="No materials defined for this BOM"
+                noDataText="ยังไม่มีวัตถุดิบใน BOM นี้"
               />
             )}
 
@@ -1050,17 +1050,17 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={editDialogOpen}
         onHiding={() => setEditDialogOpen(false)}
-        title="Edit BOM"
+        title="แก้ไข BOM"
         width={500}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-500 mb-4">
-            Update the BOM details. Material lines cannot be edited here.
+            แก้ไขรายละเอียด BOM — ไม่สามารถแก้ไขรายการวัตถุดิบที่นี่ได้
           </p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
             <DxTextBox
               value={editForm.name}
               onValueChange={(value) => setEditForm({ ...editForm, name: value })}
@@ -1068,14 +1068,14 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เวอร์ชัน</label>
               <DxTextBox
                 value={editForm.version}
                 onValueChange={(value) => setEditForm({ ...editForm, version: value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Batch Unit</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หน่วยชุดผลิต</label>
               <DxTextBox
                 value={editForm.batchUnit}
                 onValueChange={(value) => setEditForm({ ...editForm, batchUnit: value })}
@@ -1084,7 +1084,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ขนาดชุดผลิต</label>
               <DxNumberBox
                 value={editForm.batchSize}
                 onValueChange={(value) => setEditForm({ ...editForm, batchSize: value || 0 })}
@@ -1092,7 +1092,7 @@ export default function BOMDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Yield Target (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เป้าหมายผลผลิต (%)</label>
               <DxNumberBox
                 value={editForm.yieldTarget}
                 onValueChange={(value) => setEditForm({ ...editForm, yieldTarget: value || 0 })}
@@ -1102,7 +1102,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Loss Allowance (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เผื่อการสูญเสีย (%)</label>
               <DxNumberBox
                 value={editForm.lossAllowance}
                 onValueChange={(value) => setEditForm({ ...editForm, lossAllowance: value || 0 })}
@@ -1111,7 +1111,7 @@ export default function BOMDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Theoretical Yield ({bom?.productUnit || 'unit'})
+                ผลผลิตตามทฤษฎี ({bom?.productUnit || 'หน่วย'})
               </label>
               <DxNumberBox
                 value={editForm.theoreticalYield}
@@ -1140,7 +1140,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่มีผลบังคับใช้</label>
               <DxDateBox
                 value={editForm.effectiveDate}
                 onValueChange={(value) => setEditForm({ ...editForm, effectiveDate: value || '' })}
@@ -1148,7 +1148,7 @@ export default function BOMDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่หมดอายุ</label>
               <DxDateBox
                 value={editForm.expiryDate}
                 onValueChange={(value) => setEditForm({ ...editForm, expiryDate: value || '' })}
@@ -1158,13 +1158,13 @@ export default function BOMDetailPage() {
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setEditDialogOpen(false)}
             />
             <DxButton
-              text={saving ? 'Saving...' : 'Save Changes'}
+              text={saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               type="default"
               onClick={handleSaveEdit}
               disabled={saving}
@@ -1177,25 +1177,25 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={deleteDialogOpen}
         onHiding={() => setDeleteDialogOpen(false)}
-        title="Delete BOM"
+        title="ลบ BOM"
         width={400}
         height="auto"
         showCloseButton
       >
         <div className="p-4">
           <p className="text-gray-600 mb-6">
-            Are you sure you want to delete this BOM? This action cannot be undone.
-            Only draft BOMs can be deleted.
+            คุณแน่ใจหรือไม่ว่าต้องการลบ BOM นี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            ลบได้เฉพาะ BOM ที่เป็นฉบับร่างเท่านั้น
           </p>
           <div className="flex justify-end gap-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setDeleteDialogOpen(false)}
             />
             <DxButton
-              text={deleting ? 'Deleting...' : 'Delete BOM'}
+              text={deleting ? 'กำลังลบ...' : 'ลบ BOM'}
               type="danger"
               onClick={handleDelete}
               disabled={deleting}
@@ -1208,24 +1208,24 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={statusDialogOpen}
         onHiding={() => setStatusDialogOpen(false)}
-        title="Change BOM Status"
+        title="เปลี่ยนสถานะ BOM"
         width={400}
         height="auto"
         showCloseButton
       >
         <div className="p-4">
           <p className="text-gray-600 mb-6">
-            Are you sure you want to change the status from &quot;{bom.status}&quot; to &quot;{newStatus}&quot;?
+            คุณแน่ใจหรือไม่ว่าต้องการเปลี่ยนสถานะจาก &quot;{bom.status}&quot; เป็น &quot;{newStatus}&quot;?
           </p>
           <div className="flex justify-end gap-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setStatusDialogOpen(false)}
             />
             <DxButton
-              text={updatingStatus ? 'Updating...' : 'Confirm'}
+              text={updatingStatus ? 'กำลังอัปเดต...' : 'ยืนยัน'}
               type="default"
               onClick={handleStatusChange}
               disabled={updatingStatus}
@@ -1238,7 +1238,7 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={copyDialogOpen}
         onHiding={() => setCopyDialogOpen(false)}
-        title="Copy BOM"
+        title="คัดลอก BOM"
         width={450}
         height="auto"
         showCloseButton
@@ -1297,17 +1297,17 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={addLineDialogOpen}
         onHiding={() => setAddLineDialogOpen(false)}
-        title="Add Material"
+        title="เพิ่มวัตถุดิบ"
         width={450}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-500">
-            Add a new material/ingredient to this BOM.
+            เพิ่มวัตถุดิบ/ส่วนผสมใหม่ลงใน BOM นี้
           </p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Material *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">วัตถุดิบ *</label>
             {newLine.itemId ? (
               <div className="flex items-center gap-2">
                 <div className="flex-1 p-2 border border-emerald-100 rounded-lg bg-emerald-50/60">
@@ -1315,7 +1315,7 @@ export default function BOMDetailPage() {
                   <p className="text-sm text-[#4B7163]">{newLine.itemName}</p>
                 </div>
                 <DxButton
-                  text="Change"
+                  text="เปลี่ยน"
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setItemSearchOpen(true)}
@@ -1323,7 +1323,7 @@ export default function BOMDetailPage() {
               </div>
             ) : (
               <DxButton
-                text="Select Material"
+                text="เลือกวัตถุดิบ"
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => setItemSearchOpen(true)}
@@ -1333,7 +1333,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#065F46] mb-1">Quantity *</label>
+              <label className="block text-sm font-medium text-[#065F46] mb-1">จำนวน *</label>
               <DxNumberBox
                 value={newLine.quantity}
                 onValueChange={(value) => setNewLine({ ...newLine, quantity: value || 0 })}
@@ -1342,7 +1342,7 @@ export default function BOMDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หน่วย</label>
               {newLine.unitOptions.length > 1 ? (
                 <DxSelectBox
                   value={newLine.itemUnit}
@@ -1362,26 +1362,26 @@ export default function BOMDetailPage() {
             <DxCheckBox
               value={newLine.isOptional}
               onValueChange={(value) => setNewLine({ ...newLine, isOptional: value })}
-              text="Optional material"
+              text="วัตถุดิบทางเลือก"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
             <DxTextBox
               value={newLine.notes}
               onValueChange={(value) => setNewLine({ ...newLine, notes: value })}
-              placeholder="Optional notes"
+              placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
             />
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setAddLineDialogOpen(false)}
             />
             <DxButton
-              text={addingLine ? 'Adding...' : 'Add Material'}
+              text={addingLine ? 'กำลังเพิ่ม...' : 'เพิ่มวัตถุดิบ'}
               type="default"
               onClick={handleAddLine}
               disabled={addingLine || !newLine.itemId || !newLine.quantity}
@@ -1395,7 +1395,7 @@ export default function BOMDetailPage() {
         open={itemSearchOpen}
         onOpenChange={setItemSearchOpen}
         onSelect={handleSelectItem}
-        title="Select Material"
+        title="เลือกวัตถุดิบ"
         showPrice="cost"
         excludeType="finished_goods"
         allowCreate
@@ -1405,14 +1405,14 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={editLineDialogOpen}
         onHiding={() => setEditLineDialogOpen(false)}
-        title="Edit Material"
+        title="แก้ไขวัตถุดิบ"
         width={450}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-500">
-            Update the quantity or settings for {editingLine?.itemCode}.
+            แก้ไขจำนวนหรือการตั้งค่าสำหรับ {editingLine?.itemCode}
           </p>
           <div className="p-3 border rounded bg-gray-50">
             <p className="font-medium">{editingLine?.itemCode}</p>
@@ -1420,7 +1420,7 @@ export default function BOMDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#065F46] mb-1">Quantity *</label>
+              <label className="block text-sm font-medium text-[#065F46] mb-1">จำนวน *</label>
               <DxNumberBox
                 value={editLineForm.quantity}
                 onValueChange={(value) => setEditLineForm({ ...editLineForm, quantity: value || 0 })}
@@ -1428,7 +1428,7 @@ export default function BOMDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หน่วย</label>
               <DxTextBox
                 value={editingLine?.unit || ''}
                 readOnly
@@ -1440,26 +1440,26 @@ export default function BOMDetailPage() {
             <DxCheckBox
               value={editLineForm.isOptional}
               onValueChange={(value) => setEditLineForm({ ...editLineForm, isOptional: value })}
-              text="Optional material"
+              text="วัตถุดิบทางเลือก"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
             <DxTextBox
               value={editLineForm.notes}
               onValueChange={(value) => setEditLineForm({ ...editLineForm, notes: value })}
-              placeholder="Optional notes"
+              placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
             />
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setEditLineDialogOpen(false)}
             />
             <DxButton
-              text={savingLine ? 'Saving...' : 'Save Changes'}
+              text={savingLine ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               type="default"
               onClick={handleUpdateLine}
               disabled={savingLine || !editLineForm.quantity}
@@ -1472,24 +1472,24 @@ export default function BOMDetailPage() {
       <DxPopup
         visible={deleteLineDialogOpen}
         onHiding={() => setDeleteLineDialogOpen(false)}
-        title="Remove Material"
+        title="นำวัตถุดิบออก"
         width={400}
         height="auto"
         showCloseButton
       >
         <div className="p-4">
           <p className="text-gray-600 mb-6">
-            Are you sure you want to remove {lineToDelete?.itemCode} ({lineToDelete?.itemName}) from this BOM?
+            คุณแน่ใจหรือไม่ว่าต้องการนำ {lineToDelete?.itemCode} ({lineToDelete?.itemName}) ออกจาก BOM นี้?
           </p>
           <div className="flex justify-end gap-2">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setDeleteLineDialogOpen(false)}
             />
             <DxButton
-              text={deletingLine ? 'Removing...' : 'Remove Material'}
+              text={deletingLine ? 'กำลังนำออก...' : 'นำวัตถุดิบออก'}
               type="danger"
               onClick={handleDeleteLine}
               disabled={deletingLine}

@@ -117,11 +117,11 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Step Name (EN)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อขั้นตอน (EN)</label>
           <DxTextBox
             value={formData.stepName}
             onValueChanged={(e) => setFormData({ ...formData, stepName: e.value })}
-            placeholder="e.g., Line Clearance"
+            placeholder="เช่น Line Clearance"
           />
         </div>
       </div>
@@ -135,11 +135,11 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Instructions (EN)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">คำแนะนำ (EN)</label>
         <DxTextArea
           value={formData.instructions}
           onValueChanged={(e) => setFormData({ ...formData, instructions: e.value })}
-          placeholder="Instructions in English"
+          placeholder="คำแนะนำเป็นภาษาอังกฤษ"
           height={80}
         />
       </div>
@@ -169,7 +169,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold text-gray-800">
           <ListOrdered className="h-5 w-5 text-emerald-600" />
-          Procedure Steps ({steps.length})
+          ขั้นตอนการปฏิบัติงาน ({steps.length})
         </h3>
         {!isAdding && editingIndex === null && (
           <button
@@ -178,7 +178,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Step
+            เพิ่มขั้นตอน
           </button>
         )}
       </div>
@@ -187,7 +187,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
           <ListOrdered className="h-10 w-10 text-gray-300 mx-auto mb-3" />
           <p className="text-sm text-gray-500">ยังไม่มีขั้นตอน</p>
-          <p className="text-xs text-gray-400 mt-1">กด &quot;Add Step&quot; เพื่อเพิ่มขั้นตอนแรก — จะถูกบันทึกพร้อม template ตอนกด Save</p>
+          <p className="text-xs text-gray-400 mt-1">กด &quot;เพิ่มขั้นตอน&quot; เพื่อเพิ่มขั้นตอนแรก — จะถูกบันทึกพร้อม template ตอนกด Save</p>
         </div>
       )}
 
@@ -218,7 +218,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
                   onClick={() => handleMoveUp(index)}
                   disabled={index === 0}
                   className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Move up"
+                  title="เลื่อนขึ้น"
                 >
                   <ChevronUp className="h-4 w-4 text-gray-500" />
                 </button>
@@ -227,7 +227,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
                   onClick={() => handleMoveDown(index)}
                   disabled={index >= steps.length - 1}
                   className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Move down"
+                  title="เลื่อนลง"
                 >
                   <ChevronDown className="h-4 w-4 text-gray-500" />
                 </button>
@@ -235,7 +235,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
                   type="button"
                   onClick={() => startEdit(index)}
                   className="p-1 rounded hover:bg-blue-50"
-                  title="Edit"
+                  title="แก้ไข"
                 >
                   <Pencil className="h-4 w-4 text-blue-500" />
                 </button>
@@ -243,7 +243,7 @@ export function SOPTemplateStepsInline({ steps, onStepsChange }: Props) {
                   type="button"
                   onClick={() => handleDelete(index)}
                   className="p-1 rounded hover:bg-red-50"
-                  title="Delete"
+                  title="ลบ"
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </button>

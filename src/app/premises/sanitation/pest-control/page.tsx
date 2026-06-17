@@ -67,21 +67,21 @@ async function verifyLog(logId: number): Promise<PestControlLog> {
 // ============================================
 
 const serviceTypeOptions = [
-  { value: '', text: 'All Types' },
-  { value: 'routine', text: 'Routine' },
-  { value: 'emergency', text: 'Emergency' },
-  { value: 'follow_up', text: 'Follow-up' },
+  { value: '', text: 'ทุกประเภท' },
+  { value: 'routine', text: 'ตามรอบปกติ' },
+  { value: 'emergency', text: 'ฉุกเฉิน' },
+  { value: 'follow_up', text: 'ติดตามผล' },
 ];
 
 const areaOptions = [
-  'Production Area',
-  'Warehouse',
-  'Laboratory',
-  'Office',
-  'Loading Dock',
-  'Perimeter',
-  'Kitchen/Cafeteria',
-  'Restrooms',
+  'พื้นที่ผลิต',
+  'คลังจัดเก็บ',
+  'ห้องปฏิบัติการ',
+  'สำนักงาน',
+  'ลานขนถ่ายสินค้า',
+  'พื้นที่โดยรอบ',
+  'ครัว/โรงอาหาร',
+  'ห้องน้ำ',
 ];
 
 export default function PestControlLogsPage() {
@@ -156,7 +156,7 @@ export default function PestControlLogsPage() {
         onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
-            text="Record Service"
+            text="บันทึกบริการ"
             icon="plus"
             onClick={() => setShowCreateDialog(true)}
             type="default"
@@ -173,7 +173,7 @@ export default function PestControlLogsPage() {
           displayExpr="text"
           valueExpr="value"
           width={160}
-          placeholder="Service Type"
+          placeholder="ประเภทบริการ"
         />
       </div>
 
@@ -191,14 +191,14 @@ export default function PestControlLogsPage() {
       <DxPopup
         visible={showCreateDialog}
         onHiding={() => setShowCreateDialog(false)}
-        title="Record Pest Control Service"
+        title="บันทึกบริการกำจัดสัตว์พาหะ"
         width={600}
         height="auto"
       >
         <div className="space-y-4 p-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Service Date *</label>
+              <label className="block text-sm font-medium mb-1">วันที่ให้บริการ *</label>
               <DxDateBox
                 value={formData.serviceDate}
                 onValueChanged={(e) =>
@@ -215,7 +215,7 @@ export default function PestControlLogsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Service Type *</label>
+              <label className="block text-sm font-medium mb-1">ประเภทบริการ *</label>
               <DxSelectBox
                 items={serviceTypeOptions.filter((o) => o.value)}
                 value={formData.serviceType}
@@ -230,25 +230,25 @@ export default function PestControlLogsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Contractor Name *</label>
+              <label className="block text-sm font-medium mb-1">ชื่อผู้รับเหมา *</label>
               <DxTextBox
                 value={formData.contractorName || ''}
                 onValueChanged={(e) => setFormData({ ...formData, contractorName: e.value })}
-                placeholder="Company name"
+                placeholder="ชื่อบริษัท"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Technician Name</label>
+              <label className="block text-sm font-medium mb-1">ชื่อช่างเทคนิค</label>
               <DxTextBox
                 value={formData.technicianName || ''}
                 onValueChanged={(e) => setFormData({ ...formData, technicianName: e.value })}
-                placeholder="Technician name"
+                placeholder="ชื่อช่างเทคนิค"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Areas Serviced *</label>
+            <label className="block text-sm font-medium mb-1">พื้นที่ที่ให้บริการ *</label>
             <DxTagBox
               items={areaOptions}
               value={formData.areasServiced}
@@ -259,17 +259,17 @@ export default function PestControlLogsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Treatment Method</label>
+            <label className="block text-sm font-medium mb-1">วิธีการกำจัด</label>
             <DxTextBox
               value={formData.treatmentMethod || ''}
               onValueChanged={(e) => setFormData({ ...formData, treatmentMethod: e.value })}
-              placeholder="Describe treatment method"
+              placeholder="อธิบายวิธีการกำจัด"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Findings Count</label>
+              <label className="block text-sm font-medium mb-1">จำนวนที่พบ</label>
               <DxNumberBox
                 value={formData.findingsCount}
                 onValueChanged={(e) => setFormData({ ...formData, findingsCount: e.value })}
@@ -283,13 +283,13 @@ export default function PestControlLogsPage() {
                   setFormData({ ...formData, followUpRequired: e.value })
                 }
               />
-              <label className="text-sm">Follow-up Required</label>
+              <label className="text-sm">ต้องติดตามผล</label>
             </div>
           </div>
 
           {formData.followUpRequired && (
             <div>
-              <label className="block text-sm font-medium mb-1">Follow-up Date</label>
+              <label className="block text-sm font-medium mb-1">วันที่ติดตามผล</label>
               <DxDateBox
                 value={formData.followUpDate}
                 onValueChanged={(e) =>
@@ -308,33 +308,33 @@ export default function PestControlLogsPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Findings</label>
+            <label className="block text-sm font-medium mb-1">สิ่งที่ตรวจพบ</label>
             <DxTextArea
               value={formData.findings || ''}
               onValueChanged={(e) => setFormData({ ...formData, findings: e.value })}
-              placeholder="Describe any pest findings"
+              placeholder="อธิบายสิ่งที่ตรวจพบ"
               height={80}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Recommendations</label>
+            <label className="block text-sm font-medium mb-1">ข้อเสนอแนะ</label>
             <DxTextArea
               value={formData.recommendations || ''}
               onValueChanged={(e) => setFormData({ ...formData, recommendations: e.value })}
-              placeholder="Recommendations from service provider"
+              placeholder="ข้อเสนอแนะจากผู้ให้บริการ"
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowCreateDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Record"
+              text="บันทึก"
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

@@ -121,7 +121,7 @@ export function ReportList({
       if (!onDelete) return;
 
       const confirmed = window.confirm(
-        'Are you sure you want to delete this report template? This action cannot be undone.'
+        'คุณต้องการลบเทมเพลตรายงานนี้ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้'
       );
       if (!confirmed) return;
 
@@ -155,7 +155,7 @@ export function ReportList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search reports..."
+            placeholder="ค้นหารายงาน..."
             value={localSearch}
             onChange={handleSearchChange}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -163,7 +163,7 @@ export function ReportList({
         </div>
         {onRefresh && (
           <DxButton
-            text="Refresh"
+            text="รีเฟรช"
             icon="refresh"
             type="normal"
             stylingMode="outlined"
@@ -177,7 +177,7 @@ export function ReportList({
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-3 text-gray-600">Loading reports...</span>
+          <span className="ml-3 text-gray-600">กำลังโหลดรายงาน...</span>
         </div>
       )}
 
@@ -185,17 +185,17 @@ export function ReportList({
       {!isLoading && filteredTemplates.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No reports found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่พบรายงาน</h3>
           <p className="text-gray-500 mb-4">
             {localSearch
-              ? 'Try adjusting your search terms'
+              ? 'ลองปรับคำค้นหา'
               : selectedCategoryId
-                ? 'No reports in this category'
-                : 'Get started by creating a new report'}
+                ? 'ไม่มีรายงานในหมวดหมู่นี้'
+                : 'เริ่มต้นด้วยการสร้างรายงานใหม่'}
           </p>
           {!localSearch && !selectedCategoryId && (
             <DxButton
-              text="Create Report"
+              text="สร้างรายงาน"
               icon="add"
               type="default"
               onClick={() => router.push('/reports/new')}
@@ -211,23 +211,23 @@ export function ReportList({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
-                  Report Name
+                  ชื่อรายงาน
                 </th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 hidden md:table-cell">
-                  Category
+                  หมวดหมู่
                 </th>
                 <th className="text-center px-4 py-3 text-sm font-medium text-gray-700 hidden lg:table-cell">
-                  Version
+                  เวอร์ชัน
                 </th>
                 <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
-                  Status
+                  สถานะ
                 </th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-700 hidden lg:table-cell">
-                  Updated
+                  อัปเดตล่าสุด
                 </th>
                 {showActions && (
                   <th className="text-right px-4 py-3 text-sm font-medium text-gray-700">
-                    Actions
+                    การดำเนินการ
                   </th>
                 )}
               </tr>
@@ -260,7 +260,7 @@ export function ReportList({
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className="text-sm text-gray-600">
-                      {template.categoryName || 'Uncategorized'}
+                      {template.categoryName || 'ไม่มีหมวดหมู่'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center hidden lg:table-cell">
@@ -274,12 +274,12 @@ export function ReportList({
                     ) : template.isPublished ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-700 text-sm">
                         <Globe className="h-3 w-3" />
-                        Published
+                        เผยแพร่แล้ว
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-sm">
                         <GlobeLock className="h-3 w-3" />
-                        Draft
+                        ร่าง
                       </span>
                     )}
                   </td>
@@ -294,14 +294,14 @@ export function ReportList({
                         <button
                           onClick={() => handleView(template.code)}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="View Report"
+                          title="ดูรายงาน"
                         >
                           <Eye className="h-4 w-4 text-gray-600" />
                         </button>
                         <button
                           onClick={() => handleEdit(template.code)}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Edit Report"
+                          title="แก้ไขรายงาน"
                         >
                           <Edit className="h-4 w-4 text-gray-600" />
                         </button>
@@ -313,7 +313,7 @@ export function ReportList({
                               )
                             }
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="More Actions"
+                            title="การดำเนินการเพิ่มเติม"
                           >
                             <MoreVertical className="h-4 w-4 text-gray-600" />
                           </button>
@@ -331,12 +331,12 @@ export function ReportList({
                                 {template.isPublished ? (
                                   <>
                                     <GlobeLock className="h-4 w-4" />
-                                    Unpublish
+                                    ยกเลิกการเผยแพร่
                                   </>
                                 ) : (
                                   <>
                                     <Globe className="h-4 w-4" />
-                                    Publish
+                                    เผยแพร่
                                   </>
                                 )}
                               </button>
@@ -349,12 +349,12 @@ export function ReportList({
                                   {deletingCode === template.code ? (
                                     <>
                                       <Loader2 className="h-4 w-4 animate-spin" />
-                                      Deleting...
+                                      กำลังลบ...
                                     </>
                                   ) : (
                                     <>
                                       <Trash2 className="h-4 w-4" />
-                                      Delete
+                                      ลบ
                                     </>
                                   )}
                                 </button>
@@ -375,9 +375,8 @@ export function ReportList({
       {/* Summary */}
       {!isLoading && filteredTemplates.length > 0 && (
         <div className="text-sm text-gray-500">
-          Showing {filteredTemplates.length} report
-          {filteredTemplates.length !== 1 ? 's' : ''}
-          {localSearch && ` matching "${localSearch}"`}
+          แสดง {filteredTemplates.length} รายงาน
+          {localSearch && ` ที่ตรงกับ "${localSearch}"`}
         </div>
       )}
     </div>

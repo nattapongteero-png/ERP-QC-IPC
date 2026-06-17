@@ -72,10 +72,10 @@ async function verifyLog(logId: number): Promise<SanitationLog> {
 // ============================================
 
 const statusOptions = [
-  { value: '', text: 'All Statuses' },
-  { value: 'completed', text: 'Completed' },
-  { value: 'partial', text: 'Partial' },
-  { value: 'missed', text: 'Missed' },
+  { value: '', text: 'ทุกสถานะ' },
+  { value: 'completed', text: 'เสร็จสิ้น' },
+  { value: 'partial', text: 'บางส่วน' },
+  { value: 'missed', text: 'ขาด' },
 ];
 
 export default function SanitationLogsPage() {
@@ -138,7 +138,7 @@ export default function SanitationLogsPage() {
   };
 
   const scheduleOptions = [
-    { id: '', name: 'All Schedules' },
+    { id: '', name: 'ทุกกำหนดการ' },
     ...(schedules || []).map((s) => ({ id: String(s.id), name: s.name })),
   ];
 
@@ -156,7 +156,7 @@ export default function SanitationLogsPage() {
         onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
-            text="Record Log"
+            text="บันทึกผล"
             icon="plus"
             onClick={() => setShowCreateDialog(true)}
             type="default"
@@ -173,7 +173,7 @@ export default function SanitationLogsPage() {
           displayExpr="name"
           valueExpr="id"
           width={200}
-          placeholder="Filter by Schedule"
+          placeholder="กรองตามกำหนดการ"
         />
         <DxSelectBox
           items={statusOptions}
@@ -182,7 +182,7 @@ export default function SanitationLogsPage() {
           displayExpr="text"
           valueExpr="value"
           width={160}
-          placeholder="Status"
+          placeholder="สถานะ"
         />
       </div>
 
@@ -200,26 +200,26 @@ export default function SanitationLogsPage() {
       <DxPopup
         visible={showCreateDialog}
         onHiding={() => setShowCreateDialog(false)}
-        title="Record Sanitation Log"
+        title="บันทึกผลสุขาภิบาล"
         width={500}
         height="auto"
       >
         <div className="space-y-4 p-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Schedule *</label>
+            <label className="block text-sm font-medium mb-1">กำหนดการ *</label>
             <DxSelectBox
               items={(schedules || []) as unknown as Array<{ id: number; name: string }>}
               value={formData.scheduleId}
               onValueChanged={(e) => setFormData({ ...formData, scheduleId: e.value })}
               displayExpr="name"
               valueExpr="id"
-              placeholder="Select schedule"
+              placeholder="เลือกกำหนดการ"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Performed Date *</label>
+              <label className="block text-sm font-medium mb-1">วันที่ดำเนินการ *</label>
               <DxDateBox
                 value={formData.performedDate}
                 onValueChanged={(e) =>
@@ -236,7 +236,7 @@ export default function SanitationLogsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Status *</label>
+              <label className="block text-sm font-medium mb-1">สถานะ *</label>
               <DxSelectBox
                 items={statusOptions.filter((o) => o.value)}
                 value={formData.status}
@@ -250,32 +250,32 @@ export default function SanitationLogsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Chemicals Used</label>
+            <label className="block text-sm font-medium mb-1">สารเคมีที่ใช้</label>
             <DxTextBox
               value={formData.chemicalsUsed || ''}
               onValueChanged={(e) => setFormData({ ...formData, chemicalsUsed: e.value })}
-              placeholder="List chemicals used"
+              placeholder="ระบุสารเคมีที่ใช้"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Notes</label>
+            <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
             <DxTextArea
               value={formData.notes || ''}
               onValueChanged={(e) => setFormData({ ...formData, notes: e.value })}
-              placeholder="Additional notes"
+              placeholder="หมายเหตุเพิ่มเติม"
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={() => setShowCreateDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Record"
+              text="บันทึก"
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

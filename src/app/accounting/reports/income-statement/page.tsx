@@ -41,7 +41,7 @@ function SectionTable({ section, title, isSubtraction = false }: { section: Inco
             </tr>
           ))}
           <tr className="font-bold border-t border-gray-300">
-            <td className="py-2 px-2" colSpan={2}>Total {title}</td>
+            <td className="py-2 px-2" colSpan={2}>รวม{title}</td>
             <td className="py-2 px-2 text-right">
               {isSubtraction ? `(${formatCurrency(section.subtotal)})` : formatCurrency(section.subtotal)}
             </td>
@@ -179,7 +179,7 @@ function IncomeStatementContent() {
       {data && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Income Flow</CardTitle>
+            <CardTitle className="text-base">กระแสกำไร</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -190,7 +190,7 @@ function IncomeStatementContent() {
                   <YAxis tickFormatter={(v) => `฿${(v / 1000000).toFixed(1)}M`} />
                   <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                   <Legend />
-                  <Area type="monotone" dataKey="value" name="Amount" stroke="#3b82f6" fill="#93c5fd" />
+                  <Area type="monotone" dataKey="value" name="จำนวนเงิน" stroke="#3b82f6" fill="#93c5fd" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -216,7 +216,7 @@ function IncomeStatementContent() {
                 </span>
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                Gross Margin: {grossMargin.toFixed(1)}%
+                อัตรากำไรขั้นต้น: {grossMargin.toFixed(1)}%
               </div>
             </CardContent>
           </Card>
@@ -252,7 +252,7 @@ function IncomeStatementContent() {
                 </span>
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                Net Margin: {netMargin.toFixed(1)}%
+                อัตรากำไรสุทธิ: {netMargin.toFixed(1)}%
               </div>
             </CardContent>
           </Card>

@@ -64,7 +64,7 @@ export function KPICard({ title, icon, kpi, format = 'currency', expandable = fa
             <div className="flex items-center gap-2 text-sm">
               <TrendIcon className={`h-4 w-4 ${trendColor}`} />
               <span className={trendColor}>
-                {kpi.changePercent > 0 ? '+' : ''}{kpi.changePercent.toFixed(1)}% vs prior
+                {kpi.changePercent > 0 ? '+' : ''}{kpi.changePercent.toFixed(1)}% เทียบกับงวดก่อน
               </span>
             </div>
           </div>

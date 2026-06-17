@@ -608,7 +608,7 @@ export default function ARInvoicesPage() {
         icon="dollar-sign"
         onBack={() => window.location.href = '/accounting/ar'}
         breadcrumbs={[
-          { label: 'Accounts Receivable', href: '/accounting/ar' },
+          { label: 'ลูกหนี้การค้า', href: '/accounting/ar' },
           { label: t('accountsReceivable.invoices.title') },
         ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}

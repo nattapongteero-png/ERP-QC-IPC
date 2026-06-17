@@ -537,7 +537,7 @@ export default function LotPatternsPage() {
           <div>
             <label className="text-xs text-gray-600 block mb-1">หมายเหตุ</label>
             <DxTextArea
-              placeholder="(optional)"
+              placeholder="(ไม่บังคับ)"
               value={form.notes}
               onValueChanged={(e) => setForm({ ...form, notes: e.value || '' })}
             />

@@ -17,7 +17,7 @@ export function FinancialHealthSection({ data }: FinancialHealthSectionProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="financial-health-section">
       <KPICard
-        title="Inventory Value"
+        title="มูลค่าสินค้าคงคลัง"
         icon={<Package className="h-6 w-6 text-blue-600" />}
         kpi={data.inventoryValue}
         format="currency"
@@ -36,21 +36,21 @@ export function FinancialHealthSection({ data }: FinancialHealthSectionProps) {
       </KPICard>
 
       <KPICard
-        title="COGS MTD"
+        title="ต้นทุนขายเดือนนี้"
         icon={<DollarSign className="h-6 w-6 text-orange-600" />}
         kpi={data.cogsMTD}
         format="currency"
       />
 
       <KPICard
-        title="Gross Margin"
+        title="อัตรากำไรขั้นต้น"
         icon={<TrendingUp className="h-6 w-6 text-green-600" />}
         kpi={data.grossMarginPercent}
         format="percent"
       />
 
       <KPICard
-        title="Cost Variance"
+        title="ผลต่างต้นทุน"
         icon={<AlertTriangle className="h-6 w-6 text-yellow-600" />}
         kpi={data.netCostVariance}
         format="currency"

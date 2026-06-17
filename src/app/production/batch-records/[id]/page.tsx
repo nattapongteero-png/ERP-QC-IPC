@@ -105,9 +105,9 @@ interface LabelVerificationItem {
 }
 
 const booleanOptions = [
-  { value: '', label: 'Select...' },
-  { value: 'true', label: 'Yes / Pass' },
-  { value: 'false', label: 'No / Fail' },
+  { value: '', label: 'เลือก...' },
+  { value: 'true', label: 'ใช่ / ผ่าน' },
+  { value: 'false', label: 'ไม่ใช่ / ไม่ผ่าน' },
 ];
 
 export default function BatchRecordDetailPage() {
@@ -321,10 +321,10 @@ export default function BatchRecordDetailPage() {
   if (!record) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900">Batch record not found</h2>
-        <p className="text-gray-500 mt-2">The batch record you are looking for does not exist.</p>
+        <h2 className="text-xl font-semibold text-gray-900">ไม่พบบันทึกการผลิต</h2>
+        <p className="text-gray-500 mt-2">ไม่พบบันทึกการผลิตที่คุณกำลังค้นหา</p>
         <DxButton
-          text="Back to Batch Records"
+          text="กลับไปยังบันทึกการผลิต"
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -340,11 +340,11 @@ export default function BatchRecordDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
         <PageHeader
-          title={`Step ${record.sequence}: ${record.stepName}`}
+          title={`ขั้นตอนที่ ${record.sequence}: ${record.stepName}`}
           description={`${record.woNumber} - ${record.batchNumber}`}
           backButton={
             <DxButton
-              text="Back"
+              text="กลับ"
               icon="back"
               type="normal"
               stylingMode="text"
@@ -363,7 +363,7 @@ export default function BatchRecordDetailPage() {
         {/* Step Navigation */}
         <div className="flex items-center justify-between">
           <DxButton
-            text="Previous Step"
+            text="ขั้นตอนก่อนหน้า"
             icon="chevronleft"
             type="normal"
             stylingMode="outlined"
@@ -390,7 +390,7 @@ export default function BatchRecordDetailPage() {
             ))}
           </div>
           <DxButton
-            text="Next Step →"
+            text="ขั้นตอนถัดไป →"
             type="normal"
             stylingMode="outlined"
             disabled={!nextStep}
@@ -406,7 +406,7 @@ export default function BatchRecordDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Instructions
+                  คำแนะนำ
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -414,12 +414,12 @@ export default function BatchRecordDetailPage() {
                   {record.instructions ? (
                     <div className="whitespace-pre-wrap text-gray-700">{record.instructions}</div>
                   ) : (
-                    <p className="text-gray-500 italic">No specific instructions for this step.</p>
+                    <p className="text-gray-500 italic">ไม่มีคำแนะนำเฉพาะสำหรับขั้นตอนนี้</p>
                   )}
                 </div>
                 {record.operationDescription && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm font-medium text-gray-700">Operation: {record.operationName}</p>
+                    <p className="text-sm font-medium text-gray-700">ขั้นตอนการดำเนินงาน: {record.operationName}</p>
                     <p className="text-sm text-gray-500 mt-1">{record.operationDescription}</p>
                   </div>
                 )}
@@ -430,7 +430,7 @@ export default function BatchRecordDetailPage() {
             {record.parameters && record.parameters.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Process Parameters</CardTitle>
+                  <CardTitle>พารามิเตอร์กระบวนการ</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -480,7 +480,7 @@ export default function BatchRecordDetailPage() {
                           )}
                           {param.min !== undefined && param.max !== undefined && (
                             <p className="text-xs text-gray-500 mt-1">
-                              Acceptable range: {param.min} - {param.max} {param.unit}
+                              ช่วงที่ยอมรับได้: {param.min} - {param.max} {param.unit}
                             </p>
                           )}
                         </div>
@@ -494,14 +494,14 @@ export default function BatchRecordDetailPage() {
             {/* Notes */}
             <Card>
               <CardHeader>
-                <CardTitle>Notes & Observations</CardTitle>
+                <CardTitle>บันทึกและข้อสังเกต</CardTitle>
               </CardHeader>
               <CardContent>
                 <DxTextArea
                   value={notes}
                   onValueChange={setNotes}
                   height={100}
-                  placeholder="Enter any observations, deviations, or notes..."
+                  placeholder="กรอกข้อสังเกต ความเบี่ยงเบน หรือบันทึกใด ๆ..."
                   disabled={record.status === 'completed' || record.status === 'pending'}
                 />
               </CardContent>
@@ -511,7 +511,7 @@ export default function BatchRecordDetailPage() {
             <div className="flex items-center gap-3">
               {record.status === 'pending' && (
                 <DxButton
-                  text="Start Step"
+                  text="เริ่มขั้นตอน"
                   icon="play"
                   type="default"
                   onClick={handleStartStep}
@@ -521,7 +521,7 @@ export default function BatchRecordDetailPage() {
               {record.status === 'in_progress' && (
                 <>
                   <DxButton
-                    text="Save Progress"
+                    text="บันทึกความคืบหน้า"
                     icon="save"
                     type="normal"
                     stylingMode="outlined"
@@ -529,7 +529,7 @@ export default function BatchRecordDetailPage() {
                     disabled={isSaving}
                   />
                   <DxButton
-                    text="Complete Step"
+                    text="เสร็จสิ้นขั้นตอน"
                     icon="check"
                     type="success"
                     onClick={handleCompleteStep}
@@ -539,7 +539,7 @@ export default function BatchRecordDetailPage() {
               )}
               {record.status === 'completed' && !record.verifiedBy && (
                 <DxButton
-                  text="Verify Completion"
+                  text="ตรวจสอบยืนยันการเสร็จสิ้น"
                   icon="user"
                   type="default"
                   onClick={handleVerifyStep}
@@ -554,24 +554,24 @@ export default function BatchRecordDetailPage() {
             {/* Work Order Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Work Order Information</CardTitle>
+                <CardTitle className="text-sm">ข้อมูลใบสั่งผลิต</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">Work Order</p>
+                  <p className="text-xs text-gray-500">ใบสั่งผลิต</p>
                   <p className="font-medium">{record.woNumber}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Batch Number</p>
+                  <p className="text-xs text-gray-500">หมายเลขรุ่นการผลิต</p>
                   <p className="font-medium">{record.batchNumber}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Product</p>
+                  <p className="text-xs text-gray-500">ผลิตภัณฑ์</p>
                   <p className="font-medium">{record.productCode}</p>
                   <p className="text-sm text-gray-500">{record.productName}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Quantity</p>
+                  <p className="text-xs text-gray-500">จำนวน</p>
                   <p className="font-medium">
                     {record.actualQuantity || record.plannedQuantity} {record.productUnit}
                   </p>
@@ -584,32 +584,32 @@ export default function BatchRecordDetailPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Timing
+                  เวลา
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">Standard Time</p>
-                  <p className="font-medium">{record.standardTime || '-'} minutes</p>
+                  <p className="text-xs text-gray-500">เวลามาตรฐาน</p>
+                  <p className="font-medium">{record.standardTime || '-'} นาที</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Started</p>
+                  <p className="text-xs text-gray-500">เริ่มเมื่อ</p>
                   <p className="font-medium">{formatDateTime(record.startTime)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Completed</p>
+                  <p className="text-xs text-gray-500">เสร็จสิ้นเมื่อ</p>
                   <p className="font-medium">{formatDateTime(record.endTime)}</p>
                 </div>
                 {record.startTime && record.endTime && (
                   <div>
-                    <p className="text-xs text-gray-500">Duration</p>
+                    <p className="text-xs text-gray-500">ระยะเวลา</p>
                     <p className="font-medium">
                       {Math.round(
                         (new Date(record.endTime).getTime() -
                           new Date(record.startTime).getTime()) /
                           60000
                       )}{' '}
-                      minutes
+                      นาที
                     </p>
                   </div>
                 )}
@@ -621,19 +621,19 @@ export default function BatchRecordDetailPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Personnel
+                  บุคลากร
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">Performed By</p>
+                  <p className="text-xs text-gray-500">ดำเนินการโดย</p>
                   <p className="font-medium">{record.performerName || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Verified By</p>
+                  <p className="text-xs text-gray-500">ตรวจสอบยืนยันโดย</p>
                   <p className="font-medium">{record.verifierName || '-'}</p>
                   {record.verifiedAt && (
-                    <p className="text-xs text-gray-500">at {formatDateTime(record.verifiedAt)}</p>
+                    <p className="text-xs text-gray-500">เมื่อ {formatDateTime(record.verifiedAt)}</p>
                   )}
                 </div>
               </CardContent>
@@ -645,7 +645,7 @@ export default function BatchRecordDetailPage() {
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Package className="h-4 w-4" />
-                    Materials
+                    วัตถุดิบ
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -689,7 +689,7 @@ export default function BatchRecordDetailPage() {
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Tag className="h-4 w-4" />
-                    Label Verifications
+                    การตรวจสอบยืนยันฉลาก
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -718,7 +718,7 @@ export default function BatchRecordDetailPage() {
                               {item.label.labelType.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                             </p>
                             {item.operatorName && (
-                              <p className="text-xs text-gray-500">By: {item.operatorName}</p>
+                              <p className="text-xs text-gray-500">โดย: {item.operatorName}</p>
                             )}
                           </div>
                         </div>
@@ -740,7 +740,7 @@ export default function BatchRecordDetailPage() {
                     ))}
                   </div>
                   <DxButton
-                    text="Add Label"
+                    text="เพิ่มฉลาก"
                     icon="plus"
                     type="normal"
                     stylingMode="text"
@@ -754,7 +754,7 @@ export default function BatchRecordDetailPage() {
             {/* All Steps Overview */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">All Steps</CardTitle>
+                <CardTitle className="text-sm">ขั้นตอนทั้งหมด</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

@@ -255,7 +255,7 @@ function LabelVerificationContent() {
           description={t('labelVerification.description')}
           actions={
             <DxButton
-              text="Back to Work Orders"
+              text="กลับไปยังใบสั่งผลิต"
               icon="arrowleft"
               onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}` : '/production/work-orders')}
               type="normal"
@@ -266,7 +266,7 @@ function LabelVerificationContent() {
 
         {/* Work Order Selector */}
         <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Select Work Order</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">เลือกใบสั่งผลิต</h3>
           <div className="max-w-lg">
             <DxSelectBox
               items={workOrderItems}
@@ -278,7 +278,7 @@ function LabelVerificationContent() {
                   router.push(`/production/label-verification?workOrderId=${value}`);
                 }
               }}
-              placeholder="Select a work order..."
+              placeholder="เลือกใบสั่งผลิต..."
               searchEnabled
               showClearButton
               disabled={isLoadingWorkOrders}
@@ -287,7 +287,7 @@ function LabelVerificationContent() {
           {isLoadingWorkOrders && (
             <div className="flex items-center gap-2 text-gray-500 mt-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading work orders...</span>
+              <span>กำลังโหลดใบสั่งผลิต...</span>
             </div>
           )}
         </div>
@@ -296,10 +296,10 @@ function LabelVerificationContent() {
         {selectedWorkOrderId && (
           <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Labels</h3>
+              <h3 className="text-lg font-medium text-gray-900">ฉลาก</h3>
               {!selectedLabelId && (
                 <DxButton
-                  text="Add New Label"
+                  text="เพิ่มฉลากใหม่"
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -313,7 +313,7 @@ function LabelVerificationContent() {
             {isLoadingLabels ? (
               <div className="flex items-center gap-2 text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading labels...</span>
+                <span>กำลังโหลดฉลาก...</span>
               </div>
             ) : labels && labels.length > 0 ? (
               <div className="space-y-2">
@@ -341,7 +341,7 @@ function LabelVerificationContent() {
                           </span>
                           {item.label.batchNumber && (
                             <span className="ml-2 text-sm text-gray-500">
-                              Batch: {item.label.batchNumber}
+                              รุ่นการผลิต: {item.label.batchNumber}
                             </span>
                           )}
                         </div>
@@ -364,7 +364,7 @@ function LabelVerificationContent() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">No labels found. Create a new label to get started.</p>
+              <p className="text-gray-500">ไม่พบฉลาก สร้างฉลากใหม่เพื่อเริ่มต้น</p>
             )}
           </div>
         )}
@@ -376,7 +376,7 @@ function LabelVerificationContent() {
               <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-12">
                 <div className="flex flex-col items-center justify-center text-gray-500">
                   <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                  <p>Loading label data...</p>
+                  <p>กำลังโหลดข้อมูลฉลาก...</p>
                 </div>
               </div>
             ) : (
@@ -407,10 +407,10 @@ function LabelVerificationContent() {
           <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-12">
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Tag className="h-16 w-16 mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Select a Work Order</h3>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">เลือกใบสั่งผลิต</h3>
               <p className="text-sm text-gray-500 text-center max-w-md">
-                Choose a work order from the dropdown above to manage label verifications.
-                Label verification requires dual sign-off (operator + witness).
+                เลือกใบสั่งผลิตจากรายการด้านบนเพื่อจัดการการตรวจสอบยืนยันฉลาก
+                การตรวจสอบยืนยันฉลากต้องมีการลงนามสองฝ่าย (ผู้ปฏิบัติงาน + พยาน)
               </p>
             </div>
           </div>

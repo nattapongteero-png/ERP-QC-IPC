@@ -74,11 +74,11 @@ interface DeviationDetail {
 }
 
 const statusOptions = [
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'pending_verification', label: 'Pending Verification' },
-  { value: 'verified', label: 'Verified' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'open', label: 'เปิด' },
+  { value: 'in_progress', label: 'กำลังดำเนินการ' },
+  { value: 'pending_verification', label: 'รอตรวจสอบ' },
+  { value: 'verified', label: 'ตรวจสอบแล้ว' },
+  { value: 'closed', label: 'ปิด' },
 ];
 
 export default function DeviationDetailPage() {
@@ -97,10 +97,10 @@ export default function DeviationDetailPage() {
   });
 
   const tabs: DxTabItem[] = [
-    { text: 'Overview', icon: 'chart' },
-    { text: 'Investigation', icon: 'search' },
+    { text: 'ภาพรวม', icon: 'chart' },
+    { text: 'การสืบสวน', icon: 'search' },
     { text: 'CAPA', icon: 'checklist' },
-    { text: 'History', icon: 'clock' },
+    { text: 'ประวัติ', icon: 'clock' },
   ];
 
   useEffect(() => {
@@ -169,12 +169,12 @@ export default function DeviationDetailPage() {
 
   const getTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'process': 'Process Deviation',
-      'product': 'Product Deviation',
-      'equipment': 'Equipment Deviation',
-      'documentation': 'Documentation Deviation',
-      'environmental': 'Environmental Deviation',
-      'other': 'Other',
+      'process': 'ความเบี่ยงเบนของกระบวนการ',
+      'product': 'ความเบี่ยงเบนของผลิตภัณฑ์',
+      'equipment': 'ความเบี่ยงเบนของเครื่องจักร',
+      'documentation': 'ความเบี่ยงเบนของเอกสาร',
+      'environmental': 'ความเบี่ยงเบนของสภาพแวดล้อม',
+      'other': 'อื่น ๆ',
     };
     return labels[type] || type;
   };
@@ -193,7 +193,7 @@ export default function DeviationDetailPage() {
     return (
       
         <div className="text-center py-12">
-          <p className="text-gray-500">Deviation not found</p>
+          <p className="text-gray-500">ไม่พบความเบี่ยงเบน</p>
           <DxButton
             text={t('page.title')}
             type="normal"
@@ -216,7 +216,7 @@ export default function DeviationDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="Back"
+                text="กลับ"
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -230,7 +230,7 @@ export default function DeviationDetailPage() {
                 {deviation.severity}
               </Badge>
               {metrics.isOverdue && (
-                <Badge variant="danger">OVERDUE</Badge>
+                <Badge variant="danger">เกินกำหนด</Badge>
               )}
             </div>
             <p className="text-gray-600 mt-1">{deviation.title}</p>
@@ -239,7 +239,7 @@ export default function DeviationDetailPage() {
             {/* eslint-disable-next-line @typescript-eslint/no-unused-expressions */}
             {!isEditing && deviation.status !== 'closed' && (
               <DxButton
-                text="Update CAPA"
+                text="อัปเดต CAPA"
                 type="default"
                 onClick={() => setIsEditing(true)}
               />
@@ -247,20 +247,20 @@ export default function DeviationDetailPage() {
             {isEditing && (
               <>
                 <DxButton
-                  text="Cancel"
+                  text="ยกเลิก"
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setIsEditing(false)}
                 />
                 <DxButton
-                  text="Save"
+                  text="บันทึก"
                   type="success"
                   onClick={handleSave}
                 />
               </>
             )}
             <DxButton
-              text="Print Report"
+              text="พิมพ์รายงาน"
               icon="print"
               type="normal"
               stylingMode="outlined"
@@ -286,7 +286,7 @@ export default function DeviationDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">Status</p>
+              <p className="text-sm text-gray-500">สถานะ</p>
               <Badge variant={getStatusVariant(deviation.status)} className="text-lg mt-1">
                 {deviation.status}
               </Badge>
@@ -294,7 +294,7 @@ export default function DeviationDetailPage() {
           </div>
           <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">Severity</p>
+              <p className="text-sm text-gray-500">ความรุนแรง</p>
               <Badge variant={getSeverityVariant(deviation.severity)} className="text-lg mt-1">
                 {deviation.severity}
               </Badge>
@@ -302,7 +302,7 @@ export default function DeviationDetailPage() {
           </div>
           <div className={`bg-white border border-gray-200 border-l-4 ${metrics.isOverdue ? 'border-l-rose-500' : 'border-l-blue-500'} rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4`}>
             <div className="text-center">
-              <p className="text-sm text-gray-500">Days Open</p>
+              <p className="text-sm text-gray-500">จำนวนวันที่เปิด</p>
               <p className={`text-2xl font-bold ${metrics.isOverdue ? 'text-rose-500' : 'text-gray-900'}`}>
                 {metrics.daysOpen}
               </p>
@@ -310,7 +310,7 @@ export default function DeviationDetailPage() {
           </div>
           <div className={`bg-white border border-gray-200 border-l-4 ${metrics.isOverdue ? 'border-l-rose-500' : 'border-l-gray-500'} rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4`}>
             <div className="text-center">
-              <p className="text-sm text-gray-500">Due Date</p>
+              <p className="text-sm text-gray-500">วันครบกำหนด</p>
               <p className={`text-lg font-bold ${metrics.isOverdue ? 'text-rose-500' : 'text-gray-900'}`}>
                 {deviation.dueDate ? new Date(deviation.dueDate).toLocaleDateString('th-TH') : '-'}
               </p>
@@ -323,9 +323,9 @@ export default function DeviationDetailPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
             <div>
-              <p className="font-medium text-red-800">Deviation Overdue</p>
+              <p className="font-medium text-red-800">ความเบี่ยงเบนเกินกำหนด</p>
               <p className="text-sm text-red-600">
-                This deviation has passed its due date. Please take immediate action to resolve it.
+                ความเบี่ยงเบนนี้เลยวันครบกำหนดแล้ว กรุณาดำเนินการแก้ไขทันที
               </p>
             </div>
           </div>
@@ -344,42 +344,42 @@ export default function DeviationDetailPage() {
             {/* Deviation Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Deviation Information</CardTitle>
+                <CardTitle>ข้อมูลความเบี่ยงเบน</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Deviation Code</dt>
+                    <dt className="text-sm text-gray-500">รหัสความเบี่ยงเบน</dt>
                     <dd className="font-medium">{deviation.deviationCode}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Type</dt>
+                    <dt className="text-sm text-gray-500">ประเภท</dt>
                     <dd className="font-medium">{getTypeLabel(deviation.type)}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-sm text-gray-500">Title</dt>
+                    <dt className="text-sm text-gray-500">หัวข้อ</dt>
                     <dd className="font-medium">{deviation.title}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-sm text-gray-500">Description</dt>
+                    <dt className="text-sm text-gray-500">รายละเอียด</dt>
                     <dd className="font-medium">{deviation.description || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Reported By</dt>
+                    <dt className="text-sm text-gray-500">รายงานโดย</dt>
                     <dd className="font-medium">{reporter?.name || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Reported Date</dt>
+                    <dt className="text-sm text-gray-500">วันที่รายงาน</dt>
                     <dd className="font-medium">
                       {deviation.createdAt ? new Date(deviation.createdAt).toLocaleDateString('th-TH') : '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Assigned To</dt>
+                    <dt className="text-sm text-gray-500">มอบหมายให้</dt>
                     <dd className="font-medium">{assignee?.name || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Due Date</dt>
+                    <dt className="text-sm text-gray-500">วันครบกำหนด</dt>
                     <dd className={`font-medium ${metrics.isOverdue ? 'text-red-600' : ''}`}>
                       {deviation.dueDate ? new Date(deviation.dueDate).toLocaleDateString('th-TH') : '-'}
                     </dd>
@@ -391,18 +391,18 @@ export default function DeviationDetailPage() {
             {/* Related Records */}
             <Card>
               <CardHeader>
-                <CardTitle>Related Records</CardTitle>
+                <CardTitle>ระเบียนที่เกี่ยวข้อง</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-4">
                   {item && (
                     <>
                       <div>
-                        <dt className="text-sm text-gray-500">Item Code</dt>
+                        <dt className="text-sm text-gray-500">รหัสรายการ</dt>
                         <dd className="font-medium">{item.code}</dd>
                       </div>
                       <div>
-                        <dt className="text-sm text-gray-500">Item Name</dt>
+                        <dt className="text-sm text-gray-500">ชื่อรายการ</dt>
                         <dd className="font-medium">{item.nameTh}</dd>
                       </div>
                     </>
@@ -410,13 +410,13 @@ export default function DeviationDetailPage() {
                   {lot && (
                     <>
                       <div>
-                        <dt className="text-sm text-gray-500">Lot Number</dt>
+                        <dt className="text-sm text-gray-500">หมายเลขล็อต</dt>
                         <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/inventory/lots/${lot.id}`)}>
                           {lot.lotNumber}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm text-gray-500">Lot Status</dt>
+                        <dt className="text-sm text-gray-500">สถานะล็อต</dt>
                         <dd><Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge></dd>
                       </div>
                     </>
@@ -424,20 +424,20 @@ export default function DeviationDetailPage() {
                   {workOrder && (
                     <>
                       <div>
-                        <dt className="text-sm text-gray-500">Work Order</dt>
+                        <dt className="text-sm text-gray-500">ใบสั่งผลิต</dt>
                         <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/production/work-orders/${workOrder.id}`)}>
                           {workOrder.woNumber}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm text-gray-500">Batch Number</dt>
+                        <dt className="text-sm text-gray-500">หมายเลขแบทช์</dt>
                         <dd className="font-medium">{workOrder.batchNumber || '-'}</dd>
                       </div>
                     </>
                   )}
                   {!item && !lot && !workOrder && (
                     <div className="col-span-2">
-                      <p className="text-gray-500">No related records</p>
+                      <p className="text-gray-500">ไม่มีระเบียนที่เกี่ยวข้อง</p>
                     </div>
                   )}
                 </dl>
@@ -449,26 +449,26 @@ export default function DeviationDetailPage() {
         {activeTabIndex === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Root Cause Investigation</CardTitle>
+              <CardTitle>การสืบสวนสาเหตุราก</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Root Cause Analysis</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">การวิเคราะห์สาเหตุราก</label>
                     <DxTextArea
                       value={editForm.rootCause}
                       onValueChange={(value) => setEditForm({ ...editForm, rootCause: value })}
-                      placeholder="Describe the root cause analysis using 5-Why or Fishbone diagram methodology..."
+                      placeholder="อธิบายการวิเคราะห์สาเหตุรากโดยใช้วิธี 5-Why หรือแผนภาพก้างปลา..."
                       height={150}
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Root Cause Analysis</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">การวิเคราะห์สาเหตุราก</h4>
                   <p className="text-gray-600 whitespace-pre-wrap">
-                    {deviation.rootCause || 'No root cause analysis documented yet.'}
+                    {deviation.rootCause || 'ยังไม่มีการบันทึกการวิเคราะห์สาเหตุราก'}
                   </p>
                 </div>
               )}
@@ -481,19 +481,19 @@ export default function DeviationDetailPage() {
             {/* Corrective Action */}
             <Card>
               <CardHeader>
-                <CardTitle>Corrective Action (CA)</CardTitle>
+                <CardTitle>การแก้ไข (CA)</CardTitle>
               </CardHeader>
               <CardContent>
                 {isEditing ? (
                   <DxTextArea
                     value={editForm.correctiveAction}
                     onValueChange={(value) => setEditForm({ ...editForm, correctiveAction: value })}
-                    placeholder="Describe the corrective actions taken to address the immediate issue..."
+                    placeholder="อธิบายการแก้ไขที่ดำเนินการเพื่อจัดการกับปัญหาเฉพาะหน้า..."
                     height={150}
                   />
                 ) : (
                   <p className="text-gray-600 whitespace-pre-wrap">
-                    {deviation.correctiveAction || 'No corrective action documented yet.'}
+                    {deviation.correctiveAction || 'ยังไม่มีการบันทึกการแก้ไข'}
                   </p>
                 )}
               </CardContent>
@@ -502,19 +502,19 @@ export default function DeviationDetailPage() {
             {/* Preventive Action */}
             <Card>
               <CardHeader>
-                <CardTitle>Preventive Action (PA)</CardTitle>
+                <CardTitle>การป้องกัน (PA)</CardTitle>
               </CardHeader>
               <CardContent>
                 {isEditing ? (
                   <DxTextArea
                     value={editForm.preventiveAction}
                     onValueChange={(value) => setEditForm({ ...editForm, preventiveAction: value })}
-                    placeholder="Describe the preventive actions to prevent recurrence..."
+                    placeholder="อธิบายการป้องกันเพื่อไม่ให้เกิดซ้ำ..."
                     height={150}
                   />
                 ) : (
                   <p className="text-gray-600 whitespace-pre-wrap">
-                    {deviation.preventiveAction || 'No preventive action documented yet.'}
+                    {deviation.preventiveAction || 'ยังไม่มีการบันทึกการป้องกัน'}
                   </p>
                 )}
               </CardContent>
@@ -524,7 +524,7 @@ export default function DeviationDetailPage() {
             {isEditing && (
               <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Update Status</CardTitle>
+                  <CardTitle>อัปเดตสถานะ</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="max-w-xs">
@@ -545,25 +545,25 @@ export default function DeviationDetailPage() {
         {activeTabIndex === 3 && (
           <Card>
             <CardHeader>
-              <CardTitle>Activity History</CardTitle>
+              <CardTitle>ประวัติกิจกรรม</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex gap-4 items-start">
                   <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                   <div>
-                    <p className="font-medium">Deviation Created</p>
+                    <p className="font-medium">สร้างความเบี่ยงเบน</p>
                     <p className="text-sm text-gray-500">
                       {deviation.createdAt ? new Date(deviation.createdAt).toLocaleString('th-TH') : '-'}
                     </p>
-                    <p className="text-sm text-gray-600">Created by {reporter?.name || 'Unknown'}</p>
+                    <p className="text-sm text-gray-600">สร้างโดย {reporter?.name || 'ไม่ทราบ'}</p>
                   </div>
                 </div>
                 {deviation.closedAt && (
                   <div className="flex gap-4 items-start">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                     <div>
-                      <p className="font-medium">Deviation Closed</p>
+                      <p className="font-medium">ปิดความเบี่ยงเบน</p>
                       <p className="text-sm text-gray-500">
                         {new Date(deviation.closedAt).toLocaleString('th-TH')}
                       </p>

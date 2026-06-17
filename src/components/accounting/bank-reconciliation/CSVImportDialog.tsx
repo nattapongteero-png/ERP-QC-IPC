@@ -29,9 +29,9 @@ interface ColumnMapping {
 }
 
 const dateFormats = [
-  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (Thai)' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (ไทย)' },
   { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (ISO)' },
-  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (US)' },
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (สหรัฐฯ)' },
   { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY' },
 ];
 
@@ -205,7 +205,7 @@ export function CSVImportDialog({
     <Popup
       visible={visible}
       onHiding={handleClose}
-      title="Import Bank Statement"
+      title="นำเข้ารายการเดินบัญชีธนาคาร"
       width={800}
       height={600}
       showCloseButton={true}
@@ -216,10 +216,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-center mb-6">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Upload Bank Statement CSV
+                อัปโหลดไฟล์ CSV รายการเดินบัญชี
               </h3>
               <p className="text-sm text-gray-500">
-                Select a CSV file exported from your bank
+                เลือกไฟล์ CSV ที่ส่งออกจากธนาคารของคุณ
               </p>
             </div>
             <input
@@ -231,7 +231,7 @@ export function CSVImportDialog({
               data-testid="csv-file-input"
             />
             <Button
-              text="Select CSV File"
+              text="เลือกไฟล์ CSV"
               icon="upload"
               type="default"
               stylingMode="contained"
@@ -245,10 +245,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Map CSV Columns
+                จับคู่คอลัมน์ CSV
               </h3>
               <p className="text-sm text-gray-500">
-                Match your CSV columns to the required fields
+                จับคู่คอลัมน์ในไฟล์ CSV กับฟิลด์ที่ต้องการ
               </p>
             </div>
 
@@ -258,10 +258,10 @@ export function CSVImportDialog({
                   value={hasHeader}
                   onValueChanged={(e) => setHasHeader(e.value)}
                 />
-                <span className="text-sm">First row contains headers</span>
+                <span className="text-sm">แถวแรกเป็นหัวคอลัมน์</span>
               </div>
               <div>
-                <label className="text-sm font-medium">Date Format</label>
+                <label className="text-sm font-medium">รูปแบบวันที่</label>
                 <SelectBox
                   items={dateFormats}
                   value={dateFormat}
@@ -274,72 +274,72 @@ export function CSVImportDialog({
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="text-sm font-medium text-red-600">Date Column *</label>
+                <label className="text-sm font-medium text-red-600">คอลัมน์วันที่ *</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.dateColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, dateColumn: e.value })}
-                  placeholder="Select date column"
+                  placeholder="เลือกคอลัมน์วันที่"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-red-600">Description Column *</label>
+                <label className="text-sm font-medium text-red-600">คอลัมน์รายละเอียด *</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.descriptionColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, descriptionColumn: e.value })}
-                  placeholder="Select description column"
+                  placeholder="เลือกคอลัมน์รายละเอียด"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Debit Amount Column</label>
+                <label className="text-sm font-medium">คอลัมน์ยอดเดบิต</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.debitColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, debitColumn: e.value })}
-                  placeholder="Select debit column"
+                  placeholder="เลือกคอลัมน์เดบิต"
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Credit Amount Column</label>
+                <label className="text-sm font-medium">คอลัมน์ยอดเครดิต</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.creditColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, creditColumn: e.value })}
-                  placeholder="Select credit column"
+                  placeholder="เลือกคอลัมน์เครดิต"
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Reference Column</label>
+                <label className="text-sm font-medium">คอลัมน์อ้างอิง</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.referenceColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, referenceColumn: e.value })}
-                  placeholder="Select reference column"
+                  placeholder="เลือกคอลัมน์อ้างอิง"
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Balance Column</label>
+                <label className="text-sm font-medium">คอลัมน์ยอดคงเหลือ</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.balanceColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, balanceColumn: e.value })}
-                  placeholder="Select balance column"
+                  placeholder="เลือกคอลัมน์ยอดคงเหลือ"
                   showClearButton={true}
                 />
               </div>
@@ -369,9 +369,9 @@ export function CSVImportDialog({
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="Back" onClick={() => setStep('upload')} />
+              <Button text="ย้อนกลับ" onClick={() => setStep('upload')} />
               <Button
-                text="Continue"
+                text="ถัดไป"
                 type="default"
                 stylingMode="contained"
                 onClick={handleMapping}
@@ -385,10 +385,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Preview Import
+                ตรวจสอบก่อนนำเข้า
               </h3>
               <p className="text-sm text-gray-500">
-                {parsedLines.length} lines ready to import
+                {parsedLines.length} รายการพร้อมนำเข้า
               </p>
             </div>
 
@@ -400,19 +400,19 @@ export function CSVImportDialog({
                 height={350}
               >
                 <Column dataField="rowNumber" caption="#" width={50} />
-                <Column dataField="transactionDate" caption="Date" width={100} />
-                <Column dataField="description" caption="Description" />
-                <Column dataField="debitAmount" caption="Debit" width={100} format="fixedPoint" />
-                <Column dataField="creditAmount" caption="Credit" width={100} format="fixedPoint" />
-                <Column dataField="reference" caption="Reference" width={120} />
-                <Column dataField="balance" caption="Balance" width={100} format="fixedPoint" />
+                <Column dataField="transactionDate" caption="วันที่" width={100} />
+                <Column dataField="description" caption="รายละเอียด" />
+                <Column dataField="debitAmount" caption="เดบิต" width={100} format="fixedPoint" />
+                <Column dataField="creditAmount" caption="เครดิต" width={100} format="fixedPoint" />
+                <Column dataField="reference" caption="อ้างอิง" width={120} />
+                <Column dataField="balance" caption="ยอดคงเหลือ" width={100} format="fixedPoint" />
               </DataGrid>
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="Back" onClick={() => setStep('mapping')} />
+              <Button text="ย้อนกลับ" onClick={() => setStep('mapping')} />
               <Button
-                text={importing ? 'Importing...' : 'Import'}
+                text={importing ? 'กำลังนำเข้า...' : 'นำเข้า'}
                 type="success"
                 stylingMode="contained"
                 onClick={handleImport}

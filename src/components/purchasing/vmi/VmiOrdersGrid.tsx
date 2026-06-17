@@ -125,12 +125,12 @@ const statusConfig: Record<VmiOrderStatus, {
 };
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'submitted', label: 'Submitted (รอดำเนินการ)' },
-  { value: 'confirmed', label: 'Confirmed (ยืนยันแล้ว)' },
-  { value: 'shipped', label: 'Shipped (จัดส่งแล้ว)' },
-  { value: 'received', label: 'Received (รับแล้ว)' },
-  { value: 'cancelled', label: 'Cancelled (ยกเลิก)' },
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'submitted', label: 'รอดำเนินการ' },
+  { value: 'confirmed', label: 'ยืนยันแล้ว' },
+  { value: 'shipped', label: 'จัดส่งแล้ว' },
+  { value: 'received', label: 'รับแล้ว' },
+  { value: 'cancelled', label: 'ยกเลิก' },
 ];
 
 // ============================================================================
@@ -144,7 +144,7 @@ function StatusBadge({ status }: { status: VmiOrderStatus }) {
   return (
     <Badge variant={config.variant} className="gap-1">
       <Icon className="h-3 w-3" />
-      {config.label}
+      {config.labelTh}
     </Badge>
   );
 }
@@ -192,7 +192,7 @@ export function VmiOrdersGrid({
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'poNumber',
-      caption: 'PO Number',
+      caption: 'เลขที่ PO',
       width: 140,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'hospitalName',
-      caption: 'Hospital',
+      caption: 'โรงพยาบาล',
       minWidth: 180,
       cellRender: (cellInfo) => (
         <div>
@@ -217,7 +217,7 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'vendorName',
-      caption: 'Vendor',
+      caption: 'ผู้ขาย',
       width: 150,
       cellRender: (cellInfo) => (
         <span className="text-gray-600">{cellInfo.data.vendorName}</span>
@@ -225,19 +225,19 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'orderDate',
-      caption: 'Order Date',
+      caption: 'วันที่สั่งซื้อ',
       width: 110,
       cellRender: (cellInfo) => formatDate(cellInfo.data.orderDate),
     },
     {
       dataField: 'expectedDeliveryDate',
-      caption: 'Expected',
+      caption: 'วันที่คาดว่าจะได้รับ',
       width: 110,
       cellRender: (cellInfo) => formatDate(cellInfo.data.expectedDeliveryDate),
     },
     {
       dataField: 'totalValue',
-      caption: 'Amount',
+      caption: 'จำนวนเงิน',
       width: 120,
       alignment: 'right',
       cellRender: (cellInfo) => (
@@ -248,13 +248,13 @@ export function VmiOrdersGrid({
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 130,
       cellRender: (cellInfo) => <StatusBadge status={cellInfo.data.status} />,
     },
     {
       dataField: 'localPoId',
-      caption: 'Local PO',
+      caption: 'PO ภายใน',
       width: 100,
       cellRender: (cellInfo) =>
         cellInfo.data.localPoId ? (
@@ -266,7 +266,7 @@ export function VmiOrdersGrid({
   ];
 
   const vendorOptions = [
-    { value: '', label: 'All Vendors' },
+    { value: '', label: 'ผู้ขายทั้งหมด' },
     ...vendors.map(v => ({ value: v.id.toString(), label: v.name })),
   ];
 
@@ -276,7 +276,7 @@ export function VmiOrdersGrid({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <DxButton
-            text="Poll Orders"
+            text="ดึงคำสั่งซื้อ"
             icon="refresh"
             type="default"
             stylingMode="contained"
@@ -288,7 +288,7 @@ export function VmiOrdersGrid({
             type="normal"
             stylingMode={showFilters ? 'contained' : 'outlined'}
             onClick={() => setShowFilters(!showFilters)}
-            hint="Toggle Filters"
+            hint="สลับตัวกรอง"
           />
           {onRefresh && (
             <DxButton
@@ -296,13 +296,13 @@ export function VmiOrdersGrid({
               type="normal"
               stylingMode="text"
               onClick={onRefresh}
-              hint="Refresh"
+              hint="รีเฟรช"
             />
           )}
         </div>
 
         <div className="text-sm text-gray-500">
-          {orders.length} order(s)
+          {orders.length} รายการ
         </div>
       </div>
 
@@ -311,40 +311,40 @@ export function VmiOrdersGrid({
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Filter className="h-4 w-4" />
-            Filters
+            ตัวกรอง
           </div>
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Vendor</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">ผู้ขาย</label>
               <DxSelectBox
                 items={vendorOptions}
                 value={filters.vendorId?.toString() || ''}
                 onValueChange={(value) => handleFilterChange('vendorId', value ? parseInt(value) : undefined)}
                 valueExpr="value"
                 displayExpr="label"
-                placeholder="All Vendors"
+                placeholder="ผู้ขายทั้งหมด"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">สถานะ</label>
               <DxSelectBox
                 items={statusOptions}
                 value={filters.status || ''}
                 onValueChange={(value) => handleFilterChange('status', value as VmiOrderStatus || undefined)}
                 valueExpr="value"
                 displayExpr="label"
-                placeholder="All Statuses"
+                placeholder="ทุกสถานะ"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date From</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">วันที่เริ่มต้น</label>
               <DxDateBox
                 value={filters.dateFrom}
                 onValueChange={(value) => handleFilterChange('dateFrom', value || undefined)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date To</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">วันที่สิ้นสุด</label>
               <DxDateBox
                 value={filters.dateTo}
                 onValueChange={(value) => handleFilterChange('dateTo', value || undefined)}
@@ -374,9 +374,9 @@ export function VmiOrdersGrid({
       {!isLoading && orders.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
           <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No VMI Orders</h3>
+          <h3 className="text-lg font-medium text-gray-900">ไม่มีคำสั่งซื้อ VMI</h3>
           <p className="text-gray-500 mt-1">
-            Click &quot;Poll Orders&quot; to fetch new orders from VMI Portal
+            คลิก &quot;ดึงคำสั่งซื้อ&quot; เพื่อดึงคำสั่งซื้อใหม่จากพอร์ทัล VMI
           </p>
         </div>
       )}

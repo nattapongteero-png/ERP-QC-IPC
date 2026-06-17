@@ -107,7 +107,7 @@ export default function CreditDebitNotesPage() {
     return (
       <Button
         icon="search"
-        hint="View"
+        hint="ดู"
         stylingMode="text"
         onClick={() => handleViewNote(note.id)}
       />
@@ -129,7 +129,7 @@ export default function CreditDebitNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            Create and manage credit notes and debit notes for AR and AP
+            สร้างและจัดการใบลดหนี้และใบเพิ่มหนี้สำหรับลูกหนี้และเจ้าหนี้
           </p>
         </div>
 
@@ -137,25 +137,25 @@ export default function CreditDebitNotesPage() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
-              <div className="text-sm text-gray-500">Draft Notes</div>
+              <div className="text-sm text-gray-500">ใบร่าง</div>
               <div className="text-2xl font-bold text-gray-900">
                 {summary.draftCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">Pending Approval</div>
+              <div className="text-sm text-gray-500">รออนุมัติ</div>
               <div className="text-2xl font-bold text-yellow-600">
                 {summary.pendingApprovalCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">Posted This Month</div>
+              <div className="text-sm text-gray-500">ลงบัญชีเดือนนี้</div>
               <div className="text-2xl font-bold text-green-600">
                 {summary.postedThisMonth}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">Total This Month</div>
+              <div className="text-sm text-gray-500">ยอดรวมเดือนนี้</div>
               <div className="text-2xl font-bold text-blue-600">
                 {summary.totalThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
               </div>
@@ -174,15 +174,15 @@ export default function CreditDebitNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="Search notes..." />
+            <SearchPanel visible={true} placeholder="ค้นหาใบลด/เพิ่มหนี้..." />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">Credit/Debit Notes</span>
+                <span className="text-lg font-medium">ใบลดหนี้/ใบเพิ่มหนี้</span>
               </Item>
               <Item location="after">
                 <Button
-                  text="New Note"
+                  text="สร้างใบใหม่"
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -192,38 +192,38 @@ export default function CreditDebitNotesPage() {
               </Item>
             </Toolbar>
 
-            <Column dataField="noteNumber" caption="Note #" width={150} />
+            <Column dataField="noteNumber" caption="เลขที่ใบ" width={150} />
             <Column
               dataField="noteType"
-              caption="Type"
+              caption="ประเภท"
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="Date"
+              caption="วันที่"
               width={100}
               cellRender={formatDate}
             />
-            <Column dataField="customerName" caption="Customer" width={150} />
-            <Column dataField="vendorName" caption="Vendor" width={150} />
-            <Column dataField="reasonCode" caption="Reason" width={120} />
+            <Column dataField="customerName" caption="ลูกค้า" width={150} />
+            <Column dataField="vendorName" caption="ผู้ขาย" width={150} />
+            <Column dataField="reasonCode" caption="เหตุผล" width={120} />
             <Column
               dataField="totalAmount"
-              caption="Amount"
+              caption="จำนวนเงิน"
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="Status"
+              caption="สถานะ"
               width={100}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="Actions"
+              caption="การดำเนินการ"
               width={80}
               alignment="center"
               cellRender={renderActions}

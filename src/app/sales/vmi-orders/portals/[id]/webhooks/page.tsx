@@ -397,7 +397,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
           icon="edit"
           type="normal"
           stylingMode="text"
-          hint="Edit"
+          hint="แก้ไข"
           onClick={(e) => {
             e.event?.stopPropagation();
             openEdit(webhook);
@@ -407,7 +407,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
           icon="clock"
           type="normal"
           stylingMode="text"
-          hint="View Deliveries"
+          hint="ดูประวัติการส่ง"
           onClick={(e) => {
             e.event?.stopPropagation();
             openHistory(webhook);
@@ -419,7 +419,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
               icon="check"
               type="danger"
               stylingMode="text"
-              hint="Confirm Delete"
+              hint="ยืนยันการลบ"
               onClick={(e) => {
                 e.event?.stopPropagation();
                 handleDelete(webhook.id);
@@ -429,7 +429,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
               icon="close"
               type="normal"
               stylingMode="text"
-              hint="Cancel"
+              hint="ยกเลิก"
               onClick={(e) => {
                 e.event?.stopPropagation();
                 setConfirmDelete(null);
@@ -441,7 +441,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
             icon="trash"
             type="normal"
             stylingMode="text"
-            hint="Delete"
+            hint="ลบ"
             onClick={(e) => {
               e.event?.stopPropagation();
               setConfirmDelete(webhook.id);
@@ -484,36 +484,36 @@ export default function VmiWebhooksPage({ params }: PageProps) {
   const deliveryColumns: DxDataGridColumn[] = [
     {
       dataField: 'deliveryId',
-      caption: 'Delivery ID',
+      caption: 'รหัสการส่ง',
       width: 280,
     },
     {
       dataField: 'eventType',
-      caption: 'Event',
+      caption: 'เหตุการณ์',
       width: 150,
     },
     {
       dataField: 'status',
-      caption: 'Status',
+      caption: 'สถานะ',
       width: 120,
       cellRender: renderDeliveryStatusCell,
     },
     {
       dataField: 'receivedAt',
-      caption: 'Received',
+      caption: 'เวลาที่รับ',
       width: 180,
       cellRender: renderDeliveryTimeCell,
     },
     {
       dataField: 'processingDurationMs',
-      caption: 'Duration',
+      caption: 'ระยะเวลา',
       width: 100,
       cellRender: (data: { data?: DeliveryResponse }) =>
         data.data?.processingDurationMs ? `${data.data.processingDurationMs}ms` : '-',
     },
     {
       dataField: 'errorMessage',
-      caption: 'Error',
+      caption: 'ข้อผิดพลาด',
       minWidth: 200,
     },
   ];
@@ -535,14 +535,14 @@ export default function VmiWebhooksPage({ params }: PageProps) {
       <MainLayout>
         <div className="space-y-6">
           <PageHeader
-            title="Portal Not Found"
+            title="ไม่พบพอร์ทัล"
             breadcrumb={
               <nav className="flex text-sm text-gray-500">
                 <Link href="/sales/vmi-orders" className="hover:text-gray-700">
-                  VMI Orders
+                  คำสั่งซื้อ VMI
                 </Link>
                 <span className="mx-2">/</span>
-                <span className="text-gray-900">Error</span>
+                <span className="text-gray-900">ข้อผิดพลาด</span>
               </nav>
             }
           />
@@ -553,12 +553,12 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 <span>
                   {portalError instanceof Error
                     ? portalError.message
-                    : 'Failed to load portal'}
+                    : 'โหลดพอร์ทัลไม่สำเร็จ'}
                 </span>
               </div>
               <div className="mt-4">
                 <Link href="/settings/vmi">
-                  <DxButton text="Back to VMI Settings" icon="arrowleft" type="normal" />
+                  <DxButton text="กลับไปยังการตั้งค่า VMI" icon="arrowleft" type="normal" />
                 </Link>
               </div>
             </CardContent>
@@ -574,11 +574,11 @@ export default function VmiWebhooksPage({ params }: PageProps) {
       <MainLayout>
         <div className="space-y-6 max-w-[1200px] mx-auto">
           <PageHeader
-            title={viewMode === 'create' ? 'Create Webhook' : 'Edit Webhook'}
+            title={viewMode === 'create' ? 'สร้างเว็บฮุก' : 'แก้ไขเว็บฮุก'}
             breadcrumb={
               <nav className="flex text-sm text-gray-500">
                 <Link href="/sales/vmi-orders" className="hover:text-gray-700">
-                  VMI Orders
+                  คำสั่งซื้อ VMI
                 </Link>
                 <span className="mx-2">/</span>
                 <Link
@@ -589,11 +589,11 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                     closeForm();
                   }}
                 >
-                  Webhooks
+                  เว็บฮุก
                 </Link>
                 <span className="mx-2">/</span>
                 <span className="text-gray-900">
-                  {viewMode === 'create' ? 'New' : selectedWebhook?.name}
+                  {viewMode === 'create' ? 'ใหม่' : selectedWebhook?.name}
                 </span>
               </nav>
             }
@@ -643,34 +643,34 @@ export default function VmiWebhooksPage({ params }: PageProps) {
       <MainLayout>
         <div className="space-y-6">
           <PageHeader
-            title={`Deliveries: ${selectedWebhook.name}`}
-            description="View webhook delivery history and troubleshoot issues"
+            title={`ประวัติการส่ง: ${selectedWebhook.name}`}
+            description="ดูประวัติการส่งเว็บฮุกและแก้ไขปัญหา"
             breadcrumb={
               <nav className="flex text-sm text-gray-500">
                 <Link href="/sales/vmi-orders" className="hover:text-gray-700">
-                  VMI Orders
+                  คำสั่งซื้อ VMI
                 </Link>
                 <span className="mx-2">/</span>
                 <button
                   onClick={() => setViewMode('list')}
                   className="hover:text-gray-700"
                 >
-                  Webhooks
+                  เว็บฮุก
                 </button>
                 <span className="mx-2">/</span>
-                <span className="text-gray-900">Deliveries</span>
+                <span className="text-gray-900">ประวัติการส่ง</span>
               </nav>
             }
             actions={
               <div className="flex items-center gap-3">
                 <DxButton
-                  text="Refresh"
+                  text="รีเฟรช"
                   icon="refresh"
                   type="normal"
                   onClick={() => refetchDeliveries()}
                 />
                 <DxButton
-                  text="Back"
+                  text="กลับ"
                   icon="arrowleft"
                   type="normal"
                   onClick={() => setViewMode('list')}
@@ -704,10 +704,10 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <History className="h-5 w-5 text-gray-600" />
-                      <CardTitle>Delivery History</CardTitle>
+                      <CardTitle>ประวัติการส่ง</CardTitle>
                     </div>
                     <span className="text-sm text-gray-500">
-                      {deliveryData?.total || 0} deliveries
+                      {deliveryData?.total || 0} รายการ
                     </span>
                   </div>
                 </CardHeader>
@@ -723,13 +723,13 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                       columns={deliveryColumns}
                       showBorders
                       sorting
-                      noDataText="No deliveries yet"
+                      noDataText="ยังไม่มีรายการส่ง"
                     />
                   ) : (
                     <EmptyState
                       icon={<History className="h-8 w-8" />}
-                      title="No deliveries yet"
-                      description="Deliveries will appear here when webhooks are received"
+                      title="ยังไม่มีรายการส่ง"
+                      description="รายการส่งจะแสดงที่นี่เมื่อได้รับเว็บฮุก"
                     />
                   )}
                 </CardContent>
@@ -746,31 +746,31 @@ export default function VmiWebhooksPage({ params }: PageProps) {
     <MainLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Webhook Management"
-          description={`Manage webhooks for ${portal.name}`}
+          title="จัดการเว็บฮุก"
+          description={`จัดการเว็บฮุกสำหรับ ${portal.name}`}
           breadcrumb={
             <nav className="flex text-sm text-gray-500">
               <Link href="/sales/vmi-orders" className="hover:text-gray-700">
-                VMI Orders
+                คำสั่งซื้อ VMI
               </Link>
               <span className="mx-2">/</span>
               <Link href="/settings/vmi" className="hover:text-gray-700">
-                Portal Settings
+                ตั้งค่าพอร์ทัล
               </Link>
               <span className="mx-2">/</span>
-              <span className="text-gray-900">Webhooks</span>
+              <span className="text-gray-900">เว็บฮุก</span>
             </nav>
           }
           actions={
             <div className="flex items-center gap-3">
               <DxButton
-                text="Refresh"
+                text="รีเฟรช"
                 icon="refresh"
                 type="normal"
                 onClick={() => refetchWebhooks()}
               />
               <DxButton
-                text="Add Webhook"
+                text="เพิ่มเว็บฮุก"
                 icon="plus"
                 type="success"
                 onClick={openCreate}
@@ -804,7 +804,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-                  <p className="text-sm text-gray-500">Active</p>
+                  <p className="text-sm text-gray-500">ใช้งาน</p>
                 </div>
               </div>
             </CardContent>
@@ -818,7 +818,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-amber-600">{stats.warning}</p>
-                  <p className="text-sm text-gray-500">Warning</p>
+                  <p className="text-sm text-gray-500">เตือน</p>
                 </div>
               </div>
             </CardContent>
@@ -832,7 +832,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-600">{stats.disabled}</p>
-                  <p className="text-sm text-gray-500">Disabled</p>
+                  <p className="text-sm text-gray-500">ปิดใช้งาน</p>
                 </div>
               </div>
             </CardContent>
@@ -844,7 +844,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <Webhook className="h-5 w-5 text-gray-600" />
-              <CardTitle>Configured Webhooks</CardTitle>
+              <CardTitle>เว็บฮุกที่กำหนดค่าไว้</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
@@ -860,30 +860,30 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 columns={[
                   {
                     dataField: 'name',
-                    caption: 'Webhook',
+                    caption: 'เว็บฮุก',
                     minWidth: 200,
                     cellRender: renderNameCell,
                   },
                   {
                     dataField: 'events',
-                    caption: 'Events',
+                    caption: 'เหตุการณ์',
                     minWidth: 280,
                     cellRender: renderEventsCell,
                   },
                   {
                     dataField: 'isActive',
-                    caption: 'Health',
+                    caption: 'สถานะสุขภาพ',
                     width: 140,
                     cellRender: renderHealthCell,
                   },
                   {
                     dataField: 'consecutiveFailures',
-                    caption: 'Failures',
+                    caption: 'ครั้งที่ล้มเหลว',
                     width: 100,
                     alignment: 'center',
                   },
                   {
-                    caption: 'Actions',
+                    caption: 'การดำเนินการ',
                     width: 160,
                     cellRender: renderActionsCell,
                   },
@@ -892,10 +892,10 @@ export default function VmiWebhooksPage({ params }: PageProps) {
             ) : (
               <EmptyState
                 icon={<Webhook className="h-8 w-8" />}
-                title="No webhooks configured"
-                description="Create a webhook to receive real-time notifications from VMI Portal"
+                title="ยังไม่มีเว็บฮุกที่กำหนดค่า"
+                description="สร้างเว็บฮุกเพื่อรับการแจ้งเตือนแบบเรียลไทม์จากพอร์ทัล VMI"
                 action={{
-                  label: 'Add Webhook',
+                  label: 'เพิ่มเว็บฮุก',
                   onClick: openCreate,
                 }}
               />
@@ -906,7 +906,7 @@ export default function VmiWebhooksPage({ params }: PageProps) {
         {/* Webhook URL Info */}
         <Card className="bg-blue-50 border-blue-100">
           <CardContent className="p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Webhook Endpoint</h4>
+            <h4 className="font-medium text-blue-900 mb-2">ปลายทางเว็บฮุก</h4>
             <div className="flex items-center gap-2 mb-2">
               <code className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm font-mono overflow-x-auto">
                 {getWebhookUrl()}
@@ -915,15 +915,15 @@ export default function VmiWebhooksPage({ params }: PageProps) {
                 icon="copy"
                 type="normal"
                 stylingMode="outlined"
-                hint="Copy URL"
+                hint="คัดลอก URL"
                 onClick={() => {
                   navigator.clipboard.writeText(getWebhookUrl());
                 }}
               />
             </div>
             <p className="text-sm text-blue-700">
-              Configure this URL in your VMI Portal's webhook settings. Each webhook
-              will use the same endpoint but with different secrets for verification.
+              กำหนดค่า URL นี้ในการตั้งค่าเว็บฮุกของพอร์ทัล VMI เว็บฮุกแต่ละรายการจะใช้
+              ปลายทางเดียวกัน แต่ใช้รหัสลับที่แตกต่างกันสำหรับการตรวจสอบ
             </p>
           </CardContent>
         </Card>
@@ -933,8 +933,8 @@ export default function VmiWebhooksPage({ params }: PageProps) {
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
             <span className="text-sm text-amber-800">
-              You have reached the maximum of 5 webhooks per portal. Delete an
-              existing webhook to add a new one.
+              คุณมีเว็บฮุกครบ 5 รายการต่อพอร์ทัลแล้ว ซึ่งเป็นจำนวนสูงสุด กรุณาลบเว็บฮุก
+              ที่มีอยู่เพื่อเพิ่มรายการใหม่
             </span>
           </div>
         )}

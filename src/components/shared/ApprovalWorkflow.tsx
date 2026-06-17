@@ -159,12 +159,12 @@ export function ApprovalWorkflow({
   if (!approvalRequest) {
     return (
       <div className="border rounded-lg p-4 bg-gray-50" data-testid="approval-workflow-panel">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Approval Workflow</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">ขั้นตอนการอนุมัติ</h3>
         <div className="text-sm text-gray-500 mb-3">
-          This document has not been submitted for approval yet.
+          เอกสารนี้ยังไม่ได้ส่งเพื่อขออนุมัติ
         </div>
         <Button
-          text="Submit for Approval"
+          text="ส่งเพื่อขออนุมัติ"
           type="default"
           stylingMode="contained"
           onClick={handleSubmitForApproval}
@@ -178,7 +178,7 @@ export function ApprovalWorkflow({
   return (
     <div className="border rounded-lg p-4 bg-gray-50" data-testid="approval-workflow-panel">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700">Approval Workflow</h3>
+        <h3 className="text-sm font-medium text-gray-700">ขั้นตอนการอนุมัติ</h3>
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[approvalRequest.status]}`}
           data-testid="approval-status"
@@ -188,7 +188,7 @@ export function ApprovalWorkflow({
       </div>
 
       <div className="text-sm text-gray-600 mb-3">
-        Flow: <span className="font-medium">{approvalRequest.flow.name}</span>
+        ลำดับขั้น: <span className="font-medium">{approvalRequest.flow.name}</span>
       </div>
 
       {/* Steps timeline */}
@@ -220,15 +220,15 @@ export function ApprovalWorkflow({
               {index + 1}
             </div>
             <div className="flex-1">
-              <div className="text-sm font-medium">{step.assignedToName || `User #${step.assignedTo}`}</div>
+              <div className="text-sm font-medium">{step.assignedToName || `ผู้ใช้ #${step.assignedTo}`}</div>
               {step.delegatedFromName && (
                 <div className="text-xs text-gray-500">
-                  Delegated from: {step.delegatedFromName}
+                  มอบหมายจาก: {step.delegatedFromName}
                 </div>
               )}
               {step.actionDate && (
                 <div className="text-xs text-gray-500">
-                  {step.status === 'approved' ? 'Approved' : 'Rejected'}: {new Date(step.actionDate).toLocaleString()}
+                  {step.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว'}: {new Date(step.actionDate).toLocaleString()}
                 </div>
               )}
               {step.comments && (
@@ -249,7 +249,7 @@ export function ApprovalWorkflow({
         <div className="flex gap-2 mt-4" data-testid="approval-actions">
           {canApprove && (
             <Button
-              text="Approve"
+              text="อนุมัติ"
               type="success"
               stylingMode="contained"
               onClick={() => setShowApprovePopup(true)}
@@ -259,7 +259,7 @@ export function ApprovalWorkflow({
           )}
           {canReject && (
             <Button
-              text="Reject"
+              text="ปฏิเสธ"
               type="danger"
               stylingMode="contained"
               onClick={() => setShowRejectPopup(true)}
@@ -269,7 +269,7 @@ export function ApprovalWorkflow({
           )}
           {canDelegate && (
             <Button
-              text="Delegate"
+              text="มอบหมาย"
               type="default"
               stylingMode="outlined"
               onClick={() => setShowDelegatePopup(true)}
@@ -284,14 +284,14 @@ export function ApprovalWorkflow({
       <Popup
         visible={showApprovePopup}
         onHiding={() => setShowApprovePopup(false)}
-        title="Approve Request"
+        title="อนุมัติคำขอ"
         width={400}
         height="auto"
         showCloseButton={true}
       >
         <div className="p-4">
           <TextArea
-            placeholder="Comments (optional)"
+            placeholder="ความคิดเห็น (ไม่บังคับ)"
             value={comments}
             onValueChanged={(e) => setComments(e.value)}
             height={100}
@@ -299,13 +299,13 @@ export function ApprovalWorkflow({
           />
           <div className="flex justify-end gap-2 mt-4">
             <Button
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowApprovePopup(false)}
             />
             <Button
-              text="Confirm Approve"
+              text="ยืนยันการอนุมัติ"
               type="success"
               stylingMode="contained"
               onClick={handleApprove}
@@ -320,14 +320,14 @@ export function ApprovalWorkflow({
       <Popup
         visible={showRejectPopup}
         onHiding={() => setShowRejectPopup(false)}
-        title="Reject Request"
+        title="ปฏิเสธคำขอ"
         width={400}
         height="auto"
         showCloseButton={true}
       >
         <div className="p-4">
           <TextArea
-            placeholder="Rejection reason (required)"
+            placeholder="เหตุผลในการปฏิเสธ (จำเป็น)"
             value={comments}
             onValueChanged={(e) => setComments(e.value)}
             height={100}
@@ -335,13 +335,13 @@ export function ApprovalWorkflow({
           />
           <div className="flex justify-end gap-2 mt-4">
             <Button
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowRejectPopup(false)}
             />
             <Button
-              text="Confirm Reject"
+              text="ยืนยันการปฏิเสธ"
               type="danger"
               stylingMode="contained"
               onClick={handleReject}
@@ -356,7 +356,7 @@ export function ApprovalWorkflow({
       <Popup
         visible={showDelegatePopup}
         onHiding={() => setShowDelegatePopup(false)}
-        title="Delegate Approval"
+        title="มอบหมายการอนุมัติ"
         width={400}
         height="auto"
         showCloseButton={true}
@@ -364,7 +364,7 @@ export function ApprovalWorkflow({
         <div className="p-4">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Delegate to:
+              มอบหมายให้:
             </label>
             <SelectBox
               dataSource={[]} // TODO: Load employees
@@ -372,13 +372,13 @@ export function ApprovalWorkflow({
               displayExpr="name"
               value={delegateTo}
               onValueChanged={(e) => setDelegateTo(e.value)}
-              placeholder="Select employee"
+              placeholder="เลือกพนักงาน"
               searchEnabled={true}
               data-testid="delegate-select"
             />
           </div>
           <TextArea
-            placeholder="Reason for delegation (optional)"
+            placeholder="เหตุผลในการมอบหมาย (ไม่บังคับ)"
             value={comments}
             onValueChanged={(e) => setComments(e.value)}
             height={80}
@@ -386,13 +386,13 @@ export function ApprovalWorkflow({
           />
           <div className="flex justify-end gap-2 mt-4">
             <Button
-              text="Cancel"
+              text="ยกเลิก"
               type="normal"
               stylingMode="outlined"
               onClick={() => setShowDelegatePopup(false)}
             />
             <Button
-              text="Confirm Delegate"
+              text="ยืนยันการมอบหมาย"
               type="default"
               stylingMode="contained"
               onClick={handleDelegate}

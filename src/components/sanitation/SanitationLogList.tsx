@@ -40,28 +40,28 @@ export function SanitationLogList({
     () => [
       {
         dataField: 'scheduleName',
-        caption: 'Schedule',
+        caption: 'กำหนดการ',
         width: 180,
       },
       {
         dataField: 'areaType',
-        caption: 'Area',
+        caption: 'พื้นที่',
         width: 100,
       },
       {
         dataField: 'performedDate',
-        caption: 'Performed',
+        caption: 'วันที่ดำเนินการ',
         dataType: 'date',
         width: 110,
       },
       {
         dataField: 'performedByName',
-        caption: 'Performed By',
+        caption: 'ดำเนินการโดย',
         width: 130,
       },
       {
         dataField: 'status',
-        caption: 'Status',
+        caption: 'สถานะ',
         width: 100,
         cellRender: (data: { value: SanitationLogStatus }) => (
           <WorkflowStatusBadge status={data.value} />
@@ -69,21 +69,21 @@ export function SanitationLogList({
       },
       {
         dataField: 'method',
-        caption: 'Method',
+        caption: 'วิธีการ',
         width: 150,
       },
       {
         dataField: 'chemicalsUsed',
-        caption: 'Chemicals',
+        caption: 'สารเคมีที่ใช้',
         width: 120,
       },
       {
         dataField: 'verifiedByName',
-        caption: 'Verified By',
+        caption: 'ตรวจสอบโดย',
         width: 120,
         cellRender: (data: { value: string | undefined; data: SanitationLog }) => {
           if (data.value) return data.value;
-          return <span className="text-muted-foreground text-xs">Pending</span>;
+          return <span className="text-muted-foreground text-xs">รอตรวจสอบ</span>;
         },
       },
     ],
@@ -99,7 +99,7 @@ export function SanitationLogList({
         {canVerify && needsVerification && onVerify && (
           <DxButton
             icon="check"
-            hint="Verify"
+            hint="ตรวจสอบ"
             onClick={() => onVerify(data.data!.id)}
             stylingMode="text"
             type="success"
@@ -108,7 +108,7 @@ export function SanitationLogList({
         {onEdit && !data.data.verifiedBy && (
           <DxButton
             icon="edit"
-            hint="Edit"
+            hint="แก้ไข"
             onClick={() => onEdit(data.data!)}
             stylingMode="text"
           />
@@ -129,7 +129,7 @@ export function SanitationLogList({
         <DxColumn key={col.dataField} {...col as DxColumnProps} />
       ))}
       <DxColumn
-        caption="Actions"
+        caption="การดำเนินการ"
         width={100}
         cellRender={actionsCellRender}
         allowSorting={false}

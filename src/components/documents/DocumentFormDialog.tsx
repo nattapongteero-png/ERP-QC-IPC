@@ -217,13 +217,13 @@ export function DocumentFormDialog({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'จำเป็นต้องกรอกชื่อเอกสาร';
     }
     if (!formData.typeId) {
-      newErrors.typeId = 'Document type is required';
+      newErrors.typeId = 'จำเป็นต้องเลือกประเภทเอกสาร';
     }
     if (formData.retentionYears < 1 || formData.retentionYears > 99) {
-      newErrors.retentionYears = 'Retention period must be between 1 and 99 years';
+      newErrors.retentionYears = 'ระยะเวลาจัดเก็บต้องอยู่ระหว่าง 1 ถึง 99 ปี';
     }
 
     setErrors(newErrors);
@@ -343,7 +343,7 @@ export function DocumentFormDialog({
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
-  const dialogTitle = customTitle || (isEditing ? 'Edit Document' : 'Create New Document');
+  const dialogTitle = customTitle || (isEditing ? 'แก้ไขเอกสาร' : 'สร้างเอกสารใหม่');
 
   return (
     <DxPopup
@@ -381,14 +381,14 @@ export function DocumentFormDialog({
           {/* Title Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Document Title <span className="text-destructive">*</span>
+              ชื่อเอกสาร <span className="text-destructive">*</span>
             </label>
             <DxTextBox
               value={formData.title}
               onValueChange={(value) =>
                 setFormData((prev) => ({ ...prev, title: value || '' }))
               }
-              placeholder="Enter document title"
+              placeholder="กรอกชื่อเอกสาร"
               disabled={isSubmitting}
             />
             {errors.title && (
@@ -399,7 +399,7 @@ export function DocumentFormDialog({
           {/* Document Type Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Document Type <span className="text-destructive">*</span>
+              ประเภทเอกสาร <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
               items={(documentTypes || []).map((t: DocumentType) => ({
@@ -412,7 +412,7 @@ export function DocumentFormDialog({
               onValueChange={(value) =>
                 setFormData((prev) => ({ ...prev, typeId: value }))
               }
-              placeholder="Select document type"
+              placeholder="เลือกประเภทเอกสาร"
               disabled={isEditing || isLoadingTypes || isSubmitting}
               searchEnabled
             />
@@ -423,7 +423,7 @@ export function DocumentFormDialog({
 
           {/* Department Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Department</label>
+            <label className="text-sm font-medium">แผนก</label>
             <DxSelectBox
               items={(departments || []).map((d) => ({
                 value: d.id,
@@ -435,7 +435,7 @@ export function DocumentFormDialog({
               onValueChange={(value) =>
                 setFormData((prev) => ({ ...prev, departmentId: value }))
               }
-              placeholder="Select department (optional)"
+              placeholder="เลือกแผนก (ไม่บังคับ)"
               showClearButton
               disabled={isSubmitting}
               searchEnabled
@@ -444,7 +444,7 @@ export function DocumentFormDialog({
 
           {/* Related Training Course Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Related Training Course (หลักสูตรอบรมที่เกี่ยวข้อง)</label>
+            <label className="text-sm font-medium">หลักสูตรอบรมที่เกี่ยวข้อง</label>
             <DxSelectBox
               items={(trainingCourses || []).map((c: any) => ({
                 value: c.id,
@@ -456,7 +456,7 @@ export function DocumentFormDialog({
               onValueChange={(value) =>
                 setFormData((prev) => ({ ...prev, trainingCourseId: value }))
               }
-              placeholder="Select training course (optional)"
+              placeholder="เลือกหลักสูตรอบรม (ไม่บังคับ)"
               showClearButton
               disabled={isSubmitting}
               searchEnabled
@@ -466,7 +466,7 @@ export function DocumentFormDialog({
           {/* Retention Period Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Retention Period (years)
+              ระยะเวลาจัดเก็บ (ปี)
             </label>
             <DxNumberBox
               value={formData.retentionYears}
@@ -484,23 +484,23 @@ export function DocumentFormDialog({
               <p className="text-sm text-destructive">{errors.retentionYears}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Thai FDA GMP requires minimum 5-7 years retention for most documents
+              GMP อย. ไทย กำหนดให้จัดเก็บเอกสารส่วนใหญ่อย่างน้อย 5-7 ปี
             </p>
           </div>
 
           {/* Current Attached File (only in edit mode) */}
           {isEditing && document?.currentVersion && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Attached File</label>
+              <label className="text-sm font-medium">ไฟล์แนบ</label>
               {!existingFileDeleted && (document.currentVersion.fileName || document.currentVersion.hasFileData) ? (
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
                   <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {document.currentVersion.fileName || 'Attached document'}
+                      {document.currentVersion.fileName || 'เอกสารแนบ'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Version {document.currentVersion.versionNumber}
+                      เวอร์ชัน {document.currentVersion.versionNumber}
                       {document.currentVersion.fileSize
                         ? ` — ${(document.currentVersion.fileSize / 1024).toFixed(1)} KB`
                         : ''}
@@ -511,7 +511,7 @@ export function DocumentFormDialog({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 rounded hover:bg-muted transition-colors"
-                    title="Preview file"
+                    title="ดูตัวอย่างไฟล์"
                   >
                     <Eye className="h-4 w-4 text-gray-600" />
                   </a>
@@ -531,15 +531,15 @@ export function DocumentFormDialog({
                           if (res.ok && result.success) {
                             setExistingFileDeleted(true);
                           } else {
-                            setErrors(prev => ({ ...prev, file: result.error || 'Failed to delete file' }));
+                            setErrors(prev => ({ ...prev, file: result.error || 'ลบไฟล์ไม่สำเร็จ' }));
                           }
                         } catch {
-                          setErrors(prev => ({ ...prev, file: 'Failed to delete file' }));
+                          setErrors(prev => ({ ...prev, file: 'ลบไฟล์ไม่สำเร็จ' }));
                         }
                         setIsDeletingFile(false);
                       }}
                       className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors"
-                      title="Delete file"
+                      title="ลบไฟล์"
                       disabled={isDeletingFile || isSubmitting}
                     >
                       {isDeletingFile
@@ -557,7 +557,7 @@ export function DocumentFormDialog({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{selectedFile.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {(selectedFile.size / 1024).toFixed(1)} KB — new file
+                        {(selectedFile.size / 1024).toFixed(1)} KB — ไฟล์ใหม่
                       </p>
                     </div>
                     <button
@@ -583,12 +583,12 @@ export function DocumentFormDialog({
                       const file = e.dataTransfer.files?.[0];
                       if (file) {
                         if (file.size > 10 * 1024 * 1024) {
-                          setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                          setErrors(prev => ({ ...prev, file: 'ขนาดไฟล์ต้องไม่เกิน 10MB' }));
                           return;
                         }
                         const ext = '.' + file.name.split('.').pop()?.toLowerCase();
                         if (!['.pdf', '.doc', '.docx', '.xls', '.xlsx'].includes(ext)) {
-                          setErrors(prev => ({ ...prev, file: 'Only PDF, DOC, DOCX, XLS, XLSX files are allowed' }));
+                          setErrors(prev => ({ ...prev, file: 'อนุญาตเฉพาะไฟล์ PDF, DOC, DOCX, XLS, XLSX' }));
                           return;
                         }
                         setSelectedFile(file);
@@ -598,16 +598,16 @@ export function DocumentFormDialog({
                   >
                     <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
                     <p className="text-sm text-muted-foreground">
-                      {existingFileDeleted ? 'Upload replacement file' : 'Click to upload file'}
+                      {existingFileDeleted ? 'อัปโหลดไฟล์ทดแทน' : 'คลิกเพื่ออัปโหลดไฟล์'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      PDF, DOC, DOCX, XLS, XLSX (max 10MB)
+                      PDF, DOC, DOCX, XLS, XLSX (สูงสุด 10MB)
                     </p>
                   </div>
                 )
               ) : (
                 <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
-                  <p className="text-sm text-muted-foreground">No file attached</p>
+                  <p className="text-sm text-muted-foreground">ไม่มีไฟล์แนบ</p>
                 </div>
               )}
               <input
@@ -619,7 +619,7 @@ export function DocumentFormDialog({
                   const file = e.target.files?.[0];
                   if (file) {
                     if (file.size > 10 * 1024 * 1024) {
-                      setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                      setErrors(prev => ({ ...prev, file: 'ขนาดไฟล์ต้องไม่เกิน 10MB' }));
                       return;
                     }
                     setSelectedFile(file);
@@ -637,18 +637,18 @@ export function DocumentFormDialog({
           {/* Content Field (only for new documents) */}
           {!isEditing && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Initial Content</label>
+              <label className="text-sm font-medium">เนื้อหาเริ่มต้น</label>
               <DxTextArea
                 value={formData.content}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, content: value || '' }))
                 }
-                placeholder="Enter initial document content (optional)"
+                placeholder="กรอกเนื้อหาเอกสารเริ่มต้น (ไม่บังคับ)"
                 height={120}
                 disabled={isSubmitting}
               />
               <p className="text-xs text-muted-foreground">
-                You can add or update content in document versions later
+                คุณสามารถเพิ่มหรือแก้ไขเนื้อหาในเวอร์ชันของเอกสารได้ภายหลัง
               </p>
             </div>
           )}
@@ -656,7 +656,7 @@ export function DocumentFormDialog({
           {/* File Upload Field (only for new documents) */}
           {!isEditing && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Upload Document</label>
+              <label className="text-sm font-medium">อัปโหลดเอกสาร</label>
               {selectedFile ? (
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
                   <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
@@ -689,12 +689,12 @@ export function DocumentFormDialog({
                     const file = e.dataTransfer.files?.[0];
                     if (file) {
                       if (file.size > 10 * 1024 * 1024) {
-                        setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                        setErrors(prev => ({ ...prev, file: 'ขนาดไฟล์ต้องไม่เกิน 10MB' }));
                         return;
                       }
                       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
                       if (!['.pdf', '.doc', '.docx', '.xls', '.xlsx'].includes(ext)) {
-                        setErrors(prev => ({ ...prev, file: 'Only PDF, DOC, DOCX, XLS, XLSX files are allowed' }));
+                        setErrors(prev => ({ ...prev, file: 'อนุญาตเฉพาะไฟล์ PDF, DOC, DOCX, XLS, XLSX' }));
                         return;
                       }
                       setSelectedFile(file);
@@ -704,10 +704,10 @@ export function DocumentFormDialog({
                 >
                   <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Click to upload or drag and drop
+                    คลิกเพื่ออัปโหลดหรือลากไฟล์มาวาง
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    PDF, DOC, DOCX, XLS, XLSX (max 10MB)
+                    PDF, DOC, DOCX, XLS, XLSX (สูงสุด 10MB)
                   </p>
                 </div>
               )}
@@ -720,7 +720,7 @@ export function DocumentFormDialog({
                   const file = e.target.files?.[0];
                   if (file) {
                     if (file.size > 10 * 1024 * 1024) {
-                      setErrors(prev => ({ ...prev, file: 'File size must be less than 10MB' }));
+                      setErrors(prev => ({ ...prev, file: 'ขนาดไฟล์ต้องไม่เกิน 10MB' }));
                       return;
                     }
                     setSelectedFile(file);
@@ -740,14 +740,14 @@ export function DocumentFormDialog({
         <div className="flex-shrink-0 border-t bg-background p-4 md:p-6">
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
             <DxButton
-              text="Cancel"
+              text="ยกเลิก"
               onClick={handleClose}
               stylingMode="outlined"
               disabled={isSubmitting}
               width={isMobile ? '100%' : undefined}
             />
             <DxButton
-              text={isSubmitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Document')}
+              text={isSubmitting ? 'กำลังบันทึก...' : (isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'สร้างเอกสาร')}
               icon={isSubmitting ? undefined : 'save'}
               onClick={handleSubmit}
               type="success"
