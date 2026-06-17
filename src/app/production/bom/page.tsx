@@ -383,7 +383,7 @@ export default function BOMDashboardPage() {
                       Thai labels (no more clipped "แบบร่าง"). */}
                   <Label visible={false} />
                 </Series>
-                <Legend orientation="bottom" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
                 <Tooltip enabled format="fixedPoint" />
               </PieChart>
             </div>
