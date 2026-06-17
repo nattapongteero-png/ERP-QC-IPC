@@ -33,18 +33,20 @@ export default function PackagingTolerancesPage() {
   const deleteMutation = useMutation({
     mutationFn: async (row: PackagingTolerance) => {
       const res = await fetch(`/api/master-data/packaging-tolerances/${row.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false }),
+        method: 'DELETE',
       });
-      const result = await res.json();
+      const result = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(result?.error ?? 'Failed');
-      return result;
+      return result as { mode?: 'deleted' | 'disabled' };
     },
-    onSuccess: (_result, row) => {
+    onSuccess: (result, row) => {
       queryClient.invalidateQueries({ queryKey: ['packaging-tolerances'] });
       const catLabel = t(`tolerances.categories.${row.packagingCategory as PackagingCategory}`);
-      toast.success('ปิดใช้งานสำเร็จ', `Tolerance หมวด "${catLabel}" ถูกปิดใช้งานแล้ว`);
+      if (result?.mode === 'disabled') {
+        toast.success('ปิดใช้งานแล้ว', `หมวด "${catLabel}" ถูกใช้งานแล้ว จึงปิดการใช้งานแทนการลบ`);
+      } else {
+        toast.success('ลบสำเร็จ', `ลบหมวด "${catLabel}" เรียบร้อย`);
+      }
     },
     onError: (error: Error) => {
       toast.error('ผิดพลาด', error.message);
@@ -53,7 +55,7 @@ export default function PackagingTolerancesPage() {
 
   const handleDelete = (row: PackagingTolerance) => {
     const catLabel = t(`tolerances.categories.${row.packagingCategory as PackagingCategory}`);
-    if (window.confirm(`ปิดใช้งานหมวด "${catLabel}" หรือไม่?`)) {
+    if (window.confirm(`ต้องการลบหมวด "${catLabel}" หรือไม่?\n(หากเคยถูกใช้งานแล้ว ระบบจะปิดการใช้งานแทนการลบ)`)) {
       deleteMutation.mutate(row);
     }
   };

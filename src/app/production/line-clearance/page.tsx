@@ -220,38 +220,42 @@ function LineClearanceContent() {
           }
         />
 
-        {/* Work Order Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">เลือกใบสั่งผลิต</h3>
-          <div className="max-w-lg">
-            <DxSelectBox
-              items={workOrderItems}
-              value={selectedWorkOrderId}
-              onValueChange={(value) => {
-                setSelectedWorkOrderId(value);
-                if (value) {
-                  router.push(`/production/line-clearance?workOrderId=${value}`);
-                }
-              }}
-              placeholder="เลือกใบสั่งผลิต..."
-              searchEnabled
-              showClearButton
-              disabled={isLoadingWorkOrders}
-            />
+        {/* Work Order Selector — only when entering this page standalone (no work
+            order in the URL). When opened from a specific work order the WO is
+            already fixed, so the selector card is redundant and hidden. */}
+        {!workOrderIdParam && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">เลือกใบสั่งผลิต</h3>
+            <div className="max-w-lg">
+              <DxSelectBox
+                items={workOrderItems}
+                value={selectedWorkOrderId}
+                onValueChange={(value) => {
+                  setSelectedWorkOrderId(value);
+                  if (value) {
+                    router.push(`/production/line-clearance?workOrderId=${value}`);
+                  }
+                }}
+                placeholder="เลือกใบสั่งผลิต..."
+                searchEnabled
+                showClearButton
+                disabled={isLoadingWorkOrders}
+              />
+            </div>
+            {isLoadingWorkOrders && (
+              <div className="flex items-center gap-2 text-gray-500 mt-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>กำลังโหลดใบสั่งผลิต...</span>
+              </div>
+            )}
+            {workOrders?.length === 0 && !isLoadingWorkOrders && (
+              <div className="flex items-center gap-2 text-amber-600 mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>ไม่พบใบสั่งผลิตที่ปล่อยแล้ว ใบสั่งผลิตต้องอยู่ในสถานะ &quot;ปล่อยแล้ว&quot; จึงจะเคลียร์ไลน์ได้</span>
+              </div>
+            )}
           </div>
-          {isLoadingWorkOrders && (
-            <div className="flex items-center gap-2 text-gray-500 mt-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>กำลังโหลดใบสั่งผลิต...</span>
-            </div>
-          )}
-          {workOrders?.length === 0 && !isLoadingWorkOrders && (
-            <div className="flex items-center gap-2 text-amber-600 mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>ไม่พบใบสั่งผลิตที่ปล่อยแล้ว ใบสั่งผลิตต้องอยู่ในสถานะ &quot;ปล่อยแล้ว&quot; จึงจะเคลียร์ไลน์ได้</span>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Line Clearance Form */}
         {selectedWorkOrderId && (

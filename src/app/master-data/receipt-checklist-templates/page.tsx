@@ -174,7 +174,25 @@ export default function ReceiptChecklistTemplatesPage() {
             );
           }}
         />
-        <Column dataField="createdAt" caption="สร้างเมื่อ" width={180} />
+        <Column
+          dataField="createdAt"
+          caption="สร้างเมื่อ"
+          width={160}
+          alignment="left"
+          cellRender={(c) => {
+            const v = c.value;
+            if (!v) return '-';
+            const d = new Date(v as string);
+            if (Number.isNaN(d.getTime())) return String(v);
+            return d.toLocaleString('th-TH', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          }}
+        />
         <Column
           caption="การดำเนินการ"
           width={110}
