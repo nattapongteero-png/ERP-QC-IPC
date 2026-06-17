@@ -22,14 +22,25 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, back: vi.fn() }),
 }));
 
-vi.mock('lucide-react', () => ({
-  TestTube: () => <span data-testid="icon-testtube" />,
-  Clock: () => <span data-testid="icon-clock" />,
-  FlaskConical: () => <span data-testid="icon-flask" />,
-  CheckCircle2: () => <span data-testid="icon-check" />,
-  Send: () => <span data-testid="icon-send" />,
-  AlertTriangle: () => <span data-testid="icon-alert" />,
-}));
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 vi.mock('@/components/ui/dx-data-grid', () => ({
   DxDataGrid: () => <div data-testid="dx-data-grid" />,

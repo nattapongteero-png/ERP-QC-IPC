@@ -24,10 +24,25 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
 }));
 
-vi.mock('lucide-react', () => ({
-  TestTube: () => <span data-testid="icon-testtube" />,
-  AlertTriangle: () => <span data-testid="icon-alert" />,
-}));
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name },
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    },
+  );
+});
 
 // Lightweight DevExtreme stubs — render native controls so the form mounts.
 vi.mock('@/components/ui/dx-button', () => ({

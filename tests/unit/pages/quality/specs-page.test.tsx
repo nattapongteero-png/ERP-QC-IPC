@@ -22,25 +22,27 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  FileCheck: () => <span data-testid="icon-file-check" />,
-  CheckCircle: () => <span data-testid="icon-check" />,
-  XCircle: () => <span data-testid="icon-xcircle" />,
-  AlertTriangle: () => <span data-testid="icon-alert" />,
-  Shield: () => <span data-testid="icon-shield" />,
-  Package: () => <span data-testid="icon-package" />,
-  Eye: () => <span data-testid="icon-eye" />,
-  LayoutGrid: () => <span data-testid="icon-grid" />,
-  LayoutList: () => <span data-testid="icon-list" />,
-  BarChart3: () => <span data-testid="icon-barchart" />,
-  TrendingUp: () => <span data-testid="icon-trending" />,
-  Beaker: () => <span data-testid="icon-beaker" />,
-  ListChecks: () => <span data-testid="icon-listchecks" />,
-  Filter: () => <span data-testid="icon-filter" />,
-  Plus: () => <span data-testid="icon-plus" />,
-  RefreshCw: () => <span data-testid="icon-refresh" />,
-}));
+// Mock lucide-react icons - Proxy returns a stub for ANY icon name so a new
+// import can never break this test.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock DevExtreme DataGrid
 vi.mock('devextreme-react/data-grid', () => ({

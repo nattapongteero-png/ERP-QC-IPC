@@ -225,12 +225,10 @@ describe('DeviationsPage', () => {
     it('renders stat cards', () => {
       render(<DeviationsPage />);
 
-      // Stat card testids from English i18n labels
+      // Stat card testids from English i18n labels (design has 4 cards)
       expect(screen.getByTestId('stat-card-total-deviations')).toBeInTheDocument();
       expect(screen.getByTestId('stat-card-in-progress')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-investigating')).toBeInTheDocument();
       expect(screen.getByTestId('stat-card-critical')).toBeInTheDocument();
-      expect(screen.getByTestId('stat-card-overdue')).toBeInTheDocument();
       expect(screen.getByTestId('stat-card-resolution-rate')).toBeInTheDocument();
     });
 
@@ -239,7 +237,8 @@ describe('DeviationsPage', () => {
 
       expect(screen.getByTestId('dx-button-refresh')).toBeInTheDocument();
       // Button from i18n: t('deviations.actions.report') = 'Report Deviation'
-      expect(screen.getByText('Report Deviation')).toBeInTheDocument();
+      // (may appear in both desktop header and mobile header — at least one)
+      expect(screen.getAllByText('Report Deviation').length).toBeGreaterThan(0);
     });
 
     it('renders filter controls', () => {

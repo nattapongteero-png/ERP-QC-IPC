@@ -22,24 +22,21 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  AlertTriangle: () => <span data-testid="icon-alert-triangle" />,
-  AlertCircle: () => <span data-testid="icon-alert-circle" />,
-  Clock: () => <span data-testid="icon-clock" />,
-  AlertOctagon: () => <span data-testid="icon-alert-octagon" />,
-  CheckCircle2: () => <span data-testid="icon-check" />,
-  FileWarning: () => <span data-testid="icon-file-warning" />,
-  BarChart3: () => <span data-testid="icon-barchart" />,
-  LayoutGrid: () => <span data-testid="icon-grid" />,
-  List: () => <span data-testid="icon-list" />,
-  Search: () => <span data-testid="icon-search" />,
-  Factory: () => <span data-testid="icon-factory" />,
-  Package: () => <span data-testid="icon-package" />,
-  Microscope: () => <span data-testid="icon-microscope" />,
-  TrendingUp: () => <span data-testid="icon-trending" />,
-  Calendar: () => <span data-testid="icon-calendar" />,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock DevExtreme PieChart
 vi.mock('devextreme-react/pie-chart', () => ({

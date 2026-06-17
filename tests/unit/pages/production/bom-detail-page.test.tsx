@@ -34,18 +34,37 @@ vi.mock('@/components/bom/BOMAccessControlTab', () => ({
   ),
 }));
 
-// Mock Lucide icons that need title
-vi.mock('lucide-react', async () => {
-  const actual = await vi.importActual('lucide-react');
-  return {
-    ...actual,
-    Lock: ({ className }: { className?: string }) => (
-      <svg data-testid="lock-icon" className={className} />
-    ),
-    Shield: ({ className }: { className?: string }) => (
-      <svg data-testid="shield-icon" className={className} />
-    ),
+// Mock Lucide icons via a Proxy so any icon name resolves to a stub component
+// (missing icons can never fail). Keep explicit overrides for icons that tests
+// query by a specific data-testid (lock-icon, shield-icon).
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+
+  // Explicit overrides preserving the original testids used by existing tests.
+  const overrides: Record<string, unknown> = {
+    Lock: ({ className }: { className?: string }) =>
+      React.createElement('svg', { 'data-testid': 'lock-icon', className }),
+    Shield: ({ className }: { className?: string }) =>
+      React.createElement('svg', { 'data-testid': 'shield-icon', className }),
   };
+
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (typeof prop === 'string' && prop in overrides) return overrides[prop];
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
 });
 
 // Sample BOM data without confidential items

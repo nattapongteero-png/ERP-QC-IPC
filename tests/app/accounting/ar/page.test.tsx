@@ -18,34 +18,24 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock lucide-react icons
-vi.mock('lucide-react', async (importOriginal) => {
-  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
-  MockIcon.displayName = 'MockIcon';
-
-  return {
-    ...(await importOriginal<typeof import('lucide-react')>()),
-    FileText: MockIcon,
-    AlertTriangle: MockIcon,
-    TrendingUp: MockIcon,
-    TrendingDown: MockIcon,
-    Minus: MockIcon,
-    BarChart3: MockIcon,
-    ChevronRight: MockIcon,
-    Users: MockIcon,
-    Banknote: MockIcon,
-    Wallet: MockIcon,
-    ArrowUpRight: MockIcon,
-    ArrowDownRight: MockIcon,
-    Activity: MockIcon,
-    CreditCard: MockIcon,
-    PiggyBank: MockIcon,
-    Clock: MockIcon,
-    Package: MockIcon,
-    Wrench: MockIcon,
-    CheckCircle2: MockIcon,
-    RefreshCw: MockIcon,
-    RotateCcw: MockIcon,
-  };
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
 });
 
 // Mock recharts

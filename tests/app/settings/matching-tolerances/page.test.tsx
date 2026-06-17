@@ -146,14 +146,21 @@ vi.mock('devextreme-react/data-grid', () => ({
   LoadPanel: () => null,
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Settings: () => <span data-testid="settings-icon">Settings</span>,
-  Filter: () => <span>Filter</span>,
-  Eye: () => <span>Eye</span>,
-  Edit: () => <span>Edit</span>,
-  Trash2: () => <span>Trash</span>,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock data matching the new MatchingTolerance interface
 const mockTolerances = [

@@ -98,26 +98,27 @@ function setupMockFetch() {
   });
 }
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  CheckCircle: vi.fn(() => <span data-testid="icon-check">Check</span>),
-  XCircle: vi.fn(() => <span data-testid="icon-x">X</span>),
-  Clock: vi.fn(() => <span data-testid="icon-clock">Clock</span>),
-  AlertTriangle: vi.fn(() => <span data-testid="icon-alert">Alert</span>),
-  Package: vi.fn(() => <span data-testid="icon-package">Package</span>),
-  ArrowRight: vi.fn(() => <span data-testid="icon-arrow">Arrow</span>),
-  BoxSelect: vi.fn(() => <span data-testid="icon-box">Box</span>),
-  ChevronRight: vi.fn(() => <span data-testid="icon-chevron">Chevron</span>),
-  Inbox: vi.fn(() => <span data-testid="icon-inbox">Inbox</span>),
-  Boxes: vi.fn(() => <span data-testid="icon-boxes">Boxes</span>),
-  TrendingUp: vi.fn(() => <span data-testid="icon-trend">Trend</span>),
-  CalendarClock: vi.fn(() => <span data-testid="icon-calendar">Calendar</span>),
-  Warehouse: vi.fn(() => <span data-testid="icon-warehouse">Warehouse</span>),
-  DollarSign: vi.fn(() => <span data-testid="icon-dollar">Dollar</span>),
-  RefreshCw: vi.fn(() => <span data-testid="icon-refresh">Refresh</span>),
-  Plus: vi.fn(() => <span data-testid="icon-plus">Plus</span>),
-  RefreshCcw: vi.fn(() => <span data-testid="icon-refresh-ccw">RefreshCcw</span>),
-}));
+// Mock lucide-react icons — Proxy returns a stub for ANY icon name,
+// so newly imported icons can never break the mock.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock DevExtreme components
 vi.mock('@/components/ui/dx-data-grid', () => ({

@@ -19,28 +19,27 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons — keep this list aligned with imports in
-// src/app/master-data/page.tsx
-vi.mock('lucide-react', () => ({
-  Database: () => <span data-testid="icon-database" />,
-  Building2: () => <span data-testid="icon-building" />,
-  Wrench: () => <span data-testid="icon-wrench" />,
-  Thermometer: () => <span data-testid="icon-thermometer" />,
-  FileText: () => <span data-testid="icon-filetext" />,
-  Scale: () => <span data-testid="icon-scale" />,
-  FlaskConical: () => <span data-testid="icon-flask" />,
-  ChevronRight: () => <span data-testid="icon-chevron" />,
-  Download: () => <span data-testid="icon-download" />,
-  Upload: () => <span data-testid="icon-upload" />,
-  X: () => <span data-testid="icon-x" />,
-  CheckSquare: () => <span data-testid="icon-check-square" />,
-  Square: () => <span data-testid="icon-square" />,
-  Sliders: () => <span data-testid="icon-sliders" />,
-  ListChecks: () => <span data-testid="icon-list-checks" />,
-  ClipboardCheck: () => <span data-testid="icon-clipboard-check" />,
-  Hash: () => <span data-testid="icon-hash" />,
-  Tag: () => <span data-testid="icon-tag" />,
-}));
+// Mock lucide-react icons — Proxy returns a stub component for ANY icon name,
+// so newly imported icons can never break this test.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name },
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    },
+  );
+});
 
 // Mock shared components
 vi.mock('@/components/shared', () => ({

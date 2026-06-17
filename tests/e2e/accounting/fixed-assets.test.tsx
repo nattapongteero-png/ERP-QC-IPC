@@ -20,34 +20,22 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/accounting/fixed-assets',
 }));
 
-// Mock lucide-react icons - include all icons used by accounting components
-vi.mock('lucide-react', async (importOriginal) => {
-  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
-  MockIcon.displayName = 'MockIcon';
-
-  return {
-    ...(await importOriginal<typeof import('lucide-react')>()),
-    Package: MockIcon,
-    Building2: MockIcon,
-    Building: MockIcon,
-    TrendingDown: MockIcon,
-    TrendingUp: MockIcon,
-    Calculator: MockIcon,
-    BookOpen: MockIcon,
-    FileText: MockIcon,
-    Receipt: MockIcon,
-    Wallet: MockIcon,
-    Calendar: MockIcon,
-    Clock: MockIcon,
-    BarChart3: MockIcon,
-    CheckCircle: MockIcon,
-    ChevronDown: MockIcon,
-    RefreshCw: MockIcon,
-    Download: MockIcon,
-    Loader2: MockIcon,
-    AlertCircle: MockIcon,
-    Search: MockIcon,
-  };
+// Mock lucide-react icons - Proxy returns a stub for ANY icon name so a newly
+// imported icon can never fail the test with "No <Icon> export is defined".
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: Record<string, unknown>) =>
+      React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
 });
 
 // Mock shared components

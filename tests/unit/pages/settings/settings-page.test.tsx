@@ -24,9 +24,21 @@ vi.mock('next/navigation', () => ({
 // Mock lucide-react icons
 // Auto-stub EVERY lucide-react icon so the test never breaks when the page
 // imports an icon the mock didn't list (the cause of widespread suite failures).
-vi.mock('lucide-react', () => new Proxy({}, {
-  get: () => () => null,
-}));
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: Record<string, unknown>) =>
+      React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock MainLayout
 vi.mock('@/components/layout/main-layout', () => ({

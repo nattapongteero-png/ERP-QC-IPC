@@ -22,33 +22,26 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Users: () => <span data-testid="icon-users" />,
-  Building2: () => <span data-testid="icon-building" />,
-  Hospital: () => <span data-testid="icon-hospital" />,
-  Pill: () => <span data-testid="icon-pill" />,
-  Truck: () => <span data-testid="icon-truck" />,
-  Leaf: () => <span data-testid="icon-leaf" />,
-  Sparkles: () => <span data-testid="icon-sparkles" />,
-  Landmark: () => <span data-testid="icon-landmark" />,
-  Globe: () => <span data-testid="icon-globe" />,
-  HelpCircle: () => <span data-testid="icon-help" />,
-  UserCheck: () => <span data-testid="icon-user-check" />,
-  UserX: () => <span data-testid="icon-user-x" />,
-  CreditCard: () => <span data-testid="icon-credit" />,
-  TrendingUp: () => <span data-testid="icon-trending" />,
-  BarChart3: () => <span data-testid="icon-barchart" />,
-  LayoutGrid: () => <span data-testid="icon-grid" />,
-  List: () => <span data-testid="icon-list" />,
-  RefreshCw: () => <span data-testid="icon-refresh" />,
-  Phone: () => <span data-testid="icon-phone" />,
-  Mail: () => <span data-testid="icon-mail" />,
-  Calendar: () => <span data-testid="icon-calendar" />,
-  Inbox: () => <span data-testid="icon-inbox" />,
-  Star: () => <span data-testid="icon-star" />,
-  Award: () => <span data-testid="icon-award" />,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock DevExtreme PieChart
 vi.mock('devextreme-react/pie-chart', () => ({

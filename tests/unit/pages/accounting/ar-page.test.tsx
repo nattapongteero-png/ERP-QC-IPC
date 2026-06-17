@@ -34,16 +34,21 @@ vi.mock('recharts', () => ({
   Legend: () => null,
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  FileText: () => <span data-testid="icon-file-text" />,
-  AlertTriangle: () => <span data-testid="icon-alert" />,
-  TrendingUp: () => <span data-testid="icon-trending" />,
-  BarChart3: () => <span data-testid="icon-barchart" />,
-  ChevronRight: () => <span data-testid="icon-chevron" />,
-  Users: () => <span data-testid="icon-users" />,
-  Banknote: () => <span data-testid="icon-banknote" />,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: Record<string, unknown>) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock accounting components
 vi.mock('@/components/accounting', () => ({

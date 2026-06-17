@@ -88,19 +88,21 @@ vi.mock('@/components/ui/dx-data-grid', () => ({
   DxDataGridColumn: () => null,
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  FileText: () => <span data-testid="icon-file-text" />,
-  Clock: () => <span data-testid="icon-clock" />,
-  CheckCircle: () => <span data-testid="icon-check-circle" />,
-  Send: () => <span data-testid="icon-send" />,
-  XCircle: () => <span data-testid="icon-x-circle" />,
-  ClipboardList: () => <span data-testid="icon-clipboard-list" />,
-  TrendingUp: () => <span data-testid="icon-trending-up" />,
-  AlertTriangle: () => <span data-testid="icon-alert-triangle" />,
-  ArrowRightCircle: () => <span data-testid="icon-arrow-right-circle" />,
-  Zap: () => <span data-testid="icon-zap" />,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: any) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock cn utility
 vi.mock('@/lib/utils/cn', () => ({

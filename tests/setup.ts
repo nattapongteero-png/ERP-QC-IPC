@@ -97,6 +97,33 @@ vi.mock('next-intl', async (importOriginal) => {
   };
 });
 
+// ============================================
+// Global lucide-react auto-mock.
+// Pages frequently add new icons; tests that hand-roll an explicit lucide mock
+// then break with "No <Icon> export is defined". This proxy returns a stub for
+// ANY icon name so a missing icon never fails a test. A test that needs a
+// specific icon stub can still override with its own vi.mock('lucide-react').
+// ============================================
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_target, prop: string) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
+
 // Create a robust mock CSSStyleDeclaration
 const createMockCSSStyleDeclaration = (): CSSStyleDeclaration => {
   const mockStyle = {

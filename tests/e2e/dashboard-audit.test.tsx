@@ -120,17 +120,27 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-// Mock lucide-react icons - all icons used by dashboard components
-vi.mock('lucide-react', () => ({
-  Package: vi.fn(() => <span data-testid="icon-package">Package</span>),
-  AlertTriangle: vi.fn(() => <span data-testid="icon-alert">Alert</span>),
-  Clock: vi.fn(() => <span data-testid="icon-clock">Clock</span>),
-  CheckCircle2: vi.fn(() => <span data-testid="icon-check">Check</span>),
-  Factory: vi.fn(() => <span data-testid="icon-factory">Factory</span>),
-  BarChart3: vi.fn(() => <span data-testid="icon-bar-chart">BarChart</span>),
-  TestTube2: vi.fn(() => <span data-testid="icon-test-tube">TestTube</span>),
-  Calendar: vi.fn(() => <span data-testid="icon-calendar">Calendar</span>),
-}));
+// Mock lucide-react icons - Proxy returns a stub for ANY icon name so a newly
+// imported icon can never fail the test with "No <Icon> export is defined".
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Import the page component after mocks are set up
 import AuditDashboardPage from '@/app/dashboard/audit/page';

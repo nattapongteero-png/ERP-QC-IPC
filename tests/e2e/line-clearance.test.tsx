@@ -138,41 +138,27 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  ClipboardCheck: vi.fn(() => <span data-testid="icon-clipboard-check">ClipboardCheck</span>),
-  ArrowLeft: vi.fn(() => <span data-testid="icon-arrow-left">ArrowLeft</span>),
-  AlertCircle: vi.fn(() => <span data-testid="icon-alert-circle">AlertCircle</span>),
-  Loader2: vi.fn(() => <span data-testid="icon-loader">Loader</span>),
-  Trash2: vi.fn(() => <span data-testid="icon-trash">Trash</span>),
-  Sparkles: vi.fn(() => <span data-testid="icon-sparkles">Sparkles</span>),
-  Wrench: vi.fn(() => <span data-testid="icon-wrench">Wrench</span>),
-  ShieldAlert: vi.fn(() => <span data-testid="icon-shield">Shield</span>),
-  Tag: vi.fn(() => <span data-testid="icon-tag">Tag</span>),
-  FileText: vi.fn(() => <span data-testid="icon-file">FileText</span>),
-  CheckCircle2: vi.fn(() => <span data-testid="icon-check-circle">CheckCircle</span>),
-  Clock: vi.fn(() => <span data-testid="icon-clock">Clock</span>),
-  UserCheck: vi.fn(() => <span data-testid="icon-user-check">UserCheck</span>),
-  Shield: vi.fn(() => <span data-testid="icon-shield">Shield</span>),
-  KeyRound: vi.fn(() => <span data-testid="icon-key">Key</span>),
-  LayoutDashboard: vi.fn(() => <span data-testid="icon-dashboard">Dashboard</span>),
-  Search: vi.fn(() => <span data-testid="icon-search">Search</span>),
-  Bell: vi.fn(() => <span data-testid="icon-bell">Bell</span>),
-  User: vi.fn(() => <span data-testid="icon-user">User</span>),
-  LogOut: vi.fn(() => <span data-testid="icon-logout">LogOut</span>),
-  ChevronDown: vi.fn(() => <span data-testid="icon-chevron-down">ChevronDown</span>),
-  ChevronRight: vi.fn(() => <span data-testid="icon-chevron-right">ChevronRight</span>),
-  Home: vi.fn(() => <span data-testid="icon-home">Home</span>),
-  Package: vi.fn(() => <span data-testid="icon-package">Package</span>),
-  Factory: vi.fn(() => <span data-testid="icon-factory">Factory</span>),
-  TestTube2: vi.fn(() => <span data-testid="icon-testtube">TestTube</span>),
-  Users: vi.fn(() => <span data-testid="icon-users">Users</span>),
-  Settings: vi.fn(() => <span data-testid="icon-settings">Settings</span>),
-  Building2: vi.fn(() => <span data-testid="icon-building">Building</span>),
-  Menu: vi.fn(() => <span data-testid="icon-menu">Menu</span>),
-  X: vi.fn(() => <span data-testid="icon-x">X</span>),
-  ExternalLink: vi.fn(() => <span data-testid="icon-external">ExternalLink</span>),
-}));
+// Mock lucide-react icons — Proxy returns a stub for ANY icon name so newly
+// imported icons can never fail the mock.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock react-hot-toast
 vi.mock('react-hot-toast', () => ({

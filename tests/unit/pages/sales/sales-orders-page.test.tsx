@@ -23,29 +23,27 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  ShoppingCart: () => <span data-testid="icon-shopping-cart" />,
-  Package: () => <span data-testid="icon-package" />,
-  Truck: () => <span data-testid="icon-truck" />,
-  CheckCircle2: () => <span data-testid="icon-check" />,
-  Clock: () => <span data-testid="icon-clock" />,
-  XCircle: () => <span data-testid="icon-x" />,
-  FileText: () => <span data-testid="icon-file-text" />,
-  BarChart3: () => <span data-testid="icon-barchart" />,
-  LayoutGrid: () => <span data-testid="icon-grid" />,
-  List: () => <span data-testid="icon-list" />,
-  DollarSign: () => <span data-testid="icon-dollar" />,
-  TrendingUp: () => <span data-testid="icon-trending" />,
-  Users: () => <span data-testid="icon-users" />,
-  Calendar: () => <span data-testid="icon-calendar" />,
-  ArrowRight: () => <span data-testid="icon-arrow-right" />,
-  AlertTriangle: () => <span data-testid="icon-alert" />,
-  Building2: () => <span data-testid="icon-building" />,
-  RefreshCw: () => <span data-testid="icon-refresh" />,
-  Plus: () => <span data-testid="icon-plus" />,
-  User: () => <span data-testid="icon-user" />,
-}));
+// Mock lucide-react icons — Proxy returns a stub for ANY icon name so a newly
+// imported icon can never throw "No <Icon> export is defined on the mock".
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock DevExtreme PieChart
 vi.mock('devextreme-react/pie-chart', () => ({

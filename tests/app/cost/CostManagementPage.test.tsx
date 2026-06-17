@@ -18,21 +18,22 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  DollarSign: () => <span>$</span>,
-  FileText: () => <span>file</span>,
-  Factory: () => <span>factory</span>,
-  Truck: () => <span>truck</span>,
-  Calendar: () => <span>cal</span>,
-  Loader2: () => <span>loading</span>,
-  TrendingUp: () => <span>up</span>,
-  TrendingDown: () => <span>down</span>,
-  AlertTriangle: () => <span>alert</span>,
-  BarChart2: () => <span>chart</span>,
-  Package: () => <span>pkg</span>,
-  ChevronRight: () => <span>&gt;</span>,
-}));
+// Mock lucide-react icons — Proxy returns a stub for ANY icon name so a newly
+// imported icon can never fail the mock.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: any) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
+});
 
 // Mock devextreme select-box
 vi.mock('devextreme-react/select-box', () => ({

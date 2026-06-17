@@ -22,14 +22,26 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Scale: () => <span data-testid="icon-scale" />,
-  Package: () => <span data-testid="icon-package" />,
-  Eye: () => <span data-testid="icon-eye" />,
-  Edit: () => <span data-testid="icon-edit" />,
-  Trash2: () => <span data-testid="icon-trash" />,
-}));
+// Mock lucide-react icons (Proxy returns a stub for ANY icon name)
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) =>
+    Object.assign(
+      (props: Record<string, unknown>) =>
+        React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+      { displayName: name }
+    );
+  return new Proxy(
+    {},
+    {
+      get: (_t: unknown, prop: string | symbol) => {
+        if (prop === '__esModule') return true;
+        if (prop === 'default') return make('default');
+        return make(String(prop));
+      },
+    }
+  );
+});
 
 // Mock shared components
 vi.mock('@/components/shared', () => ({

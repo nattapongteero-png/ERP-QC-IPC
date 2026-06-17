@@ -36,35 +36,21 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/accounting/bank-reconciliation',
 }));
 
-// Mock lucide-react icons
-vi.mock('lucide-react', async (importOriginal) => {
-  const MockIcon = ({ className }: { className?: string }) => <span className={className}>Icon</span>;
-  MockIcon.displayName = 'MockIcon';
-
-  return {
-    ...(await importOriginal<typeof import('lucide-react')>()),
-    Plus: MockIcon,
-    FileText: MockIcon,
-    Upload: MockIcon,
-    CheckCircle: MockIcon,
-    XCircle: MockIcon,
-    Search: MockIcon,
-    Filter: MockIcon,
-    ChevronDown: MockIcon,
-    RefreshCw: MockIcon,
-    Download: MockIcon,
-    AlertCircle: MockIcon,
-    Loader2: MockIcon,
-    Link: MockIcon,
-    Unlink: MockIcon,
-    DollarSign: MockIcon,
-    Calendar: MockIcon,
-    Landmark: MockIcon,
-    Eye: MockIcon,
-    Edit: MockIcon,
-    Trash2: MockIcon,
-    Clock: MockIcon,
-  };
+// Mock lucide-react icons — Proxy returns a stub for ANY icon name so
+// newly-imported icons can never break this test.
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const make = (name: string) => Object.assign(
+    (props: any) => React.createElement('span', { 'data-testid': `icon-${name}`, ...props }),
+    { displayName: name }
+  );
+  return new Proxy({}, {
+    get: (_t: unknown, prop: string | symbol) => {
+      if (prop === '__esModule') return true;
+      if (prop === 'default') return make('default');
+      return make(String(prop));
+    },
+  });
 });
 
 // Mock MainLayout
