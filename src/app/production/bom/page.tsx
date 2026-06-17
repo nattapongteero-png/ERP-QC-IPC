@@ -383,7 +383,18 @@ export default function BOMDashboardPage() {
                       Thai labels (no more clipped "แบบร่าง"). */}
                   <Label visible={false} />
                 </Series>
-                <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" />
+                <Legend
+                  orientation="horizontal"
+                  horizontalAlignment="center"
+                  verticalAlignment="bottom"
+                  itemTextPosition="right"
+                  customizeText={(info: { pointName?: string; pointIndex?: number }) => {
+                    // Show "label (count)" in the legend so the count is visible
+                    // without on-ring labels.
+                    const item = statusChartData[info.pointIndex ?? -1];
+                    return item ? `${item.status} (${item.count})` : (info.pointName ?? '');
+                  }}
+                />
                 <Tooltip enabled format="fixedPoint" />
               </PieChart>
             </div>
