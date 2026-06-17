@@ -1618,7 +1618,7 @@ export default function SOPExecutionPage() {
                                         key={sub.id}
                                         className={`p-2.5 rounded-xl transition-all border ${
                                           isConfirmed
-                                            ? 'bg-emerald-100/60 border-emerald-200'
+                                            ? 'bg-white border-emerald-200'
                                             : 'bg-white/70 border-emerald-100 hover:bg-white hover:border-emerald-300 hover:shadow-sm'
                                         }`}
                                       >
@@ -1640,9 +1640,9 @@ export default function SOPExecutionPage() {
                                             className={`flex-1 min-w-0 ${subStepsEditable ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
                                             onClick={() => subStepsEditable && toggleSubStep(step, sub.id)}
                                           >
-                                            <p className={`text-sm font-semibold ${isConfirmed ? 'text-emerald-800 line-through decoration-emerald-400 decoration-2' : 'text-slate-900'}`}>{subNameTh}</p>
+                                            <p className={`text-sm font-semibold text-slate-900 ${isConfirmed ? 'line-through decoration-emerald-500 decoration-2' : ''}`}>{subNameTh}</p>
                                             {subInstrTh && (
-                                              <p className={`text-xs mt-1 whitespace-pre-line leading-relaxed ${isConfirmed ? 'text-emerald-600/80' : 'text-slate-600'}`}>{subInstrTh}</p>
+                                              <p className="text-xs mt-1 whitespace-pre-line leading-relaxed text-slate-600">{subInstrTh}</p>
                                             )}
                                             {sub.gmpDocumentId != null && (
                                               <button

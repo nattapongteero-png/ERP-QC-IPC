@@ -122,13 +122,16 @@ interface ExecutionSection {
   getStatus: (summary: ExecutionSummary) => { completed: number; verified: number; total: number; status: 'pending' | 'in_progress' | 'completed' | 'verified' };
 }
 
+// Each phase gets a DISTINCT colour so the phase badges read apart at a glance
+// (they run in sequence: pre-production → production → post → packaging →
+// inspection). No two phases share a hue.
 const phaseColors = {
-  pre_production: 'bg-amber-100 text-amber-800 border-amber-200',
-  production: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  post_production: 'bg-green-100 text-green-800 border-green-200',
-  pre_packaging: 'bg-purple-100 text-purple-800 border-purple-200',
-  packaging: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  inspection: 'bg-teal-100 text-teal-800 border-teal-200',
+  pre_production: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  production: 'bg-sky-100 text-sky-800 border-sky-200',
+  post_production: 'bg-amber-100 text-amber-800 border-amber-200',
+  pre_packaging: 'bg-violet-100 text-violet-800 border-violet-200',
+  packaging: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+  inspection: 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
 const phaseLabels = {
