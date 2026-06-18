@@ -508,9 +508,24 @@ export default function AuditLogPage() {
         contentRender={() => {
           if (!selectedLog) return null;
 
-          const formatJson = (value: string) => {
+          // Render an audit value in a way operators can actually read:
+          // - an array (e.g. permission ids) → a single comma-separated line
+          //   instead of one number per row (which was running hundreds of
+          //   lines tall and overflowing the popup)
+          // - an object → "key: value" lines
+          // - anything else → as-is
+          const formatJson = (value: string): string => {
             try {
-              return JSON.stringify(JSON.parse(value), null, 2);
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                return parsed.length ? parsed.join(', ') : '(ว่าง)';
+              }
+              if (parsed && typeof parsed === 'object') {
+                return Object.entries(parsed)
+                  .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                  .join('\n');
+              }
+              return String(parsed);
             } catch {
               return value;
             }
@@ -552,7 +567,7 @@ export default function AuditLogPage() {
                   <label className="block text-sm font-medium text-gray-500 mb-1">
                     {t('audit.detailPopup.oldValue')}
                   </label>
-                  <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+                  <pre className="bg-gray-100 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap break-words">
                     {formatJson(selectedLog.oldValue)}
                   </pre>
                 </div>
@@ -563,7 +578,7 @@ export default function AuditLogPage() {
                   <label className="block text-sm font-medium text-gray-500 mb-1">
                     {t('audit.detailPopup.newValue')}
                   </label>
-                  <pre className="bg-green-50 p-3 rounded text-sm overflow-x-auto">
+                  <pre className="bg-green-50 p-3 rounded text-sm max-h-48 overflow-auto whitespace-pre-wrap break-words">
                     {formatJson(selectedLog.newValue)}
                   </pre>
                 </div>
