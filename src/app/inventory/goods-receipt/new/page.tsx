@@ -156,7 +156,9 @@ export default function NewGrnPage() {
           poId: sourceType === 'po' ? poId : null,
           woId: sourceType === 'wo' ? woId : null,
           warehouseId,
-          receivedDate: receivedDate.toISOString().slice(0, 10),
+          // Local-timezone YYYY-MM-DD. Do NOT use toISOString() — it is UTC,
+          // so an evening pick in ICT can roll back to the previous day.
+          receivedDate: `${receivedDate.getFullYear()}-${String(receivedDate.getMonth() + 1).padStart(2, '0')}-${String(receivedDate.getDate()).padStart(2, '0')}`,
           notes: notes || undefined,
         }),
       });

@@ -4,7 +4,7 @@
  */
 import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
-import { getNow, toDbDate, toQueryDate } from '../db/date-utils';
+import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import {
   GoodsReceiptError,
   GOODS_RECEIPT_ERROR_CODES,
@@ -236,7 +236,10 @@ export async function autoCreateGrnForSource(opts: {
   if (!pre.warehouseId) return { created: false, grnId: null };
 
   // 2. Create the GRN (lines prefilled from PO/WO).
-  const today = new Date().toISOString().slice(0, 10);
+  // Use local-timezone today (getTodayStr), NOT new Date().toISOString() —
+  // toISOString() is UTC, so before 07:00 ICT it returns the previous day,
+  // making the GRN's received date show one day early (e.g. 18th instead of 19th).
+  const today = getTodayStr();
   const { grn } = await createGrn(
     {
       sourceType: opts.sourceType,
@@ -558,7 +561,9 @@ function normalizeGrn(row: any): GoodsReceipt {
     warehouseId: Number(row.warehouseId),
     status: row.status as GrnStatus,
     receiverUserId: Number(row.receiverUserId),
-    receivedDate: typeof row.receivedDate === 'string' ? row.receivedDate : new Date(row.receivedDate).toISOString().slice(0, 10),
+    // formatDateFromDb uses LOCAL date components — a plain toISOString() here
+    // is UTC and shifts a DATE column back one day (shows 18th for a 19th receipt).
+    receivedDate: formatDateFromDb(row.receivedDate),
     notes: row.notes ?? null,
     createdAt: typeof row.createdAt === 'string' ? row.createdAt : new Date(row.createdAt).toISOString(),
     updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : new Date(row.updatedAt).toISOString(),
@@ -579,16 +584,8 @@ function normalizeLine(row: any): GoodsReceiptLine {
     unit: String(row.unit),
     vendorLotNumber: row.vendorLotNumber ?? null,
     batchNumber: row.batchNumber ?? null,
-    manufacturingDate: row.manufacturingDate
-      ? typeof row.manufacturingDate === 'string'
-        ? row.manufacturingDate.slice(0, 10)
-        : new Date(row.manufacturingDate).toISOString().slice(0, 10)
-      : null,
-    expiryDate: row.expiryDate
-      ? typeof row.expiryDate === 'string'
-        ? row.expiryDate.slice(0, 10)
-        : new Date(row.expiryDate).toISOString().slice(0, 10)
-      : null,
+    manufacturingDate: row.manufacturingDate ? formatDateFromDb(row.manufacturingDate) : null,
+    expiryDate: row.expiryDate ? formatDateFromDb(row.expiryDate) : null,
     varianceAmount: row.varianceAmount != null ? Number(row.varianceAmount) : null,
     variancePercent: row.variancePercent != null ? Number(row.variancePercent) : null,
     varianceReason: row.varianceReason ?? null,
