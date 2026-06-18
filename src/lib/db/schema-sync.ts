@@ -276,6 +276,58 @@ function generateMysqlCreateTable(tableName: string, columns: ColumnInfo[]): str
   return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (\n  ${columnDefs.join(',\n  ')}\n) DEFAULT CHARSET=utf8mb4`;
 }
 
+/**
+ * Decide whether a MySQL column needs widening and, if so, return the ALTER SQL.
+ * Returns null when no change is needed (or when it would be a narrowing).
+ *
+ * Handles the common drift that bit us in prod: a column that was originally
+ * varchar(N) but whose Drizzle definition is now TEXT (or a larger varchar) —
+ * a longer value then fails with "Data too long". We only WIDEN:
+ *   varchar(small)  -> TEXT / MEDIUMTEXT / LONGTEXT
+ *   varchar(small)  -> varchar(bigger)
+ * Anything that would shrink the column, or types we don't recognise, are left
+ * untouched so we never risk truncating live data.
+ */
+function generateWidenColumnSql(
+  tableName: string,
+  schemaCol: ColumnInfo,
+  dbCol: { type?: string } | undefined,
+): string | null {
+  if (!dbCol?.type) return null;
+  const want = (schemaCol.dataType || '').trim().toLowerCase();
+  const have = (dbCol.type || '').trim().toLowerCase();
+  if (!want || want === have) return null;
+
+  const textRank: Record<string, number> = {
+    tinytext: 1, text: 2, mediumtext: 3, longtext: 4,
+  };
+  const varcharLen = (t: string): number | null => {
+    const m = t.match(/^varchar\((\d+)\)/);
+    return m ? Number(m[1]) : null;
+  };
+
+  const wantIsText = want in textRank;
+  const haveIsText = have in textRank;
+  const wantLen = varcharLen(want);
+  const haveLen = varcharLen(have);
+
+  let shouldWiden = false;
+  if (wantIsText) {
+    // want TEXT-family: widen if DB is varchar, or a smaller text rank.
+    if (haveLen != null) shouldWiden = true;
+    else if (haveIsText && textRank[want] > textRank[have]) shouldWiden = true;
+  } else if (wantLen != null && haveLen != null) {
+    // both varchar: widen only if the schema wants more characters.
+    shouldWiden = wantLen > haveLen;
+  }
+  // schema wants varchar but DB is already TEXT → that's wider; never narrow.
+
+  if (!shouldWiden) return null;
+
+  const notNull = schemaCol.isNotNull ? ' NOT NULL' : '';
+  return `ALTER TABLE \`${tableName}\` MODIFY COLUMN \`${schemaCol.name}\` ${schemaCol.dataType}${notNull}`;
+}
+
 // Generate ALTER TABLE ADD COLUMN SQL
 function generateAddColumnSql(tableName: string, column: ColumnInfo, usingSqlite: boolean): string {
   if (usingSqlite) {
@@ -349,12 +401,14 @@ function formatDefaultValue(value: unknown, usingSqlite: boolean): string | null
 export async function syncDatabaseSchema(): Promise<{
   tablesCreated: string[];
   columnsAdded: { table: string; column: string }[];
+  columnsModified: { table: string; column: string }[];
   errors: string[];
 }> {
   const usingSqlite = isSqlite();
   const result = {
     tablesCreated: [] as string[],
     columnsAdded: [] as { table: string; column: string }[],
+    columnsModified: [] as { table: string; column: string }[],
     errors: [] as string[],
   };
 
@@ -408,6 +462,9 @@ export async function syncDatabaseSchema(): Promise<{
 
         const existingColumnNames = new Set(dbColumns.map(c => c.name.toLowerCase()));
 
+        // Index existing DB columns by lowercased name for type comparison.
+        const dbColByName = new Map(dbColumns.map(c => [c.name.toLowerCase(), c]));
+
         for (const schemaCol of schemaColumns) {
           if (!existingColumnNames.has(schemaCol.name.toLowerCase())) {
             // Column doesn't exist - add it
@@ -430,6 +487,26 @@ export async function syncDatabaseSchema(): Promise<{
               result.errors.push(errorMsg);
               console.error(`[Schema Sync] ${errorMsg}`);
             }
+          } else if (!usingSqlite) {
+            // Column exists — widen its type if the schema now needs more room
+            // than the live DB has (e.g. a varchar(500) column the code moved to
+            // TEXT). Without this, a record longer than the old limit throws
+            // errno 1406 "Data too long" on a server we can't reach to ALTER by
+            // hand. Only WIDENING is applied (lossless); narrowing is skipped.
+            const dbCol = dbColByName.get(schemaCol.name.toLowerCase());
+            const widenSql = generateWidenColumnSql(tableName, schemaCol, dbCol);
+            if (widenSql) {
+              console.log(`[Schema Sync] Widening column: ${tableName}.${schemaCol.name} (${dbCol?.type} -> ${schemaCol.dataType})`);
+              try {
+                await (db as any).execute(sql.raw(widenSql));
+                result.columnsModified.push({ table: tableName, column: schemaCol.name });
+                console.log(`[Schema Sync] Widened column: ${tableName}.${schemaCol.name}`);
+              } catch (err) {
+                const errorMsg = `Failed to widen column ${tableName}.${schemaCol.name}: ${err}`;
+                result.errors.push(errorMsg);
+                console.error(`[Schema Sync] ${errorMsg}`);
+              }
+            }
           }
         }
       }
@@ -438,6 +515,7 @@ export async function syncDatabaseSchema(): Promise<{
     console.log(`[Schema Sync] Synchronization complete.`);
     console.log(`[Schema Sync] Tables created: ${result.tablesCreated.length}`);
     console.log(`[Schema Sync] Columns added: ${result.columnsAdded.length}`);
+    console.log(`[Schema Sync] Columns widened: ${result.columnsModified.length}`);
     if (result.errors.length > 0) {
       console.log(`[Schema Sync] Errors: ${result.errors.length}`);
     }

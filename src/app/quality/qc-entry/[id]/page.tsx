@@ -46,6 +46,7 @@ import {
 import { parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
+import { QCTestPrintDocument } from '@/components/quality/QCTestPrintDocument';
 
 /** Live pass/fail evaluator — mirrors server-side logic for instant UX feedback. */
 function evaluateNumeric(
@@ -1041,16 +1042,11 @@ export default function QcSampleDetailPage() {
           />
         </div>
 
-        {/* Print-only header */}
-        <div className="hidden print:block">
-          <h1 className="text-2xl font-bold">{detail.sampleNumber}</h1>
-          <p className="text-sm">
-            {detail.productCode} · {detail.productName} · Lot {detail.lotNumber || '—'}
-          </p>
-        </div>
+        {/* Print-only formal QC Test Report (A4) — hidden on screen */}
+        <QCTestPrintDocument detail={detail} />
 
         {/* Header card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6 print:hidden">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">สถานะ</p>
@@ -1273,7 +1269,7 @@ export default function QcSampleDetailPage() {
         </div>
 
         {/* Tests table */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden print:hidden">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">
               ผลการทดสอบ ({detail.tests.length})
@@ -1817,7 +1813,7 @@ export default function QcSampleDetailPage() {
           ];
 
           return (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:break-inside-avoid">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:hidden">
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
                 <h2 className="text-sm font-semibold text-gray-700">
@@ -1877,7 +1873,7 @@ export default function QcSampleDetailPage() {
         {(detail.status === 'oos' ||
           oosList.length > 0 ||
           detail.tests.some((t) => t.resultStatus === 'fail')) && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:break-inside-avoid">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 print:hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <AlertOctagon className="h-4 w-4 text-rose-600" />
