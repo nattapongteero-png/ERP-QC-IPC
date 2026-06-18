@@ -307,7 +307,7 @@ export const mysqlIssueNotifications = mysqlTable('issue_notifications', {
   userId: int('user_id').notNull().references(() => mysqlUsers.id, { onDelete: 'cascade' }),
   issueId: int('issue_id').notNull().references(() => mysqlIssues.id, { onDelete: 'cascade' }),
   type: varchar('type', { length: 30 }).notNull(), // IssueNotificationType
-  message: varchar('message', { length: 500 }).notNull(),
+  message: mysqlText('message').notNull(),
   isRead: mysqlBoolean('is_read').notNull().default(false),
   emailSent: mysqlBoolean('email_sent').notNull().default(false),
   createdAt: datetime('created_at').notNull().default(new Date()),
