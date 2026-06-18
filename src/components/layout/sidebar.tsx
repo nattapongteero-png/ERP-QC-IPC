@@ -373,6 +373,10 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
+  // Tracks the last pathname we auto-scrolled to, so expanding/collapsing a
+  // menu group (which changes expandedItems but NOT the route) never triggers
+  // a scroll. We only scroll when the user actually navigates to a new page.
+  const scrolledForPathRef = useRef<string | null>(null);
   // Scroll container — used to bring the active menu item into view so the user
   // can always see which page they are on (active item may sit below the fold).
   const navScrollRef = useRef<HTMLElement | null>(null);
@@ -411,18 +415,21 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     }
   }, [pathname, filteredNavigation, expandedItems]);
 
-  // Bring the active menu item into view whenever the route changes, so the
-  // sidebar always shows the page you're on. The submenu expands with a 300ms
-  // max-height transition, so we wait for it to finish before measuring, then
-  // scroll the active item to the middle of the rail (center is the most
-  // reliable — 'nearest' often no-ops when the item is only partially clipped).
+  // Behave like an ordinary sidebar: clicking a menu group just expands/
+  // collapses it in place and NEVER scrolls. We only nudge the active item
+  // into view once per real navigation, and only if it is actually off-screen
+  // (block:'nearest' — never yanks a visible item to the centre).
+  // Keyed on pathname alone (NOT expandedItems), so expanding a group can't
+  // trigger a scroll; scrolledForPathRef makes it run once per page.
   useEffect(() => {
+    if (scrolledForPathRef.current === pathname) return;
+    scrolledForPathRef.current = pathname;
     const timer = window.setTimeout(() => {
       const el = navScrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }, 320);
     return () => window.clearTimeout(timer);
-  }, [pathname, expandedItems]);
+  }, [pathname]);
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
