@@ -373,12 +373,7 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
-  // Tracks the last pathname we auto-scrolled to, so expanding/collapsing a
-  // menu group (which changes expandedItems but NOT the route) never triggers
-  // a scroll. We only scroll when the user actually navigates to a new page.
-  const scrolledForPathRef = useRef<string | null>(null);
-  // Scroll container — used to bring the active menu item into view so the user
-  // can always see which page they are on (active item may sit below the fold).
+  // Scroll container ref (kept for layout). The sidebar never auto-scrolls.
   const navScrollRef = useRef<HTMLElement | null>(null);
   // Sidebar nav array uses English labels as the source; navLabel resolves
   // them to Thai/English at render time via src/locales/*/navigation.json.
@@ -419,21 +414,11 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     }
   }, [pathname, filteredNavigation]);
 
-  // Behave like an ordinary sidebar: clicking a menu group just expands/
-  // collapses it in place and NEVER scrolls. We only nudge the active item
-  // into view once per real navigation, and only if it is actually off-screen
-  // (block:'nearest' — never yanks a visible item to the centre).
-  // Keyed on pathname alone (NOT expandedItems), so expanding a group can't
-  // trigger a scroll; scrolledForPathRef makes it run once per page.
-  useEffect(() => {
-    if (scrolledForPathRef.current === pathname) return;
-    scrolledForPathRef.current = pathname;
-    const timer = window.setTimeout(() => {
-      const el = navScrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 320);
-    return () => window.clearTimeout(timer);
-  }, [pathname]);
+  // Ordinary-sidebar behaviour: the rail NEVER auto-scrolls. Clicking a group
+  // just expands/collapses it in place; navigating never yanks the view. The
+  // sidebar stays exactly where the user left it. (We previously scrolled the
+  // active item into view, but that fought the user's scroll position and made
+  // the menu jump — removed entirely.)
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
