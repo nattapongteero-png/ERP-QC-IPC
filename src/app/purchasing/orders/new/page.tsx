@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,8 +101,6 @@ export default function NewPurchaseOrderPage() {
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
-  // Ref to distinguish explicit Cancel vs closing the dialog via X button
-  const cancelAddRef = useRef(false);
 
   // Fetch vendors
   useEffect(() => {
@@ -129,39 +127,41 @@ export default function NewPurchaseOrderPage() {
     setIsQuantityDialogOpen(true);
   };
 
+  // Adding an item is now an EXPLICIT action — only the "เพิ่มรายการ" button
+  // commits the line. Closing the dialog (× / outside click / ยกเลิก) just
+  // discards the in-progress entry, which is what users expect from a close
+  // button. (Previously closing auto-added the item, which was confusing.)
   const handleAddItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0 || itemUnitPrice < 0) return;
-    // Close dialog — onHiding will handle the actual item addition
-    setIsQuantityDialogOpen(false);
+    const line: POLine = {
+      itemId: selectedItem.id,
+      itemCode: selectedItem.code,
+      itemName: selectedItem.nameTh || selectedItem.nameEn,
+      itemUnit: selectedItem.primaryUnit || 'unit',
+      quantity: itemQuantity,
+      unitPrice: itemUnitPrice,
+      lineTotal: itemQuantity * itemUnitPrice,
+    };
+    setLines((prev) => [...prev, line]);
+    setErrors((prev) => ({ ...prev, lines: '' }));
+    closeQuantityDialog();
   };
 
   const handleCancelAddItem = () => {
-    // Mark as explicitly cancelled so onHiding won't auto-add
-    cancelAddRef.current = true;
-    setIsQuantityDialogOpen(false);
+    closeQuantityDialog();
   };
 
-  const handleQuantityDialogHiding = () => {
-    // Auto-add item unless user explicitly clicked "ยกเลิก" (Cancel)
-    if (!cancelAddRef.current && selectedItem && itemQuantity > 0 && itemUnitPrice >= 0) {
-      const line: POLine = {
-        itemId: selectedItem.id,
-        itemCode: selectedItem.code,
-        itemName: selectedItem.nameTh || selectedItem.nameEn,
-        itemUnit: selectedItem.primaryUnit || 'unit',
-        quantity: itemQuantity,
-        unitPrice: itemUnitPrice,
-        lineTotal: itemQuantity * itemUnitPrice,
-      };
-      setLines((prev) => [...prev, line]);
-      setErrors((prev) => ({ ...prev, lines: '' }));
-    }
-    // Reset state
-    cancelAddRef.current = false;
+  // Single reset point — used by both the explicit add and any close path.
+  const closeQuantityDialog = () => {
     setSelectedItem(null);
     setItemQuantity(1);
     setItemUnitPrice(0);
     setIsQuantityDialogOpen(false);
+  };
+
+  const handleQuantityDialogHiding = () => {
+    // Close (× / outside click) discards the entry — no auto-add.
+    closeQuantityDialog();
   };
 
   const handleRemoveLine = (itemId: number) => {
@@ -902,7 +902,10 @@ export default function NewPurchaseOrderPage() {
         excludeIds={lines.map((l) => l.itemId)}
       />
 
-      {/* Quantity & Price Dialog */}
+      {/* Quantity & Price Dialog.
+          Uses contentRender (not children) so DevExtreme portals the body INTO
+          the popup's content area — passing plain children made the fields leak
+          out below the dialog (DevExpress T1064246). */}
       <DxPopup
         visible={isQuantityDialogOpen}
         onHiding={handleQuantityDialogHiding}
@@ -910,81 +913,81 @@ export default function NewPurchaseOrderPage() {
         width={500}
         height="auto"
         showCloseButton
-        shading={false}
-      >
-        {selectedItem && (
-          <div className="space-y-5 p-5">
-            {/* Item Info */}
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
-                <Package className="h-7 w-7" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="info">{selectedItem.code}</Badge>
+        contentRender={() =>
+          selectedItem ? (
+            <div className="space-y-5 p-5">
+              {/* Item Info */}
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
+                  <Package className="h-7 w-7" />
                 </div>
-                <p className="font-medium text-gray-900 mt-1">{selectedItem.nameTh || selectedItem.nameEn}</p>
-                <p className="text-sm text-gray-500">หน่วย: {selectedItem.primaryUnit || 'unit'}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="info">{selectedItem.code}</Badge>
+                  </div>
+                  <p className="font-medium text-gray-900 mt-1">{selectedItem.nameTh || selectedItem.nameEn}</p>
+                  <p className="text-sm text-gray-500">หน่วย: {selectedItem.primaryUnit || 'unit'}</p>
+                </div>
               </div>
-            </div>
 
-            {/* Form Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  จำนวน <span className="text-red-500">*</span>
-                </label>
-                <DxNumberBox
-                  value={itemQuantity}
-                  onValueChange={(v) => setItemQuantity(v || 0)}
-                  min={1}
-                  showSpinButtons
-                  format="#,##0"
+              {/* Form Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    จำนวน <span className="text-red-500">*</span>
+                  </label>
+                  <DxNumberBox
+                    value={itemQuantity}
+                    onValueChange={(v) => setItemQuantity(v || 0)}
+                    min={1}
+                    showSpinButtons
+                    format="#,##0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ราคาต่อหน่วย (บาท) <span className="text-red-500">*</span>
+                  </label>
+                  <DxNumberBox
+                    value={itemUnitPrice}
+                    onValueChange={(v) => setItemUnitPrice(v || 0)}
+                    min={0}
+                    showSpinButtons
+                    format="#,##0.00"
+                  />
+                </div>
+              </div>
+
+              {/* Line Total Preview */}
+              {itemQuantity > 0 && itemUnitPrice >= 0 && (
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                  <span className="text-gray-600">ยอดรวมรายการนี้</span>
+                  <span className="text-xl font-bold text-blue-600">
+                    {formatCurrency(itemQuantity * itemUnitPrice)}
+                  </span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <DxButton
+                  text="ยกเลิก"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={handleCancelAddItem}
+                />
+                <DxButton
+                  text="เพิ่มรายการ"
+                  icon="plus"
+                  type="success"
+                  onClick={handleAddItemToOrder}
+                  disabled={itemQuantity <= 0 || itemUnitPrice < 0}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ราคาต่อหน่วย (บาท) <span className="text-red-500">*</span>
-                </label>
-                <DxNumberBox
-                  value={itemUnitPrice}
-                  onValueChange={(v) => setItemUnitPrice(v || 0)}
-                  min={0}
-                  showSpinButtons
-                  format="#,##0.00"
-                />
-              </div>
             </div>
-
-            {/* Line Total Preview */}
-            {itemQuantity > 0 && itemUnitPrice >= 0 && (
-              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                <span className="text-gray-600">ยอดรวมรายการนี้</span>
-                <span className="text-xl font-bold text-blue-600">
-                  {formatCurrency(itemQuantity * itemUnitPrice)}
-                </span>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <DxButton
-                text="ยกเลิก"
-                type="normal"
-                stylingMode="outlined"
-                onClick={handleCancelAddItem}
-              />
-              <DxButton
-                text="เพิ่มรายการ"
-                icon="plus"
-                type="success"
-                onClick={handleAddItemToOrder}
-                disabled={itemQuantity <= 0 || itemUnitPrice < 0}
-              />
-            </div>
-          </div>
-        )}
-      </DxPopup>
+          ) : null
+        }
+      />
     </>
   );
 }
