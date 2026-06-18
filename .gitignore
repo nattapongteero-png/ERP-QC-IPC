@@ -80,3 +80,4 @@ public/his-vmi-sales-flow.html
 
 # Docker UAT mysql volume
 uat_mysql_data/
+herbal-app-uat.tar.gz
