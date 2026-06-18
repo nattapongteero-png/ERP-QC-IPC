@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -384,8 +384,10 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   // them to Thai/English at render time via src/locales/*/navigation.json.
   const tNav = useTranslations('navigation');
 
-  // Filter navigation items based on user role
-  const filteredNavigation = getFilteredNavigation(user?.role);
+  // Filter navigation items based on user role. Memoized so its identity is
+  // stable across renders — otherwise the route-change effects below would see
+  // a "new" dependency every render and churn.
+  const filteredNavigation = useMemo(() => getFilteredNavigation(user?.role), [user?.role]);
 
   // Initialize expanded items with parent of current route
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
@@ -393,15 +395,18 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     return parentName ? [parentName] : [];
   });
 
-  // Auto-expand parent items when navigating to child routes
-  // This effect synchronizes the expanded state with the current route
+  // Auto-expand the parent group ONLY when the route actually changes (i.e. the
+  // user navigated to a new page). This must NOT depend on expandedItems —
+  // otherwise clicking to open one group (e.g. "บัญชี") re-runs the effect and
+  // force-re-expands the group of the CURRENT page (e.g. "คลังสินค้า"), so the
+  // wrong menu pops open. We read/extend expandedItems via the functional
+  // updater instead of listing it as a dependency.
   useEffect(() => {
     // Skip on initial mount (handled by useState initializer)
     if (prevPathnameRef.current === null) {
       prevPathnameRef.current = pathname;
       return;
     }
-
     // Only run when pathname actually changes
     if (prevPathnameRef.current === pathname) {
       return;
@@ -409,11 +414,10 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     prevPathnameRef.current = pathname;
 
     const parentItem = findParentForPath(pathname, filteredNavigation);
-    if (parentItem && !expandedItems.includes(parentItem)) {
-       
-      setExpandedItems((prev) => [...prev, parentItem]);
+    if (parentItem) {
+      setExpandedItems((prev) => (prev.includes(parentItem) ? prev : [...prev, parentItem]));
     }
-  }, [pathname, filteredNavigation, expandedItems]);
+  }, [pathname, filteredNavigation]);
 
   // Behave like an ordinary sidebar: clicking a menu group just expands/
   // collapses it in place and NEVER scrolls. We only nudge the active item
