@@ -1783,14 +1783,26 @@ export default function QcSampleDetailPage() {
           const canSignAnalyst =
             !analystSig &&
             (detail.status === 'testing' || detail.status === 'registered');
+          // Reviewer may sign while testing OR if the sample was already pushed
+          // to 'reviewed'/'approved' without a reviewer signature (legacy/seed
+          // data that skipped the step) — otherwise the row would be stuck with
+          // no way to add the missing signature. Same idea for approver/release:
+          // allow signing whenever the prior signature exists but this tier's is
+          // missing, regardless of how far the status was advanced.
           const canSignReviewer =
             !reviewerSig &&
-            detail.status === 'testing' &&
-            hasTestedRow;
+            hasTestedRow &&
+            (detail.status === 'testing' ||
+              detail.status === 'reviewed' ||
+              detail.status === 'approved');
           const canSignApprover =
-            !approverSig && detail.status === 'reviewed';
+            !approverSig &&
+            !!reviewerSig &&
+            (detail.status === 'reviewed' || detail.status === 'approved');
           const canSignRelease =
-            !releaseSig && detail.status === 'approved';
+            !releaseSig &&
+            !!approverSig &&
+            (detail.status === 'approved' || detail.status === 'released');
 
           const tiers: Array<{
             role: SignatureRole;
