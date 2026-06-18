@@ -13,6 +13,7 @@ import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { StatusStepper } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { expandRole } from '@/lib/auth/role-mapping';
 import type {
   CreditDebitNoteWithLines,
   NoteStatus,
@@ -74,8 +75,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   // Current user (for role-gated Approve / Reject buttons)
   const { data: currentUser } = useCurrentUser();
-  const userRole = currentUser?.role || '';
-  const canApproveRole = NOTE_APPROVE_ROLES.includes(userRole);
+  // expandRole() normalises the stored role (e.g. "ADMIN") to lowercase legacy
+  // aliases so this check is case-insensitive — without it an admin saw no
+  // approve/reject buttons.
+  const canApproveRole = expandRole(currentUser?.role).some((r) =>
+    NOTE_APPROVE_ROLES.includes(r),
+  );
 
   useEffect(() => {
     fetchNote();

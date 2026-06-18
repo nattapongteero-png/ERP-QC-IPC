@@ -27,17 +27,20 @@ import { DocumentAttachment } from '@/components/ui/document-attachment';
 import { AuditLogViewerDialog } from '@/components/shared/AuditLogViewerDialog';
 import { StatusStepper } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { expandRole } from '@/lib/auth/role-mapping';
 import { POPrintDocument } from '@/components/purchasing/po-print-document';
 import { thaiBahtText } from '@/lib/utils/thai-baht-text';
 
 // VAT rate for Thailand (7%)
 const VAT_RATE = 0.07;
 
-// Roles that can submit a Draft PO (→ pending_approval)
-const PO_SUBMIT_ROLES = ['PROCUREMENT', 'PROCUREMENT_MANAGER', 'admin', 'manager', 'purchasing'];
+// Roles that can submit a Draft PO (→ pending_approval).
+// Compared against expandRole() output, which is always lowercase — keep these
+// lowercase so an uppercase stored role (e.g. "ADMIN") still matches.
+const PO_SUBMIT_ROLES = ['procurement', 'procurement_manager', 'admin', 'manager', 'purchasing'];
 
 // Roles that can approve a Submitted PO (→ approved)
-const PO_APPROVE_ROLES = ['PROCUREMENT_MANAGER', 'admin', 'manager'];
+const PO_APPROVE_ROLES = ['procurement_manager', 'admin', 'manager'];
 
 // Step bar — maps backend status → workflow step index (1..4), or -1 for cancelled
 const STATUS_STEP: Record<string, number> = {
@@ -307,11 +310,14 @@ export default function PurchaseOrderDetailPage() {
   // Audit log dialog
   const [showAuditLog, setShowAuditLog] = useState(false);
 
-  // Current user (for role-gated Submit / Approve buttons)
+  // Current user (for role-gated Submit / Approve buttons).
+  // expandRole() normalises the stored role (e.g. "ADMIN", "QC_ANALYST") to its
+  // lowercase legacy aliases, so the .some() checks below are case-insensitive
+  // and HR role codes resolve correctly — without this an admin saw no buttons.
   const { data: currentUser } = useCurrentUser();
-  const userRole = currentUser?.role || '';
-  const canSubmit = PO_SUBMIT_ROLES.includes(userRole);
-  const canApprove = PO_APPROVE_ROLES.includes(userRole);
+  const expandedRoles = expandRole(currentUser?.role);
+  const canSubmit = expandedRoles.some((r) => PO_SUBMIT_ROLES.includes(r));
+  const canApprove = expandedRoles.some((r) => PO_APPROVE_ROLES.includes(r));
 
   // Status transition state
   const [isTransitioning, setIsTransitioning] = useState(false);
