@@ -60,11 +60,11 @@ interface TestDetail extends TestRow {
 
 const resultBadge = (r: string) =>
   r === 'in_spec' ? (
-    <Badge className="bg-emerald-100 text-emerald-900">ผ่าน (ในเกณฑ์)</Badge>
+    <Badge className="bg-emerald-100 text-emerald-900 whitespace-nowrap">ผ่าน (ในเกณฑ์)</Badge>
   ) : r === 'out_of_spec' ? (
-    <Badge className="bg-rose-100 text-rose-900">ไม่ผ่าน (เกินเกณฑ์)</Badge>
+    <Badge className="bg-rose-100 text-rose-900 whitespace-nowrap">ไม่ผ่าน (เกินเกณฑ์)</Badge>
   ) : (
-    <Badge className="bg-gray-200 text-gray-700">ไม่ระบุ</Badge>
+    <Badge className="bg-gray-200 text-gray-700 whitespace-nowrap">ไม่ระบุ</Badge>
   );
 
 export default function WaterQualityRecordsPage() {
@@ -270,7 +270,7 @@ export default function WaterQualityRecordsPage() {
         <Column dataField="samplePointName" caption="จุดสุ่มตัวอย่าง" />
         <Column dataField="systemName" caption="ระบบน้ำ" />
         <Column dataField="operatorName" caption="ผู้ตรวจ" width={150} />
-        <Column dataField="overallResult" caption="ผลรวม" width={140} cellRender={(c) => resultBadge(c.value)} />
+        <Column dataField="overallResult" caption="ผลรวม" width={170} cellRender={(c) => resultBadge(c.value)} />
         <Column
           caption="การกระทำ"
           width={210}

@@ -5,7 +5,10 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils/cn';
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-full font-medium ring-1 ring-inset transition-colors',
+  // whitespace-nowrap: a status badge must always stay on a single line — in a
+  // narrow grid cell it would otherwise wrap (e.g. "ไม่ผ่าน (เกินเกณฑ์)" breaking
+  // mid-label). This is the system-wide default for every Badge.
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium ring-1 ring-inset transition-colors',
   {
     variants: {
       variant: {
