@@ -390,7 +390,7 @@ export interface ListGrnsFilter {
 }
 
 export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
-  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null }>;
+  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null; canCancel: boolean }>;
   total: number;
   page: number;
   pageSize: number;
@@ -433,20 +433,25 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
       .limit(pageSize)
       .offset(offset);
 
-    // Line counts
+    // Line counts + how many lines have advanced past 'created'. The advanced
+    // count lets the list show a Cancel button only when cancellation would
+    // actually succeed (backend cancelGrn requires EVERY line still 'created').
     const grnIds = rows.map((r: any) => Number(r.id));
     const counts: Record<number, number> = {};
+    const advancedCounts: Record<number, number> = {};
     if (grnIds.length > 0) {
       const cntRows = await db
         .select({
           grnId: t.lines.grnId,
           c: sql<number>`COUNT(*)`,
+          advanced: sql<number>`SUM(CASE WHEN ${t.lines.status} <> 'created' THEN 1 ELSE 0 END)`,
         })
         .from(t.lines)
         .where(inArray(t.lines.grnId, grnIds))
         .groupBy(t.lines.grnId);
       for (const c of cntRows) {
         counts[Number(c.grnId)] = Number(c.c);
+        advancedCounts[Number(c.grnId)] = Number(c.advanced ?? 0);
       }
     }
 
@@ -457,12 +462,24 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
       .where(whereExpr);
     const total = Number(totalRows[0]?.c ?? 0);
 
+    const CANCELLABLE_HEADER = ['in_progress'];
     return {
-      items: rows.map((r: any) => ({
-        ...normalizeGrn(r),
-        vendorName: r.vendorName ?? null,
-        lineCount: counts[Number(r.id)] ?? 0,
-      })),
+      items: rows.map((r: any) => {
+        const id = Number(r.id);
+        const lineCount = counts[id] ?? 0;
+        const advanced = advancedCounts[id] ?? 0;
+        // Mirror the backend cancelGrn() guard: header still in progress,
+        // has lines, and none advanced past 'created'. (Creator + 24h are
+        // also enforced server-side; this just hides the obviously-invalid case.)
+        const canCancel =
+          CANCELLABLE_HEADER.includes(String(r.status)) && lineCount > 0 && advanced === 0;
+        return {
+          ...normalizeGrn(r),
+          vendorName: r.vendorName ?? null,
+          lineCount,
+          canCancel,
+        };
+      }),
       total,
       page,
       pageSize,
