@@ -634,7 +634,7 @@ export default function TrainingDashboardPage() {
             allowColumnReordering
             allowColumnResizing
             columnAutoWidth
-            height="calc(100vh - 500px)"
+            height="auto"
             onRowClick={handleSessionRowClick}
             hoverStateEnabled
           >
@@ -646,7 +646,7 @@ export default function TrainingDashboardPage() {
               type="localStorage"
               storageKey="hr_training_sessions_grid_v2"
             />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
 
             <Column
               dataField="_rowNumber"

@@ -4,7 +4,7 @@
 // Following template design pattern for list page with CRUD operations
 // Feature: 007-hr-personnel-management
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
@@ -97,23 +97,6 @@ export default function RolesPage() {
   // Delete confirmation state
   const [selectedRole, setSelectedRole] = useState<AppRoleWithPermissions | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const [gridHeight, setGridHeight] = useState(500);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 320;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   const { data: rolesData = [], isLoading } = useQuery({
     queryKey: ['hr', 'roles'],
@@ -452,13 +435,13 @@ export default function RolesPage() {
             columnAutoWidth
             columnHidingEnabled
             wordWrapEnabled
-            height={gridHeight}
+            height="auto"
             hoverStateEnabled
             onRowClick={handleRowClick}
             className="cursor-pointer"
           >
             <LoadPanel enabled={isLoading} />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector

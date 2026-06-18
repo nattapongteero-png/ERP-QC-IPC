@@ -361,10 +361,10 @@ export default function HealthRecordsPage() {
               columnAutoWidth
               hoverStateEnabled
               onRowClick={handleRowClick}
-              className="min-h-[400px]"
+              height="auto"
             >
             <SearchPanel visible placeholder={t('common.search')} width={200} />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector

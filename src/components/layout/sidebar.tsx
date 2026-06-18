@@ -373,6 +373,9 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
+  // Scroll container — used to bring the active menu item into view so the user
+  // can always see which page they are on (active item may sit below the fold).
+  const navScrollRef = useRef<HTMLElement | null>(null);
   // Sidebar nav array uses English labels as the source; navLabel resolves
   // them to Thai/English at render time via src/locales/*/navigation.json.
   const tNav = useTranslations('navigation');
@@ -407,6 +410,16 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
       setExpandedItems((prev) => [...prev, parentItem]);
     }
   }, [pathname, filteredNavigation, expandedItems]);
+
+  // Bring the active menu item into view whenever the route changes. The
+  // submenu expands first (effect above), so wait one paint before scrolling.
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => {
+      const el = navScrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [pathname, expandedItems]);
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
@@ -472,7 +485,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
           items soften out instead of being sharply clipped; extra bottom
           padding ensures the last item has room above the user section. */}
       <div className="flex-1 min-h-0 relative">
-        <nav className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <nav ref={navScrollRef} className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
           {filteredNavigation.map((item) => (
             <div key={item.name}>
@@ -481,13 +494,14 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                 <div>
                   <button
                     onClick={() => toggleExpand(item.name)}
+                    data-active={isActive(item.href) ? 'true' : undefined}
                     className={cn(
                       'w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium',
                       'transition-all duration-200 ease-out',
                       'motion-reduce:transition-none',
                       'group',
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold border-l-4 border-emerald-300 shadow-md'
                         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                     )}
                   >
@@ -498,7 +512,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                           'transition-all duration-200 ease-out',
                           'motion-reduce:transition-none',
                           isActive(item.href)
-                            ? 'bg-emerald-500/20 text-emerald-400'
+                            ? 'bg-white/20 text-white'
                             : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
                         )}
                       >
@@ -541,12 +555,13 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                           key={child.name}
                           href={child.href}
                           onClick={handleLinkClick}
+                          data-active={isChildActive(child.href) ? 'true' : undefined}
                           className={cn(
                             'flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-sm',
                             'transition-all duration-200 ease-out',
                             'motion-reduce:transition-none',
                             isChildActive(child.href)
-                              ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                              ? 'bg-emerald-500 text-white font-semibold border-l-4 border-emerald-300 shadow-sm'
                               : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           )}
                         >
@@ -569,13 +584,14 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                 <Link
                   href={item.href}
                   onClick={handleLinkClick}
+                  data-active={isActive(item.href) ? 'true' : undefined}
                   className={cn(
                     'flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium',
                     'transition-all duration-200 ease-out',
                     'motion-reduce:transition-none',
                     'group',
                     isActive(item.href)
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold border-l-4 border-emerald-300 shadow-md'
                       : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                   )}
                 >
@@ -585,7 +601,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                       'transition-all duration-200 ease-out',
                       'motion-reduce:transition-none',
                       isActive(item.href)
-                        ? 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-white/20 text-white'
                         : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
                     )}
                   >

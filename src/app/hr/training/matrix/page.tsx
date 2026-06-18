@@ -3,7 +3,7 @@
 // HR Competency Matrix Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
@@ -56,22 +56,6 @@ export default function CompetencyMatrixPage() {
   const t = useTranslations('hr');
   const [selectedOrgUnit, setSelectedOrgUnit] = useState<number | null>(null);
   const [showMandatoryOnly, setShowMandatoryOnly] = useState(false);
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 350;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   const { data: matricesData = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'competency-matrix'],
@@ -294,12 +278,12 @@ export default function CompetencyMatrixPage() {
           showRowLines
           showColumnLines
           rowAlternationEnabled
-          height={gridHeight}
+          height="auto"
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
           columnAutoWidth={false}
         >
-          <Scrolling mode="virtual" columnRenderingMode="virtual" />
+          <Scrolling mode="standard" columnRenderingMode="virtual" />
           <ColumnFixing enabled />
           <Paging enabled={false} />
 

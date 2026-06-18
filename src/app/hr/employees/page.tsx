@@ -153,23 +153,6 @@ export default function EmployeesPage() {
   );
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation for DataGrid
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 320;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
-
   const { data: employees = [], isLoading, refetch } = useQuery({
     queryKey: ['hr', 'employees', { orgUnitId: orgUnitFilter, status: statusFilter }],
     queryFn: () => fetchEmployees({
@@ -767,15 +750,15 @@ export default function EmployeesPage() {
             allowColumnReordering
             allowColumnResizing
             columnHidingEnabled
-            height={gridHeight}
+            height="auto"
             onRowClick={handleRowClick}
             hoverStateEnabled
             loadPanel={{ enabled: isLoading }}
             className="[&_.dx-datagrid-headers]:bg-slate-50/80 [&_.dx-datagrid-headers]:border-b [&_.dx-datagrid-headers]:border-slate-200 [&_.dx-header-row>td]:font-semibold [&_.dx-header-row>td]:text-slate-600 [&_.dx-header-row>td]:text-xs [&_.dx-header-row>td]:uppercase [&_.dx-header-row>td]:tracking-wider [&_.dx-header-row>td]:py-3.5 [&_.dx-data-row]:border-b [&_.dx-data-row]:border-slate-100 [&_.dx-data-row:hover]:bg-blue-50/50 [&_.dx-data-row]:transition-colors [&_.dx-data-row]:cursor-pointer"
           >
             <SearchPanel visible placeholder={t('employees.searchPlaceholder')} width={280} />
-            <Scrolling mode="virtual" />
-            <Paging defaultPageSize={25} />
+            <Scrolling mode="standard" />
+            <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector
               allowedPageSizes={[10, 25, 50, 100]}

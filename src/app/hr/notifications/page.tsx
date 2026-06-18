@@ -4,7 +4,7 @@
 // Following template design pattern for list page
 // Feature: 007-hr-personnel-management
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import DataGrid, {
   Column,
@@ -134,22 +134,6 @@ export default function NotificationsPage() {
   const [showDetailPopup, setShowDetailPopup] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<HRNotificationWithEmployee | null>(null);
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 380;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   // Fetch notifications
   const {
@@ -485,11 +469,11 @@ export default function NotificationsPage() {
             columnHidingEnabled
             rowAlternationEnabled
             wordWrapEnabled
-            height={gridHeight}
+            height="auto"
             hoverStateEnabled
           >
             <LoadPanel enabled={isLoading} />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
             <Paging defaultPageSize={20} />
             <Pager
               showPageSizeSelector

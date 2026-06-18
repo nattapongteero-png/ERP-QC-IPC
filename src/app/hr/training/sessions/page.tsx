@@ -3,7 +3,6 @@
 // HR Training Sessions Page
 // Feature: 007-hr-personnel-management
 
-import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
@@ -62,22 +61,6 @@ export default function TrainingSessionsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 280;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'sessions'],
@@ -216,12 +199,12 @@ export default function TrainingSessionsPage() {
           rowAlternationEnabled
           columnAutoWidth
           columnHidingEnabled
-          height={gridHeight}
+          height="auto"
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
           <SearchPanel visible placeholder="ค้นหา..." width={200} />
-          <Scrolling mode="virtual" />
+          <Scrolling mode="standard" />
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
 

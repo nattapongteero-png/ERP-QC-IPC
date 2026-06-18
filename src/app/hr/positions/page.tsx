@@ -5,7 +5,7 @@
 // Professional layout with KPI dashboard, multiple view modes, and analytics
 // Updated Task 4: Template Pattern Alignment - Page-based navigation
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
@@ -32,7 +32,6 @@ import PieChart, {
 } from 'devextreme-react/pie-chart';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
-import TextArea from 'devextreme-react/text-area';
 import SelectBox from 'devextreme-react/select-box';
 import CheckBox from 'devextreme-react/check-box';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -42,10 +41,6 @@ import { ResponsivePageHeader, StatCard, OrgUnitPicker } from '@/components/shar
 import { useToast } from '@/components/ui/toast';
 import {
   Briefcase,
-  FileText,
-  Check,
-  X,
-  Clock,
   Grid3X3,
   List,
   BarChart3,
@@ -56,7 +51,7 @@ import {
   AlertTriangle,
   Filter,
 } from 'lucide-react';
-import type { Position, OrgUnit, JobDescription } from '@/types/hr';
+import type { Position, OrgUnit } from '@/types/hr';
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -83,13 +78,6 @@ const emptyFormData: PositionFormData = {
   orgUnitId: null,
   jobGrade: '',
   isGmpCritical: false,
-};
-
-const JD_STATUS_CONFIG = {
-  draft: { translationKey: 'draft', variant: 'secondary' as const, icon: FileText },
-  pending_approval: { translationKey: 'pendingApproval', variant: 'warning' as const, icon: Clock },
-  approved: { translationKey: 'approved', variant: 'success' as const, icon: Check },
-  obsolete: { translationKey: 'obsolete', variant: 'danger' as const, icon: X },
 };
 
 // Color palette for charts
@@ -122,13 +110,6 @@ async function fetchOrgUnits(): Promise<OrgUnit[]> {
   return result.data || [];
 }
 
-async function fetchJobDescriptions(positionId: number): Promise<JobDescription[]> {
-  const response = await fetch(`/api/hr/positions/${positionId}/job-descriptions`);
-  if (!response.ok) throw new Error('Failed to fetch job descriptions');
-  const result = await response.json();
-  return result.data || [];
-}
-
 async function createPosition(data: Partial<Position>): Promise<Position> {
   const response = await fetch('/api/hr/positions', {
     method: 'POST',
@@ -157,20 +138,6 @@ async function updatePosition(id: number, data: Partial<Position>): Promise<Posi
   return result.data;
 }
 
-async function createJobDescription(positionId: number, data: Partial<JobDescription>): Promise<JobDescription> {
-  const response = await fetch(`/api/hr/positions/${positionId}/job-descriptions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const result = await response.json();
-    throw new Error(result.error || 'Failed to create job description');
-  }
-  const result = await response.json();
-  return result.data;
-}
-
 export default function PositionsPage() {
   const t = useTranslations('hr');
   const locale = useLocale();
@@ -190,30 +157,7 @@ export default function PositionsPage() {
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
-  const [showJDPopup, setShowJDPopup] = useState(false);
-  const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [gridHeight, setGridHeight] = useState(500);
   const [formData, setFormData] = useState<PositionFormData>(emptyFormData);
-  const [newJD, setNewJD] = useState({
-    responsibilities: '',
-    authorities: '',
-    qualifications: '',
-  });
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 280;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   const { data: positions = [], isLoading, refetch } = useQuery({
     queryKey: ['hr', 'positions'],
@@ -223,12 +167,6 @@ export default function PositionsPage() {
   const { data: orgUnits = [] } = useQuery({
     queryKey: ['hr', 'org-units'],
     queryFn: fetchOrgUnits,
-  });
-
-  const { data: jobDescriptions = [] } = useQuery({
-    queryKey: ['hr', 'job-descriptions', selectedPosition?.id],
-    queryFn: () => selectedPosition ? fetchJobDescriptions(selectedPosition.id) : Promise.resolve([]),
-    enabled: !!selectedPosition,
   });
 
   // Create org unit lookup map for display
@@ -326,20 +264,6 @@ export default function PositionsPage() {
     },
   });
 
-  const createJDMutation = useMutation({
-    mutationFn: ({ positionId, data }: { positionId: number; data: Partial<JobDescription> }) =>
-      createJobDescription(positionId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hr', 'job-descriptions', selectedPosition?.id] });
-      setShowJDPopup(false);
-      setNewJD({ responsibilities: '', authorities: '', qualifications: '' });
-      toast.success(t('positions.toast.jdCreateSuccess'));
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || t('positions.toast.jdCreateError'));
-    },
-  });
-
   const handleCreatePosition = useCallback(() => {
     if (!formData.code || !formData.title) return;
     createMutation.mutate({
@@ -390,14 +314,6 @@ export default function PositionsPage() {
     router.push(`/hr/positions/${e.data.id}`);
   }, [router]);
 
-  const handleCreateJD = useCallback(() => {
-    if (!selectedPosition) return;
-    createJDMutation.mutate({
-      positionId: selectedPosition.id,
-      data: newJD,
-    });
-  }, [selectedPosition, newJD, createJDMutation]);
-
   // Cell renderers with icons
   const renderGmpCriticalCell = (cellData: { value: boolean }) => {
     return cellData.value ? (
@@ -437,15 +353,6 @@ export default function PositionsPage() {
         <span>{orgUnit.name}</span>
       </div>
     );
-  };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   // Generate gradient for position card avatar
@@ -754,10 +661,10 @@ export default function PositionsPage() {
       )}
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden" data-testid="hr-positions-grid">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" data-testid="hr-positions-grid">
             <DataGrid
               key={locale}
               dataSource={filteredPositions}
@@ -769,7 +676,7 @@ export default function PositionsPage() {
               allowColumnReordering
               allowColumnResizing
               columnHidingEnabled
-              height={gridHeight}
+              height="auto"
               onRowClick={handleRowClick}
               onRowDblClick={handleRowDblClick}
               hoverStateEnabled
@@ -777,7 +684,7 @@ export default function PositionsPage() {
               selectedRowKeys={selectedPosition ? [selectedPosition.id] : []}
             >
               <SearchPanel visible placeholder={t('common.search')} width={200} />
-              <Scrolling mode="virtual" />
+              <Scrolling mode="standard" />
               <Paging defaultPageSize={20} />
               <Pager
                 showPageSizeSelector
@@ -809,7 +716,7 @@ export default function PositionsPage() {
                   </span>
                 )}
               />
-              <Column dataField="code" caption={t('positions.columns.code')} width={100} hidingPriority={1} />
+              <Column dataField="code" caption={t('positions.columns.code')} minWidth={140} hidingPriority={1} />
               <Column dataField="title" caption={t('positions.columns.title')} minWidth={150} hidingPriority={0} />
               <Column dataField="titleEn" caption={t('positions.columns.titleEn')} width={150} hidingPriority={4} />
               <Column
@@ -848,8 +755,8 @@ export default function PositionsPage() {
 
         {/* Cards View */}
         {viewMode === 'cards' && (
-          <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredPositions.map(renderPositionCard)}
             </div>
             {filteredPositions.length === 0 && (
@@ -862,7 +769,7 @@ export default function PositionsPage() {
 
         {/* Analytics View */}
         {viewMode === 'analytics' && (
-          <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* GMP Distribution Chart */}
               <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -990,138 +897,6 @@ export default function PositionsPage() {
             </div>
           </div>
         )}
-
-        {/* Position Details Panel */}
-        <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${!showDetailPanel && selectedPosition ? 'hidden lg:block' : ''}`}>
-          {selectedPosition ? (
-            <div className="h-full flex flex-col">
-              {/* Position Header */}
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${getPositionGradient(selectedPosition.code)} flex items-center justify-center text-white font-bold text-lg`}>
-                      {selectedPosition.code.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{selectedPosition.title}</h3>
-                      <p className="text-sm text-gray-500">{selectedPosition.code}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <DxButton
-                      icon="edit"
-                      hint={t('positions.editHint')}
-                      type="default"
-                      stylingMode="text"
-                      onClick={() => openEditPopup(selectedPosition)}
-                    />
-                    <button
-                      onClick={() => setShowDetailPanel(false)}
-                      className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
-                      aria-label="Close panel"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {selectedPosition.isGmpCritical && (
-                    <Badge variant="danger" className="text-xs">
-                      <Shield className="h-3 w-3 mr-1" />
-                      GMP Critical
-                    </Badge>
-                  )}
-                  {selectedPosition.jobGrade && (
-                    <Badge variant="info" className="text-xs">{selectedPosition.jobGrade}</Badge>
-                  )}
-                  <Badge variant={selectedPosition.isActive ? 'success' : 'secondary'} className="text-xs">
-                    {selectedPosition.isActive ? t('positions.status.active') : t('positions.status.inactive')}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Position Info */}
-              <div className="p-4 border-b border-gray-200 space-y-3">
-                {selectedPosition.titleEn && (
-                  <div>
-                    <p className="text-xs text-gray-500">{t('positions.details.titleEn')}</p>
-                    <p className="text-sm text-gray-900">{selectedPosition.titleEn}</p>
-                  </div>
-                )}
-                {selectedPosition.orgUnitId && (
-                  <div>
-                    <p className="text-xs text-gray-500">{t('positions.details.orgUnit')}</p>
-                    <div className="flex items-center gap-1 text-sm text-gray-900">
-                      <Building2 className="h-4 w-4 text-blue-500" />
-                      {orgUnitMap.get(selectedPosition.orgUnitId)?.name || '-'}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Job Descriptions */}
-              <div className="flex-1 overflow-auto p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {t('positions.jd.title')}
-                  </h4>
-                  <DxButton
-                    icon="add"
-                    text={t('positions.jd.add')}
-                    type="default"
-                    stylingMode="text"
-                    onClick={() => setShowJDPopup(true)}
-                  />
-                </div>
-
-                {jobDescriptions.length === 0 ? (
-                  <p className="text-gray-400 text-center py-8">
-                    {t('positions.jd.empty')}
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {jobDescriptions.map((jd) => {
-                      const statusConfig = JD_STATUS_CONFIG[jd.status];
-                      return (
-                        <div
-                          key={jd.id}
-                          className="p-3 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900">
-                              {t('positions.jd.version')}{jd.version}
-                            </span>
-                            <Badge variant={statusConfig.variant} className="text-xs">
-                              {t(`positions.jdStatus.${statusConfig.translationKey}`)}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-gray-500 space-y-1">
-                            {jd.effectiveFrom && (
-                              <p>{t('positions.jd.effective')}: {formatDate(jd.effectiveFrom)}</p>
-                            )}
-                            {jd.approvedAt && (
-                              <p>{t('positions.jd.approved')}: {formatDate(jd.approvedAt)}</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center p-8">
-              <div className="text-center">
-                <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-400">
-                  {t('positions.detailsEmpty')}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Create Position Popup */}
@@ -1196,70 +971,6 @@ export default function PositionsPage() {
             type: 'default',
             disabled: !formData.title || updateMutation.isPending,
             onClick: handleUpdatePosition,
-          }}
-        />
-      </Popup>
-
-      {/* Create Job Description Popup */}
-      <Popup
-        visible={showJDPopup}
-        onHiding={() => setShowJDPopup(false)}
-        title={t('positions.popups.createJdTitle', { 0: selectedPosition?.title || '' })}
-        width={600}
-        height="auto"
-        showCloseButton
-      >
-        <div className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('positions.jd.responsibilities')}
-            </label>
-            <TextArea
-              value={newJD.responsibilities}
-              onValueChanged={(e) => setNewJD((prev) => ({ ...prev, responsibilities: e.value || '' }))}
-              height={100}
-              placeholder={t('positions.jd.responsibilitiesPlaceholder')}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('positions.jd.authorities')}
-            </label>
-            <TextArea
-              value={newJD.authorities}
-              onValueChanged={(e) => setNewJD((prev) => ({ ...prev, authorities: e.value || '' }))}
-              height={100}
-              placeholder={t('positions.jd.authoritiesPlaceholder')}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('positions.jd.qualifications')}
-            </label>
-            <TextArea
-              value={newJD.qualifications}
-              onValueChanged={(e) => setNewJD((prev) => ({ ...prev, qualifications: e.value || '' }))}
-              height={100}
-              placeholder={t('positions.jd.qualificationsPlaceholder')}
-            />
-          </div>
-        </div>
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: t('common.cancel'),
-            onClick: () => setShowJDPopup(false),
-          }}
-        />
-        <ToolbarItem
-          widget="dxButton"
-          location="after"
-          options={{
-            text: t('common.save'),
-            type: 'default',
-            disabled: createJDMutation.isPending,
-            onClick: handleCreateJD,
           }}
         />
       </Popup>

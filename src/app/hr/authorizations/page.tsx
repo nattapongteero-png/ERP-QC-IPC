@@ -659,7 +659,7 @@ export default function AuthorizationsPage() {
             allowColumnReordering
             allowColumnResizing
             columnAutoWidth
-            height="calc(100vh - 500px)"
+            height="auto"
             hoverStateEnabled
             loadPanel={{ enabled: isLoading }}
           >
@@ -667,7 +667,7 @@ export default function AuthorizationsPage() {
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <StateStoring enabled type="localStorage" storageKey="hr_authorizations_grid_v2" />
-            <Scrolling mode="virtual" />
+            <Scrolling mode="standard" />
 
             <Column
               dataField="_rowNumber"

@@ -4,7 +4,7 @@
 // Feature: 007-hr-personnel-management
 // Updated Task 5: Template Pattern Alignment - Page-based navigation
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import DataGrid, {
@@ -33,22 +33,6 @@ async function fetchCourses(): Promise<TrainingCourse[]> {
 export default function TrainingCoursesPage() {
   const t = useTranslations('hr');
   const router = useRouter();
-  const [gridHeight, setGridHeight] = useState(600);
-
-  // Responsive height calculation
-  useEffect(() => {
-    const calculateHeight = () => {
-      const headerHeight = 280;
-      const padding = 100;
-      const minHeight = 400;
-      const availableHeight = window.innerHeight - headerHeight - padding;
-      setGridHeight(Math.max(minHeight, availableHeight));
-    };
-
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
-    return () => window.removeEventListener('resize', calculateHeight);
-  }, []);
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ['hr', 'training', 'courses'],
@@ -175,13 +159,13 @@ export default function TrainingCoursesPage() {
           allowColumnReordering
           allowColumnResizing
           columnHidingEnabled
-          height={gridHeight}
+          height="auto"
           onRowClick={handleRowClick}
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
           <SearchPanel visible placeholder="ค้นหา..." width={200} />
-          <Scrolling mode="virtual" />
+          <Scrolling mode="standard" />
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
 
