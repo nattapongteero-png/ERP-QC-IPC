@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -373,19 +373,16 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
-  // Tracks the last pathname we auto-scrolled to, so expanding/collapsing a
-  // menu group (which changes expandedItems but NOT the route) never triggers
-  // a scroll. We only scroll when the user actually navigates to a new page.
-  const scrolledForPathRef = useRef<string | null>(null);
-  // Scroll container — used to bring the active menu item into view so the user
-  // can always see which page they are on (active item may sit below the fold).
+  // Scroll container ref (kept for layout). The sidebar never auto-scrolls.
   const navScrollRef = useRef<HTMLElement | null>(null);
   // Sidebar nav array uses English labels as the source; navLabel resolves
   // them to Thai/English at render time via src/locales/*/navigation.json.
   const tNav = useTranslations('navigation');
 
-  // Filter navigation items based on user role
-  const filteredNavigation = getFilteredNavigation(user?.role);
+  // Filter navigation items based on user role. Memoized so its identity is
+  // stable across renders — otherwise the route-change effects below would see
+  // a "new" dependency every render and churn.
+  const filteredNavigation = useMemo(() => getFilteredNavigation(user?.role), [user?.role]);
 
   // Initialize expanded items with parent of current route
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
@@ -393,15 +390,18 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     return parentName ? [parentName] : [];
   });
 
-  // Auto-expand parent items when navigating to child routes
-  // This effect synchronizes the expanded state with the current route
+  // Auto-expand the parent group ONLY when the route actually changes (i.e. the
+  // user navigated to a new page). This must NOT depend on expandedItems —
+  // otherwise clicking to open one group (e.g. "บัญชี") re-runs the effect and
+  // force-re-expands the group of the CURRENT page (e.g. "คลังสินค้า"), so the
+  // wrong menu pops open. We read/extend expandedItems via the functional
+  // updater instead of listing it as a dependency.
   useEffect(() => {
     // Skip on initial mount (handled by useState initializer)
     if (prevPathnameRef.current === null) {
       prevPathnameRef.current = pathname;
       return;
     }
-
     // Only run when pathname actually changes
     if (prevPathnameRef.current === pathname) {
       return;
@@ -409,27 +409,16 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     prevPathnameRef.current = pathname;
 
     const parentItem = findParentForPath(pathname, filteredNavigation);
-    if (parentItem && !expandedItems.includes(parentItem)) {
-       
-      setExpandedItems((prev) => [...prev, parentItem]);
+    if (parentItem) {
+      setExpandedItems((prev) => (prev.includes(parentItem) ? prev : [...prev, parentItem]));
     }
-  }, [pathname, filteredNavigation, expandedItems]);
+  }, [pathname, filteredNavigation]);
 
-  // Behave like an ordinary sidebar: clicking a menu group just expands/
-  // collapses it in place and NEVER scrolls. We only nudge the active item
-  // into view once per real navigation, and only if it is actually off-screen
-  // (block:'nearest' — never yanks a visible item to the centre).
-  // Keyed on pathname alone (NOT expandedItems), so expanding a group can't
-  // trigger a scroll; scrolledForPathRef makes it run once per page.
-  useEffect(() => {
-    if (scrolledForPathRef.current === pathname) return;
-    scrolledForPathRef.current = pathname;
-    const timer = window.setTimeout(() => {
-      const el = navScrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 320);
-    return () => window.clearTimeout(timer);
-  }, [pathname]);
+  // Ordinary-sidebar behaviour: the rail NEVER auto-scrolls. Clicking a group
+  // just expands/collapses it in place; navigating never yanks the view. The
+  // sidebar stays exactly where the user left it. (We previously scrolled the
+  // active item into view, but that fought the user's scroll position and made
+  // the menu jump — removed entirely.)
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/');
