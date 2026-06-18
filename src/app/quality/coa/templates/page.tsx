@@ -196,14 +196,16 @@ export default function CoaTemplatesPage() {
     {
       dataField: '_actions',
       caption: 'การกระทำ',
-      width: 360,
+      width: 150,
       allowFiltering: false,
       allowSorting: false,
+      // Icon-only buttons (with tooltips) — the labelled buttons were too wide
+      // for the column and got clipped ("ED", "SET DEF...", "DEACTI...").
       cellRender: (cell) => (
         <div className="flex items-center gap-1 flex-nowrap whitespace-nowrap">
           <DxButton
-            text="Edit"
             icon="edit"
+            hint="แก้ไข"
             stylingMode="outlined"
             type="default"
             onClick={() =>
@@ -212,8 +214,8 @@ export default function CoaTemplatesPage() {
           />
           {!cell.data.isDefault && cell.data.isActive ? (
             <DxButton
-              text="Set Default"
               icon="favorites"
+              hint="ตั้งเป็นค่าเริ่มต้น"
               stylingMode="outlined"
               type="success"
               onClick={() => handleSetDefault(cell.data.id)}
@@ -221,8 +223,8 @@ export default function CoaTemplatesPage() {
             />
           ) : null}
           <DxButton
-            text={cell.data.isActive ? 'Deactivate' : 'Activate'}
             icon={cell.data.isActive ? 'remove' : 'check'}
+            hint={cell.data.isActive ? 'ปิดการใช้งาน' : 'เปิดใช้งาน'}
             stylingMode="outlined"
             type={cell.data.isActive ? 'danger' : 'default'}
             onClick={() => handleToggleActive(cell.data)}
