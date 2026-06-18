@@ -18,7 +18,14 @@ vi.mock('@/lib/auth/permission-resolver', () => ({
 }));
 
 // Capture mutations sent to db
-const dbCalls = { updates: [] as Array<{ table: string; patch: Record<string, unknown> }> };
+const dbCalls = {
+  updates: [] as Array<{ table: string; patch: Record<string, unknown> }>,
+  // Records deleteOrDisableById invocations (maintenance-plan DELETE migrated
+  // to this helper); default mode is 'disabled' (soft-delete) for the existing
+  // assertions, overridable per-test.
+  deleteOrDisable: [] as Array<{ table: string; id: number; patch: Record<string, unknown> }>,
+};
+let deleteOrDisableMode: 'deleted' | 'disabled' = 'disabled';
 
 vi.mock('@/lib/db/db-helper', () => ({
   getTableRef: (n: string) => ({ __table: n }),
@@ -38,6 +45,16 @@ vi.mock('@/lib/db/db-helper', () => ({
         };
       },
     }),
+  dbOperations: {
+    deleteOrDisableById: async (
+      table: string,
+      id: number,
+      patch: Record<string, unknown> = {},
+    ) => {
+      dbCalls.deleteOrDisable.push({ table, id, patch });
+      return { mode: deleteOrDisableMode };
+    },
+  },
 }));
 
 vi.mock('@/lib/db/date-utils', () => ({
@@ -65,6 +82,8 @@ describe('F023 CRUD — Water System', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
     mockGetPerms.mockResolvedValue(new Set(['environmental:configure']));
   });
@@ -110,6 +129,8 @@ describe('F023 CRUD — Sample Point', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
   });
 
@@ -133,6 +154,8 @@ describe('F023 CRUD — Water Spec', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
   });
 
@@ -166,6 +189,8 @@ describe('F023 CRUD — Inspection Template', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
   });
 
@@ -190,6 +215,8 @@ describe('F023 CRUD — Inspection Schedule', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
   });
 
@@ -214,6 +241,8 @@ describe('F022 CRUD — Maintenance Plan Template', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbCalls.updates = [];
+    dbCalls.deleteOrDisable = [];
+    deleteOrDisableMode = 'disabled';
     mockSession.mockResolvedValue({ userId: 1, role: 'admin' });
     mockGetPerms.mockResolvedValue(new Set(['equipment:notifications:configure']));
   });
@@ -232,13 +261,29 @@ describe('F022 CRUD — Maintenance Plan Template', () => {
     expect(dbCalls.updates[0].patch.intervalValue).toBe(6);
   });
 
-  it('DELETE soft-deletes', async () => {
+  it('DELETE soft-deletes (disabled when in use)', async () => {
+    deleteOrDisableMode = 'disabled';
     const res = await DEL_MP_TMPL(
       reqOf('/api/master-data/maintenance-plan-templates/1', null, 'DELETE'),
       params1,
     );
     expect(res.status).toBe(200);
-    expect(dbCalls.updates[0].patch.isActive).toBe(false);
+    // Route migrated to deleteOrDisableById: an in-use template is soft-disabled.
+    expect(dbCalls.deleteOrDisable.length).toBe(1);
+    expect(dbCalls.deleteOrDisable[0].table).toBe('maintenancePlanTemplates');
+    const body = await res.json();
+    expect(body.mode).toBe('disabled');
+  });
+
+  it('DELETE removes an unused template (deleted)', async () => {
+    deleteOrDisableMode = 'deleted';
+    const res = await DEL_MP_TMPL(
+      reqOf('/api/master-data/maintenance-plan-templates/2', null, 'DELETE'),
+      { params: Promise.resolve({ id: '2' }) },
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.mode).toBe('deleted');
   });
 
   it('PUT 403 no permission', async () => {

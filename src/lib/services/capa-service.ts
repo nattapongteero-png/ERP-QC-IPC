@@ -375,6 +375,16 @@ export async function getCapaById(id: number): Promise<Capa | null> {
       createdBy: capaTable.createdBy,
       createdAt: capaTable.createdAt,
       updatedAt: capaTable.updatedAt,
+      // Phase 1 Critical: approval workflow fields — without these the
+      // approval guard in processCapaApproval (existing.approvalStatus !==
+      // 'pending') always fails, blocking every CAPA approval.
+      approvalStatus: capaTable.approvalStatus,
+      submittedForApprovalAt: capaTable.submittedForApprovalAt,
+      submittedForApprovalBy: capaTable.submittedForApprovalBy,
+      currentApprovalStep: capaTable.currentApprovalStep,
+      closureNotes: capaTable.closureNotes,
+      riskSeverity: capaTable.riskSeverity,
+      riskProbability: capaTable.riskProbability,
     })
     .from(capaTable)
     .leftJoin(users, eq(capaTable.ownerId, users.id))

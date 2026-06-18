@@ -111,6 +111,9 @@ beforeAll(async () => {
   createTableFromSchema(sqlite, schema.sqliteQualityTests);
   createTableFromSchema(sqlite, schema.sqliteStabilityStudies);
   createTableFromSchema(sqlite, schema.sqliteStabilitySamples);
+  // createPqrReport now aggregates real recall counts (fix #4), so the recalls
+  // table must exist or createPqrReport throws "no such table: recalls".
+  createTableFromSchema(sqlite, schema.sqliteRecalls);
 
   // Insert test users
   testUserId = sqlite.prepare(`
@@ -169,6 +172,7 @@ beforeEach(() => {
   sqlite.exec('DELETE FROM work_orders');
   sqlite.exec('DELETE FROM complaints');
   sqlite.exec('DELETE FROM inventory_lots');
+  sqlite.exec('DELETE FROM recalls');
 });
 
 describe('PQR Service - Real Database Tests', () => {
@@ -199,13 +203,18 @@ describe('PQR Service - Real Database Tests', () => {
       expect(pqr.periodStart).toBe('2024-01-01');
       expect(pqr.periodEnd).toBe('2024-12-31');
       expect(pqr.status).toBe('draft');
-      expect(pqr.batchesProduced).toBe(120);
-      expect(pqr.deviationCount).toBe(5);
-      expect(pqr.capaCount).toBe(3);
-      expect(pqr.complaintCount).toBe(2);
-      expect(pqr.oosCount).toBe(1);
+      // GMP fix #4: when productId + full period window are provided,
+      // counts are aggregated from live source tables and client-supplied
+      // values are IGNORED. No batches/deviations/etc. are seeded here, so
+      // every aggregated metric is 0 even though the client passed non-zero.
+      expect(pqr.batchesProduced).toBe(0);
+      expect(pqr.deviationCount).toBe(0);
+      expect(pqr.capaCount).toBe(0);
+      expect(pqr.complaintCount).toBe(0);
+      expect(pqr.oosCount).toBe(0);
       expect(pqr.recallCount).toBe(0);
-      expect(pqr.stabilityStatus).toBe('All studies on track');
+      // stabilityStatus comes from the aggregator summary ("0 stability studies").
+      expect(pqr.stabilityStatus).toBe('0 stability studies');
       expect(pqr.conclusions).toBe('Product quality is satisfactory');
       expect(pqr.recommendations).toBe('Continue current manufacturing practices');
       expect(pqr.createdBy).toBe(testUserId);
