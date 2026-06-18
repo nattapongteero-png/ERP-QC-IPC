@@ -4,7 +4,8 @@
  * Goods Receipt — list / dashboard
  * Feature: 020-goods-receipt
  */
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -15,6 +16,8 @@ import {
   DxHeaderFilter,
 } from '@/components/ui/dx-data-grid';
 import { Button } from 'devextreme-react/button';
+import { Popup } from 'devextreme-react/popup';
+import { TextArea } from 'devextreme-react/text-area';
 import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import type { IncomingDashboardCounts } from '@/types/goods-receipt';
@@ -28,6 +31,7 @@ interface GrnListItem {
   vendorId: number | null;
   vendorName: string | null;
   lineCount: number;
+  canCancel: boolean;
 }
 
 export default function GoodsReceiptListPage() {
@@ -44,12 +48,40 @@ export default function GoodsReceiptListPage() {
     staleTime: 30_000,
   });
 
+  const qc = useQueryClient();
+
   const { data, refetch } = useQuery<{ items: GrnListItem[]; total: number }>({
     queryKey: ['grn-list'],
     queryFn: async () => {
       const res = await fetch('/api/inventory/goods-receipts?pageSize=100');
       if (!res.ok) throw new Error('Failed');
       return res.json();
+    },
+  });
+
+  // Cancel a GRN straight from the register (so a cancelled PO/WO can be
+  // re-selected via "+ สร้าง GRN"). Backend enforces creator + 24h window +
+  // all-lines-still-created; the list `canCancel` flag hides obviously-invalid rows.
+  const [cancelTarget, setCancelTarget] = useState<GrnListItem | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const cancelMut = useMutation({
+    mutationFn: async () => {
+      if (!cancelTarget) return;
+      const res = await fetch(`/api/inventory/goods-receipts/${cancelTarget.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? 'ยกเลิกใบรับของไม่สำเร็จ');
+      return body;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['grn-list'] });
+      qc.invalidateQueries({ queryKey: ['grn-dashboard'] });
+      setCancelTarget(null);
+      setCancelReason('');
     },
   });
 
@@ -184,7 +216,73 @@ export default function GoodsReceiptListPage() {
             </span>
           )}
         />
+        <DxColumn
+          caption=""
+          width={130}
+          allowFiltering={false}
+          allowSorting={false}
+          cellRender={(c) => {
+            const row = c.data as GrnListItem;
+            if (!row.canCancel) return null;
+            return (
+              <Button
+                text={t('actions.cancelGrn')}
+                type="danger"
+                stylingMode="outlined"
+                icon="trash"
+                width={120}
+                onClick={(e) => {
+                  // Stop the row-click navigation to the detail page.
+                  (e.event as Event | undefined)?.stopPropagation?.();
+                  setCancelTarget(row);
+                }}
+              />
+            );
+          }}
+        />
       </DxDataGrid>
+
+      {/* Cancel GRN popup */}
+      <Popup
+        visible={!!cancelTarget}
+        onHiding={() => setCancelTarget(null)}
+        dragEnabled={false}
+        hideOnOutsideClick
+        showTitle
+        title={t('actions.cancelGrn')}
+        width={460}
+        height="auto"
+        container=".dx-viewport"
+      >
+        {cancelTarget && (
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-gray-800">{cancelTarget.grnNumber}</p>
+            <p className="text-sm text-gray-600">{t('cancel.warning')}</p>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t('cancel.reasonLabel')}</label>
+              <TextArea
+                value={cancelReason}
+                onValueChanged={(e) => setCancelReason(e.value ?? '')}
+                height={90}
+                placeholder={t('cancel.reasonPlaceholder')}
+              />
+            </div>
+            {cancelMut.isError && (
+              <p className="text-sm text-red-600">{(cancelMut.error as Error)?.message}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setCancelTarget(null)} />
+              <Button
+                text={t('actions.cancelGrn')}
+                type="danger"
+                stylingMode="contained"
+                disabled={cancelReason.trim().length < 10 || cancelMut.isPending}
+                onClick={() => cancelMut.mutate()}
+              />
+            </div>
+          </div>
+        )}
+      </Popup>
     </div>
   );
 }
