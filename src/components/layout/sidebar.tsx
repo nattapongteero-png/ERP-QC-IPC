@@ -411,14 +411,17 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     }
   }, [pathname, filteredNavigation, expandedItems]);
 
-  // Bring the active menu item into view whenever the route changes. The
-  // submenu expands first (effect above), so wait one paint before scrolling.
+  // Bring the active menu item into view whenever the route changes, so the
+  // sidebar always shows the page you're on. The submenu expands with a 300ms
+  // max-height transition, so we wait for it to finish before measuring, then
+  // scroll the active item to the middle of the rail (center is the most
+  // reliable — 'nearest' often no-ops when the item is only partially clipped).
   useEffect(() => {
-    const id = window.requestAnimationFrame(() => {
+    const timer = window.setTimeout(() => {
       const el = navScrollRef.current?.querySelector<HTMLElement>('[data-active="true"]');
-      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
-    return () => window.cancelAnimationFrame(id);
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 320);
+    return () => window.clearTimeout(timer);
   }, [pathname, expandedItems]);
 
   const isActive = (href: string) => {
@@ -501,7 +504,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                       'motion-reduce:transition-none',
                       'group',
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold border-l-4 border-emerald-300 shadow-md'
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
                         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                     )}
                   >
@@ -512,7 +515,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                           'transition-all duration-200 ease-out',
                           'motion-reduce:transition-none',
                           isActive(item.href)
-                            ? 'bg-white/20 text-white'
+                            ? 'bg-emerald-500/20 text-emerald-400'
                             : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
                         )}
                       >
@@ -561,7 +564,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                             'transition-all duration-200 ease-out',
                             'motion-reduce:transition-none',
                             isChildActive(child.href)
-                              ? 'bg-emerald-500 text-white font-semibold border-l-4 border-emerald-300 shadow-sm'
+                              ? 'bg-emerald-500/10 text-emerald-400 font-medium'
                               : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           )}
                         >
@@ -591,7 +594,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                     'motion-reduce:transition-none',
                     'group',
                     isActive(item.href)
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold border-l-4 border-emerald-300 shadow-md'
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
                       : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                   )}
                 >
@@ -601,7 +604,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                       'transition-all duration-200 ease-out',
                       'motion-reduce:transition-none',
                       isActive(item.href)
-                        ? 'bg-white/20 text-white'
+                        ? 'bg-emerald-500/20 text-emerald-400'
                         : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
                     )}
                   >
