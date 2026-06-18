@@ -29,6 +29,7 @@ import {
   ArrowDownToLine,
   AlertTriangle,
   Package,
+  XCircle,
 } from 'lucide-react';
 
 interface ReturnDetailLine {
@@ -480,17 +481,31 @@ export default function MaterialReturnDetailPage() {
           />
         </div>
 
-        {/* Status Stepper */}
+        {/* Status Stepper — a return ends in ONE of two outcomes (received OR
+            rejected), they are not sequential. So the second step is the
+            outcome itself: "รับคืนแล้ว" normally, or "ปฏิเสธ" (red) when the
+            request was rejected — never both, which is what confused users. */}
         <div className="mb-6 print:hidden">
-          <StatusStepper
-            title="สถานะการดำเนินงาน"
-            steps={[
-              { key: 'submitted', label: 'ส่งคำขอ' },
-              { key: 'received', label: 'รับคืนแล้ว' },
-              { key: 'rejected', label: 'ปฏิเสธ' },
-            ]}
-            current={String(detail.status).toLowerCase()}
-          />
+          {String(detail.status).toLowerCase() === 'rejected' ? (
+            <StatusStepper
+              title="สถานะการดำเนินงาน"
+              steps={[
+                { key: 'submitted', label: 'ส่งคำขอ' },
+                { key: 'rejected', label: 'ปฏิเสธ', icon: XCircle },
+              ]}
+              current="rejected"
+              tone="violet"
+            />
+          ) : (
+            <StatusStepper
+              title="สถานะการดำเนินงาน"
+              steps={[
+                { key: 'submitted', label: 'ส่งคำขอ' },
+                { key: 'received', label: 'รับคืนแล้ว' },
+              ]}
+              current={String(detail.status).toLowerCase()}
+            />
+          )}
         </div>
 
         {/* Print-only header */}
