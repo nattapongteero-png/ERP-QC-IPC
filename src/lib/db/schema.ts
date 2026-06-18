@@ -7116,8 +7116,12 @@ export const mysqlCoaTestResults = mysqlTable('coa_test_results', {
   testName: varchar('test_name', { length: 255 }).notNull(),
   testNameTh: varchar('test_name_th', { length: 255 }),
   testMethod: varchar('test_method', { length: 255 }),
-  specification: varchar('specification', { length: 500 }).notNull(),
-  result: varchar('result', { length: 500 }).notNull(),
+  // TEXT not varchar: `specification` snapshots the IPC criteria spec, which is
+  // a JSON envelope (type payload + triggers + checklist) easily exceeding 500
+  // chars; `result` can also carry long text. varchar(500) caused
+  // "Data too long for column 'specification'" when generating a COA.
+  specification: mysqlText('specification').notNull(),
+  result: mysqlText('result').notNull(),
   resultUnit: varchar('result_unit', { length: 20 }),
   conclusion: varchar('conclusion', { length: 20 }).notNull(),
   notes: mysqlText('notes'),

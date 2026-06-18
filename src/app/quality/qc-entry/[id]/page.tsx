@@ -1869,10 +1869,6 @@ export default function QcSampleDetailPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] leading-snug text-gray-500">
-                หมายเหตุ: เพื่อการทดสอบ password re-entry ในระบบจริง ผู้ใช้ต้องมี bcrypt hash —
-                บัญชี seed บางบัญชีใช้ plain-text จึงข้าม bcrypt
-              </p>
             </div>
           );
         })()}
