@@ -428,10 +428,33 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
     return pathname === href;
   };
 
-  const toggleExpand = (name: string) => {
+  // Toggle a group open/closed AND keep the clicked button pinned under the
+  // cursor. overflow-anchor:none stops the browser's own anchoring, but the
+  // submenu still adds/removes height *above* lower groups, so a group clicked
+  // while the rail is scrolled would still drift. We measure the button's
+  // viewport offset before the state change and restore it on every animation
+  // frame for the length of the 300ms max-height transition — so the row the
+  // user clicked never moves on screen, exactly like a normal sidebar.
+  const toggleExpand = (name: string, evt?: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = evt?.currentTarget ?? null;
+    const scroller = navScrollRef.current;
+    const topBefore = btn ? btn.getBoundingClientRect().top : null;
+
     setExpandedItems((prev) =>
       prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
     );
+
+    if (!btn || !scroller || topBefore == null) return;
+    // Re-pin across the transition (max-h animates over ~300ms). Each frame we
+    // nudge scrollTop by however much the button has drifted from where it was.
+    const start = performance.now();
+    const pin = () => {
+      const topNow = btn.getBoundingClientRect().top;
+      const drift = topNow - topBefore;
+      if (Math.abs(drift) > 0.5) scroller.scrollTop += drift;
+      if (performance.now() - start < 360) requestAnimationFrame(pin);
+    };
+    requestAnimationFrame(pin);
   };
 
   const isExpanded = (name: string) => {
@@ -484,7 +507,13 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
           items soften out instead of being sharply clipped; extra bottom
           padding ensures the last item has room above the user section. */}
       <div className="flex-1 min-h-0 relative">
-        <nav ref={navScrollRef} className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        {/* overflowAnchor:'none' — the submenus are always in the DOM and merely
+            animate their height (max-h-0 ↔ max-h-[48rem]). When the rail is
+            scrolled and a group expands, the browser's scroll-anchoring tries to
+            "preserve" the view by shifting scrollTop, which makes the whole rail
+            visibly jump. Disabling scroll-anchoring on the scroll container keeps
+            the rail exactly where the user left it. */}
+        <nav ref={navScrollRef} style={{ overflowAnchor: 'none' }} className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
           {filteredNavigation.map((item) => (
             <div key={item.name}>
@@ -492,7 +521,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                 // Parent with children
                 <div>
                   <button
-                    onClick={() => toggleExpand(item.name)}
+                    onClick={(e) => toggleExpand(item.name, e)}
                     data-active={isActive(item.href) ? 'true' : undefined}
                     className={cn(
                       'w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium',
