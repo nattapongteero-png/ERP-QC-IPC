@@ -276,7 +276,11 @@ export async function qaRejectLine(
       const devNumber = `DEV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
       const devIns = await db.insert(t.deviations).values({
         deviationNumber: devNumber,
-        deviationType: 'incoming_inspection',
+        // Column is `type`, not `deviationType` — wrong key threw + was swallowed,
+        // so rejecting an incoming receipt never created its deviation.
+        type: 'incoming_inspection',
+        sourceType: 'warehouse',
+        sourceId: Number(line.id),
         severity: 'major',
         title: `Rejected incoming receipt: ${grnNumber} line ${line.lineNumber}`,
         description: reason,

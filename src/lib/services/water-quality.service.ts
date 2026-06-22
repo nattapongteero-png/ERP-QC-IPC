@@ -347,7 +347,11 @@ export async function recordWaterTest(
         const devNumber = `DEV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
         const devIns = await db.insert(t.deviations).values({
           deviationNumber: devNumber,
-          deviationType: 'water_quality_out_of_spec',
+          // Column is `type`, not `deviationType` — the wrong key threw and was
+          // swallowed, so out-of-spec water tests never created a deviation.
+          type: 'water_quality_out_of_spec',
+          sourceType: 'quality',
+          sourceId: testId,
           severity: 'major',
           title: `Water OUT-OF-SPEC at sample point #${input.samplePointId}`,
           description: `${outOfSpecCount} item(s) outside specification. See test #${testId}.`,

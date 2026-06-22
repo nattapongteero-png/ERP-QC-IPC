@@ -343,7 +343,12 @@ export async function recordInspection(
         const devNumber = `DEV-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
         const devIns = await db.insert(t.deviations).values({
           deviationNumber: devNumber,
-          deviationType: 'environmental_out_of_spec',
+          // The deviations table column is `type` (not `deviationType`) —
+          // inserting the wrong key made Drizzle throw, which the catch below
+          // swallowed, so no deviation was ever created on an out-of-spec result.
+          type: 'environmental_out_of_spec',
+          sourceType: 'quality',
+          sourceId: inspectionId,
           severity: 'major',
           title: `Env inspection out-of-spec on ${input.targetType} #${input.targetId}`,
           description: `${outOfSpecCount} item(s) outside specification. See inspection record #${inspectionId}.`,
