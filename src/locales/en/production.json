@@ -405,6 +405,50 @@
   },
   "execution": {
     "title": "Work Order Execution",
+    "phases": {
+      "pre_production": "Pre-Production",
+      "production": "Production",
+      "post_production": "Post-Production",
+      "pre_packaging": "Pre-Packaging",
+      "packaging": "Packaging",
+      "inspection": "Inspection"
+    },
+    "badges": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "verified": "Verified"
+    },
+    "lineClearance": {
+      "verified": "Line Clearance ✓",
+      "verifiedTitle": "Line Clearance approved",
+      "performed": "Line Clearance pending approval",
+      "performedTitle": "Recorded — awaiting authorized approver",
+      "reviewApprove": "Review/Approve Line Clearance",
+      "rejected": "Line Clearance rejected",
+      "rejectedTitle": "Rejected — please record again",
+      "none": "Record Line Clearance",
+      "noneTitle": "Line Clearance not yet recorded for this phase"
+    },
+    "bomNotConfigured": {
+      "title": "BOM Configuration Required",
+      "description": "This work order's BOM has not been configured. Please configure rooms, equipment, SOP steps, and other requirements before starting execution."
+    },
+    "cards": {
+      "materialRequisition": { "title": "Material Requisition", "description": "Submit material requisition for warehouse approval before weighing" },
+      "preProductionCleaning": { "title": "Pre-Production Cleaning", "description": "Verify room and equipment cleanliness before production" },
+      "preProductionEnvironmental": { "title": "Environmental Monitoring (Pre-Production)", "description": "Record temperature and humidity before production" },
+      "materialWeighing": { "title": "Material Weighing", "description": "Weigh and verify all raw materials according to BOM" },
+      "productionCleaning": { "title": "Production Cleaning", "description": "Verify room and equipment cleanliness during production" },
+      "productionEnvironmental": { "title": "Environmental Monitoring (Production)", "description": "Record temperature and humidity during production" },
+      "postProductionCleaning": { "title": "Post-Production Cleaning", "description": "Clean room and equipment after production" },
+      "bulkProductYield": { "title": "Bulk Product Yield", "description": "Record bulk product yield after production, before packaging" },
+      "packagingCleaning": { "title": "Packaging Cleaning", "description": "Line clearance + packaging area cleanliness" },
+      "packagingEnvironmental": { "title": "Environmental Monitoring (Packaging)", "description": "Record temperature and humidity during packaging" },
+      "finishedInspection": { "title": "Finished Product Inspection", "description": "15-point inspection checklist" },
+      "productionOutput": { "title": "Production Output / Yield", "description": "Record finished product output after inspection for FG warehouse entry" },
+      "sopExecution": { "title": "SOP Execution", "description": "Execute production steps with parameter recording" }
+    },
     "materialWeighing": "Material Weighing",
     "cleaning": "Cleaning Checklist",
     "environmentalMonitoring": "Environmental Monitoring",
@@ -600,7 +644,15 @@
     "step": "Step {sequence}"
   },
   "workOrderDetail": {
-    "title": "Work Order Detail"
+    "title": "Work Order Detail",
+    "tabs": {
+      "overview": "Overview",
+      "execution": "Production Execution",
+      "materials": "Materials",
+      "qc": "QC Testing",
+      "deviations": "Deviations",
+      "ebmr": "eBMR"
+    }
   },
   "analytics": {
     "pageTitle": "Production Analytics",

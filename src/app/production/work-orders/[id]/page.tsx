@@ -289,12 +289,12 @@ export default function WorkOrderDetailPage() {
   };
 
   const tabs: { text: string; Icon: LucideIcon }[] = [
-    { text: 'ภาพรวม', Icon: Info },
-    { text: 'การดำเนินการผลิต', Icon: Footprints },
-    { text: 'วัตถุดิบ', Icon: Boxes },
-    { text: 'การทดสอบ QC', Icon: CheckCircle2 },
-    { text: 'ความเบี่ยงเบน', Icon: AlertCircle },
-    { text: 'eBMR', Icon: FileText },
+    { text: t('workOrderDetail.tabs.overview'), Icon: Info },
+    { text: t('workOrderDetail.tabs.execution'), Icon: Footprints },
+    { text: t('workOrderDetail.tabs.materials'), Icon: Boxes },
+    { text: t('workOrderDetail.tabs.qc'), Icon: CheckCircle2 },
+    { text: t('workOrderDetail.tabs.deviations'), Icon: AlertCircle },
+    { text: t('workOrderDetail.tabs.ebmr'), Icon: FileText },
   ];
 
   useEffect(() => {

@@ -36,39 +36,36 @@ import {
 
 // Line Clearance badge appearance by status: verified=green, performed
 // (awaiting approval)=blue, rejected=red, none (not recorded)=amber.
+// Labels/titles are resolved via next-intl at the call site (key returned
+// here) so the badge text follows the selected language.
 function lineClearanceBadgeStyle(status: string | null): {
   className: string;
-  label: string;
-  title: string;
+  key: 'verified' | 'performed' | 'rejected' | 'none';
   Icon: typeof CheckCircle2;
 } {
   switch (status) {
     case 'verified':
       return {
         className: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
-        label: 'Line Clearance ✓',
-        title: 'Line Clearance อนุมัติแล้ว',
+        key: 'verified',
         Icon: CheckCircle2,
       };
     case 'performed':
       return {
         className: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800',
-        label: 'รออนุมัติ Line Clearance',
-        title: 'บันทึกแล้ว — รอผู้มีสิทธิ์อนุมัติ',
+        key: 'performed',
         Icon: Clock,
       };
     case 'rejected':
       return {
         className: 'border-red-300 bg-red-50 hover:bg-red-100 text-red-800',
-        label: 'Line Clearance ถูกปฏิเสธ',
-        title: 'ถูกปฏิเสธ — กรุณาบันทึกใหม่',
+        key: 'rejected',
         Icon: XCircle,
       };
     default:
       return {
         className: 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800',
-        label: 'บันทึก Line Clearance',
-        title: 'ยังไม่ได้บันทึก Line Clearance',
+        key: 'none',
         Icon: ClipboardCheck,
       };
   }
@@ -132,15 +129,6 @@ const phaseColors = {
   pre_packaging: 'bg-violet-100 text-violet-800 border-violet-200',
   packaging: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
   inspection: 'bg-rose-100 text-rose-800 border-rose-200',
-};
-
-const phaseLabels = {
-  pre_production: 'Pre-Production',
-  production: 'Production',
-  post_production: 'Post-Production',
-  pre_packaging: 'Pre-Packaging',
-  packaging: 'Packaging',
-  inspection: 'Inspection',
 };
 
 const defaultSummaryValue: ExecutionSummary = {
@@ -356,11 +344,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const executionSections: ExecutionSection[] = [
     {
       id: 'material-requisition',
-      title: 'ใบเบิกวัตถุดิบ',
+      title: t('execution.cards.materialRequisition.title'),
       icon: <ClipboardList className="h-5 w-5" />,
       href: '',
       phase: 'pre_production',
-      description: 'ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง',
+      description: t('execution.cards.materialRequisition.description'),
       getStatus: (s) => ({
         completed: s.materialRequisition.status === 'approved' ? 1 : 0,
         verified: s.materialRequisition.status === 'approved' ? 1 : 0,
@@ -371,11 +359,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'pre-production-cleaning',
-      title: 'Pre-Production Cleaning',
+      title: t('execution.cards.preProductionCleaning.title'),
       icon: <Sparkles className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/cleaning?phase=pre_production`,
       phase: 'pre_production',
-      description: 'Verify room and equipment cleanliness before production',
+      description: t('execution.cards.preProductionCleaning.description'),
       getStatus: (s) => ({
         completed: s.preProductionCleaning.completed,
         verified: s.preProductionCleaning.verified,
@@ -387,11 +375,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'pre-production-environmental',
-      title: 'Environmental Monitoring (Pre-Production)',
+      title: t('execution.cards.preProductionEnvironmental.title'),
       icon: <Thermometer className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=pre_production`,
       phase: 'pre_production',
-      description: 'Record temperature and humidity before production',
+      description: t('execution.cards.preProductionEnvironmental.description'),
       getStatus: (s) => ({
         completed: s.preProductionEnvironmental?.recorded ?? 0,
         verified: 0,
@@ -402,11 +390,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'material-weighing',
-      title: 'Material Weighing',
+      title: t('execution.cards.materialWeighing.title'),
       icon: <Scale className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/material-weighing`,
       phase: 'pre_production',
-      description: 'Weigh and verify all raw materials according to BOM',
+      description: t('execution.cards.materialWeighing.description'),
       getStatus: (s) => ({
         completed: s.materialWeighing.completed,
         verified: s.materialWeighing.verified,
@@ -419,11 +407,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     // SOP cards are generated per-phase from sopByPhase below.
     {
       id: 'production-cleaning',
-      title: 'Production Cleaning',
+      title: t('execution.cards.productionCleaning.title'),
       icon: <Sparkles className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/cleaning?phase=production`,
       phase: 'production',
-      description: 'Verify room and equipment cleanliness during production',
+      description: t('execution.cards.productionCleaning.description'),
       getStatus: (s) => {
         const c = s.productionCleaning ?? { total: 0, completed: 0, verified: 0 };
         return {
@@ -439,11 +427,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     // IPC cards are generated per-phase from ipcByPhase below.
     {
       id: 'production-environmental',
-      title: 'Environmental Monitoring (Production)',
+      title: t('execution.cards.productionEnvironmental.title'),
       icon: <Thermometer className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=production`,
       phase: 'production',
-      description: 'Record temperature and humidity during production',
+      description: t('execution.cards.productionEnvironmental.description'),
       getStatus: (s) => ({
         completed: s.productionEnvironmental.recorded,
         verified: 0,
@@ -454,11 +442,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'post-production-cleaning',
-      title: 'Post-Production Cleaning',
+      title: t('execution.cards.postProductionCleaning.title'),
       icon: <Sparkles className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/cleaning?phase=post_production`,
       phase: 'post_production',
-      description: 'Clean room and equipment after production',
+      description: t('execution.cards.postProductionCleaning.description'),
       getStatus: (s) => ({
         completed: s.postProductionCleaning.completed,
         verified: s.postProductionCleaning.verified,
@@ -470,11 +458,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'bulk-product-yield',
-      title: 'Bulk Product Yield',
+      title: t('execution.cards.bulkProductYield.title'),
       icon: <Package className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/production-output?stage=bulk`,
       phase: 'post_production',
-      description: 'บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์',
+      description: t('execution.cards.bulkProductYield.description'),
       getStatus: (s) => ({
         completed: s.bulkOutput?.recorded ? 1 : 0,
         verified: 0,
@@ -484,11 +472,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'packaging-cleaning',
-      title: 'Packaging Cleaning',
+      title: t('execution.cards.packagingCleaning.title'),
       icon: <Sparkles className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/cleaning?phase=packaging`,
       phase: 'packaging',
-      description: 'Line clearance + packaging area cleanliness',
+      description: t('execution.cards.packagingCleaning.description'),
       getStatus: (s) => {
         const pre = s.prePackagingCleaning ?? { total: 0, completed: 0, verified: 0 };
         const pkg = s.packagingCleaning ?? { total: 0, completed: 0, verified: 0 };
@@ -511,11 +499,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     // historical bom_packaging_qc data but no card links to it.
     {
       id: 'packaging-environmental',
-      title: 'Environmental Monitoring (Packaging)',
+      title: t('execution.cards.packagingEnvironmental.title'),
       icon: <Thermometer className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/environmental-monitoring?phase=packaging`,
       phase: 'packaging',
-      description: 'Record temperature and humidity during packaging',
+      description: t('execution.cards.packagingEnvironmental.description'),
       getStatus: (s) => ({
         completed: s.packagingEnvironmental.recorded,
         verified: 0,
@@ -526,11 +514,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'finished-inspection',
-      title: 'Finished Product Inspection',
+      title: t('execution.cards.finishedInspection.title'),
       icon: <ClipboardCheck className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/finished-inspection`,
       phase: 'inspection',
-      description: '15-point inspection checklist',
+      description: t('execution.cards.finishedInspection.description'),
       getStatus: (s) => ({
         completed: s.finishedInspection.status === 'passed' ? 1 : 0,
         verified: 0,
@@ -541,11 +529,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     },
     {
       id: 'production-output',
-      title: 'Production Output / Yield',
+      title: t('execution.cards.productionOutput.title'),
       icon: <Boxes className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/production-output?stage=finished`,
       phase: 'inspection',
-      description: 'บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG',
+      description: t('execution.cards.productionOutput.description'),
       getStatus: (s) => ({
         completed: s.finishedOutput?.recorded ? 1 : 0,
         verified: 0,
@@ -558,10 +546,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   // Generate per-phase SOP cards from sopByPhase. Each phase that has at least
   // one SOP step gets its own card linking to /sop-execution?phase=<phase>.
   const sopPhaseLabels: Record<string, string> = {
-    pre_production: 'Pre-Production',
-    production: 'Production',
-    post_production: 'Post-Production',
-    packaging: 'Packaging',
+    pre_production: t('execution.phases.pre_production'),
+    production: t('execution.phases.production'),
+    post_production: t('execution.phases.post_production'),
+    packaging: t('execution.phases.packaging'),
   };
   const sopPhaseOrder: Array<keyof typeof sopPhaseLabels> = [
     'pre_production', 'production', 'post_production', 'packaging',
@@ -572,11 +560,11 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     if (!counts || counts.total === 0) continue;
     executionSections.push({
       id: `sop-execution-${ph}`,
-      title: `SOP Execution — ${sopPhaseLabels[ph]}`,
+      title: `${t('execution.cards.sopExecution.title')} — ${sopPhaseLabels[ph]}`,
       icon: <ClipboardList className="h-5 w-5" />,
       href: `/production/work-orders/${workOrderId}/sop-execution?phase=${ph}`,
       phase: ph as ExecutionSection['phase'],
-      description: 'Execute production steps with parameter recording',
+      description: t('execution.cards.sopExecution.description'),
       getStatus: () => ({
         completed: counts.completed,
         verified: counts.verified,
@@ -630,10 +618,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       verified: 'bg-emerald-100 text-emerald-700',
     };
     const labels = {
-      pending: 'Pending',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-      verified: 'Verified',
+      pending: t('execution.badges.pending'),
+      in_progress: t('execution.badges.in_progress'),
+      completed: t('execution.badges.completed'),
+      verified: t('execution.badges.verified'),
     };
     const icons = {
       pending: <Clock className="h-3 w-3" />,
@@ -934,7 +922,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
         return (
           <div key={phase} className="space-y-3">
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${phaseColors[phase]}`}>
-              {phaseLabels[phase]}
+              {t(`execution.phases.${phase}`)}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1039,7 +1027,9 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                             const cl = lineClearanceBadgeStyle(lc.status);
                             // On a locked card, a recorded-but-unverified clearance
                             // invites approval; otherwise use the shared label.
-                            const label = lc.status === 'performed' ? 'ดู/อนุมัติ Line Clearance' : cl.label;
+                            const label = lc.status === 'performed'
+                              ? t('execution.lineClearance.reviewApprove')
+                              : t(`execution.lineClearance.${cl.key}`);
                             return (
                               <button
                                 type="button"
@@ -1049,7 +1039,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                                   openLineClearance(section.id);
                                 }}
                                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${cl.className}`}
-                                title={cl.title}
+                                title={t(`execution.lineClearance.${cl.key}Title`)}
                               >
                                 <cl.Icon className="h-3 w-3" />
                                 {label}
@@ -1081,10 +1071,10 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                                     openLineClearance(section.id);
                                   }}
                                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${cl.className}`}
-                                  title={cl.title}
+                                  title={t(`execution.lineClearance.${cl.key}Title`)}
                                 >
                                   <cl.Icon className="h-3 w-3" />
-                                  {cl.label}
+                                  {t(`execution.lineClearance.${cl.key}`)}
                                 </button>
                               );
                             })() : <span />}
@@ -1118,10 +1108,9 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
           <CardContent className="p-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-amber-600" />
             <div>
-              <p className="font-medium text-amber-800">BOM Configuration Required</p>
+              <p className="font-medium text-amber-800">{t('execution.bomNotConfigured.title')}</p>
               <p className="text-sm text-amber-700">
-                This work order&apos;s BOM has not been configured. Please configure rooms, equipment,
-                SOP steps, and other requirements before starting execution.
+                {t('execution.bomNotConfigured.description')}
               </p>
             </div>
           </CardContent>

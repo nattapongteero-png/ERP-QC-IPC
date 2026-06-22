@@ -405,6 +405,50 @@
   },
   "execution": {
     "title": "การดำเนินการใบสั่งผลิต",
+    "phases": {
+      "pre_production": "ก่อนการผลิต",
+      "production": "การผลิต",
+      "post_production": "หลังการผลิต",
+      "pre_packaging": "ก่อนบรรจุ",
+      "packaging": "การบรรจุ",
+      "inspection": "การตรวจสอบ"
+    },
+    "badges": {
+      "pending": "รอดำเนินการ",
+      "in_progress": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "verified": "ตรวจสอบแล้ว"
+    },
+    "lineClearance": {
+      "verified": "Line Clearance ✓",
+      "verifiedTitle": "Line Clearance อนุมัติแล้ว",
+      "performed": "รออนุมัติ Line Clearance",
+      "performedTitle": "บันทึกแล้ว — รอผู้มีสิทธิ์อนุมัติ",
+      "reviewApprove": "ดู/อนุมัติ Line Clearance",
+      "rejected": "Line Clearance ถูกปฏิเสธ",
+      "rejectedTitle": "ถูกปฏิเสธ — กรุณาบันทึกใหม่",
+      "none": "บันทึก Line Clearance",
+      "noneTitle": "ยังไม่ได้บันทึก Line Clearance สำหรับขั้นตอนนี้"
+    },
+    "bomNotConfigured": {
+      "title": "ต้องตั้งค่า BOM ก่อน",
+      "description": "ใบสั่งผลิตนี้ยังไม่ได้ตั้งค่า BOM กรุณาตั้งค่าห้อง อุปกรณ์ ขั้นตอน SOP และข้อกำหนดอื่น ๆ ก่อนเริ่มการดำเนินการผลิต"
+    },
+    "cards": {
+      "materialRequisition": { "title": "ใบเบิกวัตถุดิบ", "description": "ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง" },
+      "preProductionCleaning": { "title": "ทำความสะอาดก่อนการผลิต", "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ก่อนการผลิต" },
+      "preProductionEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (ก่อนการผลิต)", "description": "บันทึกอุณหภูมิและความชื้นก่อนการผลิต" },
+      "materialWeighing": { "title": "การชั่งวัตถุดิบ", "description": "ชั่งและตรวจสอบวัตถุดิบทั้งหมดตาม BOM" },
+      "productionCleaning": { "title": "ทำความสะอาดระหว่างการผลิต", "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ระหว่างการผลิต" },
+      "productionEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (ระหว่างการผลิต)", "description": "บันทึกอุณหภูมิและความชื้นระหว่างการผลิต" },
+      "postProductionCleaning": { "title": "ทำความสะอาดหลังการผลิต", "description": "ทำความสะอาดห้องและอุปกรณ์หลังการผลิต" },
+      "bulkProductYield": { "title": "ผลผลิตบัลก์", "description": "บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์" },
+      "packagingCleaning": { "title": "ทำความสะอาดการบรรจุ", "description": "Line clearance + ความสะอาดพื้นที่บรรจุ" },
+      "packagingEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (การบรรจุ)", "description": "บันทึกอุณหภูมิและความชื้นระหว่างการบรรจุ" },
+      "finishedInspection": { "title": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป", "description": "รายการตรวจสอบ 15 จุด" },
+      "productionOutput": { "title": "ผลผลิต / Yield", "description": "บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG" },
+      "sopExecution": { "title": "การดำเนินการ SOP", "description": "ดำเนินขั้นตอนการผลิตพร้อมบันทึกค่าพารามิเตอร์" }
+    },
     "materialWeighing": "การชั่งวัตถุดิบ",
     "cleaning": "รายการตรวจสอบการทำความสะอาด",
     "environmentalMonitoring": "การตรวจสอบสภาพแวดล้อม",
@@ -600,7 +644,15 @@
     "step": "ขั้นตอนที่ {sequence}"
   },
   "workOrderDetail": {
-    "title": "รายละเอียดใบสั่งผลิต"
+    "title": "รายละเอียดใบสั่งผลิต",
+    "tabs": {
+      "overview": "ภาพรวม",
+      "execution": "การดำเนินการผลิต",
+      "materials": "วัตถุดิบ",
+      "qc": "การทดสอบ QC",
+      "deviations": "ความเบี่ยงเบน",
+      "ebmr": "eBMR"
+    }
   },
   "analytics": {
     "pageTitle": "วิเคราะห์การผลิต",
