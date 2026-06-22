@@ -40,12 +40,14 @@ interface WOAssignee {
   notes: string | null;
 }
 
-const ROLE_LABEL: Record<string, { label: string; color: string }> = {
-  operator: { label: 'ผู้ปฏิบัติงาน (Operator)', color: 'bg-emerald-100 text-emerald-700' },
-  supervisor: { label: 'หัวหน้างาน (Supervisor)', color: 'bg-purple-100 text-purple-700' },
-  qa_verifier: { label: 'ผู้ตรวจสอบ QA (QA Verifier)', color: 'bg-emerald-100 text-emerald-700' },
-  ipc_checker: { label: 'ผู้ตรวจ IPC (IPC Checker)', color: 'bg-amber-100 text-amber-700' },
-  pharmacist: { label: 'เภสัชกร (Pharmacist)', color: 'bg-rose-100 text-rose-700' },
+// Role → badge colour. The label is resolved at the call site via
+// t('workOrderDetail.roles.<role>') so it follows the EN/TH toggle.
+const ROLE_COLOR: Record<string, string> = {
+  operator: 'bg-emerald-100 text-emerald-700',
+  supervisor: 'bg-purple-100 text-purple-700',
+  qa_verifier: 'bg-emerald-100 text-emerald-700',
+  ipc_checker: 'bg-amber-100 text-amber-700',
+  pharmacist: 'bg-rose-100 text-rose-700',
 };
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
@@ -481,16 +483,16 @@ export default function WorkOrderDetailPage() {
       });
       const result = await response.json();
       if (result.success) {
-        toast.success(`อัปเดตสถานะใบสั่งผลิตเป็น ${getStatusLabel(newStatus)} แล้ว`);
+        toast.success(t('workOrderDetail.toast.statusUpdated', { status: getStatusLabel(newStatus) }));
         fetchWorkOrderDetail();
         fetchLineClearanceStatus();
       } else {
         // Show blocker details from gate validation
-        toast.error(result.error || 'อัปเดตสถานะไม่สำเร็จ');
+        toast.error(result.error || t('workOrderDetail.toast.statusFailed'));
       }
     } catch (error) {
       console.error('Failed to update status:', error);
-      toast.error('อัปเดตสถานะไม่สำเร็จ');
+      toast.error(t('workOrderDetail.toast.statusFailed'));
     }
   };
 
@@ -506,19 +508,11 @@ export default function WorkOrderDetailPage() {
   };
 
   const getStatusLabel = (status: string): string => {
-    const labels: Record<string, string> = {
-      'draft': 'ร่าง',
-      'planned': 'วางแผนแล้ว',
-      'released': 'ปล่อยแล้ว',
-      'in_progress': 'กำลังดำเนินการ',
-      'completed': 'เสร็จสิ้น',
-      'closed': 'ปิดแล้ว',
-      'cancelled': 'ยกเลิกแล้ว',
-    };
-    return labels[status] || status;
+    const known = ['draft', 'planned', 'released', 'in_progress', 'completed', 'closed', 'cancelled'];
+    return known.includes(status) ? t(`workOrderDetail.status.${status}`) : status;
   };
 
-  // eBMR batch-record step status → Thai label (reuses batchRecords.status keys)
+  // eBMR batch-record step status → label (reuses batchRecords.status keys)
   const getStepStatusLabel = (status: string): string => {
     const known = ['pending', 'in_progress', 'completed', 'deviation'];
     return known.includes(status)
@@ -541,7 +535,7 @@ export default function WorkOrderDetailPage() {
   const materialsColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'รายการ',
+      caption: t('workOrderDetail.materials.colItem'),
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.itemCode}</p>
@@ -551,19 +545,19 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'lotNumber',
-      caption: 'ล็อต',
+      caption: t('workOrderDetail.materials.colLot'),
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.lotNumber || '-'}</p>
           {cellInfo.data.lotExpiryDate && (
-            <p className="text-sm text-gray-500">หมดอายุ: {new Date(cellInfo.data.lotExpiryDate).toLocaleDateString('th-TH')}</p>
+            <p className="text-sm text-gray-500">{t('workOrderDetail.materials.expiry', { date: new Date(cellInfo.data.lotExpiryDate).toLocaleDateString('th-TH') })}</p>
           )}
         </div>
       ),
     },
     {
       dataField: 'plannedQty',
-      caption: 'จำนวนที่วางแผน',
+      caption: t('workOrderDetail.materials.colPlannedQty'),
       // Unit priority: workOrderMaterials.unit (from weighing/BOM record) → items.primaryUnit (fallback)
       // The `unit` column on work_order_materials is the source of truth for how the material
       // was planned/weighed. Only fall back to itemUnit if no unit was ever recorded.
@@ -571,7 +565,7 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'actualQty',
-      caption: 'จำนวนจริง',
+      caption: t('workOrderDetail.materials.colActualQty'),
       cellRender: (cellInfo) => {
         const displayUnit = cellInfo.data.unit || cellInfo.data.itemUnit;
         return <span>{cellInfo.data.actualQty || '-'} {cellInfo.data.actualQty ? displayUnit : ''}</span>;
@@ -579,7 +573,7 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'variance',
-      caption: 'ส่วนต่าง',
+      caption: t('workOrderDetail.materials.colVariance'),
       cellRender: (cellInfo) => {
         const v = cellInfo.data.variance;
         if (v === null || v === undefined) return <span>-</span>;
@@ -599,7 +593,7 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'consumptionPercent',
-      caption: 'การใช้ %',
+      caption: t('workOrderDetail.materials.colConsumption'),
       cellRender: (cellInfo) => (
         cellInfo.data.consumptionPercent !== null ? (
           <Badge variant={cellInfo.data.consumptionPercent <= 100 ? 'primary' : 'danger'}>
@@ -613,12 +607,13 @@ export default function WorkOrderDetailPage() {
   // Grid columns for QC tests
   // Map source → label + badge colour. The convention matches the
   // classification done in /api/.../detail (sample_number prefix).
-  const sourceConfig: Record<string, { label: string; bg: string; text: string }> = {
-    'sop': { label: 'ขั้นตอน SOP', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    'bom-ipc': { label: 'IPC จาก BOM', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    'incoming': { label: 'รับเข้า', bg: 'bg-amber-50', text: 'text-amber-700' },
-    'final': { label: 'สุดท้าย', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-    'other': { label: 'อื่นๆ', bg: 'bg-gray-50', text: 'text-gray-700' },
+  // Label resolved at call site via t('workOrderDetail.qc.source.<key>').
+  const sourceConfig: Record<string, { labelKey: string; bg: string; text: string }> = {
+    'sop': { labelKey: 'sop', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    'bom-ipc': { labelKey: 'bomIpc', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    'incoming': { labelKey: 'incoming', bg: 'bg-amber-50', text: 'text-amber-700' },
+    'final': { labelKey: 'final', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    'other': { labelKey: 'other', bg: 'bg-gray-50', text: 'text-gray-700' },
   };
 
   /** Drill-in target for a QC test row. */
@@ -637,22 +632,22 @@ export default function WorkOrderDetailPage() {
   const qcTestsColumns: DxDataGridColumn[] = [
     {
       dataField: 'testCode',
-      caption: 'รหัสการทดสอบ',
+      caption: t('workOrderDetail.qc.colTestCode'),
       width: 110,
       cellRender: (cellInfo) => <span className="font-mono text-xs font-medium">{cellInfo.data.testCode}</span>,
     },
     {
       dataField: 'source',
-      caption: 'แหล่งที่มา',
+      caption: t('workOrderDetail.qc.colSource'),
       width: 110,
       cellRender: (cellInfo) => {
         const cfg = sourceConfig[cellInfo.data.source as string] || sourceConfig.other;
-        return <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>;
+        return <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}>{t(`workOrderDetail.qc.source.${cfg.labelKey}`)}</span>;
       },
     },
     {
       dataField: 'specSpecification',
-      caption: 'การทดสอบ / ข้อกำหนด',
+      caption: t('workOrderDetail.qc.colTestSpec'),
       cellRender: (cellInfo) => {
         const d = cellInfo.data;
         // Headline: criterion name. Lines: structured spec from envelope
@@ -692,13 +687,13 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('workOrderDetail.qc.colStatus'),
       width: 100,
       cellRender: (cellInfo) => <Badge variant={getStatusVariant(cellInfo.data.status)}>{cellInfo.data.status}</Badge>,
     },
     {
       dataField: 'result',
-      caption: 'ผลลัพธ์',
+      caption: t('workOrderDetail.qc.colResult'),
       width: 90,
       cellRender: (cellInfo) => (
         cellInfo.data.result ? <Badge variant={getStatusVariant(cellInfo.data.result)}>{cellInfo.data.result}</Badge> : null
@@ -706,7 +701,7 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'testedByName',
-      caption: 'ผู้บันทึก (Production)',
+      caption: t('workOrderDetail.qc.colTestedBy'),
       width: 160,
       cellRender: (cellInfo) => (
         <span className="text-xs text-gray-700">{cellInfo.data.testedByName || <span className="text-gray-400">—</span>}</span>
@@ -714,20 +709,20 @@ export default function WorkOrderDetailPage() {
     },
     {
       dataField: 'approvedByName',
-      caption: 'ผู้อนุมัติ (QC)',
+      caption: t('workOrderDetail.qc.colApprovedBy'),
       width: 140,
       cellRender: (cellInfo) => (
-        <span className="text-xs text-gray-700">{cellInfo.data.approvedByName || <span className="text-gray-400">รอ QC</span>}</span>
+        <span className="text-xs text-gray-700">{cellInfo.data.approvedByName || <span className="text-gray-400">{t('workOrderDetail.qc.waitingQc')}</span>}</span>
       ),
     },
     {
       dataField: 'testedAt',
-      caption: 'เวลาที่บันทึก',
+      caption: t('workOrderDetail.qc.colTestedAt'),
       width: 150,
       cellRender: (cellInfo) => <span className="text-xs">{cellInfo.data.testedAt ? new Date(cellInfo.data.testedAt).toLocaleString('th-TH') : '-'}</span>,
     },
     {
-      caption: 'รายละเอียด',
+      caption: t('workOrderDetail.qc.colDetails'),
       width: 130,
       alignment: 'center',
       cellRender: (cellInfo) => (
@@ -737,7 +732,7 @@ export default function WorkOrderDetailPage() {
             onClick={() => router.push(buildQCDrillUrl(cellInfo.data))}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
           >
-            ดูรายละเอียด →
+            {t('workOrderDetail.qc.viewDetails')}
           </button>
         </div>
       ),
@@ -755,9 +750,9 @@ export default function WorkOrderDetailPage() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">ไม่พบใบสั่งผลิต</p>
+        <p className="text-gray-500">{t('workOrderDetail.notFound.message')}</p>
         <DxButton
-          text="กลับไปที่รายการ"
+          text={t('workOrderDetail.notFound.back')}
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -799,19 +794,19 @@ export default function WorkOrderDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="กลับ"
+                text={t('workOrderDetail.header.back')}
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => router.push('/production/work-orders')}
               />
-              <h1 className="text-2xl font-bold text-gray-900">ใบสั่งผลิต: {workOrder.woNumber}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('workOrderDetail.header.title', { woNumber: workOrder.woNumber })}</h1>
               <Badge variant={getStatusVariant(workOrder.status)}>
                 {getStatusLabel(workOrder.status)}
               </Badge>
             </div>
             <p className="text-gray-600 mt-1">
-              แบทช์: {workOrder.batchNumber || 'N/A'}
+              {t('workOrderDetail.header.batch', { batch: workOrder.batchNumber || 'N/A' })}
               {workOrder.bomCode && (
                 <span className="ml-3">
                   · BOM: <span className="font-mono font-semibold text-emerald-700">{workOrder.bomCode}</span>
@@ -827,13 +822,13 @@ export default function WorkOrderDetailPage() {
                 single WO-level button that used to live here. */}
             {nextStatus && (
               <DxButton
-                text={`เปลี่ยนเป็น ${getStatusLabel(nextStatus)}`}
+                text={t('workOrderDetail.header.changeStatus', { status: getStatusLabel(nextStatus) })}
                 type="default"
                 onClick={() => handleStatusChange(nextStatus)}
               />
             )}
             <DxButton
-              text="พิมพ์ eBMR"
+              text={t('workOrderDetail.header.printEbmr')}
               icon="print"
               type="normal"
               stylingMode="outlined"
@@ -845,13 +840,13 @@ export default function WorkOrderDetailPage() {
         {/* Status Stepper */}
         <div className="mb-6 no-print">
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t('workOrderDetail.header.stepperTitle')}
             steps={[
-              { key: 'draft', label: 'ร่าง' },
-              { key: 'released', label: 'ปล่อยงาน' },
-              { key: 'in_progress', label: 'กำลังผลิต' },
-              { key: 'completed', label: 'ผลิตเสร็จ' },
-              { key: 'closed', label: 'ปิดงาน' },
+              { key: 'draft', label: t('workOrderDetail.header.stepDraft') },
+              { key: 'released', label: t('workOrderDetail.header.stepReleased') },
+              { key: 'in_progress', label: t('workOrderDetail.header.stepInProgress') },
+              { key: 'completed', label: t('workOrderDetail.header.stepCompleted') },
+              { key: 'closed', label: t('workOrderDetail.header.stepClosed') },
             ]}
             current={String(workOrder.status).toLowerCase()}
           />
@@ -861,21 +856,21 @@ export default function WorkOrderDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
           <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">จำนวนที่วางแผน</p>
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.plannedQty')}</p>
               <p className="text-2xl font-bold text-gray-900">{formatNumber(workOrder.plannedQty) || 0}</p>
               <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
             </div>
           </div>
           <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">จำนวนจริง</p>
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.actualQty')}</p>
               <p className="text-2xl font-bold text-gray-900">{formatNumber(workOrder.actualQty) || 0}</p>
               <p className="text-xs text-gray-500">{workOrder.productUnit}</p>
             </div>
           </div>
           <div className={`bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4 ${summary.yieldPercent && summary.yieldPercent >= 95 ? 'border-l-emerald-500' : summary.yieldPercent && summary.yieldPercent >= 90 ? 'border-l-amber-500' : 'border-l-rose-500'}`}>
             <div className="text-center">
-              <p className="text-sm text-gray-500">ผลผลิต</p>
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.yield')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {summary.yieldPercent ? `${summary.yieldPercent}%` : 'N/A'}
               </p>
@@ -883,7 +878,7 @@ export default function WorkOrderDetailPage() {
           </div>
           <div className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">เวลาการผลิต</p>
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.productionTime')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {summary.productionTimeHours ? `${summary.productionTimeHours}h` : 'N/A'}
               </p>
@@ -891,11 +886,11 @@ export default function WorkOrderDetailPage() {
           </div>
           <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
-              <p className="text-sm text-gray-500">การทดสอบ QC</p>
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.qcTesting')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {summary.qcPassCount}/{summary.qcTestCount}
               </p>
-              <p className="text-xs text-gray-500">ผ่าน</p>
+              <p className="text-xs text-gray-500">{t('workOrderDetail.summary.passed')}</p>
             </div>
           </div>
         </div>
@@ -950,29 +945,29 @@ export default function WorkOrderDetailPage() {
             {/* Product Info */}
             <Card>
               <CardHeader>
-                <CardTitle>ข้อมูลผลิตภัณฑ์</CardTitle>
+                <CardTitle>{t('workOrderDetail.overview.productInfo')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">รหัสผลิตภัณฑ์</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.productCode')}</dt>
                     <dd className="font-medium">{workOrder.productCode}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">ชื่อผลิตภัณฑ์</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.productName')}</dt>
                     <dd className="font-medium">{workOrder.productName}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">หมายเลขแบทช์</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.batchNumber')}</dt>
                     <dd className="font-medium">{workOrder.batchNumber || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">หน่วย</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.unit')}</dt>
                     <dd className="font-medium">{workOrder.productUnit}</dd>
                   </div>
                   {workOrder.bomCode && (
                     <div className="col-span-2">
-                      <dt className="text-sm text-gray-500">BOM</dt>
+                      <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.bom')}</dt>
                       <dd className="font-medium">
                         <span className="font-mono text-emerald-700">{workOrder.bomCode}</span>
                         {workOrder.bomVersion && (
@@ -986,19 +981,19 @@ export default function WorkOrderDetailPage() {
                   )}
                   {workOrder.ttmtCode && (
                     <div>
-                      <dt className="text-sm text-gray-500">รหัส TTMT</dt>
+                      <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.ttmtCode')}</dt>
                       <dd className="font-medium text-green-700">{workOrder.ttmtCode}</dd>
                     </div>
                   )}
                   {workOrder.drugCode24 && (
                     <div>
-                      <dt className="text-sm text-gray-500">รหัสยา 24 หลัก</dt>
+                      <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.drugCode24')}</dt>
                       <dd className="font-medium text-emerald-700">{workOrder.drugCode24}</dd>
                     </div>
                   )}
                   {workOrder.gRegNumber && (
                     <div>
-                      <dt className="text-sm text-gray-500">เลขที่ทะเบียน G</dt>
+                      <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.gRegNumber')}</dt>
                       <dd className="font-medium text-purple-700">{workOrder.gRegNumber}</dd>
                     </div>
                   )}
@@ -1011,7 +1006,7 @@ export default function WorkOrderDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-emerald-600" />
-                  ทีมที่มอบหมาย (เจ้าหน้าที่ผู้ปฏิบัติงาน)
+                  {t('workOrderDetail.overview.assignedTeam')}
                   {assignees.length > 0 && (
                     <span className="text-xs text-gray-500 font-normal">({assignees.length})</span>
                   )}
@@ -1019,11 +1014,13 @@ export default function WorkOrderDetailPage() {
               </CardHeader>
               <CardContent>
                 {assignees.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">ยังไม่มีการมอบหมายเจ้าหน้าที่</p>
+                  <p className="text-sm text-gray-500 italic">{t('workOrderDetail.overview.noAssignees')}</p>
                 ) : (
                   <ul className="divide-y divide-gray-100">
                     {assignees.map((a) => {
-                      const roleCfg = ROLE_LABEL[a.role] || { label: a.role, color: 'bg-gray-100 text-gray-700' };
+                      const roleColor = ROLE_COLOR[a.role] || 'bg-gray-100 text-gray-700';
+                      const knownRoles = ['operator', 'supervisor', 'qa_verifier', 'ipc_checker', 'pharmacist'];
+                      const roleLabel = knownRoles.includes(a.role) ? t(`workOrderDetail.roles.${a.role}`) : a.role;
                       return (
                         <li key={a.id} className="py-2 flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
@@ -1040,8 +1037,8 @@ export default function WorkOrderDetailPage() {
                               <p className="text-xs text-gray-400 italic mt-0.5">{a.notes}</p>
                             )}
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${roleCfg.color}`}>
-                            {roleCfg.label}
+                          <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${roleColor}`}>
+                            {roleLabel}
                           </span>
                         </li>
                       );
@@ -1054,42 +1051,42 @@ export default function WorkOrderDetailPage() {
             {/* Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle>ลำดับเวลา</CardTitle>
+                <CardTitle>{t('workOrderDetail.overview.timeline')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">วันเริ่มที่วางแผน</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.plannedStart')}</dt>
                     <dd className="font-medium">
                       {workOrder.plannedStartDate ? new Date(workOrder.plannedStartDate).toLocaleDateString('th-TH') : '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">วันสิ้นสุดที่วางแผน</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.plannedEnd')}</dt>
                     <dd className="font-medium">
                       {workOrder.plannedEndDate ? new Date(workOrder.plannedEndDate).toLocaleDateString('th-TH') : '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">วันเริ่มจริง</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.actualStart')}</dt>
                     <dd className="font-medium">
                       {workOrder.actualStartDate ? new Date(workOrder.actualStartDate).toLocaleString('th-TH') : '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">วันสิ้นสุดจริง</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.actualEnd')}</dt>
                     <dd className="font-medium">
                       {workOrder.actualEndDate ? new Date(workOrder.actualEndDate).toLocaleString('th-TH') : '-'}
                     </dd>
                   </div>
                   <div className="col-span-2 border-t pt-3 mt-1">
-                    <dt className="text-sm text-gray-500">Delivery Date (วันที่ส่งมอบ)</dt>
+                    <dt className="text-sm text-gray-500">{t('workOrderDetail.overview.deliveryDate')}</dt>
                     <dd className={`font-medium text-lg ${workOrder.deliveryDate && new Date(workOrder.deliveryDate) < new Date(new Date().toDateString()) ? 'text-red-600' : 'text-orange-700'}`}>
                       {workOrder.deliveryDate ? new Date(workOrder.deliveryDate).toLocaleDateString('th-TH') : '-'}
                       {workOrder.deliveryDate && new Date(workOrder.deliveryDate) < new Date(new Date().toDateString()) && workOrder.status !== 'completed' && workOrder.status !== 'cancelled' && (
                         <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                           <AlertCircle className="w-3 h-3" />
-                          เลยกำหนดส่งมอบ
+                          {t('workOrderDetail.overview.overdue')}
                         </span>
                       )}
                     </dd>
@@ -1101,10 +1098,10 @@ export default function WorkOrderDetailPage() {
             {/* Notes */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>หมายเหตุ</CardTitle>
+                <CardTitle>{t('workOrderDetail.overview.notes')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700">{workOrder.notes || 'ไม่มีหมายเหตุ'}</p>
+                <p className="text-gray-700">{workOrder.notes || t('workOrderDetail.overview.noNotes')}</p>
               </CardContent>
             </Card>
           </div>
@@ -1122,9 +1119,9 @@ export default function WorkOrderDetailPage() {
           <Card className="no-print">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>การใช้วัตถุดิบ</CardTitle>
+                <CardTitle>{t('workOrderDetail.materials.title')}</CardTitle>
                 <DxButton
-                  text="เพิ่มวัตถุดิบ"
+                  text={t('workOrderDetail.materials.add')}
                   icon="plus"
                   type="normal"
                   stylingMode="outlined"
@@ -1139,7 +1136,7 @@ export default function WorkOrderDetailPage() {
                 columns={materialsColumns}
                 showBorders
                 rowAlternationEnabled
-                noDataText="ยังไม่มีวัตถุดิบสำหรับใบสั่งผลิตนี้"
+                noDataText={t('workOrderDetail.materials.noData')}
               />
             </CardContent>
           </Card>
@@ -1149,9 +1146,9 @@ export default function WorkOrderDetailPage() {
           <Card className="no-print">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>การทดสอบควบคุมคุณภาพ</CardTitle>
+                <CardTitle>{t('workOrderDetail.qc.title')}</CardTitle>
                 <DxButton
-                  text="เพิ่มการทดสอบ QC"
+                  text={t('workOrderDetail.qc.add')}
                   icon="plus"
                   type="normal"
                   stylingMode="outlined"
@@ -1166,7 +1163,7 @@ export default function WorkOrderDetailPage() {
                 columns={qcTestsColumns}
                 showBorders
                 rowAlternationEnabled
-                noDataText="ยังไม่มีการทดสอบ QC สำหรับใบสั่งผลิตนี้"
+                noDataText={t('workOrderDetail.qc.noData')}
               />
             </CardContent>
           </Card>
@@ -1178,7 +1175,7 @@ export default function WorkOrderDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  ความเบี่ยงเบน
+                  {t('workOrderDetail.deviations.title')}
                   {deviations.length > 0 && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
                       {deviations.length}
@@ -1186,7 +1183,7 @@ export default function WorkOrderDetailPage() {
                   )}
                 </CardTitle>
                 <DxButton
-                  text="เปิด /quality/deviations"
+                  text={t('workOrderDetail.deviations.openLink')}
                   icon="link"
                   type="normal"
                   stylingMode="outlined"
@@ -1197,9 +1194,9 @@ export default function WorkOrderDetailPage() {
             <CardContent>
               {deviations.length === 0 ? (
                 <div className="text-center py-8 text-sm text-gray-500">
-                  ยังไม่มี Deviation บันทึกไว้สำหรับ Work Order นี้
+                  {t('workOrderDetail.deviations.empty')}
                   <p className="text-xs text-gray-400 mt-1">
-                    ระบบจะสร้าง Deviation อัตโนมัติเมื่อ IPC test ที่ผูกกับ SOP step บันทึกผลไม่ผ่าน
+                    {t('workOrderDetail.deviations.emptyHint')}
                   </p>
                 </div>
               ) : (
@@ -1233,11 +1230,11 @@ export default function WorkOrderDetailPage() {
                             <p className="text-sm text-gray-800 mt-1 truncate" title={d.title}>{d.title}</p>
                           )}
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {d.sourceType && <span>แหล่งที่มา: {d.sourceType}</span>}
-                            {d.reportedAt && <span> · บันทึก {new Date(d.reportedAt).toLocaleString('th-TH')}</span>}
+                            {d.sourceType && <span>{t('workOrderDetail.deviations.source', { source: d.sourceType })}</span>}
+                            {d.reportedAt && <span> · {t('workOrderDetail.deviations.reportedAt', { date: new Date(d.reportedAt).toLocaleString('th-TH') })}</span>}
                           </p>
                         </div>
-                        <span className="text-xs text-rose-600 flex-shrink-0">ดูรายละเอียด →</span>
+                        <span className="text-xs text-rose-600 flex-shrink-0">{t('workOrderDetail.deviations.viewDetails')}</span>
                       </div>
                     );
                   })}
@@ -1255,16 +1252,16 @@ export default function WorkOrderDetailPage() {
           {/* Print-only document header */}
           <div className="print-only ebmr-print-header">
             <div className="text-center">
-              <h1 className="text-xl font-bold text-gray-900">บริษัท เมตะเฮิร์บ จำกัด</h1>
-              <p className="text-sm text-gray-600">Metaherb Co., Ltd.</p>
-              <h2 className="text-lg font-bold text-gray-800 mt-2">บันทึกการผลิตแบทช์อิเล็กทรอนิกส์ (eBMR)</h2>
-              <p className="text-xs text-gray-500">เอกสารบันทึกการผลิตอิเล็กทรอนิกส์</p>
+              <h1 className="text-xl font-bold text-gray-900">{t('workOrderDetail.ebmr.companyName')}</h1>
+              <p className="text-sm text-gray-600">{t('workOrderDetail.ebmr.companyNameEn')}</p>
+              <h2 className="text-lg font-bold text-gray-800 mt-2">{t('workOrderDetail.ebmr.docTitle')}</h2>
+              <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.docSubtitle')}</p>
             </div>
             <div className="grid grid-cols-4 gap-4 mt-3 text-xs border-t pt-2">
-              <div><span className="text-gray-500">เลขที่ใบสั่งผลิต:</span> <strong className="text-gray-900">{workOrder.woNumber}</strong></div>
-              <div><span className="text-gray-500">หมายเลขแบทช์:</span> <strong className="text-gray-900">{ebmr.batchNumber || 'N/A'}</strong></div>
-              <div><span className="text-gray-500">ผลิตภัณฑ์:</span> <strong className="text-gray-900">{ebmr.productCode} - {ebmr.productName}</strong></div>
-              <div><span className="text-gray-500">วันที่พิมพ์:</span> <strong className="text-gray-900">{new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</strong></div>
+              <div><span className="text-gray-500">{t('workOrderDetail.ebmr.woNumber')}</span> <strong className="text-gray-900">{workOrder.woNumber}</strong></div>
+              <div><span className="text-gray-500">{t('workOrderDetail.ebmr.batchNumber')}</span> <strong className="text-gray-900">{ebmr.batchNumber || 'N/A'}</strong></div>
+              <div><span className="text-gray-500">{t('workOrderDetail.ebmr.product')}</span> <strong className="text-gray-900">{ebmr.productCode} - {ebmr.productName}</strong></div>
+              <div><span className="text-gray-500">{t('workOrderDetail.ebmr.printDate')}</span> <strong className="text-gray-900">{new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</strong></div>
             </div>
           </div>
 
@@ -1272,23 +1269,23 @@ export default function WorkOrderDetailPage() {
             <Card>
               <CardHeader>
                 <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-900">บันทึกการผลิตแบทช์อิเล็กทรอนิกส์ (eBMR)</h2>
-                  <p className="text-gray-600">บันทึกการผลิต</p>
+                  <h2 className="text-xl font-bold text-gray-900">{t('workOrderDetail.ebmr.docTitle')}</h2>
+                  <p className="text-gray-600">{t('workOrderDetail.ebmr.headerSubtitle')}</p>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-4 border p-4 rounded-lg">
                   <div>
-                    <p className="text-sm text-gray-500">หมายเลขแบทช์</p>
+                    <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.batchNumberLabel')}</p>
                     <p className="font-bold text-lg text-gray-900">{ebmr.batchNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">ผลิตภัณฑ์</p>
+                    <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.productLabel')}</p>
                     <p className="font-bold text-gray-900">{ebmr.productCode}</p>
                     <p className="text-sm text-gray-700">{ebmr.productName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">สถานะ</p>
+                    <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.status')}</p>
                     <Badge variant={getStatusVariant(ebmr.status)} className="text-lg">
                       {getStatusLabel(ebmr.status)}
                     </Badge>
@@ -1298,19 +1295,19 @@ export default function WorkOrderDetailPage() {
                   <div className="grid grid-cols-3 gap-4 border border-t-0 p-4 rounded-b-lg -mt-1">
                     {ebmr.ttmtCode && (
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-500">รหัส TTMT</p>
+                        <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.ttmtCode')}</p>
                         <p className="font-semibold text-green-700 break-all">{ebmr.ttmtCode}</p>
                       </div>
                     )}
                     {ebmr.drugCode24 && (
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-500">รหัสยา 24 หลัก</p>
+                        <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.drugCode24')}</p>
                         <p className="font-semibold text-emerald-700 break-all">{ebmr.drugCode24}</p>
                       </div>
                     )}
                     {ebmr.gRegNumber && (
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-500">เลขที่ทะเบียน G</p>
+                        <p className="text-sm text-gray-500">{t('workOrderDetail.ebmr.gRegNumber')}</p>
                         <p className="font-semibold text-purple-700 break-all">{ebmr.gRegNumber}</p>
                       </div>
                     )}
@@ -1322,18 +1319,18 @@ export default function WorkOrderDetailPage() {
             {/* Production Summary — audit gap #1: Bulk Yield + Loss breakdown */}
             <Card>
               <CardHeader>
-                <CardTitle>สรุปการผลิต</CardTitle>
+                <CardTitle>{t('workOrderDetail.ebmr.productionSummary')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">จำนวนที่วางแผน</p>
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.plannedQty')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.plannedQty} {ebmr.productUnit || ''}
                     </p>
                   </div>
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">ผลผลิตกึ่งสำเร็จ</p>
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.bulkOutput')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.bulkOutputQty != null
                         ? <>{ebmr.bulkOutputQty} {ebmr.productUnit || ''}</>
@@ -1341,12 +1338,12 @@ export default function WorkOrderDetailPage() {
                     </p>
                     {ebmr.bulkYieldPercent != null && (
                       <p className={`text-xs mt-0.5 ${ebmr.bulkYieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        ผลผลิตกึ่งสำเร็จ {ebmr.bulkYieldPercent}%
+                        {t('workOrderDetail.ebmr.bulkYield', { percent: ebmr.bulkYieldPercent })}
                       </p>
                     )}
                   </div>
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">ผลผลิตสำเร็จ</p>
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.finishedOutput')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.finishedOutputQty != null
                         ? <>{ebmr.finishedOutputQty} {ebmr.productUnit || ''}</>
@@ -1354,12 +1351,12 @@ export default function WorkOrderDetailPage() {
                     </p>
                     {ebmr.yieldPercent != null && (
                       <p className={`text-xs mt-0.5 ${ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        ผลผลิตสุดท้าย {ebmr.yieldPercent}%
+                        {t('workOrderDetail.ebmr.finalYield', { percent: ebmr.yieldPercent })}
                       </p>
                     )}
                   </div>
                   <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">เวลาการผลิต</p>
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.productionTime')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}
                     </p>
@@ -1369,11 +1366,11 @@ export default function WorkOrderDetailPage() {
                 {/* Loss breakdown */}
                 {(ebmr.totalLossQty != null || ebmr.packagingLossQty != null) && (
                   <div className="mt-3 border rounded-lg bg-amber-50/40 p-3">
-                    <p className="text-xs font-semibold text-amber-700 mb-1">รายละเอียดการสูญเสีย</p>
+                    <p className="text-xs font-semibold text-amber-700 mb-1">{t('workOrderDetail.ebmr.lossBreakdown')}</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       {ebmr.packagingLossQty != null && (
                         <div>
-                          <p className="text-xs text-gray-500">การสูญเสียจากบรรจุ</p>
+                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.packagingLoss')}</p>
                           <p className="font-semibold text-gray-900">
                             {ebmr.packagingLossQty} {ebmr.productUnit || ''}
                             {ebmr.packagingLossPercent != null && (
@@ -1386,7 +1383,7 @@ export default function WorkOrderDetailPage() {
                       )}
                       {ebmr.totalLossQty != null && (
                         <div>
-                          <p className="text-xs text-gray-500">การสูญเสียรวม (เทียบกับที่วางแผน)</p>
+                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.totalLoss')}</p>
                           <p className="font-semibold text-gray-900">
                             {ebmr.totalLossQty} {ebmr.productUnit || ''}
                             {ebmr.totalLossPercent != null && (
@@ -1406,19 +1403,19 @@ export default function WorkOrderDetailPage() {
             {/* Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle>ลำดับเวลาการผลิต</CardTitle>
+                <CardTitle>{t('workOrderDetail.ebmr.productionTimeline')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="border p-3 rounded-lg">
-                    <p className="text-sm text-gray-500 font-medium">วางแผน</p>
-                    <p className="text-gray-900">เริ่ม: {ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-'}</p>
-                    <p className="text-gray-900">สิ้นสุด: {ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.planned')}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-' })}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-' })}</p>
                   </div>
                   <div className="border p-3 rounded-lg">
-                    <p className="text-sm text-gray-500 font-medium">จริง</p>
-                    <p className="text-gray-900">เริ่ม: {ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-'}</p>
-                    <p className="text-gray-900">สิ้นสุด: {ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-'}</p>
+                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.actual')}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-' })}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-' })}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1428,21 +1425,21 @@ export default function WorkOrderDetailPage() {
             {ebmr.operations && ebmr.operations.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>ขั้นตอนการผลิต (Operations)</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.operations')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full border-collapse border">
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={6}>ขั้นตอนการผลิต (Operations)</th>
+                        <th colSpan={6}>{t('workOrderDetail.ebmr.operations')}</th>
                       </tr>
                       <tr className="bg-gray-100">
-                        <th className="border p-2 text-center text-gray-700 w-16">ขั้นที่</th>
-                        <th className="border p-2 text-left text-gray-700">ขั้นตอนการทำงาน</th>
-                        <th className="border p-2 text-left text-gray-700">รายละเอียด</th>
-                        <th className="border p-2 text-right text-gray-700">เวลามาตรฐาน (นาที)</th>
-                        <th className="border p-2 text-right text-gray-700">ตั้งค่า (นาที)</th>
-                        <th className="border p-2 text-right text-gray-700">ทำความสะอาด (นาที)</th>
+                        <th className="border p-2 text-center text-gray-700 w-16">{t('workOrderDetail.ebmr.opSeq')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opName')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opDescription')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opStandardTime')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opSetupTime')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opCleaningTime')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1466,7 +1463,7 @@ export default function WorkOrderDetailPage() {
             {ebmr.batchRecords && ebmr.batchRecords.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>การดำเนินการบันทึกการผลิต</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.batchRecords')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -1492,7 +1489,7 @@ export default function WorkOrderDetailPage() {
                         )}
                         {br.actualValues && Object.keys(br.actualValues).length > 0 && (
                           <div className="bg-gray-50 rounded p-2 mb-2">
-                            <p className="text-xs font-medium text-gray-500 mb-1">ค่าที่บันทึก</p>
+                            <p className="text-xs font-medium text-gray-500 mb-1">{t('workOrderDetail.ebmr.recordedValues')}</p>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                               {Object.entries(br.actualValues).map(([key, value]) => (
                                 <div key={key} className="text-sm">
@@ -1504,13 +1501,13 @@ export default function WorkOrderDetailPage() {
                           </div>
                         )}
                         <div className="flex items-center gap-4 text-xs text-gray-500">
-                          {br.performerName && <span>ดำเนินการโดย: {br.performerName}</span>}
-                          {br.verifierName && <span>ตรวจสอบโดย: {br.verifierName}</span>}
-                          {br.startTime && <span>เริ่ม: {new Date(br.startTime).toLocaleString('th-TH')}</span>}
-                          {br.endTime && <span>สิ้นสุด: {new Date(br.endTime).toLocaleString('th-TH')}</span>}
+                          {br.performerName && <span>{t('workOrderDetail.ebmr.performedBy', { name: br.performerName })}</span>}
+                          {br.verifierName && <span>{t('workOrderDetail.ebmr.verifiedBy', { name: br.verifierName })}</span>}
+                          {br.startTime && <span>{t('workOrderDetail.ebmr.stepStart', { value: new Date(br.startTime).toLocaleString('th-TH') })}</span>}
+                          {br.endTime && <span>{t('workOrderDetail.ebmr.stepEnd', { value: new Date(br.endTime).toLocaleString('th-TH') })}</span>}
                         </div>
                         {br.notes && (
-                          <p className="text-sm text-gray-600 mt-1 italic">หมายเหตุ: {br.notes}</p>
+                          <p className="text-sm text-gray-600 mt-1 italic">{t('workOrderDetail.ebmr.stepNotes', { value: br.notes })}</p>
                         )}
                       </div>
                     ))}
@@ -1522,24 +1519,24 @@ export default function WorkOrderDetailPage() {
             {/* Material Consumption */}
             <Card className="ebmr-section-with-table" data-has-table="true">
               <CardHeader>
-                <CardTitle>บันทึกการใช้วัตถุดิบ</CardTitle>
+                <CardTitle>{t('workOrderDetail.ebmr.materialConsumption')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <table className="w-full border-collapse border text-xs">
                   <thead>
                     <tr className="ebmr-print-title-row">
-                      <th colSpan={9}>บันทึกการใช้วัตถุดิบ</th>
+                      <th colSpan={9}>{t('workOrderDetail.ebmr.materialConsumption')}</th>
                     </tr>
                     <tr className="bg-gray-100">
-                      <th className="border p-2 text-left text-gray-700">รหัสรายการ</th>
-                      <th className="border p-2 text-left text-gray-700">ชื่อรายการ</th>
-                      <th className="border p-2 text-left text-gray-700">ล็อต</th>
-                      <th className="border p-2 text-right text-gray-700">วางแผน</th>
-                      <th className="border p-2 text-right text-gray-700">จ่ายแล้ว</th>
-                      <th className="border p-2 text-right text-gray-700">ชั่งแล้ว</th>
-                      <th className="border p-2 text-right text-gray-700">คืน</th>
-                      <th className="border p-2 text-right text-gray-700">ใช้จริง</th>
-                      <th className="border p-2 text-right text-gray-700">ส่วนต่าง</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemCode')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemName')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matLot')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matPlanned')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matIssued')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matWeighed')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matReturned')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matNetUsed')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matVariance')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1619,22 +1616,22 @@ export default function WorkOrderDetailPage() {
             {/* QC Summary — audit gap #7: show test name + value + spec range */}
             <Card className="ebmr-section-with-table" data-has-table="true">
               <CardHeader>
-                <CardTitle>สรุปการควบคุมคุณภาพ</CardTitle>
+                <CardTitle>{t('workOrderDetail.ebmr.qcSummary')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <table className="w-full border-collapse border text-xs">
                   <thead>
                     <tr className="ebmr-print-title-row">
-                      <th colSpan={7}>สรุปการควบคุมคุณภาพ</th>
+                      <th colSpan={7}>{t('workOrderDetail.ebmr.qcSummary')}</th>
                     </tr>
                     <tr className="bg-gray-100">
-                      <th className="border p-2 text-left text-gray-700">รหัส</th>
-                      <th className="border p-2 text-left text-gray-700">ชื่อการทดสอบ</th>
-                      <th className="border p-2 text-left text-gray-700">ประเภท</th>
-                      <th className="border p-2 text-right text-gray-700">ค่า</th>
-                      <th className="border p-2 text-left text-gray-700">ช่วงข้อกำหนด</th>
-                      <th className="border p-2 text-center text-gray-700">ผลลัพธ์</th>
-                      <th className="border p-2 text-left text-gray-700">ทดสอบเมื่อ</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcCode')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestName')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcType')}</th>
+                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.qcValue')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcSpecRange')}</th>
+                      <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.qcResult')}</th>
+                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestedAt')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1682,7 +1679,7 @@ export default function WorkOrderDetailPage() {
             {ebmr.sopExecution && ebmr.sopExecution.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>บันทึกการปฏิบัติตาม SOP</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.sopExecution')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full border-collapse border table-fixed">
@@ -1697,16 +1694,16 @@ export default function WorkOrderDetailPage() {
                     </colgroup>
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>บันทึกการปฏิบัติตาม SOP</th>
+                        <th colSpan={7}>{t('workOrderDetail.ebmr.sopExecution')}</th>
                       </tr>
                       <tr className="bg-gray-100">
-                        <th className="border p-2 text-center text-gray-700">ขั้นที่</th>
-                        <th className="border p-2 text-left text-gray-700">ชื่อขั้นตอน</th>
-                        <th className="border p-2 text-center text-gray-700">สถานะ</th>
-                        <th className="border p-2 text-left text-gray-700">พารามิเตอร์</th>
-                        <th className="border p-2 text-left text-gray-700">หมายเหตุ</th>
-                        <th className="border p-2 text-left text-gray-700">ผู้ปฏิบัติงาน</th>
-                        <th className="border p-2 text-left text-gray-700">ตรวจสอบแล้ว</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStep')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopStepName')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStatus')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopParameters')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopNotes')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopOperator')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopVerified')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1722,7 +1719,7 @@ export default function WorkOrderDetailPage() {
                               <div className="font-medium">{step.stepNameTh || step.stepName}</div>
                               {instructions && (
                                 <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">
-                                  <span className="font-semibold">คำแนะนำ: </span>{instructions}
+                                  <span className="font-semibold">{t('workOrderDetail.ebmr.sopInstructions')}</span>{instructions}
                                 </div>
                               )}
                               {subSteps.length > 0 && (
@@ -1744,7 +1741,7 @@ export default function WorkOrderDetailPage() {
                                 step.isCompleted ? 'secondary' :
                                 step.status === 'in_progress' ? 'warning' : 'default'
                               }>
-                                {step.verifiedAt ? 'ตรวจสอบแล้ว' : step.isCompleted ? 'เสร็จสิ้น' : step.status || 'รอดำเนินการ'}
+                                {step.verifiedAt ? t('workOrderDetail.stepStatus.verified') : step.isCompleted ? t('workOrderDetail.stepStatus.completed') : step.status || t('workOrderDetail.stepStatus.pending')}
                               </Badge>
                             </td>
                             <td className="border p-2 text-gray-900 text-sm align-top">
@@ -1786,7 +1783,7 @@ export default function WorkOrderDetailPage() {
                                           <span className="font-medium">{String(v)}</span>
                                           {expected && expected[k] != null && (
                                             <span className="text-xs text-gray-400 ml-1">
-                                              (เป้าหมาย {String(expected[k])})
+                                              {t('workOrderDetail.ebmr.sopTarget', { value: String(expected[k]) })}
                                             </span>
                                           )}
                                         </div>
@@ -1798,13 +1795,13 @@ export default function WorkOrderDetailPage() {
                                   return (
                                     <div className="text-xs text-amber-700">
                                       <div className="font-semibold mb-0.5">
-                                        ⚠ ไม่ได้บันทึก
+                                        {t('workOrderDetail.ebmr.sopNotRecorded')}
                                       </div>
                                       {Object.entries(expected)
                                         .filter(([k]) => !k.startsWith('_'))
                                         .map(([k, v]) => (
                                           <div key={k} className="text-gray-500">
-                                            {k}: เป้าหมาย {String(v)}
+                                            {t('workOrderDetail.ebmr.sopTargetLine', { key: k, value: String(v) })}
                                           </div>
                                         ))}
                                     </div>
@@ -1835,23 +1832,23 @@ export default function WorkOrderDetailPage() {
             {ebmr.cleaningLogs && ebmr.cleaningLogs.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>บันทึกการตรวจสอบความสะอาด</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.cleaning')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full border-collapse border text-xs">
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={8}>บันทึกการตรวจสอบความสะอาด</th>
+                        <th colSpan={8}>{t('workOrderDetail.ebmr.cleaning')}</th>
                       </tr>
                       <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">ขั้นตอน</th>
-                        <th className="border p-2 text-left text-gray-700">ประเภท</th>
-                        <th className="border p-2 text-left text-gray-700">เครื่องมือ / ห้อง</th>
-                        <th className="border p-2 text-center text-gray-700">สะอาด</th>
-                        <th className="border p-2 text-left text-gray-700">ผู้ปฏิบัติงาน</th>
-                        <th className="border p-2 text-left text-gray-700">ดำเนินการเมื่อ</th>
-                        <th className="border p-2 text-left text-gray-700">ตรวจสอบแล้ว</th>
-                        <th className="border p-2 text-left text-gray-700">หมายเหตุ</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPhase')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanType')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanTarget')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.cleanIsClean')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanOperator')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPerformedAt')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanVerified')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanNotes')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1925,22 +1922,22 @@ export default function WorkOrderDetailPage() {
             {ebmr.environmentalLogs && ebmr.environmentalLogs.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>บันทึกการเฝ้าระวังสภาพแวดล้อม</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.environmental')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full border-collapse border">
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>บันทึกการเฝ้าระวังสภาพแวดล้อม</th>
+                        <th colSpan={7}>{t('workOrderDetail.ebmr.environmental')}</th>
                       </tr>
                       <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">ขั้นตอน</th>
-                        <th className="border p-2 text-left text-gray-700">วันที่</th>
-                        <th className="border p-2 text-left text-gray-700">เวลา</th>
-                        <th className="border p-2 text-right text-gray-700">อุณหภูมิ (°C)</th>
-                        <th className="border p-2 text-right text-gray-700">ความชื้น (%RH)</th>
-                        <th className="border p-2 text-center text-gray-700">ปกติ</th>
-                        <th className="border p-2 text-left text-gray-700">หมายเหตุ</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envPhase')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envDate')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envTime')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envTemperature')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envHumidity')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.envNormal')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envNotes')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1967,22 +1964,22 @@ export default function WorkOrderDetailPage() {
             {ebmr.materialWeighing && ebmr.materialWeighing.length > 0 && (
               <Card className="ebmr-section-with-table" data-has-table="true">
                 <CardHeader>
-                  <CardTitle>บันทึกการชั่งวัตถุดิบ</CardTitle>
+                  <CardTitle>{t('workOrderDetail.ebmr.weighing')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <table className="w-full border-collapse border">
                     <thead>
                       <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>บันทึกการชั่งวัตถุดิบ</th>
+                        <th colSpan={7}>{t('workOrderDetail.ebmr.weighing')}</th>
                       </tr>
                       <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">รายการ</th>
-                        <th className="border p-2 text-left text-gray-700">ล็อต</th>
-                        <th className="border p-2 text-right text-gray-700">วางแผน</th>
-                        <th className="border p-2 text-right text-gray-700">ชั่งแล้ว</th>
-                        <th className="border p-2 text-center text-gray-700">สถานะ</th>
-                        <th className="border p-2 text-left text-gray-700">ผู้ชั่ง</th>
-                        <th className="border p-2 text-left text-gray-700">ผู้ตรวจสอบ</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighItem')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighLot')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighPlanned')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighWeighed')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.weighStatus')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighWeigher')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighVerifier')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2000,7 +1997,7 @@ export default function WorkOrderDetailPage() {
                               mat.verifiedAt ? 'primary' :
                               mat.weighedAt ? 'secondary' : 'default'
                             }>
-                              {mat.verifiedAt ? 'ตรวจสอบแล้ว' : mat.weighedAt ? 'ชั่งแล้ว' : 'รอดำเนินการ'}
+                              {mat.verifiedAt ? t('workOrderDetail.stepStatus.verified') : mat.weighedAt ? t('workOrderDetail.stepStatus.weighed') : t('workOrderDetail.stepStatus.pending')}
                             </Badge>
                           </td>
                           <td className="border p-2 text-gray-900 text-sm">
@@ -2034,15 +2031,15 @@ export default function WorkOrderDetailPage() {
                 return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
               });
               const phaseLabel: Record<string, string> = {
-                pre_production: 'ก่อนการผลิต',
-                production: 'การผลิต',
-                post_production: 'หลังการผลิต',
-                packaging: 'บรรจุภัณฑ์',
+                pre_production: t('workOrderDetail.ebmr.ipcPhasePreProduction'),
+                production: t('workOrderDetail.ebmr.ipcPhaseProduction'),
+                post_production: t('workOrderDetail.ebmr.ipcPhasePostProduction'),
+                packaging: t('workOrderDetail.ebmr.ipcPhasePackaging'),
               };
               return (
                 <Card className="ebmr-section-with-table" data-has-table="true">
                   <CardHeader>
-                    <CardTitle>ผลการควบคุมระหว่างการผลิต (IPC)</CardTitle>
+                    <CardTitle>{t('workOrderDetail.ebmr.ipcTitle')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {sortedPhases.map((phase) => {
@@ -2055,7 +2052,7 @@ export default function WorkOrderDetailPage() {
                           <div className="flex items-center justify-between mb-1 text-sm">
                             <div className="font-semibold text-gray-800">
                               {phaseLabel[phase] || phase}{' '}
-                              <span className="text-xs text-gray-500">({tests.length} การทดสอบ)</span>
+                              <span className="text-xs text-gray-500">{t('workOrderDetail.ebmr.ipcTestCount', { count: tests.length })}</span>
                             </div>
                             {stats.count >= 1 && (
                               <div className="text-xs text-gray-600 flex gap-3">
@@ -2077,13 +2074,13 @@ export default function WorkOrderDetailPage() {
                           <table className="w-full border-collapse border text-xs">
                             <thead>
                               <tr className="bg-gray-100">
-                                <th className="border p-2 text-left text-gray-700">การทดสอบ</th>
-                                <th className="border p-2 text-left text-gray-700">ข้อกำหนด</th>
-                                <th className="border p-2 text-right text-gray-700">ค่า</th>
-                                <th className="border p-2 text-right text-gray-700">%เบี่ยงเบน</th>
-                                <th className="border p-2 text-center text-gray-700">สถานะ</th>
-                                <th className="border p-2 text-left text-gray-700">ผู้ทดสอบ</th>
-                                <th className="border p-2 text-left text-gray-700">ผู้อนุมัติ</th>
+                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTest')}</th>
+                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcSpec')}</th>
+                                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcValue')}</th>
+                                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcDeviation')}</th>
+                                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.ipcStatus')}</th>
+                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTestedBy')}</th>
+                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcApprovedBy')}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2158,14 +2155,14 @@ export default function WorkOrderDetailPage() {
             {/* Signatures — audit gap #6 — explicit Produced/QC/QA signatures + QA sign action */}
             <Card id="ebmr-signatures">
               <CardHeader>
-                <CardTitle>ลายเซ็นอนุมัติ</CardTitle>
+                <CardTitle>{t('workOrderDetail.ebmr.signatures')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {([
-                    { key: 'producedBy', label: 'ผู้ผลิต' },
-                    { key: 'verifiedByQc', label: 'ผู้ตรวจสอบ (QC)' },
-                    { key: 'approvedByQa', label: 'ผู้อนุมัติ (QA)' },
+                    { key: 'producedBy', label: t('workOrderDetail.ebmr.sigProducedBy') },
+                    { key: 'verifiedByQc', label: t('workOrderDetail.ebmr.sigVerifiedByQc') },
+                    { key: 'approvedByQa', label: t('workOrderDetail.ebmr.sigApprovedByQa') },
                   ] as const).map(({ key, label }) => {
                     const sig = ebmr.signatures?.[key];
                     return (
@@ -2173,11 +2170,10 @@ export default function WorkOrderDetailPage() {
                         <p className="text-sm text-gray-500 mb-8">{label}</p>
                         <div className="border-t pt-2">
                           <p className="text-sm text-gray-900">
-                            ชื่อ: {sig?.name || '_________________'}
+                            {t('workOrderDetail.ebmr.sigName', { value: sig?.name || '_________________' })}
                           </p>
                           <p className="text-sm text-gray-900">
-                            วันที่:{' '}
-                            {sig?.signedAt
+                            {t('workOrderDetail.ebmr.sigDate', { value: sig?.signedAt
                               ? new Date(sig.signedAt).toLocaleString('th-TH', {
                                   year: 'numeric',
                                   month: 'short',
@@ -2185,7 +2181,7 @@ export default function WorkOrderDetailPage() {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })
-                              : '_________________'}
+                              : '_________________' })}
                           </p>
                         </div>
                       </div>
@@ -2198,10 +2194,10 @@ export default function WorkOrderDetailPage() {
                   ['completed', 'closed'].includes(workOrder.status as string) && (
                     <div className="mt-4 flex justify-end print:hidden">
                       <DxButton
-                        text="ลงนามเป็น QA — อนุมัติ eBMR"
+                        text={t('workOrderDetail.ebmr.qaApprove')}
                         type="success"
                         onClick={async () => {
-                          if (!confirm('ยืนยันการ approve eBMR เป็น QA?\n(ระบบจะตรวจ Triple Independence ก่อนบันทึก)')) return;
+                          if (!confirm(t('workOrderDetail.toast.confirmQaApprove'))) return;
                           const res = await fetch(
                             `/api/production/work-orders/${workOrder.id}/qa-approve`,
                             {
@@ -2212,9 +2208,9 @@ export default function WorkOrderDetailPage() {
                           );
                           const json = await res.json();
                           if (!res.ok) {
-                            toast.error('Approve ไม่สำเร็จ', json?.error);
+                            toast.error(t('workOrderDetail.toast.approveFailed'), json?.error);
                           } else {
-                            toast.success('ลงนามอนุมัติ QA แล้ว', 'eBMR ถูกล็อกแล้ว');
+                            toast.success(t('workOrderDetail.toast.qaSigned'), t('workOrderDetail.toast.ebmrLocked'));
                             await fetchWorkOrderDetail();
                           }
                         }}
@@ -2227,8 +2223,8 @@ export default function WorkOrderDetailPage() {
 
             {/* Print-only footer */}
             <div className="print-only ebmr-print-footer">
-              <p>พิมพ์จากระบบ Herbal Medicine ERP | วันที่พิมพ์: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              <p className="mt-1">เอกสารนี้สร้างจากระบบอิเล็กทรอนิกส์ — Electronic Batch Manufacturing Record</p>
+              <p>{t('workOrderDetail.ebmr.footerPrintedFrom', { date: new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })}</p>
+              <p className="mt-1">{t('workOrderDetail.ebmr.footerNote')}</p>
             </div>
         </div>
         </SectionErrorBoundary>
@@ -2238,7 +2234,7 @@ export default function WorkOrderDetailPage() {
         open={itemSearchDialogOpen}
         onOpenChange={setItemSearchDialogOpen}
         onSelect={handleSelectItem}
-        title="เลือกวัตถุดิบ"
+        title={t('workOrderDetail.dialogs.selectMaterial')}
         excludeType="finished_goods"
         allowCreate
       />
@@ -2247,7 +2243,7 @@ export default function WorkOrderDetailPage() {
       <DxPopup
         visible={materialDetailsDialogOpen}
         onHiding={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
-        title="รายละเอียดวัตถุดิบ"
+        title={t('workOrderDetail.dialogs.materialDetails')}
         width={450}
         height="auto"
         showCloseButton
@@ -2261,7 +2257,7 @@ export default function WorkOrderDetailPage() {
                 <p className="text-sm text-emerald-600">{selectedItem.nameTh}</p>
               </div>
               <DxButton
-                text="เปลี่ยน"
+                text={t('workOrderDetail.dialogs.change')}
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => {
@@ -2276,13 +2272,17 @@ export default function WorkOrderDetailPage() {
           {selectedItem && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ล็อต (ไม่บังคับ)
+                {t('workOrderDetail.dialogs.lotOptional')}
               </label>
               {lots.length > 0 ? (
                 <DxSelectBox
                   items={lots.map(lot => ({
                     id: lot.id,
-                    label: `${lot.lotNumber} - คงเหลือ: ${Number(lot.quantity) - Number(lot.reservedQuantity || 0)} ${lot.unit}${lot.expiryDate ? ` (หมดอายุ: ${new Date(lot.expiryDate).toLocaleDateString()})` : ''}`
+                    label: t('workOrderDetail.dialogs.lotBalance', {
+                      lotNumber: lot.lotNumber,
+                      balance: Number(lot.quantity) - Number(lot.reservedQuantity || 0),
+                      unit: lot.unit,
+                    }) + (lot.expiryDate ? t('workOrderDetail.dialogs.lotExpiry', { date: new Date(lot.expiryDate).toLocaleDateString() }) : '')
                   }))}
                   value={selectedLot?.id || null}
                   onValueChange={(value) => {
@@ -2291,10 +2291,10 @@ export default function WorkOrderDetailPage() {
                   }}
                   valueExpr="id"
                   displayExpr="label"
-                  placeholder="เลือกล็อต (ไม่บังคับ)"
+                  placeholder={t('workOrderDetail.dialogs.selectLotPlaceholder')}
                 />
               ) : (
-                <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded">ไม่มีล็อตที่ปล่อยใช้งานได้สำหรับรายการนี้</p>
+                <p className="text-sm text-gray-500 p-2 bg-gray-50 rounded">{t('workOrderDetail.dialogs.noLots')}</p>
               )}
             </div>
           )}
@@ -2304,7 +2304,7 @@ export default function WorkOrderDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  จำนวนที่วางแผน <span className="text-red-500">*</span>
+                  {t('workOrderDetail.dialogs.plannedQty')} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2 items-center">
                   <DxNumberBox
@@ -2317,7 +2317,7 @@ export default function WorkOrderDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  จำนวนจริง
+                  {t('workOrderDetail.dialogs.actualQty')}
                 </label>
                 <div className="flex gap-2 items-center">
                   <DxNumberBox
@@ -2333,13 +2333,13 @@ export default function WorkOrderDetailPage() {
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('workOrderDetail.dialogs.cancel')}
               type="normal"
               stylingMode="outlined"
               onClick={() => { setMaterialDetailsDialogOpen(false); resetMaterialForm(); }}
             />
             <DxButton
-              text={addingMaterial ? 'กำลังเพิ่ม...' : 'เพิ่มวัตถุดิบ'}
+              text={addingMaterial ? t('workOrderDetail.dialogs.adding') : t('workOrderDetail.dialogs.addMaterial')}
               type="default"
               onClick={handleAddMaterial}
               disabled={!selectedItem || !plannedQuantity || addingMaterial}
@@ -2352,20 +2352,20 @@ export default function WorkOrderDetailPage() {
       <DxPopup
         visible={qcDialogOpen}
         onHiding={() => { setQcDialogOpen(false); resetQCForm(); }}
-        title="เพิ่มการทดสอบ QC"
+        title={t('workOrderDetail.dialogs.addQcTitle')}
         width={450}
         height="auto"
         showCloseButton
       >
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-500">
-            เลือกรายการทดสอบคุณภาพสำหรับสินค้าของใบสั่งผลิตนี้
+            {t('workOrderDetail.dialogs.qcIntro')}
           </p>
 
           {productSpecs.length > 0 ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ข้อกำหนด <span className="text-red-500">*</span>
+                {t('workOrderDetail.dialogs.specification')} <span className="text-red-500">*</span>
               </label>
               <DxSelectBox
                 items={productSpecs.map((spec) => ({
@@ -2384,7 +2384,7 @@ export default function WorkOrderDetailPage() {
                 }}
                 valueExpr="value"
                 displayExpr="label"
-                placeholder="เลือกรายการทดสอบ..."
+                placeholder={t('workOrderDetail.dialogs.selectTestPlaceholder')}
                 searchEnabled
               />
               {selectedSpecId && (() => {
@@ -2392,43 +2392,43 @@ export default function WorkOrderDetailPage() {
                 if (!spec) return null;
                 return (
                   <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
-                    {spec.testMethod && <p>วิธีการ: {spec.testMethod}</p>}
-                    {spec.specification && <p>ข้อกำหนด: {spec.specification}</p>}
+                    {spec.testMethod && <p>{t('workOrderDetail.dialogs.method', { value: spec.testMethod })}</p>}
+                    {spec.specification && <p>{t('workOrderDetail.dialogs.spec', { value: spec.specification })}</p>}
                     {(spec.minValue !== null || spec.maxValue !== null) && (
-                      <p>ช่วง: {spec.minValue ?? '-'} ~ {spec.maxValue ?? '-'} {spec.unit || ''}</p>
+                      <p>{t('workOrderDetail.dialogs.range', { min: spec.minValue ?? '-', max: spec.maxValue ?? '-', unit: spec.unit || '' })}</p>
                     )}
-                    {spec.isCritical && <p className="text-red-600 font-medium">การทดสอบวิกฤต</p>}
+                    {spec.isCritical && <p className="text-red-600 font-medium">{t('workOrderDetail.dialogs.criticalTest')}</p>}
                   </div>
                 );
               })()}
             </div>
           ) : (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-              ไม่พบรายการทดสอบคุณภาพสำหรับสินค้านี้ กรุณากำหนดที่ Quality &gt; Specifications ก่อน
+              {t('workOrderDetail.dialogs.noSpecs')}
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              หมายเหตุ
+              {t('workOrderDetail.dialogs.notes')}
             </label>
             <DxTextArea
               value={testNotes}
               onValueChange={setTestNotes}
-              placeholder="บันทึกเพิ่มเติม..."
+              placeholder={t('workOrderDetail.dialogs.notesPlaceholder')}
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('workOrderDetail.dialogs.cancel')}
               type="normal"
               stylingMode="outlined"
               onClick={() => { setQcDialogOpen(false); resetQCForm(); }}
             />
             <DxButton
-              text={addingQCTest ? 'กำลังเพิ่ม...' : 'เพิ่มการทดสอบ QC'}
+              text={addingQCTest ? t('workOrderDetail.dialogs.adding') : t('workOrderDetail.dialogs.addQcTest')}
               type="default"
               onClick={handleAddQCTest}
               disabled={(!selectedSpecId && !testType) || addingQCTest}
