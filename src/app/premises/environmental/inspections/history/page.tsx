@@ -124,10 +124,16 @@ export default function InspectionHistoryPage() {
       return body;
     },
     onSuccess: () => {
+      // Close the popup BEFORE invalidating — invalidating the list while the
+      // DevExtreme Popup is still mounted re-renders the DataGrid under the open
+      // overlay and DevExtreme throws an insertBefore/removeChild error that
+      // escapes to the global error page. (Same fix as the water-quality page.)
+      const editedId = viewId;
+      setEditMode(false);
+      setViewId(null);
       toast.success('แก้ไขผลตรวจแล้ว (บันทึกใน audit log)');
       qc.invalidateQueries({ queryKey: ['env-inspection-records'] });
-      qc.invalidateQueries({ queryKey: ['env-inspection-record', viewId] });
-      setEditMode(false);
+      if (editedId != null) qc.invalidateQueries({ queryKey: ['env-inspection-record', editedId] });
     },
     onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
   });
@@ -257,7 +263,12 @@ export default function InspectionHistoryPage() {
                   </thead>
                   <tbody>
                     {detail.results.map((r) => (
-                      <tr key={r.id} className="border-t">
+                      // key includes editMode so the row (and its DevExtreme
+                      // NumberBox) fully remounts when toggling view↔edit instead
+                      // of swapping a <span> for a widget in the same <td> — that
+                      // in-place swap made DevExtreme throw a DOM error that
+                      // escaped to the global error page.
+                      <tr key={`${r.id}-${editMode ? 'edit' : 'view'}`} className="border-t">
                         <td className="p-2">
                           {r.label} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}
                         </td>

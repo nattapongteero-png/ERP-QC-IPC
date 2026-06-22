@@ -414,7 +414,10 @@ export default function WaterQualityRecordsPage() {
                   </thead>
                   <tbody>
                     {detail.results.map((r) => (
-                      <tr key={r.id} className="border-t">
+                      // key includes editMode so the row + its DevExtreme NumberBox
+                      // remount on view↔edit toggle instead of swapping a span for
+                      // a widget in place (which threw a DOM error → error page).
+                      <tr key={`${r.id}-${editMode ? 'edit' : 'view'}`} className="border-t">
                         <td className="p-2">{r.parameter} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}</td>
                         <td className="p-2">
                           {editMode ? (
