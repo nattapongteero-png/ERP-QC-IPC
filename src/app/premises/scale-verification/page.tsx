@@ -37,6 +37,21 @@ interface ScaleRow {
   lastDeviationPercent: number | null;
   lastWeightCode: string | null;
   lastWeightDenomination: string | null;
+  minVerificationWeightG: number | null;
+  maxVerificationWeightG: number | null;
+}
+
+// Convert a standard weight's denomination to grams (matches the server's
+// toGrams) so we can compare it to a scale's min/max verification range.
+function weightToGrams(value: number, unit: string | null | undefined): number {
+  switch ((unit ?? '').toLowerCase()) {
+    case 'kg':
+      return value * 1000;
+    case 'mg':
+      return value / 1000;
+    default:
+      return value; // g
+  }
 }
 
 // Translate the known server-side scale-verification errors into clear Thai so
@@ -107,6 +122,19 @@ export default function ScaleVerificationPage() {
   const validWeights = (weights ?? []).filter(
     (w) => w.isActive && w.certificateExpiryDate >= today,
   );
+
+  // Does a standard weight fit the active scale's verification range? A weight
+  // outside [min,max] is rejected server-side, so we want to keep it out of the
+  // dropdown (or at least warn) instead of letting the operator pick a 1g weight
+  // for a scale whose minimum is 1000g and then fail no matter what they type.
+  const weightFitsScale = (w: StandardWeight): boolean => {
+    if (!activeScale) return true;
+    const g = weightToGrams(Number(w.denominationValue), w.denominationUnit);
+    if (activeScale.minVerificationWeightG != null && g < activeScale.minVerificationWeightG) return false;
+    if (activeScale.maxVerificationWeightG != null && g > activeScale.maxVerificationWeightG) return false;
+    return true;
+  };
+  const fittingWeights = validWeights.filter(weightFitsScale);
 
   const expiringSoonCount = (weights ?? []).filter((w) => {
     const expiry = new Date(w.certificateExpiryDate);
@@ -338,8 +366,10 @@ export default function ScaleVerificationPage() {
         <div className="p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.standardWeight.label')} *</label>
+            {/* Only weights that fit this scale's range are offered, so the
+                operator can't pick one that will always fail. */}
             <SelectBox
-              dataSource={validWeights}
+              dataSource={fittingWeights}
               displayExpr={(w: StandardWeight) =>
                 w ? `${w.code} — ${w.denominationValue} ${w.denominationUnit} (${w.accuracyClass}) · cert ${w.certificateExpiryDate}` : ''
               }
@@ -347,16 +377,38 @@ export default function ScaleVerificationPage() {
               value={weightId}
               onValueChanged={(e) => setWeightId(e.value as number | null)}
               searchEnabled
+              noDataText="ไม่มีลูกตุ้มที่เหมาะกับพิสัยของเครื่องชั่งนี้"
             />
-            {validWeights.length === 0 && (
+            {(activeScale?.minVerificationWeightG != null || activeScale?.maxVerificationWeightG != null) && (
+              <p className="text-xs text-gray-500 mt-1">
+                พิสัยลูกตุ้มที่ใช้ได้กับเครื่องนี้:{' '}
+                <b>
+                  {activeScale?.minVerificationWeightG ?? 0}
+                  {' – '}
+                  {activeScale?.maxVerificationWeightG ?? '∞'} g
+                </b>
+              </p>
+            )}
+            {validWeights.length === 0 ? (
               <p className="text-xs text-rose-700 mt-1">
                 ไม่มีลูกตุ้มที่ใบรับรองยังไม่หมดอายุ — กรุณาเพิ่มในทะเบียน
               </p>
-            )}
+            ) : fittingWeights.length === 0 ? (
+              <p className="text-xs text-rose-700 mt-1">
+                ลูกตุ้มที่มีอยู่ไม่อยู่ในพิสัยของเครื่องชั่งนี้ — กรุณาเพิ่มลูกตุ้มที่มีน้ำหนักเหมาะสม
+              </p>
+            ) : null}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t('form.actualReading.label')} *</label>
+            <label className="block text-sm font-medium mb-1">
+              {t('form.actualReading.label')} *
+              {selectedWeight && (
+                <span className="text-gray-500 font-normal">
+                  {' '}(หน่วย: {selectedWeight.denominationUnit})
+                </span>
+              )}
+            </label>
             <NumberBox
               value={reading}
               onValueChanged={(e) => setReading(Number(e.value ?? 0))}
@@ -365,10 +417,11 @@ export default function ScaleVerificationPage() {
               min={0}
               showSpinButtons
             />
-            {selectedWeight && reading > 0 && (
+            {selectedWeight && (
               <p className="text-xs text-gray-500 mt-1">
-                ค่า cert ของลูกตุ้มที่เลือก: <b>{Number(selectedWeight.denominationValue)}</b>{' '}
-                {selectedWeight.denominationUnit}
+                วางลูกตุ้ม <b>{selectedWeight.code}</b> บนเครื่องชั่ง แล้วกรอกค่าที่เครื่องแสดง —
+                ควรอยู่ประมาณ <b>{Number(selectedWeight.denominationValue)}</b>{' '}
+                {selectedWeight.denominationUnit} (ค่า cert)
               </p>
             )}
             {extremeReading && (

@@ -383,6 +383,10 @@ export async function getScalesNeedingVerification(): Promise<Array<{
   lastDeviationPercent: number | null;
   lastWeightCode: string | null;
   lastWeightDenomination: string | null;
+  // Acceptable standard-weight range for this scale (grams). Lets the UI offer
+  // only weights that fit, and tell the operator roughly what reading to enter.
+  minVerificationWeightG: number | null;
+  maxVerificationWeightG: number | null;
 }>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
@@ -392,6 +396,8 @@ export async function getScalesNeedingVerification(): Promise<Array<{
         code: t.equipment.code,
         name: t.equipment.name,
         scaleStatus: t.equipment.scaleStatus,
+        minVerificationWeightG: t.equipment.minVerificationWeightG,
+        maxVerificationWeightG: t.equipment.maxVerificationWeightG,
       })
       .from(t.equipment)
       .where(
@@ -413,6 +419,8 @@ export async function getScalesNeedingVerification(): Promise<Array<{
       lastDeviationPercent: number | null;
       lastWeightCode: string | null;
       lastWeightDenomination: string | null;
+      minVerificationWeightG: number | null;
+      maxVerificationWeightG: number | null;
     }>;
     for (const s of scales) {
       const lastVer = await db
@@ -448,6 +456,10 @@ export async function getScalesNeedingVerification(): Promise<Array<{
         lastWeightDenomination: last?.weightDenominationValue != null
           ? `${Number(last.weightDenominationValue)} ${last.weightDenominationUnit ?? ''}`.trim()
           : null,
+        minVerificationWeightG:
+          s.minVerificationWeightG != null ? Number(s.minVerificationWeightG) : null,
+        maxVerificationWeightG:
+          s.maxVerificationWeightG != null ? Number(s.maxVerificationWeightG) : null,
       });
     }
     return result;
