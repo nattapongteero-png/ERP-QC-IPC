@@ -133,6 +133,8 @@ interface PODetail {
     createdBy: number | null;
     approvedBy: number | null;
     approvedAt: string | null;
+    createdByName: string | null;
+    approvedByName: string | null;
     sentVia: string | null;
     sentAt: string | null;
     sentToEmail: string | null;
@@ -766,7 +768,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'pendingQty',
-      caption: 'คงเหลือ',
+      caption: 'ค้างส่ง',
       width: 100,
       cellRender: (cellInfo) => (
         <span className={cellInfo.data.pendingQty > 0 ? 'text-orange-600 font-medium' : ''}>
@@ -777,13 +779,14 @@ export default function PurchaseOrderDetailPage() {
     {
       dataField: 'actions',
       caption: '',
-      width: 160,
+      width: 140,
       cellRender: (cellInfo) => (
         cellInfo.data.pendingQty > 0 ? (
           <DxButton
             text="รับสินค้า"
+            icon="check"
             type="success"
-            stylingMode="outlined"
+            stylingMode="contained"
             onClick={() => handleReceive(cellInfo.data)}
           />
         ) : (
@@ -983,6 +986,11 @@ export default function PurchaseOrderDetailPage() {
           vatAmount,
           grandTotal,
           grandTotalText: thaiBahtText(grandTotal),
+          // ผู้จัดทำ = creator; ผู้อนุมัติ = approver (from the PO record). The
+          // "ผู้ตรวจสอบ" line stays blank for a wet signature since this PO flow
+          // has a single approval step, not a separate checker.
+          preparedByName: po.createdByName,
+          approvedByName: po.approvedByName,
         }}
       />
       <div className="space-y-4 no-print">
@@ -1738,9 +1746,13 @@ export default function PurchaseOrderDetailPage() {
                         วันผลิต (Mfg Date) <span className="text-red-500">*</span>
                       </label>
                       <DxDateBox
-                        value={receiveForm.manufacturingDate}
+                        // Pass undefined (not '') when empty — DevExtreme treats an
+                        // empty string as an invalid value and can fall back to a
+                        // default date, which is the stale date the user saw.
+                        value={receiveForm.manufacturingDate || undefined}
                         onValueChange={(v) => setReceiveForm({ ...receiveForm, manufacturingDate: v || '' })}
                         max={new Date()}
+                        placeholder="ระบุวันผลิต"
                       />
                     </div>
                     <div>
@@ -1748,9 +1760,10 @@ export default function PurchaseOrderDetailPage() {
                         วันหมดอายุ (Exp Date) <span className="text-red-500">*</span>
                       </label>
                       <DxDateBox
-                        value={receiveForm.expiryDate}
+                        value={receiveForm.expiryDate || undefined}
                         onValueChange={(v) => setReceiveForm({ ...receiveForm, expiryDate: v || '' })}
                         min={receiveForm.manufacturingDate ? new Date(receiveForm.manufacturingDate) : new Date()}
+                        placeholder="ระบุวันหมดอายุ"
                       />
                     </div>
                   </div>

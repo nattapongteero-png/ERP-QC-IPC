@@ -25,10 +25,10 @@ interface PRFormProps {
 }
 
 const priorityOptions = [
-  { value: 'low', label: 'Low' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'High' },
-  { value: 'urgent', label: 'Urgent' },
+  { value: 'low', label: 'ต่ำ' },
+  { value: 'normal', label: 'ปกติ' },
+  { value: 'high', label: 'สูง' },
+  { value: 'urgent', label: 'ด่วน' },
 ];
 
 export function PRForm({ mode, prId, initialData }: PRFormProps) {
@@ -259,13 +259,13 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {prNumber && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PR Number</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่ใบขอซื้อ</label>
               <TextBox value={prNumber} readOnly={true} data-testid="pr-number" />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ความสำคัญ</label>
             <SelectBox
               dataSource={priorityOptions}
               value={priority}
@@ -278,7 +278,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Required Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ต้องการ</label>
             <DateBox
               value={requiredDate}
               onValueChanged={(e) => setRequiredDate(e.value)}
@@ -289,7 +289,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ยอดรวม</label>
             <TextBox
               value={totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
               readOnly={true}
@@ -299,7 +299,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
           <TextArea
             value={description}
             onValueChanged={(e) => setDescription(e.value)}
@@ -310,7 +310,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลในการขอซื้อ</label>
           <TextArea
             value={justification}
             onValueChanged={(e) => setJustification(e.value)}
@@ -323,7 +323,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
 
       {/* Line Items */}
       <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">Line Items</h3>
+        <h3 className="text-lg font-medium text-gray-800 mb-4">รายการสินค้า</h3>
         <PRLineGrid
           lines={lines}
           onChange={handleLinesChange}

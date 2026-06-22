@@ -59,6 +59,11 @@ export interface POPrintData {
   grandTotal: number;
   /** Thai baht text of grandTotal, e.g. "ห้าแสนสามหมื่นห้าพันบาทถ้วน" */
   grandTotalText: string;
+  /** Names for the signature block — filled in from the PO's audit trail so the
+      lines aren't blank. Any missing name falls back to a blank signature line. */
+  preparedByName?: string | null;
+  checkedByName?: string | null;
+  approvedByName?: string | null;
 }
 
 function fmtMoney(n: number): string {
@@ -235,16 +240,21 @@ export function POPrintDocument({ data }: { data: POPrintData }) {
         </div>
       )}
 
-      {/* ───────── Signatures ───────── */}
+      {/* ───────── Signatures ─────────
+          Names are filled from the PO record (creator / approver) so the
+          เอกสาร shows who actually prepared & approved it instead of blank
+          lines. A missing name leaves the dotted line for a wet signature. */}
       <div className="po-print-signs">
         {[
-          { th: 'ผู้จัดทำ', en: 'Prepared by' },
-          { th: 'ผู้ตรวจสอบ', en: 'Checked by' },
-          { th: 'ผู้อนุมัติ', en: 'Approved by' },
+          { th: 'ผู้จัดทำ', en: 'Prepared by', name: data.preparedByName },
+          { th: 'ผู้ตรวจสอบ', en: 'Checked by', name: data.checkedByName },
+          { th: 'ผู้อนุมัติ', en: 'Approved by', name: data.approvedByName },
         ].map((s) => (
           <div className="po-print-sign" key={s.en}>
             <div className="po-print-sign-line" />
-            <div className="po-print-sign-name">( ........................................ )</div>
+            <div className="po-print-sign-name">
+              {s.name ? `( ${s.name} )` : '( ........................................ )'}
+            </div>
             <div className="po-print-sign-role">
               {s.th} / {s.en}
             </div>

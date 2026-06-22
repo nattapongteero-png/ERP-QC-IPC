@@ -16,6 +16,7 @@ export async function GET(
       const items = getTableRef('items');
       const vendors = getTableRef('vendors');
       const inventoryLots = getTableRef('inventoryLots');
+      const users = getTableRef('users');
 
       // Get PO details
       const poResult = await executeDbOperation(async (db) => {
@@ -55,6 +56,18 @@ export async function GET(
       }
 
       const po = poResult[0];
+
+      // Resolve creator / approver display names for the printable PO signature
+      // block (separate small lookups keep the main query's joins simple).
+      const lookupUserName = async (userId: number | null): Promise<string | null> => {
+        if (!userId) return null;
+        const rows = await executeDbOperation(async (db) =>
+          db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1),
+        );
+        return rows[0]?.name ?? null;
+      };
+      const createdByName = await lookupUserName(po.createdBy as number | null);
+      const approvedByName = await lookupUserName(po.approvedBy as number | null);
 
       // Get PO lines
       const linesResult = await executeDbOperation(async (db) => {
@@ -204,7 +217,7 @@ export async function GET(
       return NextResponse.json({
         success: true,
         data: {
-          purchaseOrder: po,
+          purchaseOrder: { ...po, createdByName, approvedByName },
           lines: linesWithTotals,
           receivedLots,
           summary: {
