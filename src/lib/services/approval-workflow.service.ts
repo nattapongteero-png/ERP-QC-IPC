@@ -536,13 +536,118 @@ export async function findMatchingFlow(
 // ============================================
 
 /**
+ * Ensure a catch-all default approval flow exists for a document type, then
+ * return it as a match. Called when no configured flow matches — instead of
+ * dead-ending the user with NO_MATCHING_FLOW (which happens on any environment
+ * where the workflow config was never seeded, e.g. fresh UAT), we lazily create
+ * a no-rules (always-matches) flow with a single admin approval step. Idempotent
+ * per document type. Returns null only if it genuinely cannot create one.
+ */
+async function ensureDefaultFlow(
+  documentType: string,
+): Promise<FlowEvaluationResult | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    // Re-check: another concurrent submit may have created it already.
+    const [existing] = await db
+      .select({ id: tables.flows.id, name: tables.flows.name })
+      .from(tables.flows)
+      .where(
+        and(eq(tables.flows.documentType, documentType), eq(tables.flows.isActive, true)),
+      )
+      .orderBy(asc(tables.flows.priority))
+      .limit(1);
+
+    let flowId: number | undefined = existing?.id;
+    let flowName: string | undefined = existing?.name;
+
+    if (!flowId) {
+      // Pick any active admin as the default approver (fall back to first active
+      // user) so the seeded step is always assignable.
+      const [admin] = await db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(and(eq(tables.users.role, 'ADMIN'), eq(tables.users.isActive, true)))
+        .limit(1);
+      const [anyUser] = admin
+        ? [admin]
+        : await db
+            .select({ id: tables.users.id })
+            .from(tables.users)
+            .where(eq(tables.users.isActive, true))
+            .limit(1);
+      const approverId: number | undefined = anyUser?.id;
+      if (!approverId) return null;
+
+      const name = `Default ${documentType} Approval`;
+      const insertResult = await db.insert(tables.flows).values({
+        name,
+        description: `Auto-created default approval flow for ${documentType}`,
+        documentType,
+        priority: 100,
+        isActive: true,
+        createdBy: approverId,
+      });
+      flowId = getInsertId(insertResult);
+      if (!flowId) {
+        const [justInserted] = await db
+          .select({ id: tables.flows.id })
+          .from(tables.flows)
+          .where(
+            and(
+              eq(tables.flows.documentType, documentType),
+              eq(tables.flows.isActive, true),
+            ),
+          )
+          .orderBy(asc(tables.flows.priority))
+          .limit(1);
+        flowId = justInserted?.id;
+      }
+      if (!flowId) return null;
+      flowName = name;
+
+      await db.insert(tables.steps).values({
+        flowId: Number(flowId),
+        stepOrder: 1,
+        stepName: 'Admin Approval',
+        approverType: 'user',
+        approverId,
+        canDelegate: false,
+        timeoutDays: 3,
+      });
+    }
+
+    const steps = await db
+      .select()
+      .from(tables.steps)
+      .where(eq(tables.steps.flowId, Number(flowId)))
+      .orderBy(asc(tables.steps.stepOrder));
+
+    return {
+      matched: true,
+      flowId: Number(flowId),
+      flowName: flowName ?? `Default ${documentType} Approval`,
+      steps: steps as ApprovalStepDetail[],
+    };
+  });
+}
+
+/**
  * Submit document for approval
  */
 export async function submitForApproval(
   context: DocumentContext
 ): Promise<{ requestId: number; flowName: string }> {
   // Find matching flow
-  const flowResult = await findMatchingFlow(context);
+  let flowResult = await findMatchingFlow(context);
+
+  // No configured flow matched — lazily create/repair a default flow for this
+  // document type so submission never dead-ends on un-seeded environments.
+  if (!flowResult.matched || !flowResult.flowId) {
+    const fallback = await ensureDefaultFlow(context.documentType);
+    if (fallback) flowResult = fallback;
+  }
 
   if (!flowResult.matched || !flowResult.flowId) {
     throw new Error('NO_MATCHING_FLOW: No approval workflow configured for this document type and criteria');
