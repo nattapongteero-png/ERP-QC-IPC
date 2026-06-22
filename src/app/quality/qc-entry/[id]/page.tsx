@@ -42,6 +42,7 @@ import {
   ChevronDown,
   ChevronUp,
   FlaskConical,
+  Paperclip,
 } from 'lucide-react';
 import { parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
@@ -1491,6 +1492,21 @@ export default function QcSampleDetailPage() {
                                     disabled={working}
                                   />
                                 )}
+                                {/* Quick access to attach a COA/report — the
+                                    AttachmentPanel lives in the expanded detail,
+                                    so this just expands the row and reveals it. */}
+                                <DxButton
+                                  hint="แนบไฟล์รูป / รายงาน QC (COA)"
+                                  stylingMode="text"
+                                  onClick={() => {
+                                    if (!expandedTests.has(t.id)) toggleExpanded(t.id);
+                                  }}
+                                  elementAttr={{ 'data-testid': `qc-test-attach-btn-${t.id}` }}
+                                >
+                                  <span className="inline-flex items-center gap-1 text-xs">
+                                    <Paperclip className="w-3.5 h-3.5" /> แนบไฟล์
+                                  </span>
+                                </DxButton>
                                 <DxButton
                                   icon="trash"
                                   type="danger"
