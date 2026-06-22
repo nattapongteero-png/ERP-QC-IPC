@@ -19,6 +19,7 @@ import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Scale, CheckCircle2, XCircle, AlertTriangle, History } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
+import { toLocalDateStr } from '@/lib/utils/date-format';
 import type { ScaleVerification, StandardWeight } from '@/types/scale-verification';
 
 interface ScaleRow {
@@ -69,7 +70,20 @@ export default function ScaleVerificationPage() {
     },
   });
 
-  const today = new Date().toISOString().slice(0, 10);
+  // LOCAL today (YYYY-MM-DD). NOT toISOString() — that is UTC and in ICT (UTC+7)
+  // it can name the previous/next calendar day, which made "ตรวจสอบวันนี้" miss
+  // verifications actually done today.
+  const today = toLocalDateStr(new Date());
+
+  // Local YYYY-MM-DD of a stored timestamp. performedAt comes back as a JS Date
+  // (MySQL) → String(Date) is "Fri Jun 19 2026 …", whose .slice(0,10) is
+  // "Fri Jun 19" and never matched today. Parsing via new Date() then formatting
+  // local components handles both MySQL (Date) and SQLite (ISO string) shapes.
+  const toLocalDay = (value: string | null | undefined): string | null => {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : toLocalDateStr(d);
+  };
 
   // Only weights whose certificate is still valid + active
   const validWeights = (weights ?? []).filter(
@@ -148,7 +162,7 @@ export default function ScaleVerificationPage() {
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div className="text-xs uppercase text-gray-500">{t('tiles.verificationsToday')}</div>
-          <div className="text-3xl font-bold text-gray-900 mt-1">{scales.filter((s) => s.lastVerifiedAt?.slice(0, 10) === today).length}</div>
+          <div className="text-3xl font-bold text-gray-900 mt-1">{scales.filter((s) => toLocalDay(s.lastVerifiedAt) === today).length}</div>
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
           <div>
