@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -43,15 +44,21 @@ interface InspectionRow {
   notes: string | null;
 }
 
-const typeLabel = (t: string) =>
-  ({ incoming: 'ตรวจรับ', in_process: 'ระหว่างผลิต', finished: 'สำเร็จรูป', ad_hoc: 'ทั่วไป' })[t] ||
-  t;
+type TFunc = (key: string) => string;
 
-const resultBadge = (r: string) => {
+const typeLabel = (t: TFunc, type: string) =>
+  ({
+    incoming: t('qcInspections.types.incoming'),
+    in_process: t('qcInspections.types.inProcess'),
+    finished: t('qcInspections.types.finished'),
+    ad_hoc: t('qcInspections.types.adHoc'),
+  })[type] || type;
+
+const resultBadge = (t: TFunc, r: string) => {
   const map: Record<string, { label: string; cls: string }> = {
-    pending: { label: 'รอผล', cls: 'bg-amber-100 text-amber-700' },
-    pass: { label: '✓ ผ่าน', cls: 'bg-emerald-100 text-emerald-700' },
-    fail: { label: '✗ ไม่ผ่าน', cls: 'bg-red-100 text-red-700' },
+    pending: { label: t('qcInspections.results.pending'), cls: 'bg-amber-100 text-amber-700' },
+    pass: { label: `✓ ${t('qcInspections.results.pass')}`, cls: 'bg-emerald-100 text-emerald-700' },
+    fail: { label: `✗ ${t('qcInspections.results.fail')}`, cls: 'bg-red-100 text-red-700' },
   };
   const m = map[r] || map.pending;
   return <Badge className={m.cls}>{m.label}</Badge>;
@@ -59,6 +66,7 @@ const resultBadge = (r: string) => {
 
 export default function QcInspectionsPage() {
   const toast = useToast();
+  const t = useTranslations('quality');
   const [rows, setRows] = useState<InspectionRow[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrderLite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +112,7 @@ export default function QcInspectionsPage() {
           : [],
       );
     } catch (e) {
-      toast.error('โหลดข้อมูลไม่สำเร็จ', (e as Error).message);
+      toast.error(t('qcInspections.toast.loadFailed'), (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -134,7 +142,7 @@ export default function QcInspectionsPage() {
 
   const submit = async () => {
     if (!form.subject.trim()) {
-      toast.error('กรุณากรอกเรื่องที่ตรวจ');
+      toast.error(t('qcInspections.toast.subjectRequired'));
       return;
     }
     const res = await fetch('/api/quality/qc-inspections', {
@@ -144,10 +152,10 @@ export default function QcInspectionsPage() {
     });
     const json = await res.json();
     if (!res.ok) {
-      toast.error('บันทึกไม่สำเร็จ', json?.error);
+      toast.error(t('qcInspections.toast.saveFailed'), json?.error);
       return;
     }
-    toast.success(`สร้างใบตรวจ ${json.data.inspectionNumber}`);
+    toast.success(t('qcInspections.toast.created', { inspectionNumber: json.data.inspectionNumber }));
     setShowAdd(false);
     setForm({
       inspectionType: 'incoming',
@@ -174,10 +182,10 @@ export default function QcInspectionsPage() {
     });
     if (!res.ok) {
       const j = await res.json();
-      toast.error('อัปเดตไม่สำเร็จ', j?.error);
+      toast.error(t('qcInspections.toast.updateFailed'), j?.error);
       return;
     }
-    toast.success('อัปเดตผลการตรวจแล้ว');
+    toast.success(t('qcInspections.toast.updated'));
     // Close the dialog so the user lands back on the (refreshed) list and can
     // see the updated result in the table — leaving it open looked like nothing
     // happened / the row "disappeared".
@@ -186,15 +194,15 @@ export default function QcInspectionsPage() {
   };
 
   const columns: DxDataGridColumn[] = [
-    { dataField: 'inspectionNumber', caption: 'เลขที่', width: 140 },
-    { dataField: 'inspectedAt', caption: 'วันที่', dataType: 'datetime', width: 150 },
+    { dataField: 'inspectionNumber', caption: t('qcInspections.columns.number'), width: 140 },
+    { dataField: 'inspectedAt', caption: t('qcInspections.columns.date'), dataType: 'datetime', width: 150 },
     {
       dataField: 'inspectionType',
-      caption: 'ประเภท',
+      caption: t('qcInspections.columns.type'),
       width: 120,
-      cellRender: (c: any) => typeLabel(c.value),
+      cellRender: (c: any) => typeLabel(t, c.value),
     },
-    { dataField: 'subject', caption: 'เรื่อง' },
+    { dataField: 'subject', caption: t('qcInspections.columns.subject') },
     {
       dataField: 'workOrderNumber',
       caption: 'WO / eBMR',
@@ -216,13 +224,13 @@ export default function QcInspectionsPage() {
     },
     {
       dataField: 'overallResult',
-      caption: 'ผล',
+      caption: t('qcInspections.columns.result'),
       width: 110,
-      cellRender: (c: any) => resultBadge(c.value),
+      cellRender: (c: any) => resultBadge(t, c.value),
     },
-    { dataField: 'inspectorName', caption: 'ผู้ตรวจ', width: 130 },
+    { dataField: 'inspectorName', caption: t('qcInspections.columns.inspector'), width: 130 },
     {
-      caption: 'ดำเนินการ',
+      caption: t('qcInspections.columns.action'),
       width: 170,
       alignment: 'center',
       cellRender: (c: any) => (
@@ -231,7 +239,7 @@ export default function QcInspectionsPage() {
           onClick={() => setDetail(c.data as InspectionRow)}
           data-testid={`open-detail-${c.data.id}`}
         >
-          รายละเอียด / บันทึกผล
+          {t('qcInspections.detailButton')}
         </button>
       ),
     },
@@ -240,11 +248,11 @@ export default function QcInspectionsPage() {
   return (
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
-          title="ใบตรวจ QC"
-          subtitle="แบบบันทึกการตรวจคุณภาพของฝ่าย QC — สามารถดู eBMR ของฝ่ายผลิตได้"
+          title={t('qcInspections.title')}
+          subtitle={t('qcInspections.subtitle')}
           actions={
             <DxButton
-              text="+ ใบตรวจใหม่"
+              text={t('qcInspections.addInspection')}
               type="default"
               onClick={() => setShowAdd(true)}
               data-testid="qc-inspection-add"
@@ -253,21 +261,21 @@ export default function QcInspectionsPage() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="ทั้งหมด" value={stats.total} icon={ClipboardList} />
-          <StatCard label="รอผล" value={stats.pending} icon={Clock} iconColor="text-amber-500" />
-          <StatCard label="ผ่าน" value={stats.pass} icon={CheckCircle2} iconColor="text-emerald-500" />
-          <StatCard label="ไม่ผ่าน" value={stats.fail} icon={XCircle} iconColor="text-red-500" />
+          <StatCard label={t('qcInspections.stats.total')} value={stats.total} icon={ClipboardList} />
+          <StatCard label={t('qcInspections.stats.pending')} value={stats.pending} icon={Clock} iconColor="text-amber-500" />
+          <StatCard label={t('qcInspections.stats.pass')} value={stats.pass} icon={CheckCircle2} iconColor="text-emerald-500" />
+          <StatCard label={t('qcInspections.stats.fail')} value={stats.fail} icon={XCircle} iconColor="text-red-500" />
         </div>
 
         <div className="flex items-center gap-3 bg-white border rounded-lg p-3">
           <DxSelectBox
-            placeholder="ประเภท..."
+            placeholder={t('qcInspections.typePlaceholder')}
             dataSource={[
-              { id: null, name: 'ทุกประเภท' },
-              { id: 'incoming', name: 'ตรวจรับ' },
-              { id: 'in_process', name: 'ระหว่างผลิต' },
-              { id: 'finished', name: 'สำเร็จรูป' },
-              { id: 'ad_hoc', name: 'ทั่วไป' },
+              { id: null, name: t('qcInspections.types.all') },
+              { id: 'incoming', name: t('qcInspections.types.incoming') },
+              { id: 'in_process', name: t('qcInspections.types.inProcess') },
+              { id: 'finished', name: t('qcInspections.types.finished') },
+              { id: 'ad_hoc', name: t('qcInspections.types.adHoc') },
             ]}
             valueExpr="id"
             displayExpr="name"
@@ -290,19 +298,19 @@ export default function QcInspectionsPage() {
         <DxPopup
           visible={showAdd}
           onHiding={() => setShowAdd(false)}
-          title="ใบตรวจใหม่"
+          title={t('qcInspections.addDialog.title')}
           width={600}
           height="auto"
           showCloseButton
         >
           <div className="space-y-3 p-2">
             <DxSelectBox
-              placeholder="ประเภทการตรวจ *"
+              placeholder={t('qcInspections.addDialog.typePlaceholder')}
               dataSource={[
-                { id: 'incoming', name: 'ตรวจรับ' },
-                { id: 'in_process', name: 'ระหว่างผลิต' },
-                { id: 'finished', name: 'สำเร็จรูป' },
-                { id: 'ad_hoc', name: 'ทั่วไป' },
+                { id: 'incoming', name: t('qcInspections.types.incoming') },
+                { id: 'in_process', name: t('qcInspections.types.inProcess') },
+                { id: 'finished', name: t('qcInspections.types.finished') },
+                { id: 'ad_hoc', name: t('qcInspections.types.adHoc') },
               ]}
               valueExpr="id"
               displayExpr="name"
@@ -318,13 +326,13 @@ export default function QcInspectionsPage() {
               <DxSelectBox
                 placeholder={
                   form.inspectionType === 'finished'
-                    ? 'Work Order ที่ผลิตเสร็จ (เลือกเพื่อเปิด eBMR)'
+                    ? t('qcInspections.addDialog.woPlaceholderFinished')
                     : form.inspectionType === 'in_process'
-                      ? 'Work Order ที่กำลังผลิต (เลือกเพื่อเปิด eBMR)'
-                      : 'Work Order (เลือกถ้ามี — จะสามารถเปิด eBMR ได้)'
+                      ? t('qcInspections.addDialog.woPlaceholderInProcess')
+                      : t('qcInspections.addDialog.woPlaceholderDefault')
                 }
                 dataSource={[
-                  { id: null as number | null, name: '— ไม่ระบุ WO —' },
+                  { id: null as number | null, name: t('qcInspections.addDialog.woNone') },
                   ...filteredWorkOrders.map((w) => ({
                     id: w.id as number | null,
                     name: woOptionLabel(w),
@@ -338,44 +346,43 @@ export default function QcInspectionsPage() {
                 searchEnabled
                 noDataText={
                   form.inspectionType === 'finished'
-                    ? 'ยังไม่มี Work Order ที่ผลิตเสร็จ'
-                    : 'ยังไม่มี Work Order ที่กำลังผลิต'
+                    ? t('qcInspections.addDialog.woNoDataFinished')
+                    : t('qcInspections.addDialog.woNoDataInProcess')
                 }
               />
             ) : (
               <div className="text-xs text-gray-500 bg-gray-50 border rounded px-3 py-2">
-                การตรวจรับ (Incoming) เป็นการตรวจวัตถุดิบขาเข้า — ไม่ผูกกับ Work Order
-                ฝ่ายผลิต โปรดระบุ Batch number ของวัตถุดิบด้านล่าง
+                {t('qcInspections.addDialog.incomingNote')}
               </div>
             )}
             <DxTextBox
               placeholder={
                 form.inspectionType === 'incoming'
-                  ? 'Batch number ของวัตถุดิบ *'
-                  : 'Batch number (กรอกได้ถ้าไม่มี WO)'
+                  ? t('qcInspections.addDialog.batchPlaceholderIncoming')
+                  : t('qcInspections.addDialog.batchPlaceholderDefault')
               }
               value={form.batchNumber}
               onValueChanged={(e) => setForm({ ...form, batchNumber: e.value || '' })}
               data-testid="qc-inspection-batch"
             />
             <DxTextBox
-              placeholder="เรื่องที่ตรวจ *"
+              placeholder={t('qcInspections.addDialog.subjectPlaceholder')}
               value={form.subject}
               onValueChanged={(e) => setForm({ ...form, subject: e.value || '' })}
               data-testid="qc-inspection-subject"
             />
             <DxTextArea
-              placeholder="ผลที่พบ"
+              placeholder={t('qcInspections.addDialog.findingsPlaceholder')}
               value={form.findings}
               onValueChanged={(e) => setForm({ ...form, findings: e.value || '' })}
               height={100}
             />
             <DxSelectBox
-              placeholder="ผลโดยรวม"
+              placeholder={t('qcInspections.addDialog.overallResultPlaceholder')}
               dataSource={[
-                { id: 'pending', name: 'รอผล' },
-                { id: 'pass', name: '✓ ผ่าน' },
-                { id: 'fail', name: '✗ ไม่ผ่าน' },
+                { id: 'pending', name: t('qcInspections.results.pending') },
+                { id: 'pass', name: `✓ ${t('qcInspections.results.pass')}` },
+                { id: 'fail', name: `✗ ${t('qcInspections.results.fail')}` },
               ]}
               valueExpr="id"
               displayExpr="name"
@@ -383,15 +390,15 @@ export default function QcInspectionsPage() {
               onValueChanged={(e) => setForm({ ...form, overallResult: e.value })}
             />
             <DxTextArea
-              placeholder="หมายเหตุ"
+              placeholder={t('qcInspections.addDialog.notesPlaceholder')}
               value={form.notes}
               onValueChanged={(e) => setForm({ ...form, notes: e.value || '' })}
               height={60}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <DxButton text="ยกเลิก" onClick={() => setShowAdd(false)} />
+              <DxButton text={t('qcInspections.actions.cancel')} onClick={() => setShowAdd(false)} />
               <DxButton
-                text="บันทึก"
+                text={t('qcInspections.actions.save')}
                 type="success"
                 onClick={submit}
                 data-testid="qc-inspection-submit"
@@ -416,30 +423,30 @@ export default function QcInspectionsPage() {
             <div className="space-y-3 p-2 h-full overflow-y-auto">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="text-gray-500">ประเภท:</span> {typeLabel(detail.inspectionType)}
+                  <span className="text-gray-500">{t('qcInspections.detail.type')}:</span> {typeLabel(t, detail.inspectionType)}
                 </div>
                 <div>
-                  <span className="text-gray-500">ผู้ตรวจ:</span> {detail.inspectorName || '—'}
+                  <span className="text-gray-500">{t('qcInspections.detail.inspector')}:</span> {detail.inspectorName || '—'}
                 </div>
                 <div>
-                  <span className="text-gray-500">วันที่:</span>{' '}
+                  <span className="text-gray-500">{t('qcInspections.detail.date')}:</span>{' '}
                   {new Date(detail.inspectedAt).toLocaleString('th-TH')}
                 </div>
                 <div>
-                  <span className="text-gray-500">ผล:</span> {resultBadge(detail.overallResult)}
+                  <span className="text-gray-500">{t('qcInspections.detail.result')}:</span> {resultBadge(t, detail.overallResult)}
                 </div>
                 <div className="col-span-2">
-                  <span className="text-gray-500">เรื่อง:</span> {detail.subject}
+                  <span className="text-gray-500">{t('qcInspections.detail.subject')}:</span> {detail.subject}
                 </div>
                 {!detail.workOrderId && detail.batchNumber && (
                   <div className="col-span-2">
-                    <span className="text-gray-500">รุ่นการผลิต:</span> {detail.batchNumber}
+                    <span className="text-gray-500">{t('qcInspections.detail.batch')}:</span> {detail.batchNumber}
                   </div>
                 )}
                 {detail.workOrderId && (
                   <div className="col-span-2 bg-blue-50 border border-blue-200 rounded p-2 flex items-center justify-between">
                     <span>
-                      ผูกกับ {detail.workOrderNumber || `WO#${detail.workOrderId}`}
+                      {t('qcInspections.detail.linkedWith')} {detail.workOrderNumber || `WO#${detail.workOrderId}`}
                     </span>
                     <Link
                       href={`/production/work-orders/${detail.workOrderId}`}
@@ -447,14 +454,14 @@ export default function QcInspectionsPage() {
                       className="text-blue-700 hover:underline text-sm flex items-center gap-1"
                       data-testid="detail-open-ebmr"
                     >
-                      เปิด eBMR ของฝ่ายผลิต <ExternalLink className="w-3 h-3" />
+                      {t('qcInspections.detail.openEbmr')} <ExternalLink className="w-3 h-3" />
                     </Link>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">ผลที่พบ</label>
+                <label className="block text-sm font-medium mb-1">{t('qcInspections.detail.findingsLabel')}</label>
                 <DxTextArea
                   value={detail.findings || ''}
                   onValueChanged={(e) => setDetail({ ...detail, findings: e.value || '' })}
@@ -463,7 +470,7 @@ export default function QcInspectionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
+                <label className="block text-sm font-medium mb-1">{t('qcInspections.detail.notesLabel')}</label>
                 <DxTextArea
                   value={detail.notes || ''}
                   onValueChanged={(e) => setDetail({ ...detail, notes: e.value || '' })}
@@ -474,20 +481,20 @@ export default function QcInspectionsPage() {
               <AttachmentPanel
                 moduleName="qc_inspection"
                 entityId={detail.id}
-                title="เอกสาร / รูปภาพประกอบการตรวจ"
+                title={t('qcInspections.detail.attachmentsTitle')}
                 testIdBase="qc-inspection-attachments"
               />
 
               <div className="flex justify-end gap-2 pt-2 border-t">
-                <DxButton text="ปิด" onClick={() => setDetail(null)} />
+                <DxButton text={t('qcInspections.actions.close')} onClick={() => setDetail(null)} />
                 <DxButton
-                  text="บันทึกผลไม่ผ่าน"
+                  text={t('qcInspections.detail.saveFail')}
                   type="danger"
                   onClick={() => updateDetail('fail')}
                   data-testid="qc-inspection-fail"
                 />
                 <DxButton
-                  text="บันทึกผลผ่าน"
+                  text={t('qcInspections.detail.savePass')}
                   type="success"
                   onClick={() => updateDetail('pass')}
                   data-testid="qc-inspection-pass"
@@ -498,7 +505,7 @@ export default function QcInspectionsPage() {
           }
         />
 
-        {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
+        {loading && <div className="text-center text-gray-500 py-4">{t('qcInspections.loading')}</div>}
       </div>
   );
 }

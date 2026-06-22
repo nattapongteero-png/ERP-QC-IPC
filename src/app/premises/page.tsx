@@ -10,6 +10,7 @@
  */
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import {
   Building2,
@@ -27,63 +28,64 @@ const cards = [
     icon: Thermometer,
     iconBg: 'bg-blue-100',
     iconColor: 'text-blue-600',
-    titleTh: 'ติดตามสภาพคลังจัดเก็บ',
+    titleKey: 'hub.storageMonitoring.title',
     titleEn: 'Storage Monitoring',
-    desc: 'ติดตามอุณหภูมิ/ความชื้นของคลังจัดเก็บตามเวลา',
+    descKey: 'hub.storageMonitoring.desc',
   },
   {
     href: '/premises/environmental/inspections',
     icon: Thermometer,
     iconBg: 'bg-teal-100',
     iconColor: 'text-teal-600',
-    titleTh: 'ตรวจสภาพแวดล้อม',
+    titleKey: 'hub.environmentalInspection.title',
     titleEn: 'Environmental Inspection',
-    desc: 'บันทึกตรวจสภาพแวดล้อมพื้นที่ผลิตตามรอบ (อุณหภูมิ/ความชื้น/สภาพพื้นที่)',
+    descKey: 'hub.environmentalInspection.desc',
   },
   {
     href: '/premises/scale-verification',
     icon: Scale,
     iconBg: 'bg-cyan-100',
     iconColor: 'text-cyan-600',
-    titleTh: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)',
+    titleKey: 'hub.scaleVerification.title',
     titleEn: 'Scale Verification',
-    desc: 'ตรวจสอบเครื่องชั่งด้วยลูกตุ้มมาตรฐานก่อนใช้งาน (ตั้งค่าทะเบียนลูกตุ้มที่ Master Data > ทะเบียนลูกตุ้มมาตรฐาน)',
+    descKey: 'hub.scaleVerification.desc',
   },
   {
     href: '/premises/sanitation',
     icon: Sparkles,
     iconBg: 'bg-lime-100',
     iconColor: 'text-lime-600',
-    titleTh: 'การจัดการสุขาภิบาล',
+    titleKey: 'hub.sanitation.title',
     titleEn: 'Sanitation',
-    desc: 'บันทึกการทำความสะอาด ตารางสุขาภิบาล แนวโน้ม และการกำจัดสัตว์พาหะ',
+    descKey: 'hub.sanitation.desc',
   },
   {
     href: '/premises/environmental/water-quality',
     icon: Droplets,
     iconBg: 'bg-cyan-100',
     iconColor: 'text-cyan-600',
-    titleTh: 'ระบบน้ำ (Water Quality)',
+    titleKey: 'hub.waterQuality.title',
     titleEn: 'Water Quality',
-    desc: 'คุณภาพน้ำของระบบสาธารณูปโภค (utility) ตามเกณฑ์',
+    descKey: 'hub.waterQuality.desc',
   },
   {
     href: '/premises/notifications',
     icon: Bell,
     iconBg: 'bg-amber-100',
     iconColor: 'text-amber-600',
-    titleTh: 'แจ้งเตือนการบำรุงรักษา',
+    titleKey: 'hub.notifications.title',
     titleEn: 'Maintenance Alerts',
-    desc: 'งานบำรุงรักษา/สอบเทียบที่ถึงกำหนด + ผลตรวจเกินเกณฑ์ (มีทั้งมุมมองรายการและปฏิทิน)',
+    descKey: 'hub.notifications.desc',
   },
 ];
 
 export default function PremisesHubPage() {
+  const t = useTranslations('premises');
   return (
     <div className="space-y-6">
       <ResponsivePageHeader
-        title="อาคารและสถานที่"
-        subtitle="Premises & Facilities — บันทึกตาม GMP หมวดอาคารสถานที่และเครื่องมือ"
+        title={t('hub.title')}
+        subtitle={t('hub.subtitle')}
         icon={Building2}
       />
 
@@ -100,11 +102,11 @@ export default function PremisesHubPage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">{c.titleTh}</h3>
+                <h3 className="font-semibold text-gray-900">{t(c.titleKey)}</h3>
                 <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-emerald-500" />
               </div>
               <p className="text-xs text-gray-400">{c.titleEn}</p>
-              <p className="mt-1 text-sm text-gray-600">{c.desc}</p>
+              <p className="mt-1 text-sm text-gray-600">{t(c.descKey)}</p>
             </div>
           </Link>
         ))}

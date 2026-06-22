@@ -144,7 +144,14 @@
       "notAssigned": "Not assigned",
       "unknown": "Unknown",
       "unknownProduct": "Unknown Product",
-      "viewProtocol": "View Protocol"
+      "viewProtocol": "View Protocol",
+      "workflowTitle": "Workflow Status",
+      "steps": {
+        "pending": "Pending",
+        "active": "In Study",
+        "on_hold": "On Hold",
+        "completed": "Completed"
+      }
     },
     "columns": {
       "protocolNumber": "Protocol Number",
@@ -214,6 +221,27 @@
       "testsCompletedLegend": "Tests Completed",
       "samplesTestedSuffix": "samples tested",
       "thisMonth": "this month"
+    },
+    "newStudy": {
+      "createSuccess": "Study {studyNumber} created successfully",
+      "createFailed": "Unable to create the study",
+      "requiredFieldsError": "Please fill in all required fields (protocol, lot, and start date)",
+      "title": "Create New Stability Study",
+      "subtitle": "Enroll a batch (lot) into an approved stability protocol",
+      "saveStudy": "Save Study",
+      "studyInfo": "Study Information",
+      "protocolLabel": "Protocol",
+      "protocolPlaceholder": "Select an approved protocol...",
+      "noApprovedProtocols": "No approved protocols yet. Please approve a protocol first.",
+      "lotLabel": "Lot / Batch",
+      "lotPlaceholder": "Select a lot...",
+      "startDateLabel": "Start Date",
+      "startDatePlaceholder": "Select a start date...",
+      "chamberLabel": "Chamber Location",
+      "chamberPlaceholder": "e.g. Chamber A-1 (optional)",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Additional notes (optional)",
+      "validationHint": "Please select a protocol, lot, and specify a start date to save"
     }
   },
   "capa": {
@@ -368,6 +396,160 @@
     "resultCountSingular": "{count} CAPA shown",
     "mobile": {
       "viewDetails": "View Details"
+    },
+    "detail": {
+      "deleteConfirm": "Delete this CAPA? Only entries that have not yet been actioned (status \"Open\") can be deleted.",
+      "deleteFailed": "Delete failed",
+      "notFound": "CAPA not found",
+      "loadingDetails": "Loading CAPA details...",
+      "backToList": "Back to CAPA List",
+      "print": "Print",
+      "edit": "Edit",
+      "delete": "Delete",
+      "closeCapa": "Close CAPA",
+      "workflowTitle": "Workflow Status",
+      "generalInfo": "General Information",
+      "rootCauseAnalysis": "Root Cause Analysis",
+      "rootCauseCategory": "Category (5M+E):",
+      "analysisDetail": "Analysis Details:",
+      "noRootCause": "No root cause analysis yet",
+      "riskDetails": "Risk Details",
+      "severityLabel": "Severity",
+      "probabilityLabel": "Probability",
+      "riskScore": "Risk Score",
+      "riskLevel": "Risk Level",
+      "riskJustification": "Justification:",
+      "impactAssessment": "Impact Assessment",
+      "impactScope": "Impact Scope",
+      "patientImpact": "Patient Impact",
+      "regulatoryNotificationRequired": "Regulatory Notification Required",
+      "notificationDate": "Notification Date",
+      "approvalHistory": "Approval History",
+      "noApprovalHistory": "No approval history yet",
+      "attachmentsTitle": "Attachments",
+      "cannotCloseTitle": "CAPA cannot be closed yet",
+      "cannotCloseActions": "All actions must be completed ({completed}/{total})",
+      "cannotCloseEffectiveness": "At least one effectiveness check must show a result of \"Effective\"",
+      "tabs": {
+        "overview": "Overview",
+        "actions": "Actions",
+        "effectiveness": "Effectiveness",
+        "riskAssessment": "Risk Assessment",
+        "attachments": "Attachments",
+        "approvals": "Approvals"
+      },
+      "metrics": {
+        "actions": "Actions",
+        "completed": "Completed",
+        "dueDate": "Due Date",
+        "closedOn": "Closed on",
+        "risk": "Risk",
+        "effectiveness": "Effectiveness",
+        "effective": "Effective",
+        "pendingCheck": "Pending Check",
+        "checkCount": "{count} check(s)"
+      },
+      "type": {
+        "corrective": "Corrective",
+        "preventive": "Preventive",
+        "both": "Corrective/Preventive"
+      },
+      "typeLong": {
+        "corrective": "Corrective",
+        "preventive": "Preventive",
+        "both": "Corrective/Preventive (Both)"
+      },
+      "source": {
+        "deviation": "Deviation",
+        "complaint": "Complaint",
+        "auditFinding": "Audit Finding",
+        "other": "Other"
+      },
+      "fields": {
+        "type": "Type",
+        "source": "Source",
+        "referenceNumber": "Reference Number",
+        "owner": "Owner",
+        "createdBy": "Created By",
+        "createdAt": "Created Date"
+      },
+      "workflowStatus": {
+        "open": "Open",
+        "investigation": "Investigation",
+        "actionPending": "Action Pending",
+        "verification": "Verification",
+        "pendingApproval": "Pending Approval",
+        "closed": "Closed",
+        "cancelled": "Cancelled"
+      },
+      "steps": {
+        "verifyEffectiveness": "Verify Effectiveness"
+      },
+      "severity": {
+        "negligible": "Negligible",
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "major": "Major",
+        "critical": "Critical"
+      },
+      "probability": {
+        "rare": "Rare",
+        "unlikely": "Unlikely",
+        "possible": "Possible",
+        "likely": "Likely",
+        "certain": "Certain"
+      },
+      "rootCauseCategories": {
+        "man": "Man",
+        "machine": "Machine",
+        "method": "Method",
+        "material": "Material",
+        "measurement": "Measurement",
+        "environment": "Environment"
+      },
+      "yesNo": {
+        "has": "Yes",
+        "hasNot": "No",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "approvalColumns": {
+        "role": "Role",
+        "approver": "Approver",
+        "status": "Status",
+        "comments": "Comments",
+        "signedAt": "Signed Date"
+      },
+      "approvalRoles": {
+        "owner": "Owner",
+        "qaReviewer": "QA Reviewer",
+        "qaManager": "QA Manager",
+        "plantManager": "Plant Manager"
+      },
+      "approvalStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "revisionRequired": "Revision Required"
+      },
+      "closure": {
+        "actionLabel": "Action",
+        "effectivenessLabel": "Effectiveness",
+        "riskLabel": "Risk Assessment",
+        "rootCauseLabel": "Root Cause",
+        "done": "done",
+        "noItems": "No items",
+        "passed": "Passed",
+        "noEffectiveResult": "No \"Effective\" result yet",
+        "notAssessed": "Not assessed",
+        "specified": "Specified",
+        "notSpecified": "Not specified",
+        "checklistTitle": "Verify completeness before closing the CAPA:",
+        "readyToClose": "All information complete — ready to close the CAPA",
+        "notesLabel": "Closure Notes (optional)",
+        "notesPlaceholder": "Add notes about closing this CAPA...",
+        "cannotClose": "The CAPA cannot be closed — please complete the missing information first"
+      }
     }
   },
   "complaints": {
@@ -482,7 +664,85 @@
     "noDataText": "No complaints found",
     "regulatoryTag": "Regulatory",
     "lotPrefix": "Lot",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "detail": {
+      "deleteFailed": "Failed to delete",
+      "deleteConfirm": "Delete this complaint?\nOnly newly received complaints (status \"received\") that have not yet been processed can be deleted",
+      "tabs": {
+        "overview": "Overview",
+        "investigation": "Investigation",
+        "attachments": "Attachments"
+      },
+      "loading": "Loading complaint details...",
+      "notFound": "Complaint not found",
+      "backToList": "Back to Complaints",
+      "print": "Print",
+      "delete": "Delete",
+      "deleteHint": "Delete complaint",
+      "heading": "Complaint {number}",
+      "unknownProduct": "Unknown Product",
+      "regulatoryRequired": "Regulatory notification required",
+      "edit": "Edit",
+      "createCapa": "Create CAPA",
+      "closeComplaint": "Close complaint",
+      "workflowTitle": "Workflow status",
+      "steps": {
+        "received": "Received",
+        "under_investigation": "Under investigation",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "metrics": {
+        "severity": "Severity",
+        "category": "Category",
+        "source": "Source",
+        "investigation": "Investigation"
+      },
+      "source": {
+        "customer": "Customer",
+        "distributor": "Distributor",
+        "regulatory": "Regulatory",
+        "internal": "Internal"
+      },
+      "investigationState": {
+        "completed": "Completed",
+        "inProgress": "In progress",
+        "pending": "Pending"
+      },
+      "notAssigned": "Not assigned",
+      "regulatoryBanner": {
+        "title": "Regulatory Report Required",
+        "reportedOn": "Reported on: {date}",
+        "notReported": "Not yet reported - please take action promptly"
+      },
+      "sections": {
+        "generalInfo": "General Information",
+        "complainantInfo": "Complainant Information",
+        "description": "Complaint Details",
+        "linkedRecords": "Linked Records",
+        "closureInfo": "Closure Information"
+      },
+      "fields": {
+        "complaintNumber": "Complaint Number",
+        "receivedDate": "Received Date",
+        "product": "Product",
+        "lotNumber": "Lot Number",
+        "createdBy": "Created By",
+        "createdAt": "Created At",
+        "name": "Name",
+        "contact": "Contact",
+        "closedDate": "Closed Date",
+        "closedBy": "Closed By"
+      },
+      "noComplainantInfo": "No complainant information provided",
+      "attachmentsTitle": "Attachments",
+      "closeDialog": {
+        "investigationDone": "Investigation completed",
+        "readyToClose": "This complaint is ready to be closed",
+        "notesLabel": "Closure notes (optional)",
+        "notesPlaceholder": "Add notes about closing this complaint..."
+      }
+    }
   },
   "documents": {
     "title": "Documents",
@@ -572,6 +832,104 @@
       "viewDocument": "View document",
       "editDocument": "Edit document",
       "deleteDraft": "Delete draft document"
+    },
+    "detail": {
+      "version": "Version {number}",
+      "download": "Download",
+      "openInNewTab": "Open in new tab",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "loadingPdf": "Loading PDF...",
+      "previewUnavailable": "Preview unavailable",
+      "pdfPreviewUnavailable": "The PDF file cannot be displayed in the browser. Please download it to view.",
+      "downloadPdf": "Download PDF",
+      "downloadFile": "Download file",
+      "fileTypePreviewUnavailable": "A preview is not available for this file type. Please download the file to view its content.",
+      "documentContent": "Document Content",
+      "documentPreview": "Document Preview",
+      "noContent": "No content",
+      "noContentDescription": "This version has no attached file or text content",
+      "fileType": {
+        "pdf": "PDF document",
+        "doc": "Word document (.doc)",
+        "docx": "Word document (.docx)",
+        "xls": "Excel spreadsheet (.xls)",
+        "xlsx": "Excel spreadsheet (.xlsx)",
+        "generic": "Document"
+      },
+      "statusLabels": {
+        "draft": "Draft",
+        "active": "Active",
+        "obsolete": "Obsolete",
+        "archived": "Archived"
+      },
+      "updateStatusFailed": "Failed to update status",
+      "loadingDocument": "Loading document...",
+      "loadFailed": "Failed to load document",
+      "change": "Change",
+      "trainingCourse": "Training Course: {code} - {name}",
+      "trainingCourseId": "Training Course #{id}",
+      "edit": "Edit",
+      "newVersion": "New Version",
+      "submitForApproval": "Submit for Approval",
+      "historical": "Historical",
+      "current": "Current",
+      "by": "By",
+      "unknown": "Unknown",
+      "effectiveDate": "Effective Date",
+      "workflowTitle": "Workflow Status",
+      "steps": {
+        "draft": "Draft",
+        "approved": "Approved",
+        "active": "Active",
+        "archived": "Archived",
+        "obsolete": "Obsolete"
+      },
+      "documentDetails": "Document Details",
+      "metaType": "Type",
+      "metaDepartment": "Department",
+      "metaCreatedBy": "Created By",
+      "metaCreatedAt": "Created Date",
+      "metaRetention": "Retention Period",
+      "retentionYears": "{years} year(s)",
+      "approvalStatus": "Approval Status",
+      "newVersionDialog": {
+        "title": "Create New Version",
+        "changeDescription": "Change Description",
+        "changeDescriptionPlaceholder": "Describe what changed in this version...",
+        "newContent": "New Content (if any)",
+        "newContentPlaceholder": "Enter the new document content...",
+        "attachFile": "Attach File (if any)",
+        "uploadHint": "Click to upload or drag and drop a file",
+        "uploadFormats": "PDF, DOC, DOCX, XLS, XLSX (max 10MB)",
+        "fileSizeError": "File size must not exceed 10MB",
+        "majorRevision": "Major Revision (increment the major version number)",
+        "uploading": "Uploading...",
+        "createVersion": "Create Version"
+      },
+      "submitDialog": {
+        "line1": "The system will submit version {version} for approval following the approval sequence of the document type.",
+        "line2": "The relevant approvers will be notified, and the version status will change to \"Pending Approval\".",
+        "send": "Submit"
+      },
+      "statusDialog": {
+        "title": "Change Document Status",
+        "currentStatus": "Current Status",
+        "newStatus": "New Status",
+        "warning": {
+          "active": "This action will set the document to Active status and make the current version effective.",
+          "draft": "This action will revert the document back to Draft status.",
+          "obsolete": "This action will make the document obsolete and supersede all versions.",
+          "archived": "This action will archive the document for historical reference only."
+        },
+        "updating": "Updating...",
+        "updateStatus": "Update Status"
+      }
+    },
+    "deleteConfirm": "Delete document \"{title}\" ({number})?\nDeleted documents cannot be recovered.",
+    "empty": {
+      "title": "No GMP documents yet",
+      "description": "Start managing your GMP documents by creating your first document."
     }
   },
   "internalAudit": {
@@ -710,7 +1068,154 @@
     "totalLabel": "Total",
     "daysSuffix": "d",
     "notAvailable": "N/A",
-    "percentOfTotal": "% of total"
+    "percentOfTotal": "% of total",
+    "auditDetail": {
+      "toast": {
+        "createFinding": {
+          "success": "Finding saved",
+          "error": "Failed to save finding"
+        },
+        "closeFinding": {
+          "success": "Finding closed",
+          "error": "Failed to close finding"
+        },
+        "start": {
+          "success": "Audit started",
+          "error": "Failed to start audit"
+        },
+        "complete": {
+          "success": "Audit completed",
+          "error": "Failed to complete audit"
+        }
+      },
+      "validation": {
+        "descriptionRequired": "Please enter a description"
+      },
+      "confirm": {
+        "closeFinding": "Close this finding?"
+      },
+      "categoryOptions": {
+        "observation": "Observation",
+        "minor": "Minor",
+        "major": "Major",
+        "critical": "Critical"
+      },
+      "chapterLabel": "Chapter {chapter}: {name}",
+      "chapterShort": "Chapter {chapter}",
+      "notFound": "Audit not found",
+      "backToAudits": "Back to audits",
+      "actions": {
+        "complete": "Complete",
+        "addFinding": "Add finding"
+      },
+      "stepper": {
+        "title": "Workflow status",
+        "scheduled": "Scheduled",
+        "inProgress": "In progress",
+        "completed": "Completed"
+      },
+      "fields": {
+        "status": "Status",
+        "type": "Type",
+        "scheduledDate": "Scheduled date",
+        "leadAuditor": "Lead auditor",
+        "gmpChapters": "GMP chapters",
+        "objectives": "Objectives",
+        "startedAt": "Started at",
+        "completedAt": "Completed at"
+      },
+      "summary": {
+        "total": "Total"
+      },
+      "findingsHeading": "Audit findings",
+      "findingPopup": {
+        "title": "Record finding",
+        "gmpChapter": "GMP chapter *",
+        "category": "Category *",
+        "description": "Description *",
+        "descriptionPlaceholder": "Describe the finding",
+        "evidence": "Evidence",
+        "evidencePlaceholder": "Supporting evidence",
+        "requirement": "GMP requirement reference",
+        "requirementPlaceholder": "e.g., Chapter 3 clause 3.1",
+        "capaRequired": "CAPA required",
+        "capaHint": "Major and critical findings generally require a CAPA",
+        "submit": "Save finding"
+      }
+    },
+    "auditsList": {
+      "toast": {
+        "create": {
+          "success": "Audit scheduled",
+          "error": "Failed to schedule audit"
+        },
+        "start": {
+          "success": "Audit started",
+          "error": "Failed to start audit"
+        },
+        "complete": {
+          "success": "Audit completed",
+          "error": "Failed to close audit"
+        }
+      },
+      "validation": {
+        "scopeRequired": "Please specify the audit scope",
+        "chaptersRequired": "Please select at least one GMP chapter"
+      },
+      "confirm": {
+        "start": "Do you want to start this audit?",
+        "complete": "Do you want to close this audit?"
+      },
+      "auditTypes": {
+        "internal": "Internal audit",
+        "external": "External audit",
+        "regulatory": "Regulatory audit"
+      },
+      "chapterLabel": "Chapter {chapter}: {name}",
+      "loadError": "Error loading audits",
+      "subtitleForPlan": "Audits for plan #{planId}",
+      "scheduleAudit": "Schedule audit",
+      "form": {
+        "auditType": "Audit type *",
+        "scheduledDate": "Scheduled date *",
+        "scope": "Audit scope *",
+        "scopePlaceholder": "e.g., Production area, QC laboratory",
+        "gmpChapters": "GMP chapters *",
+        "gmpChaptersPlaceholder": "Select GMP chapters to audit",
+        "objectives": "Objectives",
+        "objectivesPlaceholder": "Enter the audit objectives"
+      }
+    },
+    "plansList": {
+      "defaultPlanName": "Annual internal audit plan {year}",
+      "toast": {
+        "create": {
+          "success": "Audit plan created",
+          "error": "Failed to create audit plan"
+        },
+        "approve": {
+          "success": "Audit plan approved",
+          "error": "Failed to approve audit plan"
+        }
+      },
+      "validation": {
+        "nameRequired": "Please enter the audit plan name"
+      },
+      "confirm": {
+        "approve": "Are you sure you want to approve this audit plan?"
+      },
+      "loadError": "Error loading audit plans",
+      "createPlan": "Create plan",
+      "createPopupTitle": "Create audit plan",
+      "form": {
+        "planYear": "Plan year",
+        "name": "Plan name *",
+        "namePlaceholder": "Enter plan name",
+        "description": "Description",
+        "descriptionPlaceholder": "Enter plan details"
+      },
+      "create": "Create"
+    }
   },
   "recalls": {
     "title": "Recalls",
@@ -825,7 +1330,19 @@
       "customersIdentified": "Customers Identified",
       "unitsDistributed": "Units Distributed"
     },
-    "viewRecall": "View Recall"
+    "viewRecall": "View Recall",
+    "detail": {
+      "deleteFailed": "Delete failed",
+      "deleteConfirm": "Delete this recall?\nOnly recalls that were just initiated (status \"initiated\") and not yet executed can be deleted.",
+      "delete": "Delete",
+      "workflowTitle": "Workflow Status",
+      "steps": {
+        "initiated": "Recall Initiated",
+        "in_progress": "In Progress",
+        "completed": "Completed",
+        "closed": "Closed"
+      }
+    }
   },
   "sanitation": {
     "title": "Sanitation",
@@ -981,7 +1498,125 @@
       "description": "Try adjusting your search term or selecting a different tab."
     },
     "resultCount": "{count} of {total}",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "new": {
+      "changeTypes": {
+        "process": "Process",
+        "equipment": "Machinery/Equipment",
+        "document": "Document",
+        "supplier": "Vendor/Supplier",
+        "formula": "Manufacturing formula",
+        "other": "Other"
+      },
+      "validation": {
+        "titleRequired": "Please enter a title",
+        "ownerRequired": "Please select a change owner"
+      },
+      "groups": {
+        "basicInfo": "Basic information",
+        "changeDetails": "Change details",
+        "assessment": "Change assessment"
+      },
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "Brief description of the change",
+        "changeType": "Change type",
+        "priority": "Priority",
+        "owner": "Change owner",
+        "ownerPlaceholder": "Select an owner",
+        "targetDate": "Target date",
+        "targetDatePlaceholder": "Select a date",
+        "description": "Description",
+        "descriptionPlaceholder": "Details of the proposed change",
+        "justification": "Justification",
+        "justificationPlaceholder": "Why is this change necessary?",
+        "impactAssessment": "Impact assessment",
+        "impactAssessmentPlaceholder": "Which areas will this change affect?",
+        "riskAssessment": "Risk assessment",
+        "riskAssessmentPlaceholder": "What are the risks of not implementing this change?"
+      },
+      "submit": "Create change request",
+      "create": "Create",
+      "banner": {
+        "title": "Creating a draft change request",
+        "description": "This form creates a draft change request. After creation, you can add details and submit it for approval. All fields except the title and owner can be edited later."
+      }
+    },
+    "detail": {
+      "roles": {
+        "qa": "Quality Assurance",
+        "production": "Production",
+        "regulatory": "Regulatory Affairs",
+        "management": "Management"
+      },
+      "approvalStatus": {
+        "pending": "PENDING",
+        "approved": "APPROVED",
+        "rejected": "REJECTED"
+      },
+      "signed": "Signed",
+      "approve": "Approve",
+      "reject": "Reject",
+      "deleteFailed": "Delete failed",
+      "confirmDelete": "Delete this change request?\nOnly drafts (status \"draft\") can be deleted.",
+      "validation": {
+        "justificationRequired": "Justification is required before submitting for review",
+        "impactRequired": "Impact assessment is required before submitting for review",
+        "riskRequired": "Risk assessment is required before submitting for review"
+      },
+      "loadError": "Failed to load change request",
+      "submitForReview": "Submit for Review",
+      "markImplemented": "Mark as Implemented",
+      "closeChange": "Close Change",
+      "delete": "Delete",
+      "stepper": {
+        "title": "Workflow status",
+        "draft": "Draft",
+        "pendingReview": "Pending review",
+        "approved": "Approved",
+        "implemented": "Implemented",
+        "closed": "Closed"
+      },
+      "warning": {
+        "cannotSubmit": "Cannot submit for review yet",
+        "justificationRequired": "Justification is required",
+        "impactRequired": "Impact assessment is required",
+        "riskRequired": "Risk assessment is required"
+      },
+      "meta": {
+        "type": "Type",
+        "owner": "Owner",
+        "requester": "Requester",
+        "target": "Target",
+        "implemented": "Implemented"
+      },
+      "sections": {
+        "description": "Description",
+        "justification": "Justification",
+        "impactAssessment": "Impact Assessment",
+        "riskAssessment": "Risk Assessment"
+      },
+      "approvalWorkflow": "Approval Workflow",
+      "noApprovals": "Approvals will be created when submitted for review",
+      "approvalDialog": {
+        "approveTitle": "Approve Change Request",
+        "rejectTitle": "Reject Change Request",
+        "comments": "Comments",
+        "rejectPlaceholder": "Please explain why you are rejecting...",
+        "optionalPlaceholder": "Optional comments..."
+      },
+      "implementDialog": {
+        "title": "Mark Change as Implemented",
+        "notesLabel": "Implementation Notes (Optional)",
+        "notesPlaceholder": "Add notes about the implementation..."
+      },
+      "closeDialog": {
+        "title": "Close Change Request",
+        "verified": "Change has been implemented and verified",
+        "notesLabel": "Closure Notes (Optional)",
+        "notesPlaceholder": "Add any final notes..."
+      }
+    }
   },
   "contracts": {
     "title": "Contracts",
@@ -1072,7 +1707,137 @@
     },
     "generate": {
       "title": "Generate PQR Report",
-      "description": "Generate product quality review report"
+      "description": "Generate product quality review report",
+      "backToDashboard": "Back to PQR Dashboard",
+      "selectProduct": "Select Product",
+      "productLabel": "Product",
+      "productPlaceholder": "Select a finished product...",
+      "productHint": "Select a finished product for the quality review",
+      "reviewPeriod": "Review Period",
+      "reviewYearLabel": "Review Year",
+      "reviewYearHint": "The year being reviewed (typically the previous year)",
+      "periodStartLabel": "Period Start Date",
+      "periodEndLabel": "Period End Date",
+      "periodDefaultHint": "Defaults to the full calendar year (Jan 1 - Dec 31)",
+      "previewTitle": "Report Preview",
+      "previewProduct": "Product:",
+      "previewReviewYear": "Review Year:",
+      "previewPeriod": "Review Period:",
+      "periodRange": "{start} to {end}",
+      "previewReportNumber": "Report Number:",
+      "autoGeneratedNumber": "Auto-generated (PQR-{year}-XXX)",
+      "whatWillBeCreated": "What will be created:",
+      "created": {
+        "draftReport": "A draft PQR report with an auto-generated report number",
+        "dataAggregation": "Data aggregation from production batches, deviations, CAPA, and complaints",
+        "kpiCalculation": "KPI calculation and metric analysis",
+        "autoRecommendations": "Automatic recommendations from quality data"
+      },
+      "actionsTitle": "Actions",
+      "creating": "Creating...",
+      "createReport": "Generate Report",
+      "requiredInfo": "Required Information",
+      "enterReviewYear": "Enter the review year",
+      "aboutTitle": "About PQR Reports",
+      "aboutPqrTerm": "Product Quality Review (PQR)",
+      "aboutDescription": "is a comprehensive annual product quality review required by GMP regulations.",
+      "aboutAggregateIntro": "The system automatically aggregates data from:",
+      "aboutSource": {
+        "batches": "Production batches and yields",
+        "deviations": "Deviations and non-conformances",
+        "capa": "CAPA activities",
+        "complaints": "Customer complaints",
+        "oos": "Out-of-specification (OOS) results",
+        "stability": "Stability studies"
+      },
+      "aboutFooter": "After creation, you can review, edit, and submit the report for approval."
+    },
+    "list": {
+      "statusLabel": {
+        "draftDoc": "Draft",
+        "pendingReview": "Pending Review",
+        "approved": "Approved"
+      },
+      "percentOfTotal": "{percent}% of total",
+      "viewDetails": "View details",
+      "moreOptions": "More options",
+      "reports": "Reports",
+      "newPqr": "New PQR",
+      "kpi": {
+        "totalReports": "Total Reports",
+        "draft": "Draft",
+        "pendingReview": "Pending Review",
+        "approved": "Approved",
+        "approvedThisYear": "Approved in {year}",
+        "avgDeviation": "Average Deviation",
+        "avgOos": "Average OOS"
+      },
+      "sections": {
+        "reportsByStatus": "Reports by Status",
+        "statusDistribution": "Status Distribution",
+        "reportsByYear": "Reports by Year",
+        "avgMetrics": "Average Metrics",
+        "quickSummary": "Quick Summary"
+      },
+      "noReportData": "No report data",
+      "noYearData": "No yearly data",
+      "indicators": {
+        "deviationRate": "Deviation Rate",
+        "oosRate": "OOS Rate",
+        "capaClosure": "CAPA Closure",
+        "complaintRate": "Complaint Rate"
+      },
+      "approvedYear": "Approved {year}",
+      "tabs": {
+        "all": "All Reports",
+        "draft": "Draft",
+        "underReview": "Under Review",
+        "approved": "Approved"
+      },
+      "reportCount": "{count} reports",
+      "searchPlaceholder": "Search reports...",
+      "columns": {
+        "reportNumber": "Report Number",
+        "product": "Product",
+        "year": "Year",
+        "status": "Status",
+        "keyMetrics": "Key Metrics",
+        "batches": "Batches",
+        "approvedBy": "Approved By",
+        "createdAt": "Created At"
+      },
+      "summaryTotal": "Total: '{0}'",
+      "dialog": {
+        "title": "Create New PQR Report",
+        "subtitle": "Product Quality Review - Annual product quality review report",
+        "selectProduct": "Select Product *",
+        "change": "Change",
+        "clickToSelect": "Click to select a product...",
+        "finishedGoodsOnly": "Finished Goods only",
+        "reviewYear": "Review Year *",
+        "reviewYearHint": "Select the year for the product quality review (A.D.)",
+        "reviewPeriod": "Review Period",
+        "optional": "Optional",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "startDatePlaceholder": "Select start date...",
+        "endDatePlaceholder": "Select end date...",
+        "reviewPeriodHint": "Specify the period for collecting review data (normally Jan 1 - Dec 31)",
+        "autoCollectTitle": "Data collected automatically",
+        "autoCollect": {
+          "batches": "Number of batches produced in the period",
+          "deviations": "Deviation, CAPA, OOS, Complaints data",
+          "quality": "Quality test and Stability results",
+          "recall": "Recall and Market Returns data"
+        },
+        "requiredNote": "Required",
+        "creating": "Creating...",
+        "create": "Create PQR Report",
+        "itemSearchTitle": "Select product for PQR"
+      }
+    },
+    "detail": {
+      "workflowTitle": "Workflow status"
     }
   },
   "audits": {

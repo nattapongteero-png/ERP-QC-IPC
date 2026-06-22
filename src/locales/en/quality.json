@@ -261,6 +261,138 @@
     "overdue": {
       "daysOver": "{days} days overdue",
       "daysRemaining": "{days} days remaining"
+    },
+    "detail": {
+      "back": "Back",
+      "notFound": "Deviation not found",
+      "overdueBadge": "Overdue",
+      "updateCapa": "Update CAPA",
+      "cancel": "Cancel",
+      "save": "Save",
+      "printReport": "Print Report",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this deviation?\nOnly entries that have not yet been processed (status \"Open\") can be deleted",
+      "deleteFailed": "Delete failed",
+      "workflowStatus": "Workflow Status",
+      "tabs": {
+        "overview": "Overview",
+        "investigation": "Investigation",
+        "history": "History"
+      },
+      "type": {
+        "process": "Process Deviation",
+        "product": "Product Deviation",
+        "equipment": "Equipment Deviation",
+        "documentation": "Documentation Deviation",
+        "environmental": "Environmental Deviation",
+        "other": "Other"
+      },
+      "cards": {
+        "status": "Status",
+        "severity": "Severity",
+        "daysOpen": "Days Open",
+        "dueDate": "Due Date"
+      },
+      "overdueAlert": {
+        "title": "Deviation Overdue",
+        "message": "This deviation has passed its due date. Please take corrective action immediately."
+      },
+      "info": {
+        "title": "Deviation Information",
+        "number": "Deviation Number",
+        "type": "Type",
+        "titleField": "Title",
+        "description": "Description",
+        "reportedBy": "Reported By",
+        "reportedDate": "Reported Date",
+        "assignedTo": "Assigned To",
+        "dueDate": "Due Date"
+      },
+      "related": {
+        "title": "Related Records",
+        "itemCode": "Item Code",
+        "itemName": "Item Name",
+        "lotNumber": "Lot Number",
+        "lotStatus": "Lot Status",
+        "workOrder": "Work Order",
+        "batchNumber": "Batch Number",
+        "none": "No related records"
+      },
+      "investigation": {
+        "title": "Root Cause Investigation",
+        "rootCauseLabel": "Root Cause Analysis",
+        "rootCausePlaceholder": "Describe the root cause analysis using the 5-Why method or fishbone diagram...",
+        "rootCauseEmpty": "No root cause analysis recorded yet"
+      },
+      "capa": {
+        "createTitle": "Create Formal CAPA",
+        "createDescription": "Open a CAPA (Corrective and Preventive Action) record linked to this deviation to track actions and verify effectiveness",
+        "createButton": "Create CAPA from this deviation",
+        "correctiveTitle": "Corrective Action (CA)",
+        "correctivePlaceholder": "Describe the corrective action taken to address the immediate issue...",
+        "correctiveEmpty": "No corrective action recorded yet",
+        "preventiveTitle": "Preventive Action (PA)",
+        "preventivePlaceholder": "Describe the preventive action to avoid recurrence...",
+        "preventiveEmpty": "No preventive action recorded yet",
+        "statusUpdateTitle": "Update Status"
+      },
+      "history": {
+        "title": "Activity History",
+        "created": "Deviation Created",
+        "createdBy": "Created by {name}",
+        "unknown": "Unknown",
+        "closed": "Deviation Closed"
+      }
+    },
+    "new": {
+      "sourceTypePlaceholder": "Select source type...",
+      "titleRequired": "Please enter a title",
+      "descriptionRequired": "Please enter a description",
+      "severityDescription": {
+        "critical": "Requires immediate action. May affect product safety or efficacy.",
+        "major": "A significant deviation. Requires prompt attention and investigation.",
+        "minor": "A minor deviation that should be recorded and corrected."
+      },
+      "back": "Back",
+      "detailsTitle": "Deviation Details",
+      "titleLabel": "Title",
+      "titlePlaceholder": "A short description of the deviation",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe in detail what happened, when, where, and the initial actions taken...",
+      "classificationTitle": "Classification",
+      "sourceTypeLabel": "Source Type",
+      "severityLabel": "Severity",
+      "severityLevelLabel": "{level} Severity Level",
+      "timelineTitle": "Timeline",
+      "dueDateLabel": "Due Date",
+      "dueDatePlaceholder": "Select due date",
+      "recommendedTimelineLabel": "Recommended Timeline",
+      "timeline": {
+        "critical": "Critical: resolve within 3 days",
+        "major": "Major: resolve within 14 days",
+        "minor": "Minor: resolve within 30 days"
+      },
+      "actionsTitle": "Actions",
+      "creating": "Creating...",
+      "submit": "Report Deviation",
+      "cancel": "Cancel",
+      "loading": "Loading…",
+      "help": {
+        "title": "About Deviations",
+        "definition": "A deviation is any departure from an approved procedure, specification, or standard",
+        "reportWhen": "Report when:",
+        "case1": "A process parameter is out of limits",
+        "case2": "Equipment malfunctions",
+        "case3": "Test results are out of specification",
+        "case4": "A documentation error occurs",
+        "case5": "Environmental conditions deviate"
+      },
+      "severityGuide": {
+        "title": "Severity Classification",
+        "critical": "Directly affects product safety, patient health, or regulatory compliance",
+        "major": "Significantly impacts product quality or process control",
+        "minor": "Limited impact, easily corrected, no direct effect on quality"
+      }
     }
   },
   "tests": {
@@ -332,6 +464,124 @@
     "breadcrumbs": {
       "quality": "Quality",
       "tests": "Tests"
+    },
+    "detail": {
+      "resultPlaceholder": "Select result",
+      "resultRetest": "Requires Retest",
+      "dispositionSaved": "Disposition saved",
+      "dispositionApproved": "Disposition approved",
+      "dispositionApprovedWithLot": "Disposition approved. Lot status updated to: {status}",
+      "type": {
+        "incoming": "Incoming Inspection",
+        "in_process": "In-Process Control",
+        "finished": "Finished Product",
+        "stability": "Stability Testing",
+        "release": "Release Testing"
+      },
+      "notFound": "Quality test not found",
+      "back": "Back",
+      "enterResult": "Enter Result",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "saveResult": "Save Result",
+      "printReport": "Print Report",
+      "cards": {
+        "status": "Status",
+        "result": "Result",
+        "pending": "Pending",
+        "measuredValue": "Measured Value",
+        "specCompliance": "Specification Compliance",
+        "withinSpec": "Within Spec",
+        "outOfSpec": "Out of Spec",
+        "noData": "No Data"
+      },
+      "testInfo": {
+        "title": "Test Information",
+        "testCode": "Test Code",
+        "testType": "Test Type",
+        "testedBy": "Tested By",
+        "testedAt": "Test Date",
+        "notes": "Notes"
+      },
+      "spec": {
+        "title": "Specification",
+        "specCode": "Spec Code",
+        "parameter": "Parameter",
+        "method": "Method",
+        "unit": "Unit",
+        "minValue": "Min Value",
+        "maxValue": "Max Value",
+        "targetValue": "Target Value",
+        "measuredValue": "Measured Value",
+        "none": "No linked specification"
+      },
+      "sampleInfo": {
+        "title": "Sample Information",
+        "itemCode": "Item Code",
+        "itemName": "Item Name",
+        "lotNumber": "Lot Number",
+        "lotStatus": "Lot Status",
+        "expiryDate": "Expiry Date",
+        "workOrder": "Work Order",
+        "batchNumber": "Batch Number"
+      },
+      "resultForm": {
+        "title": "Enter Test Result",
+        "measuredValueLabel": "Measured Value",
+        "rangePlaceholder": "Range: {min} to {max}",
+        "valuePlaceholder": "Enter value",
+        "resultLabel": "Result",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Enter observations or notes"
+      }
+    },
+    "new": {
+      "testType": {
+        "incoming": "Incoming QC",
+        "in_process": "In-Process QC",
+        "final": "Final QC"
+      },
+      "selectLotAndSpec": "Please select a lot and test specification",
+      "specPlaceholder": "Select test specification...",
+      "critical": "Critical",
+      "back": "Back",
+      "loading": "Loading...",
+      "lotSelection": {
+        "title": "Select Lot",
+        "prompt": "Click the button to search and select a lot",
+        "selectButton": "Select Lot",
+        "quantityExpiry": "Quantity: {quantity} {unit} | Expiry: {expiry}",
+        "changeButton": "Change"
+      },
+      "specSelection": {
+        "title": "Test Specification",
+        "selectLotFirst": "Please select a lot first to view available test specifications",
+        "noSpecs": "No test specifications found for this item",
+        "selectTestLabel": "Select Test",
+        "method": "Method: {method}",
+        "specification": "Specification: {spec}",
+        "range": "Range: {min} to {max} {unit}"
+      },
+      "testDetails": {
+        "title": "Test Details",
+        "testTypeLabel": "Test Type",
+        "sampleNumberLabel": "Sample Number",
+        "sampleNumberPlaceholder": "Enter sample number (optional)"
+      },
+      "actionsTitle": "Actions",
+      "creating": "Creating...",
+      "submit": "Create Test",
+      "cancel": "Cancel",
+      "help": {
+        "title": "About Quality Testing",
+        "incomingLabel": "Incoming QC:",
+        "incomingText": "Testing of incoming raw materials before they are received into the warehouse",
+        "inProcessLabel": "In-Process QC:",
+        "inProcessText": "Testing during production to ensure quality at each step",
+        "finalLabel": "Final QC:",
+        "finalText": "Testing of finished products before release"
+      },
+      "lotDialogTitle": "Select Lot for QC Testing"
     }
   },
   "specs": {
@@ -392,6 +642,98 @@
     "breadcrumbs": {
       "quality": "Quality",
       "specifications": "Specifications"
+    },
+    "detail": {
+      "back": "Back",
+      "critical": "Critical",
+      "active": "Active",
+      "inactive": "Inactive",
+      "notFound": {
+        "title": "Specification not found",
+        "description": "The specification you are looking for does not exist",
+        "backButton": "Back to specifications"
+      },
+      "deleteConfirm": {
+        "title": "Delete this specification?",
+        "description": "This action cannot be undone. Specifications with tests cannot be deleted.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "grid": {
+        "testType": "Type",
+        "sample": "Sample",
+        "result": "Result",
+        "specRange": "Spec range (at test time)",
+        "usingCurrentValue": "Using current value (no snapshot)",
+        "testDate": "Test date",
+        "status": "Status"
+      }
+    },
+    "new": {
+      "back": "Back",
+      "validation": {
+        "selectItem": "Please select an item",
+        "enterTestName": "Please enter a test name"
+      },
+      "selectItem": {
+        "title": "Select item",
+        "change": "Change",
+        "clickToSelect": "Click to select an item...",
+        "dialogTitle": "Select item"
+      },
+      "testDetails": {
+        "title": "Test details",
+        "testName": "Test name",
+        "manageMaster": "Manage master →",
+        "testNameLoading": "Loading test list...",
+        "testNameNoMaster": "No master test parameter data yet",
+        "testNamePlaceholder": "Type to search or select from list...",
+        "testNameNoData": "No items match your search",
+        "testMethod": "Test method",
+        "testMethodPlaceholder": "e.g. USP <731>, AOAC 925.10",
+        "specification": "Specification (text)",
+        "specificationPlaceholder": "e.g. white to off-white powder, clear colorless liquid"
+      },
+      "acceptance": {
+        "title": "Acceptance criteria (numeric)",
+        "minValue": "Minimum value",
+        "minValuePlaceholder": "e.g. 5.0",
+        "maxValue": "Maximum value",
+        "maxValuePlaceholder": "e.g. 8.0",
+        "unit": "Unit",
+        "unitSelectTestFirst": "Select Test Name first",
+        "unitNone": "No unit bound to this test",
+        "unitPlaceholder": "Select unit...",
+        "unitNoData": "No units available for this test",
+        "unitNoMasterHint": "This test has no unit in master — edit it at",
+        "note": "Leave minimum/maximum blank if the test is pass/fail by text specification only"
+      },
+      "critical": {
+        "title": "Critical test parameter",
+        "checkbox": "Mark as a critical test",
+        "description": "A critical test is a parameter that directly affects product safety or efficacy. If a critical test fails, it may result in batch rejection."
+      },
+      "actions": {
+        "title": "Actions",
+        "creating": "Creating...",
+        "create": "Create specification",
+        "cancel": "Cancel"
+      },
+      "help": {
+        "title": "About specifications",
+        "testName": "<strong>Test name:</strong> the parameter being tested (e.g. pH, moisture, assay)",
+        "testMethod": "<strong>Test method:</strong> reference to the standard method used (e.g. USP, EP, in-house method)",
+        "minMax": "<strong>Min/Max value:</strong> numeric acceptance limits. Results outside these limits fail.",
+        "specification": "<strong>Specification:</strong> text description for non-numeric tests such as appearance, odor"
+      },
+      "masterData": {
+        "intro": "All Test Names and Units come from Master Data",
+        "bulletTestName": "• Test Name: search and select from dropdown",
+        "bulletUnit": "• Unit: filtered automatically by Test Name",
+        "bulletMissing": "• If the test / unit you need is missing — add it in Master first",
+        "goToLink": "Go to Master Data",
+        "loaded": "Loaded {count} test parameters"
+      }
     }
   },
   "items": {
@@ -399,6 +741,745 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "qcEntry": {
+    "list": {
+      "subtitle": "QC entry — register samples and record test results",
+      "breadcrumbQuality": "Quality",
+      "searchPlaceholder": "Search (Sample#, Lot#, product, customer)",
+      "dateFromPlaceholder": "From date",
+      "dateToPlaceholder": "To date",
+      "loading": "Loading...",
+      "noData": "No data found",
+      "confirmDelete": "Delete {sampleNumber}?",
+      "actions": {
+        "refresh": "Refresh",
+        "testPanels": "Configure Test Panels",
+        "registerNew": "Register new sample",
+        "view": "View",
+        "deleteHint": "Delete this item"
+      },
+      "columns": {
+        "index": "No.",
+        "sampleNumber": "Sample No.",
+        "receivedDate": "Received date",
+        "product": "Product",
+        "lotNumber": "Lot No.",
+        "sourceType": "Source",
+        "status": "Status",
+        "tests": "Tests",
+        "receivedBy": "Received by",
+        "actions": "Actions"
+      },
+      "testCounts": {
+        "fail": "{count} failed",
+        "pending": "{count} pending"
+      },
+      "kpi": {
+        "registered": "Registered (awaiting test)",
+        "testing": "Testing",
+        "reviewed": "Reviewed",
+        "releasedToday": "Released today"
+      },
+      "pending": {
+        "title": "Awaiting QC registration ({count})",
+        "hint": "— Received items awaiting checklist sign-off; the system registers the sample automatically when the checklist is signed",
+        "days": "{count} days"
+      },
+      "empty": {
+        "title": "No QC samples found",
+        "subtitle": "Try changing the search criteria or register a new sample"
+      },
+      "statusOptions": {
+        "all": "All statuses",
+        "registered": "Registered",
+        "testing": "Testing",
+        "reviewed": "Reviewed",
+        "approved": "Approved",
+        "released": "Released",
+        "rejected": "Rejected",
+        "quarantine": "Quarantine",
+        "oos": "OOS"
+      },
+      "sourceOptions": {
+        "all": "All sources",
+        "rawMaterialLot": "Incoming raw material",
+        "workOrderBatch": "Work order",
+        "customerReturn": "Customer return",
+        "stability": "Stability study",
+        "purchasedHerb": "Purchased herb from supplier",
+        "outgoingShipment": "Outgoing to customer (COA)",
+        "other": "Other"
+      },
+      "statusBadge": {
+        "registered": "Registered",
+        "testing": "Testing",
+        "reviewed": "Reviewed",
+        "approved": "Approved",
+        "released": "Released",
+        "rejected": "Rejected",
+        "quarantine": "Quarantine",
+        "oos": "OOS"
+      },
+      "toast": {
+        "deleteSuccess": "Deleted",
+        "deleteFailed": "Delete failed"
+      }
+    },
+    "new": {
+      "title": "Register + Requisition QC Sample",
+      "subtitle": "Draw from quarantine lot → deduct stock + register sample in one submission",
+      "selectLotLabel": "Select Lot ({count} lots in quarantine)",
+      "singleLotPrefix": "Single lot in quarantine",
+      "singleLotSuffix": "auto-filled",
+      "noProductInQuarantine": "No products in quarantine status",
+      "noLotInQuarantineHint": "No lots in \"quarantine\" status yet — please check at /inventory",
+      "bufferLabel": "Buffer (spare for retest)",
+      "applyDefaultPanelLabel": "Auto-apply this product's standard test panel",
+      "applyDefaultPanelHint": "The system pulls the test list from this product/category's Test Panels master and seeds it into the sample ready for recording",
+      "stockWarning": "Required draw ({totalDraw} {unit}) exceeds remaining in lot ({lotQty} {unit}) — reduce sample count / buffer / retain",
+      "actions": {
+        "cancel": "Cancel",
+        "register": "Register",
+        "saving": "Saving..."
+      },
+      "sections": {
+        "request": "Requester / Request",
+        "source": "Sample Source",
+        "product": "Product Information",
+        "sampleSize": "Sample Size Calculation",
+        "retainSample": "Retain Sample",
+        "customer": "Customer (for COA)",
+        "receipt": "Receipt Information"
+      },
+      "fields": {
+        "requestedBy": "Requested by",
+        "purpose": "Purpose",
+        "sourceType": "Source type",
+        "sourceRef": "Reference (PO#, WO#, Lot#, etc.)",
+        "product": "Product (only those with a quarantine lot)",
+        "lotNumber": "Lot Number",
+        "quantityRemaining": "Quantity remaining in lot",
+        "unit": "Unit",
+        "manufactureDate": "Manufacture date",
+        "expiryDate": "Expiry date",
+        "retestDate": "Retest date",
+        "storage": "Storage condition",
+        "retainQty": "Retain quantity",
+        "retainStorage": "Storage location",
+        "customer": "Customer",
+        "receivedDate": "Sample received date",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "requestedBy": "Name of sample requester",
+        "sourceRef": "e.g. PO-2569-0438",
+        "selectLot": "Please select a lot",
+        "lotNumber": "e.g. BG-2026-0070",
+        "storage": "e.g. below 30°C",
+        "retainStorage": "e.g. WH-RETAIN-01",
+        "salesOrderRef": "e.g. SO-2026-0042"
+      },
+      "sampleSizeTable": {
+        "test": "Test",
+        "method": "Method",
+        "sampleCount": "Sample count"
+      },
+      "totals": {
+        "sampleSum": "Total sample count",
+        "totalDraw": "Total test draw"
+      },
+      "sourceOptions": {
+        "rawMaterialLot": "Incoming raw material (Raw material lot)",
+        "workOrderBatch": "Work order (Work order batch)",
+        "customerReturn": "Customer return",
+        "stability": "Stability study",
+        "purchasedHerb": "Purchased herb",
+        "outgoingShipment": "Outgoing shipment / COA",
+        "other": "Other"
+      },
+      "purposeOptions": {
+        "routine": "Routine QC — standard incoming test",
+        "retest": "Retest — retest after deviation",
+        "stability": "Stability — stability monitoring",
+        "complaint": "Complaint — complaint investigation"
+      },
+      "modeOptions": {
+        "usp": "USP (standard n)",
+        "sqrt": "√n + 1 (by lot count)",
+        "fixed": "Custom"
+      },
+      "toast": {
+        "selectProduct": "Please select a product",
+        "selectReceivedDate": "Please specify the sample received date",
+        "exceedsStockTitle": "Required draw exceeds lot balance",
+        "exceedsStockDetail": "Need {totalDraw} but only {lotQty} remaining",
+        "registerFailed": "Registration failed",
+        "registerSuccess": "Registered successfully",
+        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)"
+      }
+    },
+    "detail": {
+      "loadError": "Unable to load data",
+      "testResultsTitle": "Test results ({count})",
+      "noTests": "No tests yet — click \"Apply test panel\" or \"Add test\"",
+      "confirmDeleteTest": "Delete this test?",
+      "rejectReasonPrompt": "Specify the rejection reason:",
+      "actions": {
+        "back": "Back",
+        "print": "Print",
+        "addTest": "Add test",
+        "startTesting": "Start testing",
+        "submitReview": "Submit for review",
+        "approve": "Approve",
+        "release": "Release",
+        "reject": "Reject",
+        "generateNewCoa": "Generate new COA",
+        "generateCoa": "Generate COA",
+        "viewCoa": "View COA",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "stepper": {
+        "title": "Workflow status",
+        "registered": "Registered",
+        "testing": "Testing",
+        "reviewed": "Reviewed",
+        "approved": "Approved"
+      },
+      "headerCard": {
+        "status": "Status",
+        "receivedDate": "Received date",
+        "receivedBy": "Received by",
+        "quantity": "Quantity",
+        "manufactureDate": "Mfg date",
+        "expiryDate": "Expiry date",
+        "customer": "Customer",
+        "storage": "Storage condition",
+        "notes": "Notes"
+      },
+      "source": {
+        "rawMaterialLot": "Incoming raw material",
+        "workOrderBatch": "Work order",
+        "customerReturn": "Customer return",
+        "purchasedHerb": "Purchased herb",
+        "outgoingShipment": "Outgoing to customer"
+      },
+      "spec": {
+        "passFail": "Pass: {pass} / Fail: {fail}",
+        "multiPoint": "{pointCount} points · target {target} ± {tolerance}%",
+        "calibration": "Calibrate {instrument} against {standardValue} {standardUnit}"
+      },
+      "test": {
+        "collapse": "Hide details",
+        "expand": "View details",
+        "recordedBy": "Recorded by",
+        "reviewedBy": "Reviewed by",
+        "recordResult": "Record result",
+        "deleteHint": "Delete this test",
+        "editRound": "Edit Round {round}",
+        "newRoundHint": "Record new round (max {max} rounds)",
+        "attachHint": "Attach image / QC report (COA)",
+        "attach": "Attach file",
+        "notesInline": "Notes",
+        "noResultYet": "No test result yet",
+        "labResultTitle": "Analytical result document (COA / Report)"
+      },
+      "recordForm": {
+        "roundOf": "(testing round {round} of max {max})",
+        "sampleLabel": "Samples",
+        "multiResultLabel": "Test results ({count} samples)",
+        "unitSuffix": " — unit {unit}",
+        "numericResultLabel": "Test result (numeric)",
+        "textResultLabel": "Or text result (if non-numeric)",
+        "textResultPlaceholder": "e.g. Pass, clear, pale yellow",
+        "passSummary": "Pass {passCount}/{filled} samples",
+        "fillProgress": "Filled {filled}/{total}",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Note any observations / test conditions"
+      },
+      "signoff": {
+        "title": "Sign-off (21 CFR Part 11)",
+        "notSigned": "— Not signed yet",
+        "tierAnalyst": "Tested by / Analyst",
+        "tierReviewer": "Reviewed by / Reviewer",
+        "tierApprover": "Approved by / Approver",
+        "tierRelease": "Released by / QA Release"
+      },
+      "oos": {
+        "title": "OOS / Out-of-Spec Investigation",
+        "openButton": "+ Open OOS investigation",
+        "hasFailHint": "There are out-of-spec test results — click \"Open OOS investigation\" to start phase 1/2",
+        "noFailHint": "No failed test results yet — no need to open OOS",
+        "testLabel": "Test",
+        "closeButton": "Close investigation",
+        "openedBy": "Opened by",
+        "closedBy": "closed by"
+      },
+      "applyPanelDialog": {
+        "noPanel": "No test panel configured for this product — create one at",
+        "selectPrompt": "Select panel-rows to apply to this sample",
+        "multiHint": "(multiple allowed)",
+        "tagPlaceholder": "Select panel",
+        "selectedCount": "Selected {count} panel(s) — the system will apply every panel to this sample",
+        "applying": "Applying..."
+      },
+      "addTestDialog": {
+        "title": "Add test",
+        "criteriaLabel": "Criteria (IPC criteria)",
+        "sequenceLabel": "Display order",
+        "add": "Add",
+        "adding": "Adding..."
+      },
+      "signDialog": {
+        "title": "Sign — {meaning} ({role})",
+        "titleDefault": "Sign",
+        "certifyPrefix": "I certify that I am signing as",
+        "certifyMid": "of sample",
+        "notesLabel": "Notes (optional)",
+        "notesPlaceholder": "e.g.: re-tested sample number ... and readings matched",
+        "passwordLabel": "Password re-entry (optional)",
+        "passwordPlaceholder": "Enter password to verify identity",
+        "passwordHint": "Can be left blank during system testing — when enforced the account must have a bcrypt hash",
+        "signing": "Signing..."
+      },
+      "openOosDialog": {
+        "title": "Open OOS investigation (FDA 21 CFR 211.192)",
+        "failedTestLabel": "Failed test *",
+        "failedTestPlaceholder": "Select a failed test",
+        "phase1Placeholder": "e.g.: Was the measuring instrument calibrated? Was the sample preparation correct?",
+        "phase2Placeholder": "In-depth investigation results when Phase 1 finds no lab cause",
+        "classLabError": "Lab Error — cause from the laboratory",
+        "classManufacturingError": "Manufacturing Error — cause from production (auto-creates Deviation)",
+        "classUndetermined": "Undetermined — cannot be determined",
+        "classPlaceholder": "Not specified yet — can specify later",
+        "retestAuthorized": "Retest authorized",
+        "initialConclusionLabel": "Initial conclusion (optional)",
+        "initialConclusionPlaceholder": "Can be added later when the investigation is closed",
+        "openSubmit": "Open investigation",
+        "opening": "Opening..."
+      },
+      "closeOosDialog": {
+        "title": "Close OOS investigation #{id}",
+        "instruction": "Provide the investigation conclusion — at least 10 characters required (FDA 211.192)",
+        "conclusionLabel": "Conclusion *",
+        "conclusionPlaceholder": "e.g.: after retesting, the first day's result was found to be erroneous due to instrument calibration ...",
+        "closeSubmit": "Close investigation",
+        "closing": "Closing..."
+      },
+      "deviation": {
+        "defaultTestName": "Test",
+        "spec": "Spec {min} – {max}{unit}",
+        "descLine1": "QC {status} result of sample {sampleNumber}{product}",
+        "descLine2": "Test item: {testName} (round {round})",
+        "descLine3": "Measured value: {measured}{spec}",
+        "openingToast": "Test result {status} — opening Deviation form"
+      },
+      "toast": {
+        "saveSuccess": "Saved",
+        "saveSuccessDetail": "Round {round} — Result: {result}",
+        "saveFailed": "Save failed",
+        "deleteSuccess": "Deleted",
+        "deleteFailed": "Delete failed",
+        "applyPanelSuccess": "Panel applied successfully",
+        "applyPanelSummary": "Added {added} item(s) (skipped {skipped})",
+        "applyPanelPartial": "Partially applied — added {added}, skipped {skipped}",
+        "addTestSuccess": "Test added",
+        "addTestFailed": "Failed to add test",
+        "signSuccess": "Signed successfully",
+        "signFailed": "Signing failed",
+        "signStatusMeta": "Status: {from} → {to}",
+        "signSavedMeta": "Signature recorded",
+        "openOosSuccess": "OOS investigation opened",
+        "openOosFailed": "Failed to open OOS investigation",
+        "closeOosSuccess": "Investigation closed",
+        "closeOosFailed": "Failed to close investigation",
+        "conclusionTooShort": "Conclusion must be at least 10 characters",
+        "statusChangeSuccess": "Status changed",
+        "statusChangeFailed": "Status change failed",
+        "coaSuccess": "COA generated successfully",
+        "coaFailed": "COA generation failed"
+      }
+    }
+  },
+  "qcInspections": {
+    "title": "QC Inspections",
+    "subtitle": "QC department quality inspection records — production eBMR is viewable",
+    "addInspection": "+ New inspection",
+    "typePlaceholder": "Type...",
+    "detailButton": "Details / Record result",
+    "loading": "Loading...",
+    "types": {
+      "all": "All types",
+      "incoming": "Incoming",
+      "inProcess": "In-process",
+      "finished": "Finished",
+      "adHoc": "Ad hoc"
+    },
+    "results": {
+      "pending": "Pending",
+      "pass": "Pass",
+      "fail": "Fail"
+    },
+    "stats": {
+      "total": "Total",
+      "pending": "Pending",
+      "pass": "Pass",
+      "fail": "Fail"
+    },
+    "columns": {
+      "number": "Number",
+      "date": "Date",
+      "type": "Type",
+      "subject": "Subject",
+      "result": "Result",
+      "inspector": "Inspector",
+      "action": "Action"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "close": "Close"
+    },
+    "addDialog": {
+      "title": "New inspection",
+      "typePlaceholder": "Inspection type *",
+      "woPlaceholderFinished": "Finished Work Order (select to open eBMR)",
+      "woPlaceholderInProcess": "In-process Work Order (select to open eBMR)",
+      "woPlaceholderDefault": "Work Order (select if any — to open eBMR)",
+      "woNone": "— No WO —",
+      "woNoDataFinished": "No finished Work Orders yet",
+      "woNoDataInProcess": "No in-process Work Orders yet",
+      "incomingNote": "Incoming inspection checks incoming raw materials — not linked to a production Work Order. Please enter the material's Batch number below.",
+      "batchPlaceholderIncoming": "Material Batch number *",
+      "batchPlaceholderDefault": "Batch number (optional if no WO)",
+      "subjectPlaceholder": "Inspection subject *",
+      "findingsPlaceholder": "Findings",
+      "overallResultPlaceholder": "Overall result",
+      "notesPlaceholder": "Notes"
+    },
+    "detail": {
+      "type": "Type",
+      "inspector": "Inspector",
+      "date": "Date",
+      "result": "Result",
+      "subject": "Subject",
+      "batch": "Batch",
+      "linkedWith": "Linked with",
+      "openEbmr": "Open production eBMR",
+      "findingsLabel": "Findings",
+      "notesLabel": "Notes",
+      "attachmentsTitle": "Inspection documents / photos",
+      "saveFail": "Record as Fail",
+      "savePass": "Record as Pass"
+    },
+    "toast": {
+      "loadFailed": "Failed to load data",
+      "subjectRequired": "Please enter the inspection subject",
+      "saveFailed": "Save failed",
+      "created": "Inspection {inspectionNumber} created",
+      "updateFailed": "Update failed",
+      "updated": "Inspection result updated"
+    }
+  },
+  "testPanels": {
+    "title": "Test panels",
+    "subtitle": "Define default test panels per product/category (to apply when registering QC)",
+    "breadcrumbQuality": "Quality",
+    "addPanelRow": "Add panel-row",
+    "loading": "Loading...",
+    "noData": "No data found",
+    "confirmDelete": "Delete this panel-row?",
+    "categoryLevel": "Category level",
+    "categoryPrefix": "Category: ",
+    "required": "Required",
+    "optional": "Optional",
+    "active": "Active",
+    "inactive": "Inactive",
+    "stats": {
+      "total": "Total panels",
+      "productSpecific": "Product-specific",
+      "categoryLevel": "Category level",
+      "active": "Active"
+    },
+    "columns": {
+      "order": "No.",
+      "product": "Product",
+      "criteria": "Criteria",
+      "required": "Required",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No Test Panel yet",
+      "description": "Press the button below to create your first panel-row"
+    },
+    "toast": {
+      "selectProductOrCategory": "Please select at least one product or category",
+      "selectCriteria": "Please select a criteria",
+      "selectCriteriaMulti": "Please select at least one criteria",
+      "added": "Added",
+      "addedCount": "{count} items",
+      "addedPartial": "Added {ok}/{total}",
+      "addFailed": "Failed to add",
+      "saveFailed": "Failed to save",
+      "updated": "Updated",
+      "deleteFailed": "Failed to delete",
+      "deleted": "Deleted"
+    },
+    "dialog": {
+      "editTitle": "Edit panel-row",
+      "addTitle": "Add panel-row",
+      "hint": "Specify a product <em>or</em> at least one category — if both are filled, the system matches the product first",
+      "productLabel": "Product (specific)",
+      "categoryLabel": "Category (fallback)",
+      "categoryManualLabel": "Or type a category",
+      "criteriaMultiLabel": "Criteria (QC criteria) — select multiple",
+      "criteriaMultiPlaceholder": "Type to search or select multiple...",
+      "willCreate": "Will create <strong>{count}</strong> items in total (sequence {from}–{to})",
+      "criteriaLabel": "Criteria (QC criteria)",
+      "startSequence": "Start sequence",
+      "sequence": "Sequence",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save"
+    }
+  },
+  "testCatalog": {
+    "list": {
+      "title": "QC Test Catalog",
+      "description": "QC test master data — used to define quality specifications",
+      "addNew": "+ Add new test",
+      "loading": "Loading...",
+      "noData": "No data",
+      "searchPlaceholder": "Search...",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "confirmDelete": "Confirm deletion (soft-delete — Active = false)?",
+      "categories": {
+        "chemical": "Chemical",
+        "physical": "Physical",
+        "microbial": "Microbial",
+        "sensory": "Sensory",
+        "stability": "Stability",
+        "other": "Other"
+      },
+      "filters": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "filterLabels": {
+        "category": "Category",
+        "status": "Status"
+      },
+      "stats": {
+        "total": "Total",
+        "active": "Active",
+        "categories": "Categories"
+      },
+      "columns": {
+        "code": "Code",
+        "nameEn": "Test name (EN)",
+        "nameTh": "Test name (TH)",
+        "category": "Category",
+        "unit": "Unit",
+        "min": "Min",
+        "max": "Max",
+        "testMethod": "Test method",
+        "active": "Active",
+        "actions": "Actions"
+      },
+      "notify": {
+        "loadFailed": "Failed to load data",
+        "deleted": "Item deleted successfully",
+        "deleteFailed": "Failed to delete"
+      }
+    }
+  },
+  "incomingInspection": {
+    "backLabel": "Quality",
+    "agingDistribution": "Quarantine aging distribution",
+    "quarantineLots": "Quarantine lots",
+    "columns": {
+      "itemCode": "Code",
+      "unit": "Unit",
+      "lot": "Lot",
+      "itemCodeFull": "Item code",
+      "itemName": "Item name",
+      "quantity": "Quantity",
+      "warehouse": "Warehouse"
+    }
+  },
+  "coa": {
+    "detail": {
+      "back": "Back",
+      "notFound": "COA not found",
+      "toast": {
+        "actionFailed": "Action failed",
+        "success": "Success"
+      },
+      "stepper": {
+        "title": "Workflow status",
+        "draft": "Draft",
+        "approved": "Approved",
+        "issued": "Issued",
+        "superseded": "Superseded"
+      },
+      "actions": {
+        "submitForReview": "Submit for review",
+        "approve": "Approve",
+        "issue": "Issue COA",
+        "supersede": "Supersede with new COA",
+        "revoke": "Revoke",
+        "previewPdf": "View preview (PDF)",
+        "downloadOfficialPdf": "Download official PDF"
+      },
+      "signatures": {
+        "title": "Signatures",
+        "approver": "Approver",
+        "qaRelease": "QA Release",
+        "notSigned": "Not signed yet"
+      },
+      "preview": {
+        "openInNewTab": "Open in new tab"
+      },
+      "testResults": {
+        "title": "Test Results (Snapshot — {count} tests)"
+      },
+      "revoke": {
+        "title": "Revoke COA",
+        "description": "Please provide a reason for revoking this COA — the reason will be recorded in the history.",
+        "reasonPlaceholder": "e.g. Error found in test result Test #5",
+        "cancel": "Cancel",
+        "confirm": "Confirm revocation",
+        "reasonRequired": "A reason is required"
+      },
+      "supersede": {
+        "title": "Supersede COA with a new version",
+        "description": "Enter the ID of the COA that will replace this one — its status will change to \"superseded\".",
+        "idPlaceholder": "COA ID (number)",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "idRequired": "A COA ID is required"
+      }
+    },
+    "list": {
+      "subtitle": "Certificate of Analysis — all COAs from released samples",
+      "breadcrumbQuality": "Quality",
+      "refresh": "Refresh",
+      "configureTemplates": "Configure COA templates",
+      "issueFromSample": "Issue COA from sample",
+      "loading": "Loading...",
+      "noData": "No data found",
+      "searchPlaceholder": "Search (COA#, Lot#, product, customer)",
+      "dateFrom": "From date",
+      "dateTo": "To date",
+      "statusOptions": {
+        "all": "All statuses",
+        "draft": "Draft",
+        "review": "Review",
+        "approved": "Approved",
+        "issued": "Issued",
+        "superseded": "Superseded",
+        "revoked": "Revoked"
+      },
+      "status": {
+        "draft": "Draft",
+        "review": "Review",
+        "approved": "Approved",
+        "issued": "Issued",
+        "superseded": "Superseded",
+        "revoked": "Revoked"
+      },
+      "conclusion": {
+        "complies": "✓ Complies",
+        "doesNotComply": "✗ Does not comply",
+        "partial": "Partial"
+      },
+      "columns": {
+        "no": "No.",
+        "issueDate": "Issue date",
+        "product": "Product",
+        "lotNumber": "Lot number",
+        "customer": "Customer",
+        "status": "Status",
+        "conclusion": "Conclusion",
+        "actions": "Actions"
+      },
+      "actions": {
+        "view": "View"
+      },
+      "kpi": {
+        "issuedToday": "Issued today",
+        "pendingReview": "Pending review/draft",
+        "superseded": "Superseded",
+        "revoked": "Revoked"
+      },
+      "empty": {
+        "title": "No COA yet",
+        "description": "COAs are generated from released QC samples — open a sample and click \"Issue COA\"",
+        "viewReleased": "View released samples"
+      }
+    },
+    "templates": {
+      "list": {
+        "subtitle": "COA templates — design the certificate of analysis layout per product category",
+        "searchPlaceholder": "Search (template name, product category)",
+        "loading": "Loading...",
+        "noData": "No data found",
+        "toast": {
+          "setDefaultFailed": "Failed to set default",
+          "setDefaultSuccess": "Set as default",
+          "updateStatusFailed": "Failed to update status",
+          "deactivated": "Deactivated",
+          "activated": "Activated"
+        },
+        "columns": {
+          "no": "No.",
+          "name": "Template name",
+          "category": "Product category",
+          "language": "Language",
+          "actions": "Actions"
+        },
+        "actions": {
+          "edit": "Edit",
+          "setDefault": "Set as default",
+          "deactivate": "Deactivate",
+          "activate": "Activate"
+        },
+        "empty": {
+          "title": "No templates yet",
+          "description": "Create the first template to define your factory's COA layout",
+          "createFirst": "Create first template"
+        }
+      },
+      "new": {
+        "title": "Create COA template",
+        "subtitle": "Design the certificate of analysis layout — live preview on the right"
+      },
+      "detail": {
+        "back": "Back",
+        "notFound": "Template not found",
+        "title": "Edit: {name}",
+        "subtitle": "Category: {category}"
+      }
+    }
+  },
+  "auditTrail": {
+    "subtitle": "Audit trail — 21 CFR Part 11 §11.10(e)",
+    "refresh": "Refresh",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "noEvents": "No events match the filters",
+    "columns": {
+      "no": "No."
+    },
+    "pager": {
+      "firstPage": "First page",
+      "lastPage": "Last page"
     }
   }
 }

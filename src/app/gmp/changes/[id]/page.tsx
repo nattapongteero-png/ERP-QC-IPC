@@ -142,14 +142,14 @@ function getPriorityBadge(priority: ChangePriority) {
   );
 }
 
-function getRoleLabel(role: ApprovalRole): string {
-  const labels: Record<ApprovalRole, string> = {
-    qa: 'Quality Assurance',
-    production: 'Production',
-    regulatory: 'Regulatory Affairs',
-    management: 'Management',
+function getRoleLabelKey(role: ApprovalRole): string {
+  const keys: Record<ApprovalRole, string> = {
+    qa: 'changes.detail.roles.qa',
+    production: 'changes.detail.roles.production',
+    regulatory: 'changes.detail.roles.regulatory',
+    management: 'changes.detail.roles.management',
   };
-  return labels[role];
+  return keys[role];
 }
 
 // ============================================
@@ -164,6 +164,7 @@ interface ApprovalCardProps {
 }
 
 function ApprovalCard({ approval, onApprove, onReject, canApprove }: ApprovalCardProps) {
+  const t = useTranslations('gmp');
   const statusColors = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
     approved: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
@@ -174,7 +175,7 @@ function ApprovalCard({ approval, onApprove, onReject, canApprove }: ApprovalCar
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-white">{getRoleLabel(approval.role)}</h4>
+          <h4 className="font-medium text-gray-900 dark:text-white">{t(getRoleLabelKey(approval.role))}</h4>
           {approval.approverName && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {approval.approverName}
@@ -182,7 +183,7 @@ function ApprovalCard({ approval, onApprove, onReject, canApprove }: ApprovalCar
           )}
         </div>
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[approval.status]}`}>
-          {approval.status.toUpperCase()}
+          {t(`changes.detail.approvalStatus.${approval.status}`)}
         </span>
       </div>
 
@@ -194,21 +195,21 @@ function ApprovalCard({ approval, onApprove, onReject, canApprove }: ApprovalCar
 
       {approval.signedAt && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Signed: {formatDate(approval.signedAt)}
+          {t('changes.detail.signed')}: {formatDate(approval.signedAt)}
         </p>
       )}
 
       {canApprove && approval.status === 'pending' && (
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <DxButton
-            text="Approve"
+            text={t('changes.detail.approve')}
             icon="check"
             type="success"
             onClick={onApprove}
             stylingMode="contained"
           />
           <DxButton
-            text="Reject"
+            text={t('changes.detail.reject')}
             icon="close"
             type="danger"
             onClick={onReject}
@@ -305,20 +306,16 @@ export default function ChangeDetailPage() {
       router.push('/gmp/changes');
     },
     onError: (err) => {
-      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      alert(err instanceof Error ? err.message : t('changes.detail.deleteFailed'));
     },
   });
 
   const handleDeleteChange = useCallback(() => {
-    if (
-      !window.confirm(
-        'ต้องการลบคำขอเปลี่ยนแปลงนี้หรือไม่?\nลบได้เฉพาะรายการที่ยังเป็นฉบับร่าง (สถานะ "draft")'
-      )
-    ) {
+    if (!window.confirm(t('changes.detail.confirmDelete'))) {
       return;
     }
     deleteMutation.mutate();
-  }, [deleteMutation]);
+  }, [deleteMutation, t]);
 
   // Handlers
   const handleSubmitForReview = useCallback(() => {
@@ -326,20 +323,20 @@ export default function ChangeDetailPage() {
 
     // Validate required fields
     if (!change.justification) {
-      alert('Justification is required before submitting for review');
+      alert(t('changes.detail.validation.justificationRequired'));
       return;
     }
     if (!change.impactAssessment) {
-      alert('Impact assessment is required before submitting for review');
+      alert(t('changes.detail.validation.impactRequired'));
       return;
     }
     if (!change.riskAssessment) {
-      alert('Risk assessment is required before submitting for review');
+      alert(t('changes.detail.validation.riskRequired'));
       return;
     }
 
     submitMutation.mutate();
-  }, [change, submitMutation]);
+  }, [change, submitMutation, t]);
 
   const handleApprovalAction = useCallback((role: ApprovalRole, action: 'approve' | 'reject') => {
     setApprovalRole(role);
@@ -373,9 +370,9 @@ export default function ChangeDetailPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="text-center py-12">
-          <p className="text-destructive">Failed to load change request</p>
+          <p className="text-destructive">{t('changes.detail.loadError')}</p>
           <DxButton
-            text="Go Back"
+            text={t('common.goBack')}
             onClick={() => router.back()}
             stylingMode="outlined"
           />
@@ -401,7 +398,7 @@ export default function ChangeDetailPage() {
           <div className="flex items-center gap-2">
             {canSubmitForReview && (
               <DxButton
-                text="Submit for Review"
+                text={t('changes.detail.submitForReview')}
                 icon="check"
                 onClick={handleSubmitForReview}
                 type="success"
@@ -410,7 +407,7 @@ export default function ChangeDetailPage() {
             )}
             {canImplement && (
               <DxButton
-                text="Mark as Implemented"
+                text={t('changes.detail.markImplemented')}
                 icon="check"
                 onClick={() => setShowImplementDialog(true)}
                 type="success"
@@ -418,7 +415,7 @@ export default function ChangeDetailPage() {
             )}
             {canClose && (
               <DxButton
-                text="Close Change"
+                text={t('changes.detail.closeChange')}
                 icon="check"
                 onClick={() => setShowCloseDialog(true)}
                 type="success"
@@ -427,7 +424,7 @@ export default function ChangeDetailPage() {
             {/* Delete only offered while still "draft" (typo / test entry). */}
             {change.status === 'draft' && (
               <DxButton
-                text="ลบ"
+                text={t('changes.detail.delete')}
                 icon="trash"
                 type="danger"
                 stylingMode="outlined"
@@ -442,14 +439,14 @@ export default function ChangeDetailPage() {
 
       {/* Workflow status — สถานะการดำเนินงาน */}
       <StatusStepper
-        title="สถานะการดำเนินงาน"
+        title={t('changes.detail.stepper.title')}
         current={change.status}
         steps={[
-          { key: 'draft', label: 'ร่าง' },
-          { key: 'pending_review', label: 'รออนุมัติ' },
-          { key: 'approved', label: 'อนุมัติ' },
-          { key: 'implemented', label: 'ดำเนินการ' },
-          { key: 'closed', label: 'ปิด' },
+          { key: 'draft', label: t('changes.detail.stepper.draft') },
+          { key: 'pending_review', label: t('changes.detail.stepper.pendingReview') },
+          { key: 'approved', label: t('changes.detail.stepper.approved') },
+          { key: 'implemented', label: t('changes.detail.stepper.implemented') },
+          { key: 'closed', label: t('changes.detail.stepper.closed') },
         ]}
       />
 
@@ -459,11 +456,11 @@ export default function ChangeDetailPage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
             <div>
-              <p className="font-medium text-yellow-800 dark:text-yellow-200">Cannot submit for review yet</p>
+              <p className="font-medium text-yellow-800 dark:text-yellow-200">{t('changes.detail.warning.cannotSubmit')}</p>
               <ul className="mt-1 text-sm text-yellow-700 dark:text-yellow-300 list-disc list-inside">
-                {!change.justification && <li>Justification is required</li>}
-                {!change.impactAssessment && <li>Impact assessment is required</li>}
-                {!change.riskAssessment && <li>Risk assessment is required</li>}
+                {!change.justification && <li>{t('changes.detail.warning.justificationRequired')}</li>}
+                {!change.impactAssessment && <li>{t('changes.detail.warning.impactRequired')}</li>}
+                {!change.riskAssessment && <li>{t('changes.detail.warning.riskRequired')}</li>}
               </ul>
             </div>
           </div>
@@ -498,30 +495,30 @@ export default function ChangeDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-sm mb-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <FileEdit className="h-4 w-4" />
-                <span>Type: <span className="capitalize">{change.changeType}</span></span>
+                <span>{t('changes.detail.meta.type')}: <span className="capitalize">{change.changeType}</span></span>
               </div>
               {change.ownerName && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <User className="h-4 w-4" />
-                  <span>Owner: {change.ownerName}</span>
+                  <span>{t('changes.detail.meta.owner')}: {change.ownerName}</span>
                 </div>
               )}
               {change.requesterName && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <User className="h-4 w-4" />
-                  <span>Requester: {change.requesterName}</span>
+                  <span>{t('changes.detail.meta.requester')}: {change.requesterName}</span>
                 </div>
               )}
               {change.targetDate && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Target: {formatDate(change.targetDate)}</span>
+                  <span>{t('changes.detail.meta.target')}: {formatDate(change.targetDate)}</span>
                 </div>
               )}
               {change.implementedDate && (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="h-4 w-4" />
-                  <span>Implemented: {formatDate(change.implementedDate)}</span>
+                  <span>{t('changes.detail.meta.implemented')}: {formatDate(change.implementedDate)}</span>
                 </div>
               )}
             </div>
@@ -529,7 +526,7 @@ export default function ChangeDetailPage() {
             {/* Description */}
             {change.description && (
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-2">Description</h3>
+                <h3 className="text-sm font-semibold mb-2">{t('changes.detail.sections.description')}</h3>
                 <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
                   {change.description}
                 </div>
@@ -540,7 +537,7 @@ export default function ChangeDetailPage() {
             <div className="pt-4 border-t space-y-4">
               {change.justification && (
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">Justification</h3>
+                  <h3 className="text-sm font-semibold mb-2">{t('changes.detail.sections.justification')}</h3>
                   <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
                     {change.justification}
                   </div>
@@ -548,7 +545,7 @@ export default function ChangeDetailPage() {
               )}
               {change.impactAssessment && (
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">Impact Assessment</h3>
+                  <h3 className="text-sm font-semibold mb-2">{t('changes.detail.sections.impactAssessment')}</h3>
                   <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
                     {change.impactAssessment}
                   </div>
@@ -556,7 +553,7 @@ export default function ChangeDetailPage() {
               )}
               {change.riskAssessment && (
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">Risk Assessment</h3>
+                  <h3 className="text-sm font-semibold mb-2">{t('changes.detail.sections.riskAssessment')}</h3>
                   <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
                     {change.riskAssessment}
                   </div>
@@ -571,13 +568,13 @@ export default function ChangeDetailPage() {
           <div className="bg-card border rounded-lg shadow-sm p-6 sticky top-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <FileCheck className="h-5 w-5" />
-              Approval Workflow
+              {t('changes.detail.approvalWorkflow')}
             </h3>
 
             {change.approvals.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Approvals will be created when submitted for review</p>
+                <p>{t('changes.detail.noApprovals')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -600,7 +597,7 @@ export default function ChangeDetailPage() {
       <DxPopup
         visible={showApprovalDialog}
         onHiding={() => setShowApprovalDialog(false)}
-        title={`${approvalAction === 'approve' ? 'Approve' : 'Reject'} Change Request`}
+        title={approvalAction === 'approve' ? t('changes.detail.approvalDialog.approveTitle') : t('changes.detail.approvalDialog.rejectTitle')}
         width={500}
         height="auto"
         showCloseButton
@@ -608,12 +605,12 @@ export default function ChangeDetailPage() {
         <div className="p-4 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Comments {approvalAction === 'reject' && <span className="text-red-600">*</span>}
+              {t('changes.detail.approvalDialog.comments')} {approvalAction === 'reject' && <span className="text-red-600">*</span>}
             </label>
             <DxTextArea
               value={approvalComments}
               onValueChange={(value) => setApprovalComments(value || '')}
-              placeholder={approvalAction === 'reject' ? 'Please explain why you are rejecting...' : 'Optional comments...'}
+              placeholder={approvalAction === 'reject' ? t('changes.detail.approvalDialog.rejectPlaceholder') : t('changes.detail.approvalDialog.optionalPlaceholder')}
               height={100}
             />
           </div>
@@ -626,12 +623,12 @@ export default function ChangeDetailPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text={t('common.cancel')}
               onClick={() => setShowApprovalDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text={approvalAction === 'approve' ? 'Approve' : 'Reject'}
+              text={approvalAction === 'approve' ? t('changes.detail.approve') : t('changes.detail.reject')}
               icon={approvalAction === 'approve' ? 'check' : 'close'}
               onClick={handleSubmitApproval}
               type={approvalAction === 'approve' ? 'success' : 'danger'}
@@ -645,18 +642,18 @@ export default function ChangeDetailPage() {
       <DxPopup
         visible={showImplementDialog}
         onHiding={() => setShowImplementDialog(false)}
-        title="Mark Change as Implemented"
+        title={t('changes.detail.implementDialog.title')}
         width={500}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Implementation Notes (Optional)</label>
+            <label className="text-sm font-medium">{t('changes.detail.implementDialog.notesLabel')}</label>
             <DxTextArea
               value={implementNotes}
               onValueChange={(value) => setImplementNotes(value || '')}
-              placeholder="Add notes about the implementation..."
+              placeholder={t('changes.detail.implementDialog.notesPlaceholder')}
               height={100}
             />
           </div>
@@ -669,12 +666,12 @@ export default function ChangeDetailPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text={t('common.cancel')}
               onClick={() => setShowImplementDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Mark as Implemented"
+              text={t('changes.detail.markImplemented')}
               icon="check"
               onClick={() => implementMutation.mutate(implementNotes || undefined)}
               type="success"
@@ -688,7 +685,7 @@ export default function ChangeDetailPage() {
       <DxPopup
         visible={showCloseDialog}
         onHiding={() => setShowCloseDialog(false)}
-        title="Close Change Request"
+        title={t('changes.detail.closeDialog.title')}
         width={500}
         height="auto"
         showCloseButton
@@ -698,17 +695,17 @@ export default function ChangeDetailPage() {
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
               <p className="font-medium text-green-800 dark:text-green-200">
-                Change has been implemented and verified
+                {t('changes.detail.closeDialog.verified')}
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Closure Notes (Optional)</label>
+            <label className="text-sm font-medium">{t('changes.detail.closeDialog.notesLabel')}</label>
             <DxTextArea
               value={closeNotes}
               onValueChange={(value) => setCloseNotes(value || '')}
-              placeholder="Add any final notes..."
+              placeholder={t('changes.detail.closeDialog.notesPlaceholder')}
               height={100}
             />
           </div>
@@ -721,12 +718,12 @@ export default function ChangeDetailPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="Cancel"
+              text={t('common.cancel')}
               onClick={() => setShowCloseDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="Close Change"
+              text={t('changes.detail.closeChange')}
               icon="check"
               onClick={() => closeMutation.mutate(closeNotes || undefined)}
               type="success"

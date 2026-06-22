@@ -54,26 +54,28 @@ function weightToGrams(value: number, unit: string | null | undefined): number {
   }
 }
 
-// Translate the known server-side scale-verification errors into clear Thai so
-// the operator understands what to fix instead of seeing a raw English message.
-function translateVerifyError(msg: string): string {
+// Translate the known server-side scale-verification errors into clear language
+// so the operator understands what to fix instead of seeing a raw English
+// message. The premises translator (tp) is passed in from the call site.
+function translateVerifyError(msg: string, tp: (key: string) => string): string {
   if (/exceeds 10/i.test(msg) || /wrong weight/i.test(msg)) {
-    return 'ค่าที่อ่านได้ต่างจากค่าลูกตุ้มมาตรฐานเกิน 10 เท่า — น่าจะเลือกลูกตุ้มผิดหรือกรอกค่าผิด กรุณาตรวจสอบลูกตุ้มและค่าที่อ่านได้';
+    return tp('scaleVerification.index.errorExtremeDeviation');
   }
   if (/below minimum/i.test(msg)) {
-    return 'ลูกตุ้มมาตรฐานเบาเกินกว่าพิสัยขั้นต่ำของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่หนักขึ้น';
+    return tp('scaleVerification.index.errorBelowMinimum');
   }
   if (/above maximum/i.test(msg)) {
-    return 'ลูกตุ้มมาตรฐานหนักเกินกว่าพิสัยสูงสุดของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่เบาลง';
+    return tp('scaleVerification.index.errorAboveMaximum');
   }
   if (/inactive/i.test(msg)) {
-    return 'ลูกตุ้มมาตรฐานนี้ถูกปิดใช้งาน — กรุณาเลือกลูกตุ้มอื่น';
+    return tp('scaleVerification.index.errorInactive');
   }
   return msg;
 }
 
 export default function ScaleVerificationPage() {
   const t = useTranslations('scaleVerification');
+  const tp = useTranslations('premises');
   const router = useRouter();
   const qc = useQueryClient();
   const [verifyOpen, setVerifyOpen] = useState(false);
@@ -162,7 +164,7 @@ export default function ScaleVerificationPage() {
   const verifyMut = useMutation({
     mutationFn: async () => {
       if (!activeScale || !weightId) throw new Error('Missing fields');
-      if (!password.trim()) throw new Error('กรุณากรอกรหัสผ่านเพื่อลงนาม');
+      if (!password.trim()) throw new Error(tp('scaleVerification.index.errorPasswordRequired'));
       const res = await fetch('/api/quality/scale-verifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,7 +193,7 @@ export default function ScaleVerificationPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/premises" label="อาคารและสถานที่" />
+      <BackButton href="/premises" label={tp('scaleVerification.common.back')} />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -262,7 +264,7 @@ export default function ScaleVerificationPage() {
         />
         <DxColumn dataField="lastVerifiedAt" caption={t('table.columns.lastVerifiedAt')} dataType="datetime" width={160} />
         <DxColumn
-          caption="ลูกตุ้มที่ใช้"
+          caption={tp('scaleVerification.index.colWeightUsed')}
           width={140}
           cellRender={(c) => {
             const row = c.data as ScaleRow;
@@ -278,7 +280,7 @@ export default function ScaleVerificationPage() {
           }}
         />
         <DxColumn
-          caption="ค่าที่อ่านได้"
+          caption={tp('scaleVerification.index.colActualReading')}
           width={130}
           cellRender={(c) => {
             const row = c.data as ScaleRow;
@@ -344,7 +346,7 @@ export default function ScaleVerificationPage() {
                   }
                   render={() => (
                     <span className="inline-flex items-center gap-1 text-sm text-indigo-700">
-                      <History className="w-4 h-4" /> ประวัติ
+                      <History className="w-4 h-4" /> {tp('scaleVerification.index.history')}
                     </span>
                   )}
                 />
@@ -377,11 +379,11 @@ export default function ScaleVerificationPage() {
               value={weightId}
               onValueChanged={(e) => setWeightId(e.value as number | null)}
               searchEnabled
-              noDataText="ไม่มีลูกตุ้มที่เหมาะกับพิสัยของเครื่องชั่งนี้"
+              noDataText={tp('scaleVerification.index.noWeightFits')}
             />
             {(activeScale?.minVerificationWeightG != null || activeScale?.maxVerificationWeightG != null) && (
               <p className="text-xs text-gray-500 mt-1">
-                พิสัยลูกตุ้มที่ใช้ได้กับเครื่องนี้:{' '}
+                {tp('scaleVerification.index.weightRangeLabel')}{' '}
                 <b>
                   {activeScale?.minVerificationWeightG ?? 0}
                   {' – '}
@@ -391,11 +393,11 @@ export default function ScaleVerificationPage() {
             )}
             {validWeights.length === 0 ? (
               <p className="text-xs text-rose-700 mt-1">
-                ไม่มีลูกตุ้มที่ใบรับรองยังไม่หมดอายุ — กรุณาเพิ่มในทะเบียน
+                {tp('scaleVerification.index.noValidWeights')}
               </p>
             ) : fittingWeights.length === 0 ? (
               <p className="text-xs text-rose-700 mt-1">
-                ลูกตุ้มที่มีอยู่ไม่อยู่ในพิสัยของเครื่องชั่งนี้ — กรุณาเพิ่มลูกตุ้มที่มีน้ำหนักเหมาะสม
+                {tp('scaleVerification.index.noFittingWeights')}
               </p>
             ) : null}
           </div>
@@ -405,7 +407,7 @@ export default function ScaleVerificationPage() {
               {t('form.actualReading.label')} *
               {selectedWeight && (
                 <span className="text-gray-500 font-normal">
-                  {' '}(หน่วย: {selectedWeight.denominationUnit})
+                  {' '}{tp('scaleVerification.index.readingUnit', { unit: selectedWeight.denominationUnit })}
                 </span>
               )}
             </label>
@@ -419,19 +421,22 @@ export default function ScaleVerificationPage() {
             />
             {selectedWeight && (
               <p className="text-xs text-gray-500 mt-1">
-                วางลูกตุ้ม <b>{selectedWeight.code}</b> บนเครื่องชั่ง แล้วกรอกค่าที่เครื่องแสดง —
-                ควรอยู่ประมาณ <b>{Number(selectedWeight.denominationValue)}</b>{' '}
-                {selectedWeight.denominationUnit} (ค่า cert)
+                {tp('scaleVerification.index.placeWeightHint', {
+                  code: selectedWeight.code,
+                  value: Number(selectedWeight.denominationValue),
+                  unit: selectedWeight.denominationUnit,
+                })}
               </p>
             )}
             {extremeReading && (
               <div className="mt-2 bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>
-                  ค่าที่อ่านได้ ({reading}) ต่างจากค่าลูกตุ้มมาตรฐาน (
-                  {Number(selectedWeight?.denominationValue)} {selectedWeight?.denominationUnit})
-                  เกิน 10 เท่า — น่าจะ<b>เลือกลูกตุ้มผิด</b>หรือกรอกค่าผิด
-                  กรุณาเลือกลูกตุ้มที่มีน้ำหนักใกล้เคียงพิสัยของเครื่องชั่งนี้ แล้วกรอกค่าที่อ่านได้จริง
+                  {tp('scaleVerification.index.extremeReadingWarning', {
+                    reading,
+                    value: Number(selectedWeight?.denominationValue),
+                    unit: selectedWeight?.denominationUnit ?? '',
+                  })}
                 </span>
               </div>
             )}
@@ -453,14 +458,14 @@ export default function ScaleVerificationPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border rounded px-3 py-2"
-              placeholder="ลงนามด้วย password"
+              placeholder={tp('scaleVerification.index.passwordPlaceholder')}
             />
           </div>
 
           {verifyMut.error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              {translateVerifyError(String((verifyMut.error as Error).message))}
+              {translateVerifyError(String((verifyMut.error as Error).message), tp)}
             </div>
           )}
 

@@ -51,6 +51,7 @@ interface QuarantineAging {
 
 export default function IncomingInspectionPage() {
   const t = useTranslations('goodsReceipt');
+  const tq = useTranslations('quality');
 
   const { data: counts } = useQuery<IncomingDashboardCounts>({
     queryKey: ['grn-dashboard'],
@@ -82,7 +83,7 @@ export default function IncomingInspectionPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <BackButton href="/quality" label="คุณภาพ" />
+      <BackButton href="/quality" label={tq('incomingInspection.backLabel')} />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -125,7 +126,7 @@ export default function IncomingInspectionPage() {
       {aging && aging.bands.length > 0 && (
         <div className="bg-white border rounded-lg p-4">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4" /> การกระจายอายุการกักกัน
+            <Clock className="w-4 h-4" /> {tq('incomingInspection.agingDistribution')}
           </h2>
           <div className="grid grid-cols-3 gap-3">
             {aging.bands.map((b) => (
@@ -168,11 +169,11 @@ export default function IncomingInspectionPage() {
               </Link>
             )}
           />
-          <Column dataField="itemCode" caption="รหัส" width={120} />
+          <Column dataField="itemCode" caption={tq('incomingInspection.columns.itemCode')} width={120} />
           <Column dataField="itemName" caption={t('table.columns.item')} />
           <Column dataField="vendorName" caption={t('table.columns.vendor')} />
           <Column dataField="actualQuantity" caption={t('table.columns.actualQty')} dataType="number" width={120} />
-          <Column dataField="unit" caption="หน่วย" width={80} />
+          <Column dataField="unit" caption={tq('incomingInspection.columns.unit')} width={80} />
           <Column
             dataField="qcResult"
             caption={t('table.columns.result')}
@@ -202,7 +203,7 @@ export default function IncomingInspectionPage() {
         <div className="bg-white border rounded-lg">
           <div className="p-4 border-b">
             <h2 className="font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> ล็อตกักกัน
+              <AlertTriangle className="w-4 h-4" /> {tq('incomingInspection.quarantineLots')}
             </h2>
           </div>
           <DataGrid
@@ -214,12 +215,12 @@ export default function IncomingInspectionPage() {
             columnAutoWidth
           >
             <Paging pageSize={20} />
-            <Column dataField="lotNumber" caption="ล็อต" />
-            <Column dataField="itemCode" caption="รหัสสินค้า" />
-            <Column dataField="itemName" caption="ชื่อสินค้า" />
-            <Column dataField="quantity" caption="จำนวน" dataType="number" width={100} />
-            <Column dataField="unit" caption="หน่วย" width={80} />
-            <Column dataField="warehouseName" caption="คลังสินค้า" width={150} />
+            <Column dataField="lotNumber" caption={tq('incomingInspection.columns.lot')} />
+            <Column dataField="itemCode" caption={tq('incomingInspection.columns.itemCodeFull')} />
+            <Column dataField="itemName" caption={tq('incomingInspection.columns.itemName')} />
+            <Column dataField="quantity" caption={tq('incomingInspection.columns.quantity')} dataType="number" width={100} />
+            <Column dataField="unit" caption={tq('incomingInspection.columns.unit')} width={80} />
+            <Column dataField="warehouseName" caption={tq('incomingInspection.columns.warehouse')} width={150} />
             <Column dataField="grnNumber" caption="GRN" />
             <Column dataField="ageDays" caption={t('table.columns.ageDays')} width={100} />
           </DataGrid>

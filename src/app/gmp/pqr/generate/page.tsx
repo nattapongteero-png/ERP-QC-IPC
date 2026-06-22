@@ -132,7 +132,7 @@ export default function GeneratePqrPage() {
         description={t('pqr.generate.description')}
         backButton={
           <DxButton
-            text="กลับสู่แดชบอร์ด PQR"
+            text={t('pqr.generate.backToDashboard')}
             icon="back"
             type="normal"
             stylingMode="text"
@@ -149,14 +149,14 @@ export default function GeneratePqrPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-indigo-600" />
-                เลือกผลิตภัณฑ์
+                {t('pqr.generate.selectProduct')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ผลิตภัณฑ์ <span className="text-red-500">*</span>
+                    {t('pqr.generate.productLabel')} <span className="text-red-500">*</span>
                   </label>
                   <DxSelectBox
                     items={
@@ -169,13 +169,13 @@ export default function GeneratePqrPage() {
                     valueExpr="value"
                     displayExpr="label"
                     onValueChange={handleProductChange}
-                    placeholder="เลือกผลิตภัณฑ์สำเร็จรูป..."
+                    placeholder={t('pqr.generate.productPlaceholder')}
                     searchEnabled
                     showClearButton
                     disabled={loadingProducts}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    เลือกผลิตภัณฑ์สำเร็จรูปสำหรับการทบทวนคุณภาพ
+                    {t('pqr.generate.productHint')}
                   </p>
                 </div>
 
@@ -201,14 +201,14 @@ export default function GeneratePqrPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-indigo-600" />
-                ช่วงเวลาที่ทบทวน
+                {t('pqr.generate.reviewPeriod')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ปีที่ทบทวน <span className="text-red-500">*</span>
+                    {t('pqr.generate.reviewYearLabel')} <span className="text-red-500">*</span>
                   </label>
                   <DxNumberBox
                     value={formData.reviewYear}
@@ -218,14 +218,14 @@ export default function GeneratePqrPage() {
                     showSpinButtons
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    ปีที่ทำการทบทวน (โดยทั่วไปคือปีที่ผ่านมา)
+                    {t('pqr.generate.reviewYearHint')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      วันที่เริ่มต้นช่วงเวลา
+                      {t('pqr.generate.periodStartLabel')}
                     </label>
                     <input
                       type="date"
@@ -238,7 +238,7 @@ export default function GeneratePqrPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      วันที่สิ้นสุดช่วงเวลา
+                      {t('pqr.generate.periodEndLabel')}
                     </label>
                     <input
                       type="date"
@@ -251,7 +251,7 @@ export default function GeneratePqrPage() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  ค่าเริ่มต้นคือตลอดทั้งปีปฏิทิน (1 ม.ค. - 31 ธ.ค.)
+                  {t('pqr.generate.periodDefaultHint')}
                 </p>
               </div>
             </CardContent>
@@ -263,31 +263,31 @@ export default function GeneratePqrPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-indigo-900">
                   <BarChart3 className="h-5 w-5" />
-                  ตัวอย่างรายงาน
+                  {t('pqr.generate.previewTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b border-indigo-200">
-                    <span className="text-sm font-medium text-indigo-700">ผลิตภัณฑ์:</span>
+                    <span className="text-sm font-medium text-indigo-700">{t('pqr.generate.previewProduct')}</span>
                     <span className="text-sm text-indigo-900">
                       {selectedProduct?.code} - {selectedProduct?.name}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-indigo-200">
-                    <span className="text-sm font-medium text-indigo-700">ปีที่ทบทวน:</span>
+                    <span className="text-sm font-medium text-indigo-700">{t('pqr.generate.previewReviewYear')}</span>
                     <span className="text-sm text-indigo-900">{formData.reviewYear}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-indigo-200">
-                    <span className="text-sm font-medium text-indigo-700">ช่วงเวลาที่ทบทวน:</span>
+                    <span className="text-sm font-medium text-indigo-700">{t('pqr.generate.previewPeriod')}</span>
                     <span className="text-sm text-indigo-900">
-                      {formData.periodStart} ถึง {formData.periodEnd}
+                      {t('pqr.generate.periodRange', { start: formData.periodStart ?? '', end: formData.periodEnd ?? '' })}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-indigo-700">เลขที่รายงาน:</span>
+                    <span className="text-sm font-medium text-indigo-700">{t('pqr.generate.previewReportNumber')}</span>
                     <span className="text-sm text-indigo-900">
-                      สร้างอัตโนมัติ (PQR-{formData.reviewYear}-XXX)
+                      {t('pqr.generate.autoGeneratedNumber', { year: formData.reviewYear ?? '' })}
                     </span>
                   </div>
                 </div>
@@ -296,12 +296,12 @@ export default function GeneratePqrPage() {
                   <div className="flex items-start gap-2">
                     <CheckCircle className="h-5 w-5 text-indigo-600 mt-0.5 flex-shrink-0" />
                     <div className="text-sm text-indigo-800">
-                      <p className="font-medium mb-1">สิ่งที่จะถูกสร้างขึ้น:</p>
+                      <p className="font-medium mb-1">{t('pqr.generate.whatWillBeCreated')}</p>
                       <ul className="space-y-1 list-disc list-inside ml-2">
-                        <li>รายงาน PQR ฉบับร่างพร้อมเลขที่รายงานที่สร้างอัตโนมัติ</li>
-                        <li>การรวบรวมข้อมูลจากแบตช์การผลิต การเบี่ยงเบน CAPA และข้อร้องเรียน</li>
-                        <li>การคำนวณ KPI และการวิเคราะห์ตัวชี้วัด</li>
-                        <li>ข้อเสนอแนะอัตโนมัติจากข้อมูลคุณภาพ</li>
+                        <li>{t('pqr.generate.created.draftReport')}</li>
+                        <li>{t('pqr.generate.created.dataAggregation')}</li>
+                        <li>{t('pqr.generate.created.kpiCalculation')}</li>
+                        <li>{t('pqr.generate.created.autoRecommendations')}</li>
                       </ul>
                     </div>
                   </div>
@@ -316,11 +316,11 @@ export default function GeneratePqrPage() {
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">การดำเนินการ</CardTitle>
+              <CardTitle className="text-sm">{t('pqr.generate.actionsTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <DxButton
-                text={createMutation.isPending ? 'กำลังสร้าง...' : 'สร้างรายงาน'}
+                text={createMutation.isPending ? t('pqr.generate.creating') : t('pqr.generate.createReport')}
                 icon="check"
                 type="success"
                 width="100%"
@@ -328,7 +328,7 @@ export default function GeneratePqrPage() {
                 disabled={!canGenerate || createMutation.isPending}
               />
               <DxButton
-                text="ยกเลิก"
+                text={t('common.cancel')}
                 type="normal"
                 stylingMode="outlined"
                 width="100%"
@@ -343,7 +343,7 @@ export default function GeneratePqrPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2 text-amber-800">
                   <AlertCircle className="h-4 w-4" />
-                  ข้อมูลที่จำเป็น
+                  {t('pqr.generate.requiredInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -351,13 +351,13 @@ export default function GeneratePqrPage() {
                   {!formData.productId && (
                     <li className="flex items-start gap-2">
                       <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>เลือกผลิตภัณฑ์</span>
+                      <span>{t('pqr.generate.selectProduct')}</span>
                     </li>
                   )}
                   {!formData.reviewYear && (
                     <li className="flex items-start gap-2">
                       <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>กรอกปีที่ทบทวน</span>
+                      <span>{t('pqr.generate.enterReviewYear')}</span>
                     </li>
                   )}
                 </ul>
@@ -370,28 +370,27 @@ export default function GeneratePqrPage() {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <FileBarChart className="h-4 w-4" />
-                เกี่ยวกับรายงาน PQR
+                {t('pqr.generate.aboutTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 text-sm text-gray-600">
                 <p>
-                  <strong>การทบทวนคุณภาพผลิตภัณฑ์ (PQR)</strong> คือการทบทวนคุณภาพผลิตภัณฑ์ประจำปี
-                  อย่างครอบคลุมตามที่ข้อกำหนด GMP กำหนด
+                  <strong>{t('pqr.generate.aboutPqrTerm')}</strong> {t('pqr.generate.aboutDescription')}
                 </p>
                 <p>
-                  ระบบจะรวบรวมข้อมูลโดยอัตโนมัติจาก:
+                  {t('pqr.generate.aboutAggregateIntro')}
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>แบตช์การผลิตและผลผลิต</li>
-                  <li>การเบี่ยงเบนและความไม่สอดคล้อง</li>
-                  <li>กิจกรรม CAPA</li>
-                  <li>ข้อร้องเรียนของลูกค้า</li>
-                  <li>ผลที่อยู่นอกข้อกำหนด (OOS)</li>
-                  <li>การศึกษาความคงสภาพ</li>
+                  <li>{t('pqr.generate.aboutSource.batches')}</li>
+                  <li>{t('pqr.generate.aboutSource.deviations')}</li>
+                  <li>{t('pqr.generate.aboutSource.capa')}</li>
+                  <li>{t('pqr.generate.aboutSource.complaints')}</li>
+                  <li>{t('pqr.generate.aboutSource.oos')}</li>
+                  <li>{t('pqr.generate.aboutSource.stability')}</li>
                 </ul>
                 <p className="text-xs text-gray-500 pt-2 border-t">
-                  หลังจากสร้างแล้ว คุณสามารถทบทวน แก้ไข และส่งรายงานเพื่อขออนุมัติได้
+                  {t('pqr.generate.aboutFooter')}
                 </p>
               </div>
             </CardContent>
@@ -403,7 +402,7 @@ export default function GeneratePqrPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2 text-red-800">
                   <AlertCircle className="h-4 w-4" />
-                  ข้อผิดพลาด
+                  {t('common.error')}
                 </CardTitle>
               </CardHeader>
               <CardContent>

@@ -19,6 +19,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
@@ -31,27 +32,27 @@ import { useToast } from '@/hooks/use-toast';
 import { TestTube, AlertTriangle } from 'lucide-react';
 
 const SOURCE_OPTIONS = [
-  { value: 'raw_material_lot', label: 'วัตถุดิบเข้า (Raw material lot)' },
-  { value: 'work_order_batch', label: 'ใบสั่งผลิต (Work order batch)' },
-  { value: 'customer_return', label: 'คืนจากลูกค้า (Customer return)' },
-  { value: 'stability', label: 'การศึกษาความคงตัว (Stability)' },
-  { value: 'purchased_herb', label: 'ซื้อสมุนไพร (Purchased herb)' },
-  { value: 'outgoing_shipment', label: 'ส่งออกให้ลูกค้า (Outgoing shipment / COA)' },
-  { value: 'other', label: 'อื่นๆ (Other)' },
+  { value: 'raw_material_lot', labelKey: 'qcEntry.new.sourceOptions.rawMaterialLot' },
+  { value: 'work_order_batch', labelKey: 'qcEntry.new.sourceOptions.workOrderBatch' },
+  { value: 'customer_return', labelKey: 'qcEntry.new.sourceOptions.customerReturn' },
+  { value: 'stability', labelKey: 'qcEntry.new.sourceOptions.stability' },
+  { value: 'purchased_herb', labelKey: 'qcEntry.new.sourceOptions.purchasedHerb' },
+  { value: 'outgoing_shipment', labelKey: 'qcEntry.new.sourceOptions.outgoingShipment' },
+  { value: 'other', labelKey: 'qcEntry.new.sourceOptions.other' },
 ];
 
 const PURPOSE_OPTIONS = [
-  { value: 'routine', label: 'Routine QC — ทดสอบรับเข้าปกติ' },
-  { value: 'retest', label: 'Retest — ทดสอบซ้ำหลัง deviation' },
-  { value: 'stability', label: 'Stability — ติดตามความคงตัว' },
-  { value: 'complaint', label: 'Complaint — ตรวจสอบเรื่องร้องเรียน' },
+  { value: 'routine', labelKey: 'qcEntry.new.purposeOptions.routine' },
+  { value: 'retest', labelKey: 'qcEntry.new.purposeOptions.retest' },
+  { value: 'stability', labelKey: 'qcEntry.new.purposeOptions.stability' },
+  { value: 'complaint', labelKey: 'qcEntry.new.purposeOptions.complaint' },
 ];
 
 /** Per-test sampling mode shown in the sample-size table. */
-const MODE_OPTIONS: { key: SampleMode; label: string }[] = [
-  { key: 'usp', label: 'USP (n ตามมาตรฐาน)' },
-  { key: 'sqrt', label: '√n + 1 (ตามจำนวน lot)' },
-  { key: 'fixed', label: 'กำหนดเอง' },
+const MODE_OPTIONS: { key: SampleMode; labelKey: string }[] = [
+  { key: 'usp', labelKey: 'qcEntry.new.modeOptions.usp' },
+  { key: 'sqrt', labelKey: 'qcEntry.new.modeOptions.sqrt' },
+  { key: 'fixed', labelKey: 'qcEntry.new.modeOptions.fixed' },
 ];
 
 type SampleMode = 'usp' | 'sqrt' | 'fixed';
@@ -115,6 +116,7 @@ function computeSampleSize(uspSize: number, cfg: TestCfg, lotQty: number): numbe
 export default function QcEntryNewPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('quality');
 
   const [submitting, setSubmitting] = useState(false);
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -310,17 +312,17 @@ export default function QcEntryNewPage() {
 
   const handleSubmit = async () => {
     if (!productId) {
-      toast.error('กรุณาเลือกสินค้า');
+      toast.error(t('qcEntry.new.toast.selectProduct'));
       return;
     }
     if (!receivedDate) {
-      toast.error('กรุณาระบุวันที่รับตัวอย่าง');
+      toast.error(t('qcEntry.new.toast.selectReceivedDate'));
       return;
     }
     if (exceedsStock) {
       toast.error(
-        'จำนวนที่ต้องเบิกเกินคงเหลือใน lot',
-        `ต้องเบิก ${totalDraw} แต่คงเหลือ ${lotQty}`,
+        t('qcEntry.new.toast.exceedsStockTitle'),
+        t('qcEntry.new.toast.exceedsStockDetail', { totalDraw, lotQty }),
       );
       return;
     }
@@ -355,17 +357,20 @@ export default function QcEntryNewPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('ลงทะเบียนไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.new.toast.registerFailed'), data.error || 'Unknown error');
         return;
       }
       toast.success(
-        'ลงทะเบียนสำเร็จ',
-        `${data.data?.sampleNumber || ''} (seeded ${data.data?.testsSeeded ?? 0} tests)`,
+        t('qcEntry.new.toast.registerSuccess'),
+        t('qcEntry.new.toast.registerSuccessDetail', {
+          sampleNumber: data.data?.sampleNumber || '',
+          count: data.data?.testsSeeded ?? 0,
+        }),
       );
       router.push(`/quality/qc-entry/${data.data?.sampleId}`);
     } catch (e) {
       toast.error(
-        'ลงทะเบียนไม่สำเร็จ',
+        t('qcEntry.new.toast.registerFailed'),
         e instanceof Error ? e.message : 'Network error',
       );
     } finally {
@@ -377,8 +382,8 @@ export default function QcEntryNewPage() {
     <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-4xl" data-testid="qc-new-form">
         <ResponsivePageHeader
-          title="ลงทะเบียน + ขอเบิกตัวอย่าง QC"
-          subtitle="เบิก lot กักกัน → ตัดสต็อก + ลงทะเบียนตัวอย่างในใบเดียว"
+          title={t('qcEntry.new.title')}
+          subtitle={t('qcEntry.new.subtitle')}
           icon={TestTube}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
@@ -389,7 +394,7 @@ export default function QcEntryNewPage() {
           ]}
           actions={
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.new.actions.cancel')}
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/quality/qc-entry')}
@@ -401,19 +406,19 @@ export default function QcEntryNewPage() {
           {/* Request */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              ผู้ขอเบิก / Request
+              {t('qcEntry.new.sections.request')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DxTextBox
-                label="ผู้ขอเบิก"
+                label={t('qcEntry.new.fields.requestedBy')}
                 value={requestedBy}
                 onValueChange={setRequestedBy}
-                placeholder="ชื่อผู้ขอเบิกตัวอย่าง"
+                placeholder={t('qcEntry.new.placeholders.requestedBy')}
               />
               <DxSelectBox
-                label="วัตถุประสงค์"
+                label={t('qcEntry.new.fields.purpose')}
                 value={purpose}
-                items={PURPOSE_OPTIONS}
+                items={PURPOSE_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                 displayExpr="label"
                 valueExpr="value"
                 onValueChange={(v) => setPurpose(String(v ?? 'routine'))}
@@ -424,23 +429,23 @@ export default function QcEntryNewPage() {
           {/* Source */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              ที่มาของตัวอย่าง / Source
+              {t('qcEntry.new.sections.source')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DxSelectBox
-                label="ประเภทแหล่งที่มา"
+                label={t('qcEntry.new.fields.sourceType')}
                 value={sourceType}
-                items={SOURCE_OPTIONS}
+                items={SOURCE_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                 displayExpr="label"
                 valueExpr="value"
                 onValueChange={(v) => setSourceType(String(v ?? ''))}
                 required
               />
               <DxTextBox
-                label="อ้างอิง (PO#, WO#, Lot#, ฯลฯ)"
+                label={t('qcEntry.new.fields.sourceRef')}
                 value={sourceRefText}
                 onValueChange={setSourceRefText}
-                placeholder="เช่น PO-2569-0438"
+                placeholder={t('qcEntry.new.placeholders.sourceRef')}
               />
             </div>
           </section>
@@ -448,12 +453,12 @@ export default function QcEntryNewPage() {
           {/* Product */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              ข้อมูลสินค้า / Product
+              {t('qcEntry.new.sections.product')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <DxSelectBox
-                  label="สินค้า (เฉพาะที่มี lot สถานะกักกัน)"
+                  label={t('qcEntry.new.fields.product')}
                   value={productId}
                   dataSource={productItems}
                   displayExpr="label"
@@ -474,11 +479,11 @@ export default function QcEntryNewPage() {
                   }}
                   searchEnabled
                   required
-                  noDataText="ไม่มีสินค้าในสถานะกักกัน"
+                  noDataText={t('qcEntry.new.noProductInQuarantine')}
                 />
                 {productItems.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
-                    ยังไม่มี lot ในสถานะ &quot;กักกัน&quot; — กรุณาตรวจสอบที่ /inventory
+                    {t('qcEntry.new.noLotInQuarantineHint')}
                   </p>
                 )}
               </div>
@@ -486,7 +491,7 @@ export default function QcEntryNewPage() {
               {productId && lotsForProduct.length > 1 && (
                 <div className="md:col-span-2">
                   <DxSelectBox
-                    label={`เลือก Lot (${lotsForProduct.length} lots ในสถานะกักกัน)`}
+                    label={t('qcEntry.new.selectLotLabel', { count: lotsForProduct.length })}
                     value={selectedLotId}
                     dataSource={lotItems}
                     displayExpr="label"
@@ -497,33 +502,33 @@ export default function QcEntryNewPage() {
                       applyLotToForm(lot ?? null);
                     }}
                     required
-                    placeholder="กรุณาเลือก lot"
+                    placeholder={t('qcEntry.new.placeholders.selectLot')}
                   />
                 </div>
               )}
 
               {productId && lotsForProduct.length === 1 && selectedLotId && (
                 <div className="md:col-span-2 bg-emerald-50 border border-emerald-200 rounded-md p-2 text-xs text-emerald-800">
-                  Lot เดียวในสถานะกักกัน: <strong>{lotsForProduct[0].lotNumber}</strong> — ดึงข้อมูลให้อัตโนมัติ
+                  {t('qcEntry.new.singleLotPrefix')}: <strong>{lotsForProduct[0].lotNumber}</strong> — {t('qcEntry.new.singleLotSuffix')}
                 </div>
               )}
 
               <DxTextBox
-                label="Lot Number"
+                label={t('qcEntry.new.fields.lotNumber')}
                 value={lotNumber}
                 onValueChange={setLotNumber}
-                placeholder="เช่น BG-2026-0070"
+                placeholder={t('qcEntry.new.placeholders.lotNumber')}
                 readOnly={selectedLotId != null}
               />
               <div className="grid grid-cols-2 gap-3">
                 <DxNumberBox
-                  label="จำนวนคงเหลือใน lot"
+                  label={t('qcEntry.new.fields.quantityRemaining')}
                   value={quantityReceived}
                   onValueChange={(v) => setQuantityReceived(v ?? null)}
                   readOnly={selectedLotId != null}
                 />
                 <DxTextBox
-                  label="หน่วย"
+                  label={t('qcEntry.new.fields.unit')}
                   value={unit}
                   onValueChange={setUnit}
                   placeholder="kg, g, capsule..."
@@ -531,27 +536,27 @@ export default function QcEntryNewPage() {
                 />
               </div>
               <DxDateBox
-                label="วันที่ผลิต"
+                label={t('qcEntry.new.fields.manufactureDate')}
                 value={manufactureDate}
                 onValueChange={(v) => setManufactureDate(v || '')}
                 readOnly={selectedLotId != null}
               />
               <DxDateBox
-                label="วันหมดอายุ"
+                label={t('qcEntry.new.fields.expiryDate')}
                 value={expiryDate}
                 onValueChange={(v) => setExpiryDate(v || '')}
                 readOnly={selectedLotId != null}
               />
               <DxDateBox
-                label="Retest date"
+                label={t('qcEntry.new.fields.retestDate')}
                 value={retestDate}
                 onValueChange={(v) => setRetestDate(v || '')}
               />
               <DxTextBox
-                label="สภาพการเก็บ (Storage)"
+                label={t('qcEntry.new.fields.storage')}
                 value={storageConditions}
                 onValueChange={setStorageConditions}
-                placeholder="เช่น ต่ำกว่า 30°C"
+                placeholder={t('qcEntry.new.placeholders.storage')}
               />
             </div>
           </section>
@@ -560,40 +565,40 @@ export default function QcEntryNewPage() {
           {productId && panel.length > 0 && (
             <section data-testid="sample-size-section">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">
-                คำนวณจำนวนสุ่ม / Sample size
+                {t('qcEntry.new.sections.sampleSize')}
               </h2>
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-600">
                     <tr>
-                      <th className="text-left p-2 font-medium">ทดสอบ</th>
-                      <th className="text-left p-2 font-medium">วิธีคำนวณ</th>
-                      <th className="text-right p-2 font-medium w-28">จำนวนสุ่ม</th>
+                      <th className="text-left p-2 font-medium">{t('qcEntry.new.sampleSizeTable.test')}</th>
+                      <th className="text-left p-2 font-medium">{t('qcEntry.new.sampleSizeTable.method')}</th>
+                      <th className="text-right p-2 font-medium w-28">{t('qcEntry.new.sampleSizeTable.sampleCount')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {panel.map((t) => {
-                      const cfg = testCfg[t.criteriaId] ?? {
+                    {panel.map((row) => {
+                      const cfg = testCfg[row.criteriaId] ?? {
                         selected: true,
                         mode: 'sqrt' as SampleMode,
-                        fixedQty: t.criteriaSampleSize ?? 1,
+                        fixedQty: row.criteriaSampleSize ?? 1,
                       };
-                      const qty = computeSampleSize(t.criteriaSampleSize ?? 1, cfg, lotQty);
+                      const qty = computeSampleSize(row.criteriaSampleSize ?? 1, cfg, lotQty);
                       return (
-                        <tr key={t.criteriaId} className="border-t border-gray-100">
+                        <tr key={row.criteriaId} className="border-t border-gray-100">
                           <td className="p-2">
                             <label className="flex items-center gap-2">
                               <DxCheckBox
                                 value={cfg.selected}
                                 onValueChange={(v) =>
-                                  updateCfg(t.criteriaId, { selected: Boolean(v) })
+                                  updateCfg(row.criteriaId, { selected: Boolean(v) })
                                 }
                               />
                               <span>
-                                {t.criteriaNameTh || t.criteriaName || t.criteriaCode}
-                                {t.criteriaCode && (
+                                {row.criteriaNameTh || row.criteriaName || row.criteriaCode}
+                                {row.criteriaCode && (
                                   <span className="text-xs text-gray-400 ml-1">
-                                    ({t.criteriaCode})
+                                    ({row.criteriaCode})
                                   </span>
                                 )}
                               </span>
@@ -606,14 +611,14 @@ export default function QcEntryNewPage() {
                                   key={opt.key}
                                   type="button"
                                   disabled={!cfg.selected}
-                                  onClick={() => updateCfg(t.criteriaId, { mode: opt.key })}
+                                  onClick={() => updateCfg(row.criteriaId, { mode: opt.key })}
                                   className={`px-2 py-1 text-xs rounded border ${
                                     cfg.mode === opt.key
                                       ? 'bg-cyan-600 text-white border-cyan-600'
                                       : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                                   } ${!cfg.selected ? 'opacity-40 cursor-not-allowed' : ''}`}
                                 >
-                                  {opt.label}
+                                  {t(opt.labelKey)}
                                 </button>
                               ))}
                               {cfg.mode === 'fixed' && cfg.selected && (
@@ -622,7 +627,7 @@ export default function QcEntryNewPage() {
                                   min={0}
                                   value={cfg.fixedQty}
                                   onChange={(e) =>
-                                    updateCfg(t.criteriaId, {
+                                    updateCfg(row.criteriaId, {
                                       fixedQty: Number(e.target.value),
                                     })
                                   }
@@ -643,7 +648,7 @@ export default function QcEntryNewPage() {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-gray-600 whitespace-nowrap">
-                    Buffer (เผื่อทดสอบซ้ำ)
+                    {t('qcEntry.new.bufferLabel')}
                   </label>
                   <input
                     type="range"
@@ -658,7 +663,7 @@ export default function QcEntryNewPage() {
                 </div>
                 <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">รวมจำนวนสุ่ม</span>
+                    <span className="text-gray-600">{t('qcEntry.new.totals.sampleSum')}</span>
                     <span className="font-mono" data-testid="test-sample-sum">
                       {testSampleSum}
                     </span>
@@ -668,7 +673,7 @@ export default function QcEntryNewPage() {
                     <span className="font-mono">+{bufferQty}</span>
                   </div>
                   <div className="flex justify-between font-semibold border-t border-cyan-200 mt-1 pt-1">
-                    <span>ต้องเบิกทดสอบรวม</span>
+                    <span>{t('qcEntry.new.totals.totalDraw')}</span>
                     <span className="font-mono" data-testid="total-sample-qty">
                       {totalSampleQty} {unit}
                     </span>
@@ -681,20 +686,20 @@ export default function QcEntryNewPage() {
           {/* Retain sample */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              ตัวอย่างคงคลัง / Retain sample
+              {t('qcEntry.new.sections.retainSample')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DxNumberBox
-                label="จำนวน retain"
+                label={t('qcEntry.new.fields.retainQty')}
                 value={retainSampleQty}
                 onValueChange={(v) => setRetainSampleQty(v ?? null)}
                 min={0}
               />
               <DxTextBox
-                label="ที่เก็บ / Storage location"
+                label={t('qcEntry.new.fields.retainStorage')}
                 value={retainStorage}
                 onValueChange={setRetainStorage}
-                placeholder="เช่น WH-RETAIN-01"
+                placeholder={t('qcEntry.new.placeholders.retainStorage')}
               />
             </div>
           </section>
@@ -703,11 +708,11 @@ export default function QcEntryNewPage() {
           {isOutgoing && (
             <section>
               <h2 className="text-sm font-semibold text-gray-700 mb-3">
-                ลูกค้า / Customer (สำหรับ COA)
+                {t('qcEntry.new.sections.customer')}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DxSelectBox
-                  label="ลูกค้า"
+                  label={t('qcEntry.new.fields.customer')}
                   value={customerId}
                   dataSource={customerItems}
                   displayExpr="label"
@@ -720,7 +725,7 @@ export default function QcEntryNewPage() {
                   label="Sales Order ref"
                   value={salesOrderRef}
                   onValueChange={setSalesOrderRef}
-                  placeholder="เช่น SO-2026-0042"
+                  placeholder={t('qcEntry.new.placeholders.salesOrderRef')}
                 />
               </div>
             </section>
@@ -729,18 +734,18 @@ export default function QcEntryNewPage() {
           {/* Receipt + notes */}
           <section>
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              ข้อมูลการรับ / Receipt
+              {t('qcEntry.new.sections.receipt')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DxDateBox
-                label="วันที่รับตัวอย่าง"
+                label={t('qcEntry.new.fields.receivedDate')}
                 value={receivedDate}
                 onValueChange={(v) => setReceivedDate(v || '')}
               />
             </div>
             <div className="mt-4">
               <DxTextArea
-                label="หมายเหตุ"
+                label={t('qcEntry.new.fields.notes')}
                 value={notes}
                 onValueChange={setNotes}
                 height={90}
@@ -753,11 +758,10 @@ export default function QcEntryNewPage() {
               />
               <div className="flex-1">
                 <label className="text-sm font-medium text-cyan-900">
-                  ใส่ test panel มาตรฐานของสินค้านี้อัตโนมัติ
+                  {t('qcEntry.new.applyDefaultPanelLabel')}
                 </label>
                 <p className="text-xs text-cyan-700 mt-0.5">
-                  ระบบจะดึงรายการทดสอบจาก Test Panels master ของสินค้า/หมวดหมู่นี้
-                  มาวางในตัวอย่างให้พร้อมบันทึกผล
+                  {t('qcEntry.new.applyDefaultPanelHint')}
                 </p>
               </div>
             </div>
@@ -771,21 +775,20 @@ export default function QcEntryNewPage() {
             >
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>
-                จำนวนที่ต้องเบิก ({totalDraw} {unit}) เกินคงเหลือใน lot ({lotQty} {unit}) —
-                ลดจำนวนสุ่ม / buffer / retain
+                {t('qcEntry.new.stockWarning', { totalDraw, unit, lotQty })}
               </span>
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.new.actions.cancel')}
               stylingMode="outlined"
               onClick={() => router.push('/quality/qc-entry')}
               disabled={submitting}
             />
             <DxButton
-              text={submitting ? 'กำลังบันทึก...' : 'ลงทะเบียน'}
+              text={submitting ? t('qcEntry.new.actions.saving') : t('qcEntry.new.actions.register')}
               icon="save"
               type="default"
               onClick={handleSubmit}

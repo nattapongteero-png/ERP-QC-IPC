@@ -71,18 +71,19 @@ async function verifyLog(logId: number): Promise<SanitationLog> {
 // Component
 // ============================================
 
-const statusOptions = [
-  { value: '', text: 'ทุกสถานะ' },
-  { value: 'completed', text: 'เสร็จสิ้น' },
-  { value: 'partial', text: 'บางส่วน' },
-  { value: 'missed', text: 'ขาด' },
-];
+const STATUS_VALUES = ['', 'completed', 'partial', 'missed'] as const;
 
 export default function SanitationLogsPage() {
   const router = useRouter();
   const t = useTranslations('gmp');
+  const tp = useTranslations('premises');
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+
+  const statusOptions = STATUS_VALUES.map((value) => ({
+    value,
+    text: tp('sanitation.logs.status.' + (value || 'all')),
+  }));
 
   const scheduleIdParam = searchParams.get('scheduleId');
   const showNewParam = searchParams.get('new');
@@ -138,7 +139,7 @@ export default function SanitationLogsPage() {
   };
 
   const scheduleOptions = [
-    { id: '', name: 'ทุกกำหนดการ' },
+    { id: '', name: tp('sanitation.logs.allSchedules') },
     ...(schedules || []).map((s) => ({ id: String(s.id), name: s.name })),
   ];
 
@@ -149,14 +150,14 @@ export default function SanitationLogsPage() {
         title={t('sanitation.logs.title')}
         subtitle={t('sanitation.logs.description')}
         breadcrumbs={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: tp('sanitation.common.breadcrumbPremises'), href: '/premises' },
           { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
           { label: t('sanitation.logs.title') },
         ]}
         onBack={() => router.push('/premises/sanitation')}
         actions={
           <DxButton
-            text="บันทึกผล"
+            text={tp('sanitation.common.recordResult')}
             icon="plus"
             onClick={() => setShowCreateDialog(true)}
             type="default"
@@ -173,7 +174,7 @@ export default function SanitationLogsPage() {
           displayExpr="name"
           valueExpr="id"
           width={200}
-          placeholder="กรองตามกำหนดการ"
+          placeholder={tp('sanitation.logs.filterBySchedule')}
         />
         <DxSelectBox
           items={statusOptions}
@@ -182,7 +183,7 @@ export default function SanitationLogsPage() {
           displayExpr="text"
           valueExpr="value"
           width={160}
-          placeholder="สถานะ"
+          placeholder={tp('sanitation.logs.statusPlaceholder')}
         />
       </div>
 
@@ -200,26 +201,26 @@ export default function SanitationLogsPage() {
       <DxPopup
         visible={showCreateDialog}
         onHiding={() => setShowCreateDialog(false)}
-        title="บันทึกผลสุขาภิบาล"
+        title={tp('sanitation.logs.dialogTitle')}
         width={500}
         height="auto"
       >
         <div className="space-y-4 p-4">
           <div>
-            <label className="block text-sm font-medium mb-1">กำหนดการ *</label>
+            <label className="block text-sm font-medium mb-1">{tp('sanitation.logs.form.schedule')} *</label>
             <DxSelectBox
               items={(schedules || []) as unknown as Array<{ id: number; name: string }>}
               value={formData.scheduleId}
               onValueChanged={(e) => setFormData({ ...formData, scheduleId: e.value })}
               displayExpr="name"
               valueExpr="id"
-              placeholder="เลือกกำหนดการ"
+              placeholder={tp('sanitation.logs.form.schedulePlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">วันที่ดำเนินการ *</label>
+              <label className="block text-sm font-medium mb-1">{tp('sanitation.logs.form.performedDate')} *</label>
               <DxDateBox
                 value={formData.performedDate}
                 onValueChanged={(e) =>
@@ -236,7 +237,7 @@ export default function SanitationLogsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">สถานะ *</label>
+              <label className="block text-sm font-medium mb-1">{tp('sanitation.logs.form.status')} *</label>
               <DxSelectBox
                 items={statusOptions.filter((o) => o.value)}
                 value={formData.status}
@@ -250,32 +251,32 @@ export default function SanitationLogsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">สารเคมีที่ใช้</label>
+            <label className="block text-sm font-medium mb-1">{tp('sanitation.logs.form.chemicalsUsed')}</label>
             <DxTextBox
               value={formData.chemicalsUsed || ''}
               onValueChanged={(e) => setFormData({ ...formData, chemicalsUsed: e.value })}
-              placeholder="ระบุสารเคมีที่ใช้"
+              placeholder={tp('sanitation.logs.form.chemicalsUsedPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
+            <label className="block text-sm font-medium mb-1">{tp('sanitation.logs.form.notes')}</label>
             <DxTextArea
               value={formData.notes || ''}
               onValueChanged={(e) => setFormData({ ...formData, notes: e.value })}
-              placeholder="หมายเหตุเพิ่มเติม"
+              placeholder={tp('sanitation.logs.form.notesPlaceholder')}
               height={80}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="ยกเลิก"
+              text={tp('sanitation.common.cancel')}
               onClick={() => setShowCreateDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="บันทึก"
+              text={tp('sanitation.common.save')}
               onClick={handleCreate}
               type="default"
               disabled={createMutation.isPending}

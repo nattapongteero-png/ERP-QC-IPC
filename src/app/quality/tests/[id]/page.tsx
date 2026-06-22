@@ -106,18 +106,18 @@ interface TestDetail {
   };
 }
 
-const resultOptions = [
-  { value: '', label: 'เลือกผลลัพธ์' },
-  { value: 'pass', label: 'ผ่าน' },
-  { value: 'fail', label: 'ไม่ผ่าน' },
-  { value: 'retest', label: 'ต้องทดสอบซ้ำ' },
-];
-
 export default function QualityTestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations('quality');
   const toast = useToast();
+
+  const resultOptions = [
+    { value: '', label: t('tests.detail.resultPlaceholder') },
+    { value: 'pass', label: t('tests.status.pass') },
+    { value: 'fail', label: t('tests.status.fail') },
+    { value: 'retest', label: t('tests.detail.resultRetest') },
+  ];
   const [data, setData] = useState<TestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -179,7 +179,7 @@ export default function QualityTestDetailPage() {
         });
         const result = await response.json();
         if (result.success) {
-          toast.success('บันทึกการตัดสินใจจัดการแล้ว');
+          toast.success(t('tests.detail.dispositionSaved'));
           fetchDispositionDetails();
           fetchTestDetail();
           return { success: true };
@@ -205,7 +205,11 @@ export default function QualityTestDetailPage() {
         });
         const result = await response.json();
         if (result.success) {
-          toast.success(`อนุมัติการจัดการแล้ว${result.data.lotStatusUpdated ? ` อัปเดตสถานะล็อตเป็น: ${result.data.newLotStatus}` : ''}`);
+          toast.success(
+            result.data.lotStatusUpdated
+              ? t('tests.detail.dispositionApprovedWithLot', { status: result.data.newLotStatus })
+              : t('tests.detail.dispositionApproved')
+          );
           fetchDispositionDetails();
           fetchTestDetail();
           return { success: true };
@@ -248,14 +252,14 @@ export default function QualityTestDetailPage() {
   };
 
   const getTestTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      'incoming': 'การตรวจสอบขาเข้า',
-      'in_process': 'การควบคุมระหว่างกระบวนการ',
-      'finished': 'ผลิตภัณฑ์สำเร็จรูป',
-      'stability': 'การทดสอบความคงตัว',
-      'release': 'การทดสอบเพื่อปล่อยจำหน่าย',
+    const keys: Record<string, string> = {
+      'incoming': 'tests.detail.type.incoming',
+      'in_process': 'tests.detail.type.in_process',
+      'finished': 'tests.detail.type.finished',
+      'stability': 'tests.detail.type.stability',
+      'release': 'tests.detail.type.release',
     };
-    return labels[type] || type;
+    return keys[type] ? t(keys[type]) : type;
   };
 
   if (loading) {
@@ -269,7 +273,7 @@ export default function QualityTestDetailPage() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">ไม่พบการทดสอบคุณภาพ</p>
+        <p className="text-gray-500">{t('tests.detail.notFound')}</p>
         <DxButton
           text={t('page.title')}
           type="normal"
@@ -290,7 +294,7 @@ export default function QualityTestDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <DxButton
-                text="กลับ"
+                text={t('tests.detail.back')}
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
@@ -311,7 +315,7 @@ export default function QualityTestDetailPage() {
           <div className="flex gap-2">
             {test.status === 'pending' && !isEditing && (
               <DxButton
-                text="กรอกผลลัพธ์"
+                text={t('tests.detail.enterResult')}
                 type="default"
                 onClick={() => setIsEditing(true)}
               />
@@ -319,13 +323,13 @@ export default function QualityTestDetailPage() {
             {isEditing && (
               <>
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('tests.detail.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => setIsEditing(false)}
                 />
                 <DxButton
-                  text={isSaving ? 'กำลังบันทึก...' : 'บันทึกผลลัพธ์'}
+                  text={isSaving ? t('tests.detail.saving') : t('tests.detail.saveResult')}
                   type="success"
                   onClick={handleSubmitResult}
                   disabled={isSaving}
@@ -333,7 +337,7 @@ export default function QualityTestDetailPage() {
               </>
             )}
             <DxButton
-              text="พิมพ์รายงาน"
+              text={t('tests.detail.printReport')}
               icon="print"
               type="normal"
               stylingMode="outlined"
@@ -347,7 +351,7 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">สถานะ</p>
+                <p className="text-sm text-gray-600">{t('tests.detail.cards.status')}</p>
                 <Badge variant={getStatusVariant(test.status)} className="text-lg mt-1">
                   {test.status}
                 </Badge>
@@ -357,13 +361,13 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">ผลลัพธ์</p>
+                <p className="text-sm text-gray-600">{t('tests.detail.cards.result')}</p>
                 {test.result ? (
                   <Badge variant={getStatusVariant(test.result)} className="text-lg mt-1">
                     {test.result.toUpperCase()}
                   </Badge>
                 ) : (
-                  <p className="text-lg font-bold text-gray-400 mt-1">รอดำเนินการ</p>
+                  <p className="text-lg font-bold text-gray-400 mt-1">{t('tests.detail.cards.pending')}</p>
                 )}
               </div>
             </CardContent>
@@ -371,7 +375,7 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">ค่าที่วัดได้</p>
+                <p className="text-sm text-gray-600">{t('tests.detail.cards.measuredValue')}</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {test.actualValue || '-'}
                 </p>
@@ -382,13 +386,13 @@ export default function QualityTestDetailPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">ความสอดคล้องกับข้อกำหนด</p>
+                <p className="text-sm text-gray-600">{t('tests.detail.cards.specCompliance')}</p>
                 {analysis.specCompliance ? (
                   <Badge variant={getStatusVariant(analysis.specCompliance)} className="text-lg mt-1">
-                    {analysis.isWithinSpec ? 'อยู่ในข้อกำหนด' : 'นอกข้อกำหนด'}
+                    {analysis.isWithinSpec ? t('tests.detail.cards.withinSpec') : t('tests.detail.cards.outOfSpec')}
                   </Badge>
                 ) : (
-                  <p className="text-lg font-bold text-gray-400 mt-1">ไม่มีข้อมูล</p>
+                  <p className="text-lg font-bold text-gray-400 mt-1">{t('tests.detail.cards.noData')}</p>
                 )}
               </div>
             </CardContent>
@@ -399,30 +403,30 @@ export default function QualityTestDetailPage() {
           {/* Test Information */}
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลการทดสอบ</CardTitle>
+              <CardTitle>{t('tests.detail.testInfo.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-gray-500">รหัสการทดสอบ</dt>
+                  <dt className="text-sm text-gray-500">{t('tests.detail.testInfo.testCode')}</dt>
                   <dd className="font-medium">{test.testCode}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">ประเภทการทดสอบ</dt>
+                  <dt className="text-sm text-gray-500">{t('tests.detail.testInfo.testType')}</dt>
                   <dd className="font-medium">{getTestTypeLabel(test.testType)}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">ทดสอบโดย</dt>
+                  <dt className="text-sm text-gray-500">{t('tests.detail.testInfo.testedBy')}</dt>
                   <dd className="font-medium">{tester?.name || '-'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">วันที่ทดสอบ</dt>
+                  <dt className="text-sm text-gray-500">{t('tests.detail.testInfo.testedAt')}</dt>
                   <dd className="font-medium">
                     {test.testedAt ? new Date(test.testedAt).toLocaleString('th-TH') : '-'}
                   </dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-sm text-gray-500">หมายเหตุ</dt>
+                  <dt className="text-sm text-gray-500">{t('tests.detail.testInfo.notes')}</dt>
                   <dd className="font-medium">{test.notes || '-'}</dd>
                 </div>
               </dl>
@@ -432,48 +436,48 @@ export default function QualityTestDetailPage() {
           {/* Specification */}
           <Card>
             <CardHeader>
-              <CardTitle>ข้อกำหนด</CardTitle>
+              <CardTitle>{t('tests.detail.spec.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               {specification ? (
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">รหัสข้อกำหนด</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.specCode')}</dt>
                     <dd className="font-medium">{specification.specCode}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">พารามิเตอร์</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.parameter')}</dt>
                     <dd className="font-medium">{specification.parameter}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">วิธี</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.method')}</dt>
                     <dd className="font-medium">{specification.method || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">หน่วย</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.unit')}</dt>
                     <dd className="font-medium">{specification.unit || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">ค่าต่ำสุด</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.minValue')}</dt>
                     <dd className="font-medium">{specification.minValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">ค่าสูงสุด</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.maxValue')}</dt>
                     <dd className="font-medium">{specification.maxValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">ค่าเป้าหมาย</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.targetValue')}</dt>
                     <dd className="font-medium">{specification.targetValue || '-'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">ค่าที่วัดได้</dt>
+                    <dt className="text-sm text-gray-500">{t('tests.detail.spec.measuredValue')}</dt>
                     <dd className={`font-medium ${analysis.isWithinSpec ? 'text-green-600' : 'text-red-600'}`}>
                       {test.actualValue || '-'}
                     </dd>
                   </div>
                 </dl>
               ) : (
-                <p className="text-gray-500">ไม่มีข้อกำหนดที่เชื่อมโยง</p>
+                <p className="text-gray-500">{t('tests.detail.spec.none')}</p>
               )}
             </CardContent>
           </Card>
@@ -481,18 +485,18 @@ export default function QualityTestDetailPage() {
           {/* Sample Information */}
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลตัวอย่าง</CardTitle>
+              <CardTitle>{t('tests.detail.sampleInfo.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
                 {item && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">รหัสรายการ</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.itemCode')}</dt>
                       <dd className="font-medium">{item.code}</dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">ชื่อรายการ</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.itemName')}</dt>
                       <dd className="font-medium">{item.nameTh}</dd>
                     </div>
                   </>
@@ -500,17 +504,17 @@ export default function QualityTestDetailPage() {
                 {lot && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">หมายเลขล็อต</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.lotNumber')}</dt>
                       <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/inventory/lots/${lot.id}`)}>
                         {lot.lotNumber}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">สถานะล็อต</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.lotStatus')}</dt>
                       <dd><Badge variant={getStatusVariant(lot.status)}>{lot.status}</Badge></dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">วันหมดอายุ</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.expiryDate')}</dt>
                       <dd className="font-medium">
                         {lot.expiryDate ? new Date(lot.expiryDate).toLocaleDateString('th-TH') : '-'}
                       </dd>
@@ -520,13 +524,13 @@ export default function QualityTestDetailPage() {
                 {workOrder && (
                   <>
                     <div>
-                      <dt className="text-sm text-gray-500">ใบสั่งผลิต</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.workOrder')}</dt>
                       <dd className="font-medium text-blue-600 cursor-pointer" onClick={() => router.push(`/production/work-orders/${workOrder.id}`)}>
                         {workOrder.woNumber}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">หมายเลขแบทช์</dt>
+                      <dt className="text-sm text-gray-500">{t('tests.detail.sampleInfo.batchNumber')}</dt>
                       <dd className="font-medium">{workOrder.batchNumber || '-'}</dd>
                     </div>
                   </>
@@ -539,22 +543,22 @@ export default function QualityTestDetailPage() {
           {isEditing && (
             <Card>
               <CardHeader>
-                <CardTitle>กรอกผลการทดสอบ</CardTitle>
+                <CardTitle>{t('tests.detail.resultForm.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ค่าที่วัดได้ {specification?.unit && `(${specification.unit})`}
+                      {t('tests.detail.resultForm.measuredValueLabel')} {specification?.unit && `(${specification.unit})`}
                     </label>
                     <DxTextBox
                       value={editForm.actualValue}
                       onValueChange={(value) => setEditForm({ ...editForm, actualValue: value })}
-                      placeholder={specification ? `ช่วง: ${specification.minValue || '-'} ถึง ${specification.maxValue || '-'}` : 'กรอกค่า'}
+                      placeholder={specification ? t('tests.detail.resultForm.rangePlaceholder', { min: specification.minValue || '-', max: specification.maxValue || '-' }) : t('tests.detail.resultForm.valuePlaceholder')}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ผลลัพธ์</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tests.detail.resultForm.resultLabel')}</label>
                     <DxSelectBox
                       items={resultOptions}
                       value={editForm.result}
@@ -564,11 +568,11 @@ export default function QualityTestDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('tests.detail.resultForm.notesLabel')}</label>
                     <DxTextArea
                       value={editForm.notes}
                       onValueChange={(value) => setEditForm({ ...editForm, notes: value })}
-                      placeholder="กรอกข้อสังเกตหรือหมายเหตุ"
+                      placeholder={t('tests.detail.resultForm.notesPlaceholder')}
                       height={80}
                     />
                   </div>

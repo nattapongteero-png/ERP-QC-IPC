@@ -98,41 +98,37 @@ async function closeCapa(id: number, closureNotes?: string): Promise<void> {
 // Configuration
 // ============================================
 
+// labelKey holds the i18n key (relative to the 'gmp' namespace) resolved via t() at call sites.
 const PRIORITY_CONFIG: Record<CapaPriority, {
-  label: string;
-  labelTh: string;
+  labelKey: string;
   color: string;
   bgClass: string;
   textClass: string;
   borderClass: string;
 }> = {
   low: {
-    label: 'Low',
-    labelTh: 'ต่ำ',
+    labelKey: 'capa.priority.low',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
     borderClass: 'border-green-500',
   },
   medium: {
-    label: 'Medium',
-    labelTh: 'ปานกลาง',
+    labelKey: 'capa.priority.medium',
     color: '#f59e0b',
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
     borderClass: 'border-amber-500',
   },
   high: {
-    label: 'High',
-    labelTh: 'สูง',
+    labelKey: 'capa.priority.high',
     color: '#f97316',
     bgClass: 'bg-orange-100',
     textClass: 'text-orange-700',
     borderClass: 'border-orange-500',
   },
   critical: {
-    label: 'Critical',
-    labelTh: 'วิกฤต',
+    labelKey: 'capa.priority.critical',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -141,8 +137,7 @@ const PRIORITY_CONFIG: Record<CapaPriority, {
 };
 
 const STATUS_CONFIG: Record<CapaStatus, {
-  label: string;
-  labelTh: string;
+  labelKey: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -150,8 +145,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
   step: number;
 }> = {
   open: {
-    label: 'Open',
-    labelTh: 'เปิด',
+    labelKey: 'capa.detail.workflowStatus.open',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -159,8 +153,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 1,
   },
   investigation: {
-    label: 'Investigation',
-    labelTh: 'สืบสวน',
+    labelKey: 'capa.detail.workflowStatus.investigation',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
@@ -168,8 +161,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 2,
   },
   action_pending: {
-    label: 'Action Pending',
-    labelTh: 'รอดำเนินการ',
+    labelKey: 'capa.detail.workflowStatus.actionPending',
     color: '#f59e0b',
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
@@ -177,8 +169,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 3,
   },
   verification: {
-    label: 'Verification',
-    labelTh: 'ตรวจสอบ',
+    labelKey: 'capa.detail.workflowStatus.verification',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -186,8 +177,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 4,
   },
   pending_approval: {
-    label: 'Pending Approval',
-    labelTh: 'รออนุมัติ',
+    labelKey: 'capa.detail.workflowStatus.pendingApproval',
     color: '#ec4899',
     bgClass: 'bg-pink-100',
     textClass: 'text-pink-700',
@@ -195,8 +185,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 5,
   },
   closed: {
-    label: 'Closed',
-    labelTh: 'ปิด',
+    labelKey: 'capa.detail.workflowStatus.closed',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -204,8 +193,7 @@ const STATUS_CONFIG: Record<CapaStatus, {
     step: 6,
   },
   cancelled: {
-    label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    labelKey: 'capa.detail.workflowStatus.cancelled',
     color: '#6b7280',
     bgClass: 'bg-gray-100',
     textClass: 'text-gray-700',
@@ -214,29 +202,29 @@ const STATUS_CONFIG: Record<CapaStatus, {
   },
 };
 
-const RISK_SEVERITY_LABELS: Record<RiskSeverity, { label: string; labelTh: string; value: number }> = {
-  negligible: { label: 'Negligible', labelTh: 'น้อยมาก', value: 1 },
-  minor: { label: 'Minor', labelTh: 'น้อย', value: 2 },
-  moderate: { label: 'Moderate', labelTh: 'ปานกลาง', value: 3 },
-  major: { label: 'Major', labelTh: 'มาก', value: 4 },
-  critical: { label: 'Critical', labelTh: 'วิกฤต', value: 5 },
+const RISK_SEVERITY_LABELS: Record<RiskSeverity, { labelKey: string; value: number }> = {
+  negligible: { labelKey: 'capa.detail.severity.negligible', value: 1 },
+  minor: { labelKey: 'capa.detail.severity.minor', value: 2 },
+  moderate: { labelKey: 'capa.detail.severity.moderate', value: 3 },
+  major: { labelKey: 'capa.detail.severity.major', value: 4 },
+  critical: { labelKey: 'capa.detail.severity.critical', value: 5 },
 };
 
-const RISK_PROBABILITY_LABELS: Record<RiskProbability, { label: string; labelTh: string; value: number }> = {
-  rare: { label: 'Rare', labelTh: 'น้อยมาก', value: 1 },
-  unlikely: { label: 'Unlikely', labelTh: 'ไม่น่าจะเกิด', value: 2 },
-  possible: { label: 'Possible', labelTh: 'อาจเกิด', value: 3 },
-  likely: { label: 'Likely', labelTh: 'น่าจะเกิด', value: 4 },
-  certain: { label: 'Certain', labelTh: 'แน่นอน', value: 5 },
+const RISK_PROBABILITY_LABELS: Record<RiskProbability, { labelKey: string; value: number }> = {
+  rare: { labelKey: 'capa.detail.probability.rare', value: 1 },
+  unlikely: { labelKey: 'capa.detail.probability.unlikely', value: 2 },
+  possible: { labelKey: 'capa.detail.probability.possible', value: 3 },
+  likely: { labelKey: 'capa.detail.probability.likely', value: 4 },
+  certain: { labelKey: 'capa.detail.probability.certain', value: 5 },
 };
 
-const ROOT_CAUSE_CATEGORIES = {
-  man: { label: 'Man (คน)', color: '#3b82f6' },
-  machine: { label: 'Machine (เครื่องจักร)', color: '#8b5cf6' },
-  method: { label: 'Method (วิธีการ)', color: '#22c55e' },
-  material: { label: 'Material (วัตถุดิบ)', color: '#f59e0b' },
-  measurement: { label: 'Measurement (การวัด)', color: '#06b6d4' },
-  environment: { label: 'Environment (สภาพแวดล้อม)', color: '#ec4899' },
+const ROOT_CAUSE_CATEGORIES: Record<string, { labelKey: string; color: string }> = {
+  man: { labelKey: 'capa.detail.rootCauseCategories.man', color: '#3b82f6' },
+  machine: { labelKey: 'capa.detail.rootCauseCategories.machine', color: '#8b5cf6' },
+  method: { labelKey: 'capa.detail.rootCauseCategories.method', color: '#22c55e' },
+  material: { labelKey: 'capa.detail.rootCauseCategories.material', color: '#f59e0b' },
+  measurement: { labelKey: 'capa.detail.rootCauseCategories.measurement', color: '#06b6d4' },
+  environment: { labelKey: 'capa.detail.rootCauseCategories.environment', color: '#ec4899' },
 };
 
 type TabKey = 'overview' | 'actions' | 'effectiveness' | 'risk' | 'attachments' | 'approvals';
@@ -304,7 +292,7 @@ export default function CapaDetailPage() {
 
   // Delete a mistaken / test CAPA (only allowed while status === 'open').
   const handleDeleteCapa = useCallback(async () => {
-    if (!window.confirm('ต้องการลบ CAPA นี้หรือไม่?\nลบได้เฉพาะรายการที่ยังไม่ได้ดำเนินการ (สถานะ "เปิด")')) {
+    if (!window.confirm(t('capa.detail.deleteConfirm'))) {
       return;
     }
     setDeleting(true);
@@ -312,14 +300,14 @@ export default function CapaDetailPage() {
       const res = await fetch(`/api/capa/${capaId}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.success) {
-        throw new Error(body?.error || 'ลบไม่สำเร็จ');
+        throw new Error(body?.error || t('capa.detail.deleteFailed'));
       }
       router.push('/gmp/capa');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      alert(err instanceof Error ? err.message : t('capa.detail.deleteFailed'));
       setDeleting(false);
     }
-  }, [capaId, router]);
+  }, [capaId, router, t]);
 
   // Fetch CAPA details
   const {
@@ -347,13 +335,13 @@ export default function CapaDetailPage() {
   // Tabs configuration - using numeric IDs as required by DxTabItemData
   // 0: overview, 1: actions, 2: effectiveness, 3: risk, 4: attachments, 5: approvals
   const tabs: DxTabItemData[] = useMemo(() => [
-    { id: 0, text: 'ภาพรวม', icon: 'home' },
-    { id: 1, text: `การดำเนินการ (${capa?.actions?.length || 0})`, icon: 'checklist' },
-    { id: 2, text: `ประสิทธิผล (${capa?.effectivenessChecks?.length || 0})`, icon: 'chart' },
-    { id: 3, text: 'การประเมินความเสี่ยง', icon: 'warning' },
-    { id: 4, text: 'เอกสารแนบ', icon: 'attach' },
-    { id: 5, text: `การอนุมัติ (${capa?.approvals?.length || 0})`, icon: 'user' },
-  ], [capa]);
+    { id: 0, text: t('capa.detail.tabs.overview'), icon: 'home' },
+    { id: 1, text: `${t('capa.detail.tabs.actions')} (${capa?.actions?.length || 0})`, icon: 'checklist' },
+    { id: 2, text: `${t('capa.detail.tabs.effectiveness')} (${capa?.effectivenessChecks?.length || 0})`, icon: 'chart' },
+    { id: 3, text: t('capa.detail.tabs.riskAssessment'), icon: 'warning' },
+    { id: 4, text: t('capa.detail.tabs.attachments'), icon: 'attach' },
+    { id: 5, text: `${t('capa.detail.tabs.approvals')} (${capa?.approvals?.length || 0})`, icon: 'user' },
+  ], [capa, t]);
 
   // Computed values
   const statusConfig = capa ? STATUS_CONFIG[capa.status] : null;
@@ -368,10 +356,10 @@ export default function CapaDetailPage() {
 
   // Closure checklist for display
   const closureChecklist = capa ? [
-    { label: 'การดำเนินการ (Action)', ok: allActionsComplete, detail: hasActions ? `${capa.actions.filter((a) => a.status === 'completed').length}/${capa.actions.length} เสร็จ` : 'ไม่มีรายการ' },
-    { label: 'ประสิทธิผล (Effectiveness)', ok: hasEffectiveCheck, detail: hasEffectiveCheck ? 'ผ่าน' : 'ยังไม่มีผลเป็น Effective' },
-    { label: 'ความเสี่ยง (Risk Assessment)', ok: hasRiskAssessment, detail: hasRiskAssessment ? `${capa.riskSeverity}/${capa.riskProbability}` : 'ยังไม่ได้ประเมิน' },
-    { label: 'สาเหตุ (Root Cause)', ok: hasRootCause, detail: hasRootCause ? 'ระบุแล้ว' : 'ยังไม่ได้ระบุ' },
+    { label: t('capa.detail.closure.actionLabel'), ok: allActionsComplete, detail: hasActions ? `${capa.actions.filter((a) => a.status === 'completed').length}/${capa.actions.length} ${t('capa.detail.closure.done')}` : t('capa.detail.closure.noItems') },
+    { label: t('capa.detail.closure.effectivenessLabel'), ok: hasEffectiveCheck, detail: hasEffectiveCheck ? t('capa.detail.closure.passed') : t('capa.detail.closure.noEffectiveResult') },
+    { label: t('capa.detail.closure.riskLabel'), ok: hasRiskAssessment, detail: hasRiskAssessment ? `${capa.riskSeverity}/${capa.riskProbability}` : t('capa.detail.closure.notAssessed') },
+    { label: t('capa.detail.closure.rootCauseLabel'), ok: hasRootCause, detail: hasRootCause ? t('capa.detail.closure.specified') : t('capa.detail.closure.notSpecified') },
   ] : [];
   const completedActions = capa?.actions?.filter((a) => a.status === 'completed').length ?? 0;
   const totalActions = capa?.actions?.length ?? 0;
@@ -383,7 +371,7 @@ export default function CapaDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <DxLoadIndicator height={60} width={60} />
-          <p className="mt-4 text-gray-500">Loading CAPA details...</p>
+          <p className="mt-4 text-gray-500">{t('capa.detail.loadingDetails')}</p>
         </div>
       </div>
     );
@@ -397,16 +385,16 @@ export default function CapaDetailPage() {
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">{t('capa.title')} - {t('common.error')}</h2>
-            <p className="text-gray-500 mb-6">{error?.message || 'CAPA not found'}</p>
+            <p className="text-gray-500 mb-6">{error?.message || t('capa.detail.notFound')}</p>
             <div className="flex gap-3 justify-center">
               <DxButton
-                text="Go Back"
+                text={t('common.goBack')}
                 icon="back"
                 onClick={() => router.back()}
                 stylingMode="outlined"
               />
               <DxButton
-                text="Retry"
+                text={t('common.retry')}
                 icon="refresh"
                 onClick={() => refetch()}
                 type="default"
@@ -433,19 +421,19 @@ export default function CapaDetailPage() {
               className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span>Back to CAPA List</span>
+              <span>{t('capa.detail.backToList')}</span>
             </button>
             <div className="flex items-center gap-2">
               <DxButton
                 icon="refresh"
-                hint="Refresh"
+                hint={t('common.refresh')}
                 onClick={() => refetch()}
                 stylingMode="text"
                 className="text-white"
               />
               <DxButton
                 icon="print"
-                hint="Print"
+                hint={t('capa.detail.print')}
                 onClick={() => window.print()}
                 stylingMode="text"
                 className="text-white"
@@ -474,7 +462,7 @@ export default function CapaDetailPage() {
                     'bg-white/20 backdrop-blur-sm'
                   )}>
                     <statusConfig.icon className="h-4 w-4" />
-                    {statusConfig.labelTh}
+                    {t(statusConfig.labelKey)}
                   </span>
                 )}
 
@@ -486,21 +474,21 @@ export default function CapaDetailPage() {
                     priorityConfig.textClass
                   )}>
                     <AlertCircle className="h-4 w-4" />
-                    {priorityConfig.labelTh}
+                    {t(priorityConfig.labelKey)}
                   </span>
                 )}
 
                 {/* Type Badge */}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 backdrop-blur-sm">
                   <Target className="h-4 w-4" />
-                  {capa.type === 'corrective' ? 'แก้ไข' : capa.type === 'preventive' ? 'ป้องกัน' : 'แก้ไข/ป้องกัน'}
+                  {capa.type === 'corrective' ? t('capa.detail.type.corrective') : capa.type === 'preventive' ? t('capa.detail.type.preventive') : t('capa.detail.type.both')}
                 </span>
 
                 {/* Overdue Warning */}
                 {capa.isOverdue && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-500 text-white">
                     <AlertTriangle className="h-4 w-4" />
-                    เกินกำหนด
+                    {t('capa.status.overdue')}
                   </span>
                 )}
               </div>
@@ -510,7 +498,7 @@ export default function CapaDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               {capa.status !== 'closed' && capa.status !== 'cancelled' && (
                 <DxButton
-                  text="แก้ไข"
+                  text={t('capa.detail.edit')}
                   icon="edit"
                   onClick={() => setShowEditForm(true)}
                   stylingMode="outlined"
@@ -519,7 +507,7 @@ export default function CapaDetailPage() {
               )}
               {canClose && (
                 <DxButton
-                  text="ปิด CAPA"
+                  text={t('capa.detail.closeCapa')}
                   icon="check"
                   onClick={() => setShowCloseDialog(true)}
                   type="success"
@@ -530,7 +518,7 @@ export default function CapaDetailPage() {
                   guard server-side. */}
               {capa.status === 'open' && (
                 <DxButton
-                  text="ลบ"
+                  text={t('capa.detail.delete')}
                   icon="trash"
                   onClick={handleDeleteCapa}
                   type="danger"
@@ -546,15 +534,15 @@ export default function CapaDetailPage() {
       {/* Workflow status — สถานะการดำเนินงาน */}
       <div className="container mx-auto px-4 mt-6">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t('capa.detail.workflowTitle')}
           current={capa.status}
           steps={[
-            { key: 'open', label: 'เปิด' },
-            { key: 'investigation', label: 'สืบสวน' },
-            { key: 'action_pending', label: 'รอดำเนินการ' },
-            { key: 'verification', label: 'ตรวจสอบประสิทธิผล' },
-            { key: 'pending_approval', label: 'รออนุมัติ' },
-            { key: 'closed', label: 'ปิด' },
+            { key: 'open', label: t('capa.detail.workflowStatus.open') },
+            { key: 'investigation', label: t('capa.detail.workflowStatus.investigation') },
+            { key: 'action_pending', label: t('capa.detail.workflowStatus.actionPending') },
+            { key: 'verification', label: t('capa.detail.steps.verifyEffectiveness') },
+            { key: 'pending_approval', label: t('capa.detail.workflowStatus.pendingApproval') },
+            { key: 'closed', label: t('capa.detail.workflowStatus.closed') },
           ]}
         />
       </div>
@@ -567,9 +555,9 @@ export default function CapaDetailPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">การดำเนินการ</p>
+                  <p className="text-sm text-gray-500">{t('capa.detail.metrics.actions')}</p>
                   <p className="text-2xl font-bold">{completedActions}/{totalActions}</p>
-                  <p className="text-xs text-gray-400">เสร็จสิ้น</p>
+                  <p className="text-xs text-gray-400">{t('capa.detail.metrics.completed')}</p>
                 </div>
                 <div className="relative">
                   <svg className="h-16 w-16 transform -rotate-90">
@@ -614,7 +602,7 @@ export default function CapaDetailPage() {
                   )} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">กำหนดเสร็จ</p>
+                  <p className="text-sm text-gray-500">{t('capa.detail.metrics.dueDate')}</p>
                   <p className={cn(
                     'text-lg font-semibold',
                     capa.isOverdue ? 'text-red-600' : 'text-gray-900'
@@ -622,7 +610,7 @@ export default function CapaDetailPage() {
                     {formatDate(capa.dueDate)}
                   </p>
                   {capa.closedDate && (
-                    <p className="text-xs text-green-600">ปิดเมื่อ: {formatDate(capa.closedDate)}</p>
+                    <p className="text-xs text-green-600">{t('capa.detail.metrics.closedOn')}: {formatDate(capa.closedDate)}</p>
                   )}
                 </div>
               </div>
@@ -637,7 +625,7 @@ export default function CapaDetailPage() {
                   <Gauge className="h-6 w-6" style={{ color: getRiskColor(capa.riskScore) }} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">ความเสี่ยง</p>
+                  <p className="text-sm text-gray-500">{t('capa.detail.metrics.risk')}</p>
                   <p className="text-lg font-semibold" style={{ color: getRiskColor(capa.riskScore) }}>
                     {capa.riskScore || '-'} / 25
                   </p>
@@ -661,15 +649,15 @@ export default function CapaDetailPage() {
                   )} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">ประสิทธิผล</p>
+                  <p className="text-sm text-gray-500">{t('capa.detail.metrics.effectiveness')}</p>
                   <p className={cn(
                     'text-lg font-semibold',
                     hasEffectiveCheck ? 'text-green-600' : 'text-gray-500'
                   )}>
-                    {hasEffectiveCheck ? 'ได้ผล' : 'รอตรวจสอบ'}
+                    {hasEffectiveCheck ? t('capa.detail.metrics.effective') : t('capa.detail.metrics.pendingCheck')}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {capa.effectivenessChecks?.length || 0} รายการตรวจสอบ
+                    {t('capa.detail.metrics.checkCount', { count: capa.effectivenessChecks?.length || 0 })}
                   </p>
                 </div>
               </div>
@@ -685,10 +673,10 @@ export default function CapaDetailPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-amber-800 dark:text-amber-200">CAPA ยังไม่สามารถปิดได้</p>
+                <p className="font-medium text-amber-800 dark:text-amber-200">{t('capa.detail.cannotCloseTitle')}</p>
                 <ul className="mt-1 text-sm text-amber-700 dark:text-amber-300 list-disc list-inside">
-                  {!allActionsComplete && <li>การดำเนินการทั้งหมดต้องเสร็จสิ้น ({completedActions}/{totalActions})</li>}
-                  {!hasEffectiveCheck && <li>ต้องมีการตรวจสอบประสิทธิผลอย่างน้อย 1 รายการที่แสดงผลว่า &quot;ได้ผล&quot;</li>}
+                  {!allActionsComplete && <li>{t('capa.detail.cannotCloseActions', { completed: completedActions, total: totalActions })}</li>}
+                  {!hasEffectiveCheck && <li>{t('capa.detail.cannotCloseEffectiveness')}</li>}
                 </ul>
               </div>
             </div>
@@ -719,42 +707,42 @@ export default function CapaDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <FileText className="h-5 w-5 text-indigo-600" />
-                    ข้อมูลทั่วไป
+                    {t('capa.detail.generalInfo')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">ประเภท</span>
+                      <span className="text-gray-500">{t('capa.detail.fields.type')}</span>
                       <span className="font-medium capitalize">
-                        {capa.type === 'corrective' ? 'แก้ไข (Corrective)' :
-                         capa.type === 'preventive' ? 'ป้องกัน (Preventive)' :
-                         'แก้ไข/ป้องกัน (Both)'}
+                        {capa.type === 'corrective' ? t('capa.detail.typeLong.corrective') :
+                         capa.type === 'preventive' ? t('capa.detail.typeLong.preventive') :
+                         t('capa.detail.typeLong.both')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">แหล่งที่มา</span>
+                      <span className="text-gray-500">{t('capa.detail.fields.source')}</span>
                       <span className="font-medium capitalize">
-                        {capa.sourceType === 'deviation' ? 'ความเบี่ยงเบน' :
-                         capa.sourceType === 'complaint' ? 'ข้อร้องเรียน' :
-                         capa.sourceType === 'audit_finding' ? 'ผลการตรวจสอบ' : 'อื่นๆ'}
+                        {capa.sourceType === 'deviation' ? t('capa.detail.source.deviation') :
+                         capa.sourceType === 'complaint' ? t('capa.detail.source.complaint') :
+                         capa.sourceType === 'audit_finding' ? t('capa.detail.source.auditFinding') : t('capa.detail.source.other')}
                       </span>
                     </div>
                     {capa.sourceNumber && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">เลขที่อ้างอิง</span>
+                        <span className="text-gray-500">{t('capa.detail.fields.referenceNumber')}</span>
                         <span className="font-mono text-indigo-600">{capa.sourceNumber}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-500">ผู้รับผิดชอบ</span>
+                      <span className="text-gray-500">{t('capa.detail.fields.owner')}</span>
                       <span className="font-medium">{capa.ownerName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">สร้างโดย</span>
+                      <span className="text-gray-500">{t('capa.detail.fields.createdBy')}</span>
                       <span className="font-medium">{capa.createdByName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">วันที่สร้าง</span>
+                      <span className="text-gray-500">{t('capa.detail.fields.createdAt')}</span>
                       <span className="font-medium">{formatDateTime(capa.createdAt)}</span>
                     </div>
                   </div>
@@ -764,19 +752,19 @@ export default function CapaDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Target className="h-5 w-5 text-indigo-600" />
-                    การวิเคราะห์สาเหตุ (Root Cause)
+                    {t('capa.detail.rootCauseAnalysis')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
                     {capa.rootCauseCategory && (
                       <div className="mb-3">
-                        <span className="text-sm text-gray-500">หมวดหมู่ (5M+E):</span>
+                        <span className="text-sm text-gray-500">{t('capa.detail.rootCauseCategory')}</span>
                         <div className="mt-1">
                           <span className={cn(
                             'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
                             'bg-indigo-100 text-indigo-700'
                           )}>
-                            {ROOT_CAUSE_CATEGORIES[capa.rootCauseCategory as keyof typeof ROOT_CAUSE_CATEGORIES]?.label || capa.rootCauseCategory}
+                            {ROOT_CAUSE_CATEGORIES[capa.rootCauseCategory]?.labelKey ? t(ROOT_CAUSE_CATEGORIES[capa.rootCauseCategory].labelKey) : capa.rootCauseCategory}
                           </span>
                         </div>
                       </div>
@@ -784,13 +772,13 @@ export default function CapaDetailPage() {
 
                     {capa.rootCauseAnalysis ? (
                       <div>
-                        <span className="text-sm text-gray-500">รายละเอียดการวิเคราะห์:</span>
+                        <span className="text-sm text-gray-500">{t('capa.detail.analysisDetail')}</span>
                         <p className="mt-2 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {capa.rootCauseAnalysis}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-gray-400 italic">ยังไม่มีการวิเคราะห์สาเหตุ</p>
+                      <p className="text-gray-400 italic">{t('capa.detail.noRootCause')}</p>
                     )}
                   </div>
                 </div>
@@ -799,7 +787,7 @@ export default function CapaDetailPage() {
                 <div className="lg:col-span-2">
                   <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                     <Activity className="h-5 w-5 text-indigo-600" />
-                    สถานะการดำเนินงาน
+                    {t('capa.detail.workflowTitle')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
@@ -829,7 +817,7 @@ export default function CapaDetailPage() {
                                   isPassed ? 'text-green-600' :
                                   'text-gray-400'
                                 )}>
-                                  {config.labelTh}
+                                  {t(config.labelKey)}
                                 </span>
                               </div>
                               {index < arr.length - 1 && (
@@ -937,32 +925,32 @@ export default function CapaDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Gauge className="h-5 w-5 text-indigo-600" />
-                    รายละเอียดความเสี่ยง
+                    {t('capa.detail.riskDetails')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">ความรุนแรง (Severity)</span>
+                      <span className="text-gray-500">{t('capa.detail.severityLabel')}</span>
                       <span className="font-medium">
-                        {capa.riskSeverity ? RISK_SEVERITY_LABELS[capa.riskSeverity]?.labelTh : '-'}
+                        {capa.riskSeverity ? t(RISK_SEVERITY_LABELS[capa.riskSeverity].labelKey) : '-'}
                         {capa.riskSeverity && ` (${RISK_SEVERITY_LABELS[capa.riskSeverity]?.value}/5)`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">โอกาสเกิด (Probability)</span>
+                      <span className="text-gray-500">{t('capa.detail.probabilityLabel')}</span>
                       <span className="font-medium">
-                        {capa.riskProbability ? RISK_PROBABILITY_LABELS[capa.riskProbability]?.labelTh : '-'}
+                        {capa.riskProbability ? t(RISK_PROBABILITY_LABELS[capa.riskProbability].labelKey) : '-'}
                         {capa.riskProbability && ` (${RISK_PROBABILITY_LABELS[capa.riskProbability]?.value}/5)`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-t pt-4">
-                      <span className="text-gray-500 font-semibold">คะแนนความเสี่ยง</span>
+                      <span className="text-gray-500 font-semibold">{t('capa.detail.riskScore')}</span>
                       <span className="text-xl font-bold" style={{ color: getRiskColor(capa.riskScore) }}>
                         {capa.riskScore || '-'} / 25
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">ระดับความเสี่ยง</span>
+                      <span className="text-gray-500">{t('capa.detail.riskLevel')}</span>
                       <span className={cn(
                         'px-3 py-1 rounded-full text-sm font-medium',
                         capa.riskScore && capa.riskScore <= 4 ? 'bg-green-100 text-green-700' :
@@ -976,7 +964,7 @@ export default function CapaDetailPage() {
 
                     {capa.riskJustification && (
                       <div className="border-t pt-4">
-                        <span className="text-sm text-gray-500">เหตุผลประกอบ:</span>
+                        <span className="text-sm text-gray-500">{t('capa.detail.riskJustification')}</span>
                         <p className="mt-1 text-gray-700 dark:text-gray-300">
                           {capa.riskJustification}
                         </p>
@@ -987,43 +975,43 @@ export default function CapaDetailPage() {
                   {/* Impact Assessment */}
                   <h3 className="text-lg font-semibold flex items-center gap-2 pt-4">
                     <Building className="h-5 w-5 text-indigo-600" />
-                    ผลกระทบ (Impact Assessment)
+                    {t('capa.detail.impactAssessment')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">ขอบเขตผลกระทบ</span>
+                      <span className="text-gray-500">{t('capa.detail.impactScope')}</span>
                       <span className="font-medium capitalize">
                         {capa.impactScope?.replace('_', ' ') || '-'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">ผลกระทบต่อผู้ป่วย</span>
+                      <span className="text-gray-500">{t('capa.detail.patientImpact')}</span>
                       <span className={cn(
                         'px-2 py-0.5 rounded text-sm font-medium',
                         capa.patientImpact ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                       )}>
-                        {capa.patientImpact ? 'มี' : 'ไม่มี'}
+                        {capa.patientImpact ? t('capa.detail.yesNo.has') : t('capa.detail.yesNo.hasNot')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">ต้องแจ้งหน่วยงานกำกับ</span>
+                      <span className="text-gray-500">{t('capa.detail.regulatoryNotificationRequired')}</span>
                       <span className={cn(
                         'px-2 py-0.5 rounded text-sm font-medium',
                         capa.regulatoryNotificationRequired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                       )}>
-                        {capa.regulatoryNotificationRequired ? 'ใช่' : 'ไม่'}
+                        {capa.regulatoryNotificationRequired ? t('capa.detail.yesNo.yes') : t('capa.detail.yesNo.no')}
                       </span>
                     </div>
                     {capa.regulatoryNotificationDate && (
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">วันที่แจ้ง</span>
+                        <span className="text-gray-500">{t('capa.detail.notificationDate')}</span>
                         <span className="font-medium">{formatDate(capa.regulatoryNotificationDate)}</span>
                       </div>
                     )}
                     {capa.regulatoryReferenceNumber && (
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">เลขที่อ้างอิง</span>
+                        <span className="text-gray-500">{t('capa.detail.fields.referenceNumber')}</span>
                         <span className="font-mono text-indigo-600">{capa.regulatoryReferenceNumber}</span>
                       </div>
                     )}
@@ -1037,7 +1025,7 @@ export default function CapaDetailPage() {
               <DocumentAttachment
                 moduleName="capa"
                 entityId={capaId}
-                title="เอกสารแนบ (Attachments)"
+                title={t('capa.detail.attachmentsTitle')}
                 categories={['evidence', 'root_cause', 'investigation', 'report', 'training_record', 'other']}
                 readOnly={capa.status === 'closed'}
               />
@@ -1048,7 +1036,7 @@ export default function CapaDetailPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Users className="h-5 w-5 text-indigo-600" />
-                  ประวัติการอนุมัติ
+                  {t('capa.detail.approvalHistory')}
                 </h3>
 
                 {capa.approvals && capa.approvals.length > 0 ? (
@@ -1061,44 +1049,44 @@ export default function CapaDetailPage() {
                   >
                     <DxColumn
                       dataField="approverRole"
-                      caption="บทบาท"
+                      caption={t('capa.detail.approvalColumns.role')}
                       width={150}
                       cellRender={(data: { data?: CapaApproval }) => {
                         if (!data.data) return null;
-                        const roleLabels: Record<string, string> = {
-                          owner: 'เจ้าของ',
-                          qa_reviewer: 'ผู้ตรวจสอบ QA',
-                          qa_manager: 'ผู้จัดการ QA',
-                          plant_manager: 'ผู้จัดการโรงงาน',
+                        const roleKeys: Record<string, string> = {
+                          owner: 'capa.detail.approvalRoles.owner',
+                          qa_reviewer: 'capa.detail.approvalRoles.qaReviewer',
+                          qa_manager: 'capa.detail.approvalRoles.qaManager',
+                          plant_manager: 'capa.detail.approvalRoles.plantManager',
                         };
-                        return roleLabels[data.data.approverRole] || data.data.approverRole;
+                        return roleKeys[data.data.approverRole] ? t(roleKeys[data.data.approverRole]) : data.data.approverRole;
                       }}
                     />
-                    <DxColumn dataField="approverName" caption="ผู้อนุมัติ" />
+                    <DxColumn dataField="approverName" caption={t('capa.detail.approvalColumns.approver')} />
                     <DxColumn
                       dataField="status"
-                      caption="สถานะ"
+                      caption={t('capa.detail.approvalColumns.status')}
                       width={120}
                       cellRender={(data: { data?: CapaApproval }) => {
                         if (!data.data) return null;
-                        const statusLabels: Record<string, { label: string; class: string }> = {
-                          pending: { label: 'รอดำเนินการ', class: 'bg-yellow-100 text-yellow-700' },
-                          approved: { label: 'อนุมัติ', class: 'bg-green-100 text-green-700' },
-                          rejected: { label: 'ปฏิเสธ', class: 'bg-red-100 text-red-700' },
-                          revision_required: { label: 'ต้องแก้ไข', class: 'bg-orange-100 text-orange-700' },
+                        const statusConfig: Record<string, { key: string; class: string }> = {
+                          pending: { key: 'capa.detail.approvalStatus.pending', class: 'bg-yellow-100 text-yellow-700' },
+                          approved: { key: 'capa.detail.approvalStatus.approved', class: 'bg-green-100 text-green-700' },
+                          rejected: { key: 'capa.detail.approvalStatus.rejected', class: 'bg-red-100 text-red-700' },
+                          revision_required: { key: 'capa.detail.approvalStatus.revisionRequired', class: 'bg-orange-100 text-orange-700' },
                         };
-                        const config = statusLabels[data.data.status];
+                        const config = statusConfig[data.data.status];
                         return (
                           <span className={cn('px-2 py-0.5 rounded text-xs font-medium', config?.class)}>
-                            {config?.label || data.data.status}
+                            {config?.key ? t(config.key) : data.data.status}
                           </span>
                         );
                       }}
                     />
-                    <DxColumn dataField="comments" caption="ความคิดเห็น" />
+                    <DxColumn dataField="comments" caption={t('capa.detail.approvalColumns.comments')} />
                     <DxColumn
                       dataField="signedAt"
-                      caption="วันที่ลงนาม"
+                      caption={t('capa.detail.approvalColumns.signedAt')}
                       width={150}
                       cellRender={(data: { data?: CapaApproval }) => {
                         if (!data.data) return null;
@@ -1109,7 +1097,7 @@ export default function CapaDetailPage() {
                 ) : (
                   <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
                     <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">ยังไม่มีประวัติการอนุมัติ</p>
+                    <p className="text-gray-500">{t('capa.detail.noApprovalHistory')}</p>
                   </div>
                 )}
               </div>
@@ -1133,7 +1121,7 @@ export default function CapaDetailPage() {
       <DxPopup
         visible={showCloseDialog}
         onHiding={() => setShowCloseDialog(false)}
-        title="ปิด CAPA"
+        title={t('capa.detail.closeCapa')}
         width={550}
         height="auto"
         showCloseButton
@@ -1141,7 +1129,7 @@ export default function CapaDetailPage() {
         <div className="p-4 space-y-4">
           {/* Closure Checklist */}
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-gray-700">ตรวจสอบความครบถ้วนก่อนปิด CAPA:</p>
+            <p className="text-sm font-semibold text-gray-700">{t('capa.detail.closure.checklistTitle')}</p>
             {closureChecklist.map((item, idx) => (
               <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${item.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                 <div className="flex items-center gap-2">
@@ -1164,21 +1152,21 @@ export default function CapaDetailPage() {
           {canCloseNow ? (
             <>
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800 font-medium">ข้อมูลครบถ้วน — พร้อมปิด CAPA</p>
+                <p className="text-sm text-green-800 font-medium">{t('capa.detail.closure.readyToClose')}</p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">หมายเหตุการปิด (ไม่บังคับ)</label>
+                <label className="text-sm font-medium">{t('capa.detail.closure.notesLabel')}</label>
                 <DxTextArea
                   value={closureNotes}
                   onValueChange={(value) => setClosureNotes(value || '')}
-                  placeholder="เพิ่มหมายเหตุเกี่ยวกับการปิด CAPA นี้..."
+                  placeholder={t('capa.detail.closure.notesPlaceholder')}
                   height={100}
                 />
               </div>
             </>
           ) : (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800 font-medium">ไม่สามารถปิด CAPA ได้ — กรุณากรอกข้อมูลที่ยังขาดให้ครบก่อน</p>
+              <p className="text-sm text-amber-800 font-medium">{t('capa.detail.closure.cannotClose')}</p>
             </div>
           )}
 
@@ -1190,12 +1178,12 @@ export default function CapaDetailPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={() => setShowCloseDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="ปิด CAPA"
+              text={t('capa.detail.closeCapa')}
               icon="check"
               onClick={() => closeMutation.mutate()}
               type="success"

@@ -43,6 +43,7 @@ interface ScheduleRow {
 
 export default function InspectionsPage() {
   const t = useTranslations('environmentalMonitoring');
+  const tp = useTranslations('premises');
   const qc = useQueryClient();
   const toast = useToast();
   const [active, setActive] = useState<ScheduleRow | null>(null);
@@ -112,18 +113,18 @@ export default function InspectionsPage() {
       // immediately after recording (spec: record WITH pass/fail evaluation).
       if (body.overallResult === 'out_of_spec') {
         toast.error(
-          'บันทึกแล้ว — ผลตรวจ: ไม่ผ่าน',
-          `พบค่าที่เกินเกณฑ์ ${body.outOfSpecCount ?? ''} รายการ ระบบสร้าง Deviation ให้อัตโนมัติ`,
+          tp('environmental.inspections.recordFailTitle'),
+          tp('environmental.inspections.recordFailBody', { count: body.outOfSpecCount ?? '' }),
         );
       } else {
-        toast.success('บันทึกแล้ว — ผลตรวจ: ผ่าน', 'ทุกค่าอยู่ในเกณฑ์');
+        toast.success(tp('environmental.inspections.recordOkTitle'), tp('environmental.inspections.recordOkBody'));
       }
       setActive(null);
       setAnswers({});
       setNotes('');
       setPassword('');
     },
-    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(tp('environmental.inspections.saveFailedToast'), e.message),
   });
 
   const schedules = schedData?.items ?? [];
@@ -137,8 +138,8 @@ export default function InspectionsPage() {
     <div className="p-6 space-y-4">
       <Breadcrumbs
         items={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
-          { label: 'ตรวจสภาพแวดล้อม' },
+          { label: tp('environmental.common.breadcrumb.premises'), href: '/premises' },
+          { label: tp('environmental.common.breadcrumb.environmental') },
         ]}
       />
       <header className="flex items-start justify-between gap-4">
@@ -152,24 +153,24 @@ export default function InspectionsPage() {
             href="/premises/environmental/inspections/history"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
-            <History className="w-4 h-4" /> ประวัติผลตรวจ
+            <History className="w-4 h-4" /> {tp('environmental.inspections.historyLink')}
           </Link>
           <Link
             href="/premises/environmental/templates"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
-            <ListPlus className="w-4 h-4" /> จัดการ Templates
+            <ListPlus className="w-4 h-4" /> {tp('environmental.inspections.manageTemplates')}
           </Link>
           <Link
             href="/premises/environmental/schedules"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
-            <CalendarPlus className="w-4 h-4" /> จัดการ Schedules
+            <CalendarPlus className="w-4 h-4" /> {tp('environmental.inspections.manageSchedules')}
           </Link>
           <Button
             stylingMode="outlined"
-            text="แจ้งเตือนรายการที่ถึงกำหนด"
-            hint="สร้างการแจ้งเตือน (กระดิ่ง) สำหรับรายการที่ถึง/เกินกำหนดเดี๋ยวนี้ — ไม่ใช่การบันทึกผลตรวจ ปกติระบบจะแจ้งเตือนให้อัตโนมัติอยู่แล้ว"
+            text={tp('environmental.inspections.scanButton')}
+            hint={tp('environmental.inspections.scanHint')}
             onClick={() => scanMut.mutate()}
             disabled={scanMut.isPending}
           />
@@ -178,16 +179,13 @@ export default function InspectionsPage() {
 
       <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
         <div>
-          <span className="font-medium">หน้านี้ใช้ทำอะไร?</span> แสดง "ตารางตรวจที่ถึงกำหนด" โดยอัตโนมัติ —
-          เมื่อถึงเวลา รายการจะขึ้นเอง (ไม่ต้องกดปุ่มใด ๆ) จากนั้นกดปุ่ม{' '}
-          <span className="font-medium">"{t('actions.inspect')}"</span> ในแต่ละแถวเพื่อ <span className="font-medium">บันทึกผลตรวจ</span>
+          <span className="font-medium">{tp('environmental.inspections.infoTitle')}</span> {tp('environmental.inspections.infoBodyPart1')}{' '}
+          <span className="font-medium">"{t('actions.inspect')}"</span> {tp('environmental.inspections.infoBodyPart2')} <span className="font-medium">{tp('environmental.inspections.infoBodyRecord')}</span>
         </div>
         <div className="text-xs text-sky-800">
-          • ปุ่ม "แจ้งเตือนรายการที่ถึงกำหนด" = แค่ส่งการแจ้งเตือน (กระดิ่ง) ไม่ใช่การบันทึก ·
-          แก้ไข/ลบผลที่บันทึกไปแล้วได้ที่{' '}
-          <Link href="/premises/environmental/inspections/history" className="underline font-medium">ประวัติผลตรวจ</Link> ·
-          ตั้งค่าตารางผิด แก้/ปิดได้ที่{' '}
-          <Link href="/premises/environmental/schedules" className="underline font-medium">จัดการ Schedules</Link>
+          {tp('environmental.inspections.infoHintPart1')}{' '}
+          <Link href="/premises/environmental/inspections/history" className="underline font-medium">{tp('environmental.inspections.historyLink')}</Link> {tp('environmental.inspections.infoHintPart2')}{' '}
+          <Link href="/premises/environmental/schedules" className="underline font-medium">{tp('environmental.inspections.manageSchedules')}</Link>
         </div>
       </div>
 
@@ -233,18 +231,18 @@ export default function InspectionsPage() {
           width={150}
           cellRender={(c) => t(`targetType.${c.value}` as any)}
         />
-        <Column dataField="targetName" caption="เป้าหมาย (สถานที่)" />
-        <Column dataField="templateName" caption="แบบฟอร์ม" />
+        <Column dataField="targetName" caption={tp('environmental.common.targetWithLocationColumn')} />
+        <Column dataField="templateName" caption={tp('environmental.common.templateColumn')} />
         <Column
           dataField="frequency"
-          caption="ความถี่"
+          caption={tp('environmental.common.frequencyColumn')}
           width={120}
           cellRender={(c) => t(`frequency.${c.value}` as any)}
         />
-        <Column dataField="nextDue" caption="ครบกำหนดถัดไป" dataType="datetime" />
-        <Column dataField="lastDone" caption="ตรวจล่าสุด" dataType="datetime" />
+        <Column dataField="nextDue" caption={tp('environmental.common.nextDueColumn')} dataType="datetime" />
+        <Column dataField="lastDone" caption={tp('environmental.common.lastDoneColumn')} dataType="datetime" />
         <Column
-          caption="การกระทำ"
+          caption={tp('environmental.common.actionsColumn')}
           width={230}
           cellRender={(c) => {
             const row = c.data as ScheduleRow;
@@ -272,7 +270,7 @@ export default function InspectionsPage() {
                     href={`/premises/environmental/inspections/history?targetId=${row.targetId}&templateId=${row.templateId}`}
                     className="inline-flex items-center gap-1 px-2 py-1.5 text-xs border rounded hover:bg-gray-50 text-gray-700 whitespace-nowrap"
                   >
-                    <History className="w-3 h-3" /> ดู/แก้ไขผล
+                    <History className="w-3 h-3" /> {tp('environmental.inspectionsHistory.viewAction')}/{tp('environmental.common.edit')}
                   </Link>
                 )}
               </div>
@@ -285,7 +283,7 @@ export default function InspectionsPage() {
         visible={!!active}
         onHiding={() => setActive(null)}
         showCloseButton
-        title={active ? `${t('actions.inspect')}: ${active.targetName}` : ''}
+        title={active ? tp('environmental.inspections.inspectTitle', { action: t('actions.inspect'), name: active.targetName }) : ''}
         width={580}
         height="auto"
       >
@@ -322,10 +320,10 @@ export default function InspectionsPage() {
                       data-testid={`item-result-${item.id}`}
                     >
                       {status === 'out_of_spec'
-                        ? 'ไม่ผ่าน (เกินเกณฑ์)'
+                        ? tp('environmental.inspections.itemFail')
                         : status === 'in_spec'
-                        ? 'ผ่าน (ในเกณฑ์)'
-                        : 'ไม่ระบุเกณฑ์'}
+                        ? tp('environmental.inspections.itemPass')
+                        : tp('environmental.inspections.itemNoSpec')}
                     </span>
                   )}
                 </div>
@@ -353,7 +351,7 @@ export default function InspectionsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+            <label className="block text-sm font-medium mb-1">{tp('environmental.inspections.passwordLabel')}</label>
             <input
               type="password"
               value={password}

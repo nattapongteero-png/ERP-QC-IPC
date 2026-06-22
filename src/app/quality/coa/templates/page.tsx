@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -44,6 +45,7 @@ const LANG_LABEL: Record<string, string> = {
 export default function CoaTemplatesPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('quality');
   const [rows, setRows] = useState<CoaTemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -91,13 +93,13 @@ export default function CoaTemplatesPage() {
       );
       const data = await res.json();
       if (!data.success) {
-        toast.error(data.error || 'ตั้งค่าเริ่มต้นไม่สำเร็จ');
+        toast.error(data.error || t('coa.templates.list.toast.setDefaultFailed'));
         return;
       }
-      toast.success('ตั้งเป็น default แล้ว');
+      toast.success(t('coa.templates.list.toast.setDefaultSuccess'));
       await fetchTemplates();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'ตั้งค่าเริ่มต้นไม่สำเร็จ');
+      toast.error(e instanceof Error ? e.message : t('coa.templates.list.toast.setDefaultFailed'));
     } finally {
       setWorking(false);
     }
@@ -113,13 +115,17 @@ export default function CoaTemplatesPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error(data.error || 'อัปเดตสถานะไม่สำเร็จ');
+        toast.error(data.error || t('coa.templates.list.toast.updateStatusFailed'));
         return;
       }
-      toast.success(row.isActive ? 'ปิดการใช้งานแล้ว' : 'เปิดการใช้งานแล้ว');
+      toast.success(
+        row.isActive
+          ? t('coa.templates.list.toast.deactivated')
+          : t('coa.templates.list.toast.activated'),
+      );
       await fetchTemplates();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'อัปเดตสถานะไม่สำเร็จ');
+      toast.error(e instanceof Error ? e.message : t('coa.templates.list.toast.updateStatusFailed'));
     } finally {
       setWorking(false);
     }
@@ -127,7 +133,7 @@ export default function CoaTemplatesPage() {
 
   const columns: DxDataGridColumn[] = [
     {
-      caption: 'ลำดับ',
+      caption: t('coa.templates.list.columns.no'),
       width: 60,
       alignment: 'center',
       allowFiltering: false,
@@ -138,7 +144,7 @@ export default function CoaTemplatesPage() {
     },
     {
       dataField: 'name',
-      caption: 'ชื่อเทมเพลต',
+      caption: t('coa.templates.list.columns.name'),
       minWidth: 200,
       cellRender: (cell) => (
         <span className="font-medium text-gray-900">{cell.data.name}</span>
@@ -146,7 +152,7 @@ export default function CoaTemplatesPage() {
     },
     {
       dataField: 'productCategory',
-      caption: 'หมวดสินค้า',
+      caption: t('coa.templates.list.columns.category'),
       width: 180,
       cellRender: (cell) =>
         cell.data.productCategory ? (
@@ -157,7 +163,7 @@ export default function CoaTemplatesPage() {
     },
     {
       dataField: 'language',
-      caption: 'ภาษา',
+      caption: t('coa.templates.list.columns.language'),
       width: 100,
       alignment: 'center',
       cellRender: (cell) => (
@@ -195,7 +201,7 @@ export default function CoaTemplatesPage() {
     },
     {
       dataField: '_actions',
-      caption: 'การกระทำ',
+      caption: t('coa.templates.list.columns.actions'),
       width: 150,
       allowFiltering: false,
       allowSorting: false,
@@ -205,7 +211,7 @@ export default function CoaTemplatesPage() {
         <div className="flex items-center gap-1 flex-nowrap whitespace-nowrap">
           <DxButton
             icon="edit"
-            hint="แก้ไข"
+            hint={t('coa.templates.list.actions.edit')}
             stylingMode="outlined"
             type="default"
             onClick={() =>
@@ -215,7 +221,7 @@ export default function CoaTemplatesPage() {
           {!cell.data.isDefault && cell.data.isActive ? (
             <DxButton
               icon="favorites"
-              hint="ตั้งเป็นค่าเริ่มต้น"
+              hint={t('coa.templates.list.actions.setDefault')}
               stylingMode="outlined"
               type="success"
               onClick={() => handleSetDefault(cell.data.id)}
@@ -224,7 +230,7 @@ export default function CoaTemplatesPage() {
           ) : null}
           <DxButton
             icon={cell.data.isActive ? 'remove' : 'check'}
-            hint={cell.data.isActive ? 'ปิดการใช้งาน' : 'เปิดใช้งาน'}
+            hint={cell.data.isActive ? t('coa.templates.list.actions.deactivate') : t('coa.templates.list.actions.activate')}
             stylingMode="outlined"
             type={cell.data.isActive ? 'danger' : 'default'}
             onClick={() => handleToggleActive(cell.data)}
@@ -240,7 +246,7 @@ export default function CoaTemplatesPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="COA Templates"
-          subtitle="เทมเพลต COA — ออกแบบเลย์เอาต์ใบรับรองคุณภาพต่อหมวดสินค้า"
+          subtitle={t('coa.templates.list.subtitle')}
           icon={Layout}
           iconBgColor="bg-emerald-100"
           iconColor="text-emerald-600"
@@ -313,7 +319,7 @@ export default function CoaTemplatesPage() {
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4">
           <DxTextBox
-            placeholder="ค้นหา (ชื่อเทมเพลต, หมวดสินค้า)"
+            placeholder={t('coa.templates.list.searchPlaceholder')}
             value={search}
             onValueChange={setSearch}
             showClearButton
@@ -323,21 +329,21 @@ export default function CoaTemplatesPage() {
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-6 text-center text-gray-500">{t('coa.templates.list.loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="h-16 w-16 rounded-2xl bg-emerald-100 flex items-center justify-center mb-4">
                 <AlertTriangle className="h-8 w-8 text-emerald-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                ยังไม่มีเทมเพลต
+                {t('coa.templates.list.empty.title')}
               </h3>
               <p className="text-sm text-gray-500 max-w-sm mb-4">
-                สร้างเทมเพลตแรกเพื่อกำหนดเลย์เอาต์ COA ของโรงงาน
+                {t('coa.templates.list.empty.description')}
               </p>
               <DxButton
                 icon="plus"
-                text="สร้างเทมเพลตแรก"
+                text={t('coa.templates.list.empty.createFirst')}
                 type="default"
                 onClick={() => router.push('/quality/coa/templates/new')}
               />
@@ -355,7 +361,7 @@ export default function CoaTemplatesPage() {
                   router.push(`/quality/coa/templates/${e.data.id}`);
                 }
               }}
-              noDataText="ไม่พบข้อมูล"
+              noDataText={t('coa.templates.list.noData')}
             />
           )}
         </div>

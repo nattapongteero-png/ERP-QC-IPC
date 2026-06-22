@@ -32,24 +32,23 @@ async function fetchTrends(params: Record<string, string>): Promise<SanitationTr
 // Component
 // ============================================
 
-const periodOptions = [
-  { value: 'week', text: 'สัปดาห์ที่ผ่านมา' },
-  { value: 'month', text: 'เดือนที่ผ่านมา' },
-  { value: 'quarter', text: 'ไตรมาสที่ผ่านมา' },
-  { value: 'year', text: 'ปีที่ผ่านมา' },
-];
-
-const areaTypeOptions = [
-  { value: '', text: 'ทุกพื้นที่' },
-  { value: 'production', text: 'พื้นที่ผลิต' },
-  { value: 'warehouse', text: 'คลังจัดเก็บ' },
-  { value: 'lab', text: 'ห้องปฏิบัติการ' },
-  { value: 'office', text: 'สำนักงาน' },
-];
+const PERIOD_VALUES = ['week', 'month', 'quarter', 'year'] as const;
+const AREA_TYPE_VALUES = ['', 'production', 'warehouse', 'lab', 'office'] as const;
 
 export default function SanitationTrendsPage() {
   const router = useRouter();
   const t = useTranslations('gmp');
+  const tp = useTranslations('premises');
+
+  const periodOptions = PERIOD_VALUES.map((value) => ({
+    value,
+    text: tp('sanitation.trends.period.' + value),
+  }));
+
+  const areaTypeOptions = AREA_TYPE_VALUES.map((value) => ({
+    value,
+    text: value ? tp('sanitation.common.area.' + value) : tp('sanitation.trends.areaType.all'),
+  }));
 
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [areaType, setAreaType] = useState<AreaType | ''>('');
@@ -69,7 +68,7 @@ export default function SanitationTrendsPage() {
         title={t('sanitation.trends.title')}
         subtitle={t('sanitation.trends.description')}
         breadcrumbs={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: tp('sanitation.common.breadcrumbPremises'), href: '/premises' },
           { label: t('sanitation.pageTitle'), href: '/premises/sanitation' },
           { label: t('sanitation.trends.title') },
         ]}

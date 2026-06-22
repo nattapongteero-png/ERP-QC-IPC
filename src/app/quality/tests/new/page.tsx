@@ -36,16 +36,16 @@ interface QualitySpec {
   isCritical: boolean;
 }
 
-const testTypeOptions = [
-  { value: 'incoming', label: 'QC ขาเข้า' },
-  { value: 'in_process', label: 'QC ระหว่างกระบวนการ' },
-  { value: 'final', label: 'QC สุดท้าย' },
-];
-
 function NewQualityTestContent() {
   const router = useRouter();
   const t = useTranslations('quality');
   const searchParams = useSearchParams();
+
+  const testTypeOptions = [
+    { value: 'incoming', label: t('tests.new.testType.incoming') },
+    { value: 'in_process', label: t('tests.new.testType.in_process') },
+    { value: 'final', label: t('tests.new.testType.final') },
+  ];
   const lotIdParam = searchParams.get('lotId');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -135,7 +135,7 @@ function NewQualityTestContent() {
 
   const handleSubmit = async () => {
     if (!selectedLot || !selectedSpec) {
-      alert('กรุณาเลือกล็อตและข้อกำหนดการทดสอบ');
+      alert(t('tests.new.selectLotAndSpec'));
       return;
     }
 
@@ -169,10 +169,10 @@ function NewQualityTestContent() {
   };
 
   const specOptions = [
-    { value: '', label: 'เลือกข้อกำหนดการทดสอบ...' },
+    { value: '', label: t('tests.new.specPlaceholder') },
     ...specs.map((spec) => ({
       value: spec.id.toString(),
-      label: `${spec.testName}${spec.isCritical ? ' (วิกฤต)' : ''}`,
+      label: `${spec.testName}${spec.isCritical ? ` (${t('tests.new.critical')})` : ''}`,
     })),
   ];
 
@@ -184,7 +184,7 @@ function NewQualityTestContent() {
           description={t('inspections.description')}
           backButton={
             <DxButton
-              text="กลับ"
+              text={t('tests.new.back')}
               icon="back"
               type="normal"
               stylingMode="text"
@@ -199,17 +199,17 @@ function NewQualityTestContent() {
             {/* Lot Selection */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>เลือกล็อต</CardTitle>
+                <CardTitle>{t('tests.new.lotSelection.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="text-center py-4 text-gray-500">กำลังโหลด...</div>
+                  <div className="text-center py-4 text-gray-500">{t('tests.new.loading')}</div>
                 ) : !selectedLot ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                      <p className="text-gray-600">คลิกปุ่มเพื่อค้นหาและเลือกล็อต</p>
+                      <p className="text-gray-600">{t('tests.new.lotSelection.prompt')}</p>
                       <DxButton
-                        text="เลือกล็อต"
+                        text={t('tests.new.lotSelection.selectButton')}
                         icon="search"
                         type="default"
                         onClick={() => setLotDialogOpen(true)}
@@ -225,12 +225,11 @@ function NewQualityTestContent() {
                           {selectedLot.itemCode} - {selectedLot.itemName}
                         </p>
                         <p className="text-sm text-green-700">
-                          จำนวน: {selectedLot.quantity} {selectedLot.unit} | หมดอายุ:{' '}
-                          {formatDate(selectedLot.expiryDate)}
+                          {t('tests.new.lotSelection.quantityExpiry', { quantity: selectedLot.quantity, unit: selectedLot.unit, expiry: formatDate(selectedLot.expiryDate) })}
                         </p>
                       </div>
                       <DxButton
-                        text="เปลี่ยน"
+                        text={t('tests.new.lotSelection.changeButton')}
                         type="normal"
                         stylingMode="outlined"
                         onClick={() => setLotDialogOpen(true)}
@@ -244,28 +243,28 @@ function NewQualityTestContent() {
             {/* Test Specification Selection */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>ข้อกำหนดการทดสอบ</CardTitle>
+                <CardTitle>{t('tests.new.specSelection.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {!selectedLot ? (
                   <p className="text-gray-500 text-center py-4">
-                    กรุณาเลือกล็อตก่อนเพื่อดูข้อกำหนดการทดสอบที่มี
+                    {t('tests.new.specSelection.selectLotFirst')}
                   </p>
                 ) : specs.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">
-                    ไม่พบข้อกำหนดการทดสอบสำหรับรายการนี้
+                    {t('tests.new.specSelection.noSpecs')}
                   </p>
                 ) : (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        เลือกการทดสอบ
+                        {t('tests.new.specSelection.selectTestLabel')}
                       </label>
                       <DxSelectBox
                         items={specOptions}
                         value={selectedSpec?.id.toString() || ''}
                         onValueChange={handleSelectSpec}
-                        placeholder="เลือกข้อกำหนดการทดสอบ..."
+                        placeholder={t('tests.new.specPlaceholder')}
                       />
                     </div>
 
@@ -275,24 +274,23 @@ function NewQualityTestContent() {
                           <p className="font-medium text-blue-800">{selectedSpec.testName}</p>
                           {selectedSpec.isCritical && (
                             <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
-                              วิกฤต
+                              {t('tests.new.critical')}
                             </span>
                           )}
                         </div>
                         {selectedSpec.testMethod && (
                           <p className="text-sm text-blue-600">
-                            วิธี: {selectedSpec.testMethod}
+                            {t('tests.new.specSelection.method', { method: selectedSpec.testMethod })}
                           </p>
                         )}
                         {selectedSpec.specification && (
                           <p className="text-sm text-blue-600">
-                            ข้อกำหนด: {selectedSpec.specification}
+                            {t('tests.new.specSelection.specification', { spec: selectedSpec.specification })}
                           </p>
                         )}
                         {(selectedSpec.minValue !== null || selectedSpec.maxValue !== null) && (
                           <p className="text-sm text-blue-600">
-                            ช่วง: {selectedSpec.minValue ?? '-'} ถึง {selectedSpec.maxValue ?? '-'}{' '}
-                            {selectedSpec.unit}
+                            {t('tests.new.specSelection.range', { min: selectedSpec.minValue ?? '-', max: selectedSpec.maxValue ?? '-', unit: selectedSpec.unit })}
                           </p>
                         )}
                       </div>
@@ -305,13 +303,13 @@ function NewQualityTestContent() {
             {/* Test Details */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>รายละเอียดการทดสอบ</CardTitle>
+                <CardTitle>{t('tests.new.testDetails.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ประเภทการทดสอบ
+                      {t('tests.new.testDetails.testTypeLabel')}
                     </label>
                     <DxSelectBox
                       items={testTypeOptions}
@@ -323,10 +321,10 @@ function NewQualityTestContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      หมายเลขตัวอย่าง
+                      {t('tests.new.testDetails.sampleNumberLabel')}
                     </label>
                     <DxTextBox
-                      placeholder="กรอกหมายเลขตัวอย่าง (ไม่บังคับ)"
+                      placeholder={t('tests.new.testDetails.sampleNumberPlaceholder')}
                       value={formData.sampleNumber}
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, sampleNumber: value }))
@@ -343,11 +341,11 @@ function NewQualityTestContent() {
             {/* Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">การดำเนินการ</CardTitle>
+                <CardTitle className="text-sm">{t('tests.new.actionsTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DxButton
-                  text={isSaving ? 'กำลังสร้าง...' : 'สร้างการทดสอบ'}
+                  text={isSaving ? t('tests.new.creating') : t('tests.new.submit')}
                   icon="save"
                   type="success"
                   width="100%"
@@ -355,7 +353,7 @@ function NewQualityTestContent() {
                   disabled={!selectedLot || !selectedSpec || isSaving}
                 />
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('tests.new.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   width="100%"
@@ -369,19 +367,19 @@ function NewQualityTestContent() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <FlaskConical className="h-4 w-4" />
-                  เกี่ยวกับการทดสอบคุณภาพ
+                  {t('tests.new.help.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-gray-600">
                   <p>
-                    <strong>QC ขาเข้า:</strong> การทดสอบวัตถุดิบที่รับเข้ามาก่อนรับเข้าคลังสินค้า
+                    <strong>{t('tests.new.help.incomingLabel')}</strong> {t('tests.new.help.incomingText')}
                   </p>
                   <p>
-                    <strong>QC ระหว่างกระบวนการ:</strong> การทดสอบระหว่างการผลิตเพื่อให้มั่นใจในคุณภาพในแต่ละขั้นตอน
+                    <strong>{t('tests.new.help.inProcessLabel')}</strong> {t('tests.new.help.inProcessText')}
                   </p>
                   <p>
-                    <strong>QC สุดท้าย:</strong> การทดสอบผลิตภัณฑ์สำเร็จรูปก่อนปล่อยจำหน่าย
+                    <strong>{t('tests.new.help.finalLabel')}</strong> {t('tests.new.help.finalText')}
                   </p>
                 </div>
               </CardContent>
@@ -398,7 +396,7 @@ function NewQualityTestContent() {
         open={lotDialogOpen}
         onOpenChange={setLotDialogOpen}
         onSelect={handleSelectLot}
-        title="เลือกล็อตสำหรับการทดสอบ QC"
+        title={t('tests.new.lotDialogTitle')}
         filterStatus="quarantine"
       />
     </>

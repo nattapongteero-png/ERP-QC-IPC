@@ -58,17 +58,18 @@ interface TestDetail extends TestRow {
   results: TestResultRow[];
 }
 
-const resultBadge = (r: string) =>
+const resultBadge = (r: string, tp: (key: string) => string) =>
   r === 'in_spec' ? (
-    <Badge className="bg-emerald-100 text-emerald-900 whitespace-nowrap">ผ่าน (ในเกณฑ์)</Badge>
+    <Badge className="bg-emerald-100 text-emerald-900 whitespace-nowrap">{tp('waterQuality.common.result.inSpec')}</Badge>
   ) : r === 'out_of_spec' ? (
-    <Badge className="bg-rose-100 text-rose-900 whitespace-nowrap">ไม่ผ่าน (เกินเกณฑ์)</Badge>
+    <Badge className="bg-rose-100 text-rose-900 whitespace-nowrap">{tp('waterQuality.common.result.outOfSpec')}</Badge>
   ) : (
-    <Badge className="bg-gray-200 text-gray-700 whitespace-nowrap">ไม่ระบุ</Badge>
+    <Badge className="bg-gray-200 text-gray-700 whitespace-nowrap">{tp('waterQuality.common.result.na')}</Badge>
   );
 
 export default function WaterQualityRecordsPage() {
   const t = useTranslations('environmentalMonitoring');
+  const tp = useTranslations('premises');
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -158,7 +159,7 @@ export default function WaterQualityRecordsPage() {
       return body;
     },
     onSuccess: () => {
-      toast.success('บันทึกผลตรวจน้ำแล้ว');
+      toast.success(tp('waterQuality.index.toast.recordSuccess'));
       qc.invalidateQueries({ queryKey: ['water-tests'] });
       setTestOpen(false);
       setSamplePointId(null);
@@ -166,7 +167,7 @@ export default function WaterQualityRecordsPage() {
       setNotes('');
       setPassword('');
     },
-    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(tp('waterQuality.index.toast.recordError'), e.message),
   });
 
   const startEdit = (d: TestDetail) => {
@@ -200,11 +201,11 @@ export default function WaterQualityRecordsPage() {
       const editedId = viewId;
       setEditMode(false);
       setViewId(null);
-      toast.success('แก้ไขผลตรวจแล้ว (บันทึกใน audit log)');
+      toast.success(tp('waterQuality.index.toast.editSuccess'));
       qc.invalidateQueries({ queryKey: ['water-tests'] });
       if (editedId != null) qc.invalidateQueries({ queryKey: ['water-test', editedId] });
     },
-    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(tp('waterQuality.index.toast.editError'), e.message),
   });
 
   const deleteMut = useMutation({
@@ -216,11 +217,11 @@ export default function WaterQualityRecordsPage() {
       }
     },
     onSuccess: () => {
-      toast.success('ลบผลตรวจแล้ว (บันทึกใน audit log)');
+      toast.success(tp('waterQuality.index.toast.deleteSuccess'));
       qc.invalidateQueries({ queryKey: ['water-tests'] });
       setDeleteTarget(null);
     },
-    onError: (e: Error) => toast.error('ลบไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(tp('waterQuality.index.toast.deleteError'), e.message),
   });
 
   const closeView = () => { setViewId(null); setEditMode(false); };
@@ -229,17 +230,17 @@ export default function WaterQualityRecordsPage() {
     <div className="p-6 space-y-4">
       <Breadcrumbs
         items={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
-          { label: 'ระบบน้ำ (Water Quality)' },
+          { label: tp('waterQuality.common.breadcrumb.premises'), href: '/premises' },
+          { label: tp('waterQuality.common.breadcrumb.waterQuality') },
         ]}
       />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Droplets className="w-6 h-6" /> {t('page.waterQuality')} — บันทึกผลตรวจ
+            <Droplets className="w-6 h-6" /> {t('page.waterQuality')} — {tp('waterQuality.index.title')}
           </h1>
           <p className="text-gray-600 text-sm mt-1">
-            ทะเบียนผลตรวจน้ำที่บันทึกไว้ — บันทึกใหม่ / ดู / แก้ไข / ลบ ได้ที่นี่
+            {tp('waterQuality.index.subtitle')}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -247,18 +248,18 @@ export default function WaterQualityRecordsPage() {
             href="/premises/environmental/water-quality/settings"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
           >
-            <Settings className="w-4 h-4" /> ตั้งค่าระบบน้ำ
+            <Settings className="w-4 h-4" /> {tp('waterQuality.index.settingsLink')}
           </Link>
           <Button type="default" stylingMode="contained" onClick={() => setTestOpen(true)} data-testid="wq-record-btn">
-            <span className="inline-flex items-center gap-1"><Plus className="w-4 h-4" /> บันทึกผลตรวจน้ำ</span>
+            <span className="inline-flex items-center gap-1"><Plus className="w-4 h-4" /> {tp('waterQuality.index.recordButton')}</span>
           </Button>
         </div>
       </header>
 
       <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900">
-        การตั้งค่า (ระบบน้ำ / จุดสุ่ม / เกณฑ์) ย้ายไปหน้า{' '}
-        <Link href="/premises/environmental/water-quality/settings" className="underline font-medium">ตั้งค่าระบบน้ำ</Link>{' '}
-        — หน้านี้คือ "ทะเบียนบันทึกผลตรวจ" ที่ข้อมูลจากการกด "บันทึกผลตรวจน้ำ" จะมาแสดง
+        {tp('waterQuality.index.moveNotice.before')}{' '}
+        <Link href="/premises/environmental/water-quality/settings" className="underline font-medium">{tp('waterQuality.index.settingsLink')}</Link>{' '}
+        {tp('waterQuality.index.moveNotice.after')}
       </div>
 
       <DataGrid
@@ -268,19 +269,19 @@ export default function WaterQualityRecordsPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
-        noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีผลตรวจที่บันทึก'}
+        noDataText={isLoading ? tp('waterQuality.index.grid.loading') : tp('waterQuality.index.grid.empty')}
         data-testid="wq-records-grid"
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="id" caption="#" width={60} />
-        <Column dataField="performedAt" caption="วันเวลาที่ตรวจ" dataType="datetime" width={170} />
-        <Column dataField="samplePointName" caption="จุดสุ่มตัวอย่าง" />
-        <Column dataField="systemName" caption="ระบบน้ำ" />
-        <Column dataField="operatorName" caption="ผู้ตรวจ" width={150} />
-        <Column dataField="overallResult" caption="ผลรวม" width={170} cellRender={(c) => resultBadge(c.value)} />
+        <Column dataField="performedAt" caption={tp('waterQuality.index.grid.performedAt')} dataType="datetime" width={170} />
+        <Column dataField="samplePointName" caption={tp('waterQuality.index.grid.samplePoint')} />
+        <Column dataField="systemName" caption={tp('waterQuality.index.grid.system')} />
+        <Column dataField="operatorName" caption={tp('waterQuality.index.grid.operator')} width={150} />
+        <Column dataField="overallResult" caption={tp('waterQuality.index.grid.overallResult')} width={170} cellRender={(c) => resultBadge(c.value, tp)} />
         <Column
-          caption="การกระทำ"
+          caption={tp('waterQuality.index.grid.actions')}
           width={210}
           cellRender={(c) => {
             const row = c.data as TestRow;
@@ -292,13 +293,13 @@ export default function WaterQualityRecordsPage() {
                     overlay is still mounting crashed the page (insertBefore DOM
                     error). This matches the stable inspection-history flow. */}
                 <Button stylingMode="outlined" onClick={() => { setEditMode(false); setViewId(row.id); }} data-testid={`wq-view-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> ดู</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> {tp('waterQuality.index.view')}</span>
                 </Button>
                 <Button stylingMode="outlined" onClick={() => { setEditMode(false); setViewId(row.id); }} data-testid={`wq-edit-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> แก้ไข</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> {tp('waterQuality.common.actions.edit')}</span>
                 </Button>
                 <Button stylingMode="text" type="danger" onClick={() => setDeleteTarget(row)} data-testid={`wq-delete-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Trash2 className="w-3 h-3" /> ลบ</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Trash2 className="w-3 h-3" /> {tp('waterQuality.common.actions.delete')}</span>
                 </Button>
               </div>
             );
@@ -307,7 +308,7 @@ export default function WaterQualityRecordsPage() {
       </DataGrid>
 
       {/* ===== Record new ===== */}
-      <Popup visible={testOpen} onHiding={() => setTestOpen(false)} showCloseButton title="บันทึกผลตรวจน้ำ" width={580} height="auto">
+      <Popup visible={testOpen} onHiding={() => setTestOpen(false)} showCloseButton title={tp('waterQuality.index.popup.recordTitle')} width={580} height="auto">
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.samplePoint')} *</label>
@@ -326,7 +327,7 @@ export default function WaterQualityRecordsPage() {
               <div className="font-medium">
                 {s.parameter} ({s.unit})
                 {s.specMin != null || s.specMax != null ? (
-                  <span className="text-xs text-gray-500 ml-2">เกณฑ์ {s.specMin ?? '-'} – {s.specMax ?? '-'}</span>
+                  <span className="text-xs text-gray-500 ml-2">{tp('waterQuality.index.popup.specRange', { min: s.specMin ?? '-', max: s.specMax ?? '-' })}</span>
                 ) : null}
               </div>
               <NumberBox
@@ -342,8 +343,8 @@ export default function WaterQualityRecordsPage() {
             <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 text-sm flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
-                ระบบน้ำของจุดเก็บนี้ยังไม่มีการตั้งเกณฑ์ (Spec) — ไปเพิ่มเกณฑ์ที่หน้า{' '}
-                <Link href="/premises/environmental/water-quality/settings" className="underline">ตั้งค่าระบบน้ำ</Link> ก่อน
+                {tp('waterQuality.index.popup.noSpecBefore')}{' '}
+                <Link href="/premises/environmental/water-quality/settings" className="underline">{tp('waterQuality.index.popup.noSpecLink')}</Link> {tp('waterQuality.index.popup.noSpecAfter')}
               </span>
             </div>
           )}
@@ -352,7 +353,7 @@ export default function WaterQualityRecordsPage() {
             <TextArea value={notes} height={60} onValueChanged={(e) => setNotes(String(e.value ?? ''))} />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+            <label className="block text-sm font-medium mb-1">{tp('waterQuality.index.popup.password')}</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" />
           </div>
           {recordMut.error && (
@@ -386,30 +387,30 @@ export default function WaterQualityRecordsPage() {
         visible={viewId != null}
         onHiding={closeView}
         showCloseButton
-        title={detail ? `ผลตรวจ #${detail.id} — ${detail.samplePointName ?? ''}` : 'ผลตรวจ'}
+        title={detail ? tp('waterQuality.index.detail.title', { id: detail.id, point: detail.samplePointName ?? '' }) : tp('waterQuality.index.detail.titleFallback')}
         width={680}
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
           {!detail ? (
-            <div className="text-gray-500 text-sm">กำลังโหลด…</div>
+            <div className="text-gray-500 text-sm">{tp('waterQuality.index.detail.loading')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">วันเวลา:</span> {new Date(detail.performedAt).toLocaleString('th-TH')}</div>
-                <div><span className="text-gray-500">ผู้ตรวจ:</span> {detail.operatorName ?? '—'}</div>
-                <div><span className="text-gray-500">ระบบน้ำ:</span> {detail.systemName ?? '—'}</div>
-                <div><span className="text-gray-500">ผลรวม:</span> {resultBadge(detail.overallResult)}</div>
+                <div><span className="text-gray-500">{tp('waterQuality.index.detail.dateTime')}</span> {new Date(detail.performedAt).toLocaleString('th-TH')}</div>
+                <div><span className="text-gray-500">{tp('waterQuality.index.detail.operator')}</span> {detail.operatorName ?? '—'}</div>
+                <div><span className="text-gray-500">{tp('waterQuality.index.detail.system')}</span> {detail.systemName ?? '—'}</div>
+                <div><span className="text-gray-500">{tp('waterQuality.index.detail.overallResult')}</span> {resultBadge(detail.overallResult, tp)}</div>
               </div>
 
               <div className="border rounded">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-600">
                     <tr>
-                      <th className="text-left p-2">พารามิเตอร์</th>
-                      <th className="text-left p-2 w-32">ค่าที่วัด</th>
-                      <th className="text-left p-2 w-28">เกณฑ์</th>
-                      <th className="text-left p-2 w-24">ผล</th>
+                      <th className="text-left p-2">{tp('waterQuality.index.detail.parameter')}</th>
+                      <th className="text-left p-2 w-32">{tp('waterQuality.index.detail.measuredValue')}</th>
+                      <th className="text-left p-2 w-28">{tp('waterQuality.index.detail.spec')}</th>
+                      <th className="text-left p-2 w-24">{tp('waterQuality.index.detail.result')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -441,7 +442,7 @@ export default function WaterQualityRecordsPage() {
                           />
                         </td>
                         <td className="p-2 text-gray-500">{r.specMinSnapshot ?? '-'} – {r.specMaxSnapshot ?? '-'}</td>
-                        <td className="p-2">{resultBadge(r.result)}</td>
+                        <td className="p-2">{resultBadge(r.result, tp)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -449,7 +450,7 @@ export default function WaterQualityRecordsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
+                <label className="block text-sm font-medium mb-1">{tp('waterQuality.index.detail.notes')}</label>
                 {/* Both nodes always mounted; CSS toggle only (see value cell). */}
                 <div className={`text-sm text-gray-700 ${editMode ? 'hidden' : ''}`}>{detail.notes ?? '—'}</div>
                 <textarea
@@ -461,21 +462,21 @@ export default function WaterQualityRecordsPage() {
               </div>
 
               <div className={`bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs ${editMode ? '' : 'hidden'}`}>
-                ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
+                {tp('waterQuality.index.detail.editWarning')}
               </div>
 
               {/* All four buttons always mounted; the inactive pair is hidden via
                   CSS so the overlay's DOM never changes shape on editMode. */}
               <div className="flex justify-end gap-2 pt-2">
                 <div className={`flex gap-2 ${editMode ? 'hidden' : ''}`}>
-                  <Button text="ปิด" stylingMode="text" onClick={closeView} />
+                  <Button text={tp('waterQuality.index.detail.close')} stylingMode="text" onClick={closeView} />
                   <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
-                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
+                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> {tp('waterQuality.common.actions.edit')}</span>
                   </Button>
                 </div>
                 <div className={`flex gap-2 ${editMode ? '' : 'hidden'}`}>
-                  <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
-                  <Button type="success" stylingMode="contained" text="บันทึกการแก้ไข" disabled={saveMut.isPending} onClick={() => saveMut.mutate()} />
+                  <Button text={tp('waterQuality.common.actions.cancel')} stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
+                  <Button type="success" stylingMode="contained" text={tp('waterQuality.index.detail.saveEdit')} disabled={saveMut.isPending} onClick={() => saveMut.mutate()} />
                 </div>
               </div>
             </>
@@ -485,14 +486,18 @@ export default function WaterQualityRecordsPage() {
 
       <ConfirmationDialog
         visible={!!deleteTarget}
-        title="ลบผลตรวจ"
+        title={tp('waterQuality.index.delete.title')}
         message={
           deleteTarget
-            ? `ยืนยันการลบผลตรวจ #${deleteTarget.id} (${deleteTarget.samplePointName ?? ''} — ${new Date(deleteTarget.performedAt).toLocaleString('th-TH')}) ? การลบจะถูกบันทึกใน audit log และย้อนกลับไม่ได้`
+            ? tp('waterQuality.index.delete.message', {
+                id: deleteTarget.id,
+                point: deleteTarget.samplePointName ?? '',
+                dateTime: new Date(deleteTarget.performedAt).toLocaleString('th-TH'),
+              })
             : ''
         }
-        confirmText="ลบ"
-        cancelText="ยกเลิก"
+        confirmText={tp('waterQuality.index.delete.confirm')}
+        cancelText={tp('waterQuality.common.actions.cancel')}
         confirmType="danger"
         isLoading={deleteMut.isPending}
         onConfirm={() => {

@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -42,15 +43,19 @@ interface CoaListRow {
   createdAt: string;
 }
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'draft', label: 'ฉบับร่าง (Draft)' },
-  { value: 'review', label: 'รอทบทวน (Review)' },
-  { value: 'approved', label: 'อนุมัติ (Approved)' },
-  { value: 'issued', label: 'ออกแล้ว (Issued)' },
-  { value: 'superseded', label: 'แทนที่แล้ว (Superseded)' },
-  { value: 'revoked', label: 'เพิกถอน (Revoked)' },
-];
+type TFn = (key: string) => string;
+
+function buildStatusOptions(t: TFn) {
+  return [
+    { value: '', label: t('coa.list.statusOptions.all') },
+    { value: 'draft', label: t('coa.list.statusOptions.draft') },
+    { value: 'review', label: t('coa.list.statusOptions.review') },
+    { value: 'approved', label: t('coa.list.statusOptions.approved') },
+    { value: 'issued', label: t('coa.list.statusOptions.issued') },
+    { value: 'superseded', label: t('coa.list.statusOptions.superseded') },
+    { value: 'revoked', label: t('coa.list.statusOptions.revoked') },
+  ];
+}
 
 function formatDateTh(dateStr: string | null | undefined): string {
   if (!dateStr) return '—';
@@ -65,36 +70,42 @@ function formatDateTh(dateStr: string | null | undefined): string {
   }
 }
 
-function statusBadge(status: string): {
+function statusBadge(
+  status: string,
+  t: TFn,
+): {
   variant: 'default' | 'success' | 'warning' | 'danger' | 'info';
   label: string;
 } {
   switch (status) {
     case 'draft':
-      return { variant: 'default', label: 'ฉบับร่าง' };
+      return { variant: 'default', label: t('coa.list.status.draft') };
     case 'review':
-      return { variant: 'warning', label: 'รอทบทวน' };
+      return { variant: 'warning', label: t('coa.list.status.review') };
     case 'approved':
-      return { variant: 'info', label: 'อนุมัติ' };
+      return { variant: 'info', label: t('coa.list.status.approved') };
     case 'issued':
-      return { variant: 'success', label: 'ออกแล้ว' };
+      return { variant: 'success', label: t('coa.list.status.issued') };
     case 'superseded':
-      return { variant: 'warning', label: 'แทนที่แล้ว' };
+      return { variant: 'warning', label: t('coa.list.status.superseded') };
     case 'revoked':
-      return { variant: 'danger', label: 'เพิกถอน' };
+      return { variant: 'danger', label: t('coa.list.status.revoked') };
     default:
       return { variant: 'default', label: status };
   }
 }
 
-function conclusionBadge(c: string) {
-  if (c === 'complies') return <Badge variant="success">✓ ผ่านข้อกำหนด</Badge>;
-  if (c === 'does_not_comply') return <Badge variant="danger">✗ ไม่ผ่าน</Badge>;
-  return <Badge variant="warning">ผ่านบางส่วน</Badge>;
+function conclusionBadge(c: string, t: TFn) {
+  if (c === 'complies')
+    return <Badge variant="success">{t('coa.list.conclusion.complies')}</Badge>;
+  if (c === 'does_not_comply')
+    return <Badge variant="danger">{t('coa.list.conclusion.doesNotComply')}</Badge>;
+  return <Badge variant="warning">{t('coa.list.conclusion.partial')}</Badge>;
 }
 
 export default function CoaListPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
   const [rows, setRows] = useState<CoaListRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -157,7 +168,7 @@ export default function CoaListPage() {
 
   const columns: DxDataGridColumn[] = [
     {
-      caption: 'ลำดับ',
+      caption: t('coa.list.columns.no'),
       width: 60,
       alignment: 'center',
       allowFiltering: false,
@@ -176,7 +187,7 @@ export default function CoaListPage() {
     },
     {
       dataField: 'issueDate',
-      caption: 'วันที่ออก',
+      caption: t('coa.list.columns.issueDate'),
       width: 130,
       cellRender: (cell) => (
         <span className="text-sm">{formatDateTh(cell.data.issueDate)}</span>
@@ -184,7 +195,7 @@ export default function CoaListPage() {
     },
     {
       dataField: 'productName',
-      caption: 'สินค้า',
+      caption: t('coa.list.columns.product'),
       minWidth: 220,
       cellRender: (cell) => (
         <div>
@@ -195,7 +206,7 @@ export default function CoaListPage() {
     },
     {
       dataField: 'lotNumber',
-      caption: 'เลขที่ล็อต',
+      caption: t('coa.list.columns.lotNumber'),
       width: 140,
       cellRender: (cell) =>
         cell.data.lotNumber ? (
@@ -206,7 +217,7 @@ export default function CoaListPage() {
     },
     {
       dataField: 'customerName',
-      caption: 'ลูกค้า',
+      caption: t('coa.list.columns.customer'),
       minWidth: 160,
       hideOnMobile: true,
       cellRender: (cell) => (
@@ -215,30 +226,30 @@ export default function CoaListPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('coa.list.columns.status'),
       width: 130,
       cellRender: (cell) => {
-        const s = statusBadge(cell.data.status);
+        const s = statusBadge(cell.data.status, t);
         return <Badge variant={s.variant}>{s.label}</Badge>;
       },
     },
     {
       dataField: 'conclusion',
-      caption: 'ผลรวม',
+      caption: t('coa.list.columns.conclusion'),
       width: 130,
       alignment: 'center',
-      cellRender: (cell) => conclusionBadge(cell.data.conclusion),
+      cellRender: (cell) => conclusionBadge(cell.data.conclusion, t),
     },
     {
       dataField: '_actions',
-      caption: 'การกระทำ',
+      caption: t('coa.list.columns.actions'),
       width: 110,
       alignment: 'center',
       allowFiltering: false,
       allowSorting: false,
       cellRender: (cell) => (
         <DxButton
-          text="ดู"
+          text={t('coa.list.actions.view')}
           stylingMode="outlined"
           type="default"
           onClick={() => router.push(`/quality/coa/${cell.data.id}`)}
@@ -252,31 +263,31 @@ export default function CoaListPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="Certificate of Analysis"
-          subtitle="ใบรับรองคุณภาพ — รายการ COA ทั้งหมดจากตัวอย่างที่ปล่อยใช้งานแล้ว"
+          subtitle={t('coa.list.subtitle')}
           icon={Award}
           iconBgColor="bg-emerald-100"
           iconColor="text-emerald-600"
           breadcrumbs={[
-            { label: 'คุณภาพ', href: '/quality' },
+            { label: t('coa.list.breadcrumbQuality'), href: '/quality' },
             { label: 'COA' },
           ]}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
-                text="รีเฟรช"
+                text={t('coa.list.refresh')}
                 stylingMode="outlined"
                 onClick={fetchCoa}
               />
               <DxButton
                 icon="preferences"
-                text="กำหนดเทมเพลต COA"
+                text={t('coa.list.configureTemplates')}
                 stylingMode="outlined"
                 onClick={() => router.push('/quality/coa/templates')}
               />
               <DxButton
                 icon="plus"
-                text="ออก COA จากตัวอย่าง"
+                text={t('coa.list.issueFromSample')}
                 type="default"
                 onClick={() => router.push('/quality/qc-entry?status=released')}
               />
@@ -287,28 +298,28 @@ export default function CoaListPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            label="ออกวันนี้"
+            label={t('coa.list.kpi.issuedToday')}
             value={stats.issuedToday}
             icon={CheckCircle2}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
           />
           <StatCard
-            label="รอทบทวน/ร่าง"
+            label={t('coa.list.kpi.pendingReview')}
             value={stats.pendingReview}
             icon={Clock}
             iconColor="text-amber-500"
             accentColor="border-amber-500"
           />
           <StatCard
-            label="ถูกแทนที่"
+            label={t('coa.list.kpi.superseded')}
             value={stats.superseded}
             icon={Layers}
             iconColor="text-orange-500"
             accentColor="border-orange-500"
           />
           <StatCard
-            label="ถูกเพิกถอน"
+            label={t('coa.list.kpi.revoked')}
             value={stats.revoked}
             icon={Ban}
             iconColor="text-red-500"
@@ -321,7 +332,7 @@ export default function CoaListPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2">
               <DxTextBox
-                placeholder="ค้นหา (COA#, Lot#, สินค้า, ลูกค้า)"
+                placeholder={t('coa.list.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -330,7 +341,7 @@ export default function CoaListPage() {
             </div>
             <DxSelectBox
               value={statusFilter}
-              items={STATUS_OPTIONS}
+              items={buildStatusOptions(t)}
               displayExpr="label"
               valueExpr="value"
               onValueChange={(v) => setStatusFilter(String(v ?? ''))}
@@ -340,12 +351,12 @@ export default function CoaListPage() {
               <DxDateBox
                 value={dateFrom}
                 onValueChange={(v) => setDateFrom(v || '')}
-                placeholder="จากวันที่"
+                placeholder={t('coa.list.dateFrom')}
               />
               <DxDateBox
                 value={dateTo}
                 onValueChange={(v) => setDateTo(v || '')}
-                placeholder="ถึงวันที่"
+                placeholder={t('coa.list.dateTo')}
               />
             </div>
           </div>
@@ -354,21 +365,21 @@ export default function CoaListPage() {
         {/* Data grid */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-6 text-center text-gray-500">{t('coa.list.loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="h-16 w-16 rounded-2xl bg-emerald-100 flex items-center justify-center mb-4">
                 <AlertTriangle className="h-8 w-8 text-emerald-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                ยังไม่มี COA
+                {t('coa.list.empty.title')}
               </h3>
               <p className="text-sm text-gray-500 max-w-sm mb-4">
-                COA สร้างจากตัวอย่าง QC ที่ปล่อยใช้งาน — เปิดตัวอย่างแล้วกด &quot;ออก COA&quot;
+                {t('coa.list.empty.description')}
               </p>
               <DxButton
                 icon="plus"
-                text="ดูตัวอย่างที่ปล่อยแล้ว"
+                text={t('coa.list.empty.viewReleased')}
                 type="default"
                 onClick={() => router.push('/quality/qc-entry?status=released')}
               />
@@ -381,7 +392,7 @@ export default function CoaListPage() {
               sorting
               pageSize={20}
               height="auto"
-              noDataText="ไม่พบข้อมูล"
+              noDataText={t('coa.list.noData')}
               onRowClick={(e) => {
                 if (e?.data?.id) {
                   router.push(`/quality/coa/${e.data.id}`);

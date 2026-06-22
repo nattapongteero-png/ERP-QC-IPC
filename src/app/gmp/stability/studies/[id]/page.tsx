@@ -169,12 +169,12 @@ export default function StabilityStudyDetailPage() {
       {/* Status Stepper */}
       <div className="mb-6">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t('stability.studyDetail.workflowTitle')}
           steps={[
-            { key: 'pending', label: 'รอเริ่ม' },
-            { key: 'active', label: 'กำลังศึกษา' },
-            { key: 'on_hold', label: 'พักการศึกษา' },
-            { key: 'completed', label: 'เสร็จสิ้น' },
+            { key: 'pending', label: t('stability.studyDetail.steps.pending') },
+            { key: 'active', label: t('stability.studyDetail.steps.active') },
+            { key: 'on_hold', label: t('stability.studyDetail.steps.on_hold') },
+            { key: 'completed', label: t('stability.studyDetail.steps.completed') },
           ]}
           current={study.status}
         />

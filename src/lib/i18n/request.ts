@@ -69,6 +69,7 @@ const NAMESPACE_FILES: Record<string, string> = {
   masterData: 'masterData',
   'material-withdrawal': 'material-withdrawal',
   packaging: 'packaging',
+  premises: 'premises',
   production: 'production',
   purchasing: 'purchasing',
   quality: 'quality',

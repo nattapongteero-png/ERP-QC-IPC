@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
@@ -48,12 +49,6 @@ interface TargetOption {
   name: string;
 }
 
-const targetLabel = (t: InspectionTargetType) =>
-  ({ room: 'ห้องผลิต', storage_area: 'พื้นที่จัดเก็บ', quarantine: 'พื้นที่กักกัน', water_point: 'จุดน้ำ' })[t] ?? t;
-
-const freqLabel = (f: InspectionFrequency) =>
-  ({ daily: 'ประจำวัน', weekly: 'ประจำสัปดาห์', monthly: 'ประจำเดือน', quarterly: 'ทุกไตรมาส', yearly: 'ประจำปี' })[f] ?? f;
-
 interface FormState {
   targetType: InspectionTargetType;
   targetId: number | null;
@@ -73,6 +68,9 @@ const blankForm: FormState = {
 };
 
 export default function SchedulesPage() {
+  const t = useTranslations('premises');
+  const targetLabel = (v: InspectionTargetType) => t('environmental.common.targetType.' + v);
+  const freqLabel = (f: InspectionFrequency) => t('environmental.common.frequency.' + f);
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -135,7 +133,7 @@ export default function SchedulesPage() {
     setForm(blankForm);
   };
 
-  const templatesForType = templates.filter((t) => t.targetType === form.targetType && t.isActive);
+  const templatesForType = templates.filter((tpl) => tpl.targetType === form.targetType && tpl.isActive);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -169,10 +167,10 @@ export default function SchedulesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['env-schedules-all'] });
       qc.invalidateQueries({ queryKey: ['env-schedules'] });
-      toast.success(editing ? 'อัปเดต Schedule แล้ว' : 'สร้าง Schedule แล้ว');
+      toast.success(editing ? t('environmental.schedules.updatedToast') : t('environmental.schedules.createdToast'));
       closePopup();
     },
-    onError: (e: Error) => toast.error('ล้มเหลว', e.message),
+    onError: (e: Error) => toast.error(t('environmental.common.failedToast'), e.message),
   });
 
   const deleteMut = useMutation({
@@ -186,13 +184,13 @@ export default function SchedulesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['env-schedules-all'] });
       qc.invalidateQueries({ queryKey: ['env-schedules'] });
-      toast.success('ปิดการใช้งาน Schedule แล้ว');
+      toast.success(t('environmental.schedules.deactivatedToast'));
     },
-    onError: (e: Error) => toast.error('ลบไม่ได้', e.message),
+    onError: (e: Error) => toast.error(t('environmental.common.deleteFailedToast'), e.message),
   });
 
   const handleDelete = (row: ScheduleRow) => {
-    if (!confirm(`ปิดการใช้งาน Schedule สำหรับ "${row.targetName}" ใช่หรือไม่?\n(บันทึกย้อนหลังไม่หาย — แค่ไม่ต้องตรวจรอบถัดไป)`)) return;
+    if (!confirm(t('environmental.schedules.deleteConfirm', { name: row.targetName }))) return;
     deleteMut.mutate(row.id);
   };
 
@@ -205,47 +203,46 @@ export default function SchedulesPage() {
     <div className="p-6 space-y-4">
       <Breadcrumbs
         items={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
-          { label: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections' },
-          { label: 'ตารางตรวจ (Schedules)' },
+          { label: t('environmental.common.breadcrumb.premises'), href: '/premises' },
+          { label: t('environmental.common.breadcrumb.environmental'), href: '/premises/environmental/inspections' },
+          { label: t('environmental.schedules.breadcrumb') },
         ]}
       />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarClock className="w-6 h-6" /> ตารางตรวจ (Schedules)
+            <CalendarClock className="w-6 h-6" /> {t('environmental.schedules.title')}
           </h1>
           <p className="text-gray-600 text-sm mt-1">
-            กำหนดว่า "ห้อง / พื้นที่ / จุดน้ำ" ไหน ใช้แบบฟอร์มไหน ตรวจถี่แค่ไหน — ปุ่ม "ตรวจสอบ" ที่หน้าหลักสร้างจากตารางนี้
+            {t('environmental.schedules.subtitle')}
           </p>
         </div>
-        <Button icon="refresh" text="รีเฟรช" onClick={() => refetch()} />
+        <Button icon="refresh" text={t('environmental.common.refresh')} onClick={() => refetch()} />
       </div>
 
       <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
         <div>
-          <span className="font-medium">ตารางตรวจ (Schedule) คืออะไร?</span> คือการกำหนดว่า{' '}
-          <span className="font-medium">"สถานที่จริงจุดไหน"</span> (เป้าหมาย) ใช้{' '}
-          <span className="font-medium">"แบบฟอร์มไหน"</span> และตรวจ{' '}
-          <span className="font-medium">"บ่อยแค่ไหน"</span>
+          <span className="font-medium">{t('environmental.schedules.infoTitle')}</span> {t('environmental.schedules.infoBodyPart1')}{' '}
+          <span className="font-medium">{t('environmental.schedules.infoBodyPlace')}</span> {t('environmental.schedules.infoBodyTargetSuffix')}{' '}
+          <span className="font-medium">{t('environmental.schedules.infoBodyTemplate')}</span> {t('environmental.schedules.infoBodyAnd')}{' '}
+          <span className="font-medium">{t('environmental.schedules.infoBodyFreq')}</span>
         </div>
         <div className="text-xs text-sky-800">
-          ⏱ ระบบจะคำนวณ "ครบกำหนดถัดไป" ให้อัตโนมัติ = วันที่ตรวจล่าสุด + ความถี่ (เช่น ประจำวัน = +1 วัน,
-          ประจำสัปดาห์ = +7 วัน) และจะแจ้งเตือนล่วงหน้าตามจำนวนวันที่ตั้งไว้ในช่อง "แจ้งล่วงหน้า"
+          {t('environmental.schedules.infoHint')}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
-          <div className="text-xs uppercase text-gray-500">ทั้งหมด</div>
+          <div className="text-xs uppercase text-gray-500">{t('environmental.common.stats.total')}</div>
           <div className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</div>
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
-          <div className="text-xs uppercase text-gray-500">ใช้งานอยู่</div>
+          <div className="text-xs uppercase text-gray-500">{t('environmental.common.stats.active')}</div>
           <div className="text-3xl font-bold text-gray-900 mt-1">{stats.active}</div>
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
-          <div className="text-xs uppercase text-gray-500">ปิดการใช้งาน</div>
+          <div className="text-xs uppercase text-gray-500">{t('environmental.common.stats.inactive')}</div>
           <div className="text-3xl font-bold text-gray-900 mt-1">{stats.inactive}</div>
         </div>
       </div>
@@ -253,7 +250,7 @@ export default function SchedulesPage() {
       <div className="flex justify-end">
         <Button type="default" stylingMode="contained" onClick={openCreate}>
           <span className="inline-flex items-center gap-1.5">
-            <Plus className="w-4 h-4" /> สร้าง Schedule ใหม่
+            <Plus className="w-4 h-4" /> {t('environmental.schedules.createNew')}
           </span>
         </Button>
       </div>
@@ -265,42 +262,42 @@ export default function SchedulesPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
-        noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มี Schedule'}
+        noDataText={isLoading ? t('environmental.common.loading') : t('environmental.schedules.noData')}
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="id" caption="#" width={60} />
         <Column
-          caption="ประเภทพื้นที่"
+          caption={t('environmental.schedules.areaTypeColumn')}
           dataField="targetType"
           width={130}
           cellRender={(c) => <Badge className="bg-indigo-100 text-indigo-900">{targetLabel(c.value)}</Badge>}
         />
-        <Column dataField="targetName" caption="เป้าหมาย" />
-        <Column dataField="templateName" caption="แบบฟอร์ม" />
+        <Column dataField="targetName" caption={t('environmental.common.targetColumn')} />
+        <Column dataField="templateName" caption={t('environmental.common.templateColumn')} />
         <Column
           dataField="frequency"
-          caption="ความถี่"
+          caption={t('environmental.common.frequencyColumn')}
           width={130}
           cellRender={(c) => freqLabel(c.value)}
         />
-        <Column dataField="alertDaysBefore" caption="แจ้งล่วงหน้า (วัน)" width={150} />
-        <Column dataField="nextDue" caption="ครบกำหนดถัดไป" dataType="datetime" width={170} />
-        <Column dataField="lastDone" caption="ตรวจล่าสุด" dataType="datetime" width={170} />
+        <Column dataField="alertDaysBefore" caption={t('environmental.schedules.alertDaysColumn')} width={150} />
+        <Column dataField="nextDue" caption={t('environmental.common.nextDueColumn')} dataType="datetime" width={170} />
+        <Column dataField="lastDone" caption={t('environmental.common.lastDoneColumn')} dataType="datetime" width={170} />
         <Column
           dataField="isActive"
-          caption="สถานะ"
+          caption={t('environmental.common.statusColumn')}
           width={110}
           cellRender={(c) =>
             c.value ? (
-              <Badge className="bg-emerald-100 text-emerald-900">ใช้งานอยู่</Badge>
+              <Badge className="bg-emerald-100 text-emerald-900">{t('environmental.common.badge.active')}</Badge>
             ) : (
-              <Badge className="bg-gray-200 text-gray-700">ปิดใช้งาน</Badge>
+              <Badge className="bg-gray-200 text-gray-700">{t('environmental.common.badge.inactive')}</Badge>
             )
           }
         />
         <Column
-          caption="การกระทำ"
+          caption={t('environmental.common.actionsColumn')}
           width={170}
           cellRender={(c) => {
             const row = c.data as ScheduleRow;
@@ -308,13 +305,13 @@ export default function SchedulesPage() {
               <div className="flex gap-1">
                 <Button stylingMode="outlined" onClick={() => setEditing(row)}>
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <Pencil className="w-3 h-3" /> แก้ไข
+                    <Pencil className="w-3 h-3" /> {t('environmental.common.edit')}
                   </span>
                 </Button>
                 {row.isActive && (
                   <Button stylingMode="text" type="danger" onClick={() => handleDelete(row)}>
                     <span className="inline-flex items-center gap-1 text-xs">
-                      <Trash2 className="w-3 h-3" /> ปิด
+                      <Trash2 className="w-3 h-3" /> {t('environmental.schedules.closeAction')}
                     </span>
                   </Button>
                 )}
@@ -328,13 +325,13 @@ export default function SchedulesPage() {
         visible={popupOpen}
         onHiding={closePopup}
         showCloseButton
-        title={editing ? `แก้ไข Schedule — ${editing.targetName}` : '+ สร้างตารางตรวจ'}
+        title={editing ? t('environmental.schedules.popupEditTitle', { name: editing.targetName }) : t('environmental.schedules.popupCreateTitle')}
         width={620}
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium mb-1">ประเภทพื้นที่ *</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldAreaType')}</label>
             <SelectBox
               dataSource={INSPECTION_TARGET_TYPES.map((v) => ({ value: v, label: targetLabel(v) }))}
               valueExpr="value"
@@ -348,9 +345,9 @@ export default function SchedulesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">เป้าหมายที่จะตรวจ (สถานที่จริง) *</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldTarget')}</label>
             <p className="text-xs text-gray-500 mb-1">
-              สถานที่จริงที่จะเข้าไปตรวจ เช่น "ห้องผสม A", "คลังวัตถุดิบ", "จุดน้ำ RO-01" — ดึงรายชื่อจาก Master Data
+              {t('environmental.schedules.fieldTargetHint')}
             </p>
             <SelectBox
               dataSource={targetData.items}
@@ -358,7 +355,7 @@ export default function SchedulesPage() {
               displayExpr="name"
               value={form.targetId}
               disabled={!!editing}
-              placeholder={`เลือก${targetLabel(form.targetType)}…`}
+              placeholder={t('environmental.schedules.targetPlaceholder', { type: targetLabel(form.targetType) })}
               onValueChanged={(e) => {
                 const picked = targetData.items.find((it) => it.id === e.value);
                 setForm({ ...form, targetId: e.value ?? null, targetName: picked?.name ?? '' });
@@ -366,46 +363,46 @@ export default function SchedulesPage() {
             />
             {!editing && targetData.items.length === 0 && (
               <p className="text-xs text-amber-700 mt-1">
-                ⚠️ ยังไม่มี {targetLabel(form.targetType)} ในระบบ — สร้างที่ Master Data ก่อน
+                {t('environmental.schedules.noTargetWarning', { type: targetLabel(form.targetType) })}
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">ชื่อแสดงบน Schedule</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldDisplayName')}</label>
             <input
               type="text"
               className="w-full border rounded px-3 py-2"
               value={form.targetName}
               onChange={(e) => setForm({ ...form, targetName: e.target.value })}
-              placeholder="auto จาก dropdown — แก้ได้"
+              placeholder={t('environmental.schedules.displayNamePlaceholder')}
             />
             <p className="text-xs text-gray-500 mt-1">
-              ชื่อที่จะปรากฏใน dashboard / notification — ปกติเอาจาก dropdown ด้านบนได้เลย
+              {t('environmental.schedules.displayNameHint')}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">แบบฟอร์ม Template *</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldTemplate')}</label>
             <SelectBox
-              dataSource={templatesForType.map((t) => ({ value: t.id, label: t.name }))}
+              dataSource={templatesForType.map((tpl) => ({ value: tpl.id, label: tpl.name }))}
               valueExpr="value"
               displayExpr="label"
               value={form.templateId}
               disabled={!!editing}
-              placeholder="เลือกแบบฟอร์ม…"
+              placeholder={t('environmental.schedules.templatePlaceholder')}
               onValueChanged={(e) => setForm({ ...form, templateId: e.value ?? null })}
             />
             {!editing && templatesForType.length === 0 && (
               <p className="text-xs text-amber-700 mt-1">
-                ⚠️ ยังไม่มี Template สำหรับ {targetLabel(form.targetType)} — สร้างก่อนที่หน้า{' '}
-                <Link href="/premises/environmental/templates" className="underline">แบบฟอร์มตรวจ</Link>
+                {t('environmental.schedules.noTemplateWarningPart1', { type: targetLabel(form.targetType) })}{' '}
+                <Link href="/premises/environmental/templates" className="underline">{t('environmental.schedules.noTemplateWarningLink')}</Link>
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">ความถี่ *</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldFrequency')}</label>
             <SelectBox
               dataSource={INSPECTION_FREQUENCIES.map((f) => ({ value: f, label: freqLabel(f) }))}
               valueExpr="value"
@@ -416,7 +413,7 @@ export default function SchedulesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">แจ้งล่วงหน้า (วัน)</label>
+            <label className="block text-sm font-medium mb-1">{t('environmental.schedules.fieldAlertDays')}</label>
             <NumberBox
               value={form.alertDaysBefore}
               min={0}
@@ -431,11 +428,11 @@ export default function SchedulesPage() {
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button text="ยกเลิก" stylingMode="text" onClick={closePopup} />
+            <Button text={t('environmental.common.cancel')} stylingMode="text" onClick={closePopup} />
             <Button
               type="default"
               stylingMode="contained"
-              text={editing ? 'บันทึกการแก้ไข' : 'สร้าง'}
+              text={editing ? t('environmental.common.saveEdit') : t('environmental.common.create')}
               disabled={
                 saveMut.isPending ||
                 (!editing && (form.targetId === null || form.templateId === null || form.targetName.trim() === ''))

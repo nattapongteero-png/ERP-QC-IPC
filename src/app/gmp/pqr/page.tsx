@@ -85,8 +85,14 @@ import type {
 // Constants
 // ============================================
 
+// Translation sub-key for each PQR status (resolved via t('pqr.status.*') at call site)
+const STATUS_LABEL_KEY: Record<PqrStatus, string> = {
+  draft: 'draftDoc',
+  under_review: 'pendingReview',
+  approved: 'approved',
+};
+
 const STATUS_CONFIG: Record<PqrStatus, {
-  label: string;
   bgColor: string;
   textColor: string;
   borderColor: string;
@@ -94,7 +100,6 @@ const STATUS_CONFIG: Record<PqrStatus, {
   icon: React.ReactNode;
 }> = {
   draft: {
-    label: 'ฉบับร่าง',
     bgColor: 'bg-slate-50',
     textColor: 'text-slate-700',
     borderColor: 'border-slate-200',
@@ -102,7 +107,6 @@ const STATUS_CONFIG: Record<PqrStatus, {
     icon: <Clock className="h-3.5 w-3.5" />,
   },
   under_review: {
-    label: 'รอตรวจสอบ',
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
     borderColor: 'border-amber-200',
@@ -110,7 +114,6 @@ const STATUS_CONFIG: Record<PqrStatus, {
     icon: <Search className="h-3.5 w-3.5" />,
   },
   approved: {
-    label: 'อนุมัติแล้ว',
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
@@ -157,10 +160,14 @@ function StatusCard({
   status,
   count,
   total,
+  label,
+  percentLabel,
 }: {
   status: PqrStatus;
   count: number;
   total: number;
+  label: string;
+  percentLabel: string;
 }) {
   const config = STATUS_CONFIG[status];
   const percentage = total > 0 ? ((count / total) * 100).toFixed(0) : '0';
@@ -173,8 +180,8 @@ function StatusCard({
             {config.icon}
           </div>
           <div>
-            <p className={`font-semibold ${config.textColor}`}>{config.label}</p>
-            <p className="text-xs text-gray-500">{percentage}% of total</p>
+            <p className={`font-semibold ${config.textColor}`}>{label}</p>
+            <p className="text-xs text-gray-500">{percentLabel}</p>
           </div>
         </div>
         <div className="text-right">
@@ -350,11 +357,11 @@ export default function PqrDashboardPage() {
     return Object.entries(dashboard.byStatus)
       .filter(([, count]) => count > 0)
       .map(([status, count]) => ({
-        status: STATUS_CONFIG[status as PqrStatus].label,
+        status: t(`pqr.list.statusLabel.${STATUS_LABEL_KEY[status as PqrStatus]}`),
         count,
         color: STATUS_CONFIG[status as PqrStatus].chartColor,
       }));
-  }, [dashboard]);
+  }, [dashboard, t]);
 
   const yearChartData = useMemo(() => {
     if (!dashboard?.byYear) return [];
@@ -394,7 +401,7 @@ export default function PqrDashboardPage() {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bgColor} ${config.textColor} ${config.borderColor}`}>
         {config.icon}
-        {config.label}
+        {t(`pqr.list.statusLabel.${STATUS_LABEL_KEY[status]}`)}
       </span>
     );
   };
@@ -433,14 +440,14 @@ export default function PqrDashboardPage() {
             router.push(`/gmp/pqr/${report.id}`);
           }}
           className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-          title="ดูรายละเอียด"
+          title={t('pqr.list.viewDetails')}
         >
           <Eye className="h-4 w-4" />
         </button>
         <button
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-          title="ตัวเลือกเพิ่มเติม"
+          title={t('pqr.list.moreOptions')}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -480,21 +487,21 @@ export default function PqrDashboardPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               >
                 <RefreshCw className={`h-4 w-4 ${dashboardLoading ? 'animate-spin' : ''}`} />
-                <span className="text-sm font-medium">รีเฟรช</span>
+                <span className="text-sm font-medium">{t('common.refresh')}</span>
               </button>
               <button
                 onClick={() => router.push('/reports')}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
               >
                 <BarChart3 className="h-4 w-4" />
-                <span className="text-sm font-medium">รายงาน</span>
+                <span className="text-sm font-medium">{t('pqr.list.reports')}</span>
               </button>
               <button
                 onClick={() => setShowNewDialog(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors font-medium"
               >
                 <Plus className="h-4 w-4" />
-                <span className="text-sm">สร้าง PQR ใหม่</span>
+                <span className="text-sm">{t('pqr.list.newPqr')}</span>
               </button>
             </div>
           </div>
@@ -503,19 +510,19 @@ export default function PqrDashboardPage() {
         {/* Quick Stats Bar */}
         <div className="mx-4 md:mx-6 -mt-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            <MetricCard value={dashboard?.totalReports ?? 0} label="รายงานทั้งหมด" tone="blue" />
-            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label="ฉบับร่าง" tone="gray" />
-            <MetricCard value={dashboard?.pendingReview ?? 0} label="รอตรวจสอบ" tone="amber" />
-            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label="อนุมัติแล้ว" tone="emerald" />
-            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={`อนุมัติปี ${currentYear}`} tone="blue" />
+            <MetricCard value={dashboard?.totalReports ?? 0} label={t('pqr.list.kpi.totalReports')} tone="blue" />
+            <MetricCard value={dashboard?.byStatus?.draft ?? 0} label={t('pqr.list.kpi.draft')} tone="gray" />
+            <MetricCard value={dashboard?.pendingReview ?? 0} label={t('pqr.list.kpi.pendingReview')} tone="amber" />
+            <MetricCard value={dashboard?.byStatus?.approved ?? 0} label={t('pqr.list.kpi.approved')} tone="emerald" />
+            <MetricCard value={dashboard?.approvedThisYear ?? 0} label={t('pqr.list.kpi.approvedThisYear', { year: currentYear })} tone="blue" />
             <MetricCard
               value={dashboard?.averageMetrics?.deviationRate != null ? `${dashboard.averageMetrics.deviationRate}%` : 'N/A'}
-              label="ความเบี่ยงเบนเฉลี่ย"
+              label={t('pqr.list.kpi.avgDeviation')}
               tone="rose"
             />
             <MetricCard
               value={dashboard?.averageMetrics?.oosRate != null ? `${dashboard.averageMetrics.oosRate}%` : 'N/A'}
-              label="OOS เฉลี่ย"
+              label={t('pqr.list.kpi.avgOos')}
               tone="violet"
             />
           </div>
@@ -531,12 +538,12 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">รายงานตามสถานะ</h3>
+                  <h3 className="font-semibold text-gray-900">{t('pqr.list.sections.reportsByStatus')}</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatusCard status="draft" count={stats.draft} total={stats.total} />
-                  <StatusCard status="under_review" count={stats.underReview} total={stats.total} />
-                  <StatusCard status="approved" count={stats.approved} total={stats.total} />
+                  <StatusCard status="draft" count={stats.draft} total={stats.total} label={t('pqr.list.statusLabel.draftDoc')} percentLabel={t('pqr.list.percentOfTotal', { percent: stats.total > 0 ? ((stats.draft / stats.total) * 100).toFixed(0) : '0' })} />
+                  <StatusCard status="under_review" count={stats.underReview} total={stats.total} label={t('pqr.list.statusLabel.pendingReview')} percentLabel={t('pqr.list.percentOfTotal', { percent: stats.total > 0 ? ((stats.underReview / stats.total) * 100).toFixed(0) : '0' })} />
+                  <StatusCard status="approved" count={stats.approved} total={stats.total} label={t('pqr.list.statusLabel.approved')} percentLabel={t('pqr.list.percentOfTotal', { percent: stats.total > 0 ? ((stats.approved / stats.total) * 100).toFixed(0) : '0' })} />
                 </div>
               </div>
 
@@ -546,7 +553,7 @@ export default function PqrDashboardPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-gray-900">การกระจายตามสถานะ</h3>
+                    <h3 className="font-semibold text-gray-900">{t('pqr.list.sections.statusDistribution')}</h3>
                   </div>
                   {statusChartData.length > 0 ? (
                     <PieChart
@@ -576,7 +583,7 @@ export default function PqrDashboardPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
                       <TrendingUp className="h-12 w-12 mb-2 opacity-50" />
-                      <p className="text-sm">ไม่มีข้อมูลรายงาน</p>
+                      <p className="text-sm">{t('pqr.list.noReportData')}</p>
                     </div>
                   )}
                 </div>
@@ -585,7 +592,7 @@ export default function PqrDashboardPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Calendar className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-gray-900">รายงานตามปี</h3>
+                    <h3 className="font-semibold text-gray-900">{t('pqr.list.sections.reportsByYear')}</h3>
                   </div>
                   {yearChartData.length > 0 ? (
                     <Chart dataSource={yearChartData} size={{ height: 280 }}>
@@ -607,7 +614,7 @@ export default function PqrDashboardPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center h-[220px] text-gray-400">
                       <Calendar className="h-12 w-12 mb-2 opacity-50" />
-                      <p className="text-sm">ไม่มีข้อมูลรายปี</p>
+                      <p className="text-sm">{t('pqr.list.noYearData')}</p>
                     </div>
                   )}
                 </div>
@@ -620,11 +627,11 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">ค่าเฉลี่ยตัวชี้วัด</h3>
+                  <h3 className="font-semibold text-gray-900">{t('pqr.list.sections.avgMetrics')}</h3>
                 </div>
                 <div className="space-y-3">
                   <MetricIndicator
-                    label="อัตราความเบี่ยงเบน"
+                    label={t('pqr.list.indicators.deviationRate')}
                     value={dashboard?.averageMetrics?.deviationRate ?? null}
                     target={5}
                     icon={<AlertTriangle className="h-4 w-4" />}
@@ -632,7 +639,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-red-50 to-rose-50"
                   />
                   <MetricIndicator
-                    label="อัตรา OOS"
+                    label={t('pqr.list.indicators.oosRate')}
                     value={dashboard?.averageMetrics?.oosRate ?? null}
                     target={2}
                     icon={<FlaskConical className="h-4 w-4" />}
@@ -640,7 +647,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-amber-50 to-yellow-50"
                   />
                   <MetricIndicator
-                    label="การปิด CAPA"
+                    label={t('pqr.list.indicators.capaClosure')}
                     value={dashboard?.averageMetrics?.capaClosureRate ?? null}
                     target={95}
                     icon={<ClipboardCheck className="h-4 w-4" />}
@@ -648,7 +655,7 @@ export default function PqrDashboardPage() {
                     bgGradient="from-emerald-50 to-teal-50"
                   />
                   <MetricIndicator
-                    label="อัตราข้อร้องเรียน"
+                    label={t('pqr.list.indicators.complaintRate')}
                     value={dashboard?.averageMetrics?.complaintRate ?? null}
                     target={1}
                     icon={<Package className="h-4 w-4" />}
@@ -662,34 +669,34 @@ export default function PqrDashboardPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Percent className="h-5 w-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-900">สรุปโดยย่อ</h3>
+                  <h3 className="font-semibold text-gray-900">{t('pqr.list.sections.quickSummary')}</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700">รายงานทั้งหมด</span>
+                      <span className="text-sm text-emerald-700">{t('pqr.list.kpi.totalReports')}</span>
                     </div>
                     <span className="text-lg font-bold text-emerald-700">{dashboard?.totalReports ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      <span className="text-sm text-emerald-700">อนุมัติแล้ว {currentYear}</span>
+                      <span className="text-sm text-emerald-700">{t('pqr.list.approvedYear', { year: currentYear })}</span>
                     </div>
                     <span className="text-lg font-bold text-emerald-700">{dashboard?.approvedThisYear ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Search className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm text-amber-700">รอตรวจสอบ</span>
+                      <span className="text-sm text-amber-700">{t('pqr.list.kpi.pendingReview')}</span>
                     </div>
                     <span className="text-lg font-bold text-amber-700">{dashboard?.pendingReview ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-slate-600" />
-                      <span className="text-sm text-slate-700">ฉบับร่าง</span>
+                      <span className="text-sm text-slate-700">{t('pqr.list.kpi.draft')}</span>
                     </div>
                     <span className="text-lg font-bold text-slate-700">{dashboard?.byStatus?.draft ?? 0}</span>
                   </div>
@@ -704,10 +711,10 @@ export default function PqrDashboardPage() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
               <div className="flex gap-1">
                 {[
-                  { key: 'all', label: 'All Reports', count: stats.total },
-                  { key: 'draft', label: 'Draft', count: stats.draft },
-                  { key: 'under_review', label: 'Under Review', count: stats.underReview },
-                  { key: 'approved', label: 'Approved', count: stats.approved },
+                  { key: 'all', label: t('pqr.list.tabs.all'), count: stats.total },
+                  { key: 'draft', label: t('pqr.list.tabs.draft'), count: stats.draft },
+                  { key: 'under_review', label: t('pqr.list.tabs.underReview'), count: stats.underReview },
+                  { key: 'approved', label: t('pqr.list.tabs.approved'), count: stats.approved },
                 ].map(tab => (
                   <button
                     key={tab.key}
@@ -731,7 +738,7 @@ export default function PqrDashboardPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <FileText className="h-4 w-4" />
-                <span>{filteredReports.length} reports</span>
+                <span>{t('pqr.list.reportCount', { count: filteredReports.length })}</span>
               </div>
             </div>
 
@@ -761,7 +768,7 @@ export default function PqrDashboardPage() {
                 </Toolbar>
 
                 {/* Features */}
-                <SearchPanel visible placeholder="ค้นหารายงาน..." width={250} />
+                <SearchPanel visible placeholder={t('pqr.list.searchPlaceholder')} width={250} />
                 <Grouping autoExpandAll={false} />
                 <GroupPanel visible />
                 <Scrolling mode="virtual" />
@@ -779,31 +786,31 @@ export default function PqrDashboardPage() {
                 {/* Columns */}
                 <Column
                   dataField="reportNumber"
-                  caption="เลขที่รายงาน"
+                  caption={t('pqr.list.columns.reportNumber')}
                   width={140}
                   fixed
                   cellRender={renderReportNumber}
                 />
                 <Column
-                  caption="ผลิตภัณฑ์"
+                  caption={t('pqr.list.columns.product')}
                   minWidth={200}
                   cellRender={renderProduct}
                   allowFiltering={false}
                 />
                 <Column
                   dataField="reviewYear"
-                  caption="ปี"
+                  caption={t('pqr.list.columns.year')}
                   width={80}
                   alignment="center"
                 />
                 <Column
                   dataField="status"
-                  caption="สถานะ"
+                  caption={t('pqr.list.columns.status')}
                   width={130}
                   cellRender={renderStatus}
                 />
                 <Column
-                  caption="ตัวชี้วัดสำคัญ"
+                  caption={t('pqr.list.columns.keyMetrics')}
                   width={200}
                   cellRender={renderMetrics}
                   allowFiltering={false}
@@ -811,18 +818,18 @@ export default function PqrDashboardPage() {
                 />
                 <Column
                   dataField="batchesProduced"
-                  caption="จำนวนแบทช์"
+                  caption={t('pqr.list.columns.batches')}
                   width={90}
                   alignment="center"
                 />
                 <Column
                   dataField="approvedByName"
-                  caption="อนุมัติโดย"
+                  caption={t('pqr.list.columns.approvedBy')}
                   width={150}
                 />
                 <Column
                   dataField="createdAt"
-                  caption="สร้างเมื่อ"
+                  caption={t('pqr.list.columns.createdAt')}
                   dataType="date"
                   format="dd MMM yyyy"
                   width={120}
@@ -840,7 +847,7 @@ export default function PqrDashboardPage() {
 
                 {/* Summary */}
                 <Summary>
-                  <TotalItem column="reportNumber" summaryType="count" displayFormat="รวม: {0}" />
+                  <TotalItem column="reportNumber" summaryType="count" displayFormat={t('pqr.list.summaryTotal')} />
                 </Summary>
               </DataGrid>
 
@@ -908,8 +915,8 @@ export default function PqrDashboardPage() {
                 <FileBarChart className="h-7 w-7" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">สร้างรายงาน PQR ใหม่</h2>
-                <p className="text-emerald-100 text-sm">Product Quality Review - รายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี</p>
+                <h2 className="text-xl font-bold">{t('pqr.list.dialog.title')}</h2>
+                <p className="text-emerald-100 text-sm">{t('pqr.list.dialog.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -920,7 +927,7 @@ export default function PqrDashboardPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <PackageCheck className="h-5 w-5 text-emerald-600" />
-                <label className="text-sm font-semibold text-gray-800">เลือกผลิตภัณฑ์ *</label>
+                <label className="text-sm font-semibold text-gray-800">{t('pqr.list.dialog.selectProduct')}</label>
               </div>
 
               {selectedProduct ? (
@@ -938,7 +945,7 @@ export default function PqrDashboardPage() {
                     </div>
                   </div>
                   <DxButton
-                    text="เปลี่ยน"
+                    text={t('pqr.list.dialog.change')}
                     type="normal"
                     stylingMode="outlined"
                     icon="edit"
@@ -956,8 +963,8 @@ export default function PqrDashboardPage() {
                       <Package className="h-5 w-5" />
                     </div>
                     <div className="text-left">
-                      <span className="block font-medium">คลิกเพื่อเลือกผลิตภัณฑ์...</span>
-                      <span className="text-xs text-gray-400 group-hover:text-emerald-400">เฉพาะผลิตภัณฑ์สำเร็จรูป (Finished Goods)</span>
+                      <span className="block font-medium">{t('pqr.list.dialog.clickToSelect')}</span>
+                      <span className="text-xs text-gray-400 group-hover:text-emerald-400">{t('pqr.list.dialog.finishedGoodsOnly')}</span>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-emerald-500" />
@@ -969,7 +976,7 @@ export default function PqrDashboardPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Hash className="h-5 w-5 text-emerald-600" />
-                <label className="text-sm font-semibold text-gray-800">ปีที่ทบทวน (Review Year) *</label>
+                <label className="text-sm font-semibold text-gray-800">{t('pqr.list.dialog.reviewYear')}</label>
               </div>
               <div className="max-w-[200px]">
                 <DxNumberBox
@@ -983,7 +990,7 @@ export default function PqrDashboardPage() {
               </div>
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <Info className="h-3.5 w-3.5" />
-                เลือกปีที่ต้องการทบทวนคุณภาพผลิตภัณฑ์ (ค.ศ.)
+                {t('pqr.list.dialog.reviewYearHint')}
               </p>
             </div>
 
@@ -991,26 +998,26 @@ export default function PqrDashboardPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <CalendarRange className="h-5 w-5 text-emerald-600" />
-                <label className="text-sm font-semibold text-gray-800">ช่วงเวลาที่ทบทวน (Review Period)</label>
-                <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">ไม่บังคับ</span>
+                <label className="text-sm font-semibold text-gray-800">{t('pqr.list.dialog.reviewPeriod')}</label>
+                <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">{t('pqr.list.dialog.optional')}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs text-gray-500">วันที่เริ่มต้น</label>
+                  <label className="text-xs text-gray-500">{t('pqr.list.dialog.startDate')}</label>
                   <DxDateBox
                     value={newReportData.periodStart || ''}
                     onValueChange={(value) => setNewReportData((prev) => ({ ...prev, periodStart: value }))}
-                    placeholder="เลือกวันที่เริ่มต้น..."
+                    placeholder={t('pqr.list.dialog.startDatePlaceholder')}
                     showClearButton
                     height={42}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs text-gray-500">วันที่สิ้นสุด</label>
+                  <label className="text-xs text-gray-500">{t('pqr.list.dialog.endDate')}</label>
                   <DxDateBox
                     value={newReportData.periodEnd || ''}
                     onValueChange={(value) => setNewReportData((prev) => ({ ...prev, periodEnd: value }))}
-                    placeholder="เลือกวันที่สิ้นสุด..."
+                    placeholder={t('pqr.list.dialog.endDatePlaceholder')}
                     showClearButton
                     height={42}
                   />
@@ -1018,7 +1025,7 @@ export default function PqrDashboardPage() {
               </div>
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <Info className="h-3.5 w-3.5" />
-                ระบุช่วงเวลาที่จะรวบรวมข้อมูลสำหรับการทบทวน (โดยปกติ 1 ม.ค. - 31 ธ.ค.)
+                {t('pqr.list.dialog.reviewPeriodHint')}
               </p>
             </div>
 
@@ -1029,12 +1036,12 @@ export default function PqrDashboardPage() {
                   <Sparkles className="h-5 w-5 text-blue-600" />
                 </div>
                 <div className="space-y-1">
-                  <p className="font-medium text-blue-800">ข้อมูลที่จะรวบรวมอัตโนมัติ</p>
+                  <p className="font-medium text-blue-800">{t('pqr.list.dialog.autoCollectTitle')}</p>
                   <ul className="text-sm text-blue-600 space-y-0.5">
-                    <li>• จำนวน Batch ที่ผลิตในช่วงเวลา</li>
-                    <li>• ข้อมูล Deviation, CAPA, OOS, Complaints</li>
-                    <li>• ผลการทดสอบคุณภาพและ Stability</li>
-                    <li>• ข้อมูลการ Recall และ Market Returns</li>
+                    <li>• {t('pqr.list.dialog.autoCollect.batches')}</li>
+                    <li>• {t('pqr.list.dialog.autoCollect.deviations')}</li>
+                    <li>• {t('pqr.list.dialog.autoCollect.quality')}</li>
+                    <li>• {t('pqr.list.dialog.autoCollect.recall')}</li>
                   </ul>
                 </div>
               </div>
@@ -1044,17 +1051,17 @@ export default function PqrDashboardPage() {
           {/* Footer Actions */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              <span className="text-red-500">*</span> จำเป็นต้องกรอก
+              <span className="text-red-500">*</span> {t('pqr.list.dialog.requiredNote')}
             </p>
             <div className="flex items-center gap-3">
               <DxButton
-                text="ยกเลิก"
+                text={t('common.cancel')}
                 type="normal"
                 stylingMode="outlined"
                 onClick={handleCloseNewDialog}
               />
               <DxButton
-                text={createMutation.isPending ? 'กำลังสร้าง...' : 'สร้างรายงาน PQR'}
+                text={createMutation.isPending ? t('pqr.list.dialog.creating') : t('pqr.list.dialog.create')}
                 type="success"
                 icon="check"
                 onClick={handleCreateReport}
@@ -1070,7 +1077,7 @@ export default function PqrDashboardPage() {
         open={showProductDialog}
         onOpenChange={setShowProductDialog}
         onSelect={handleProductSelect}
-        title="เลือกผลิตภัณฑ์สำหรับ PQR"
+        title={t('pqr.list.dialog.itemSearchTitle')}
         filterType="finished_goods"
         showPrice="none"
         showStock={false}

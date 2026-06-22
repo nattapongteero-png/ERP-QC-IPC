@@ -67,13 +67,6 @@ const AREA_COLORS: Record<AreaType, string> = {
   office: '#6b7280',
 };
 
-const AREA_LABELS: Record<AreaType, string> = {
-  production: 'พื้นที่ผลิต',
-  warehouse: 'คลังจัดเก็บ',
-  lab: 'ห้องปฏิบัติการ',
-  office: 'สำนักงาน',
-};
-
 const AREA_ICONS: Record<AreaType, typeof Beaker> = {
   production: Beaker,
   warehouse: MapPin,
@@ -120,6 +113,7 @@ async function fetchTrends(): Promise<SanitationTrends> {
 export default function SanitationDashboardPage() {
   const router = useRouter();
   const t = useTranslations('gmp');
+  const tp = useTranslations('premises');
   const { isMobile } = useMobile();
 
   const { data: pendingTasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
@@ -144,13 +138,13 @@ export default function SanitationDashboardPage() {
     if (!trends?.byArea) return [];
     return trends.byArea.map((area) => ({
       area: area.areaType,
-      label: AREA_LABELS[area.areaType],
+      label: tp('sanitation.common.area.' + area.areaType),
       value: area.complianceRate,
       completed: area.completedCount,
       missed: area.missedCount,
       color: AREA_COLORS[area.areaType],
     }));
-  }, [trends]);
+  }, [trends, tp]);
 
   const pestTrendData = useMemo(() => {
     if (!trends?.pestActivityTrend) return [];
@@ -198,12 +192,12 @@ export default function SanitationDashboardPage() {
     },
     {
       dataField: 'scheduleName',
-      caption: 'งาน',
+      caption: tp('sanitation.index.taskColumns.task'),
       minWidth: 200,
     },
     {
       dataField: 'areaType',
-      caption: 'พื้นที่',
+      caption: tp('sanitation.index.taskColumns.area'),
       width: 140,
       cellRender: (cellData: { value?: AreaType }) => {
         const areaType = cellData.value || 'production';
@@ -214,14 +208,14 @@ export default function SanitationDashboardPage() {
               className="w-4 h-4"
               style={{ color: AREA_COLORS[areaType] }}
             />
-            <span>{AREA_LABELS[areaType]}</span>
+            <span>{tp('sanitation.common.area.' + areaType)}</span>
           </div>
         );
       },
     },
     {
       dataField: 'frequency',
-      caption: 'ความถี่',
+      caption: tp('sanitation.index.taskColumns.frequency'),
       width: 110,
       cellRender: (cellData: { value?: string }) => (
         <span className="capitalize">{cellData.value || '-'}</span>
@@ -229,20 +223,20 @@ export default function SanitationDashboardPage() {
     },
     {
       dataField: 'dueDate',
-      caption: 'กำหนดส่ง',
+      caption: tp('sanitation.index.taskColumns.dueDate'),
       width: 130,
       dataType: 'date',
     },
     {
       dataField: 'isOverdue',
-      caption: 'สถานะ',
+      caption: tp('sanitation.index.taskColumns.status'),
       width: 130,
       cellRender: (cellData: { data?: PendingTask }) => {
         if (!cellData.data) return null;
         if (cellData.data.isOverdue) {
           return (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-              เกินกำหนด {cellData.data.daysOverdue} วัน
+              {tp('sanitation.common.overdueDays', { n: cellData.data.daysOverdue })}
             </span>
           );
         }
@@ -285,7 +279,7 @@ export default function SanitationDashboardPage() {
         iconBgColor="bg-lime-100"
         iconColor="text-lime-600"
         breadcrumbs={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
+          { label: tp('sanitation.common.breadcrumbPremises'), href: '/premises' },
           { label: t('sanitation.pageTitle') },
         ]}
         actions={
@@ -688,7 +682,7 @@ export default function SanitationDashboardPage() {
               showBorders={false}
               rowAlternationEnabled
               height="auto"
-              noDataText="ไม่มีงานค้าง"
+              noDataText={tp('sanitation.index.noPendingTasks')}
             />
           </div>
         )}
@@ -749,6 +743,7 @@ function TaskCardList({
   tasks: PendingTask[];
   onRecord: (scheduleId: number) => void;
 }) {
+  const tp = useTranslations('premises');
   return (
     <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
       {tasks.map((task) => {
@@ -775,18 +770,18 @@ function TaskCardList({
                   </p>
                   {task.isOverdue ? (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 whitespace-nowrap">
-                      เกินกำหนด {task.daysOverdue} วัน
+                      {tp('sanitation.common.overdueDays', { n: task.daysOverdue })}
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
-                      ใกล้ถึงกำหนด
+                      {tp('sanitation.common.upcoming')}
                     </span>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
                   <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
                     <MapPin className="h-3 w-3" />
-                    {AREA_LABELS[areaType]}
+                    {tp('sanitation.common.area.' + areaType)}
                   </span>
                   {task.frequency && (
                     <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded capitalize">
@@ -811,7 +806,7 @@ function TaskCardList({
                 className="w-full flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <FileCheck className="h-4 w-4" />
-                <span>บันทึกผล</span>
+                <span>{tp('sanitation.common.recordResult')}</span>
               </button>
             </div>
           </div>
@@ -902,14 +897,15 @@ function SummarySkeleton() {
 
 /** Empty state — no pending tasks */
 function AllCaughtUpState() {
+  const tp = useTranslations('premises');
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
       <div className="p-3 bg-green-100 rounded-full w-14 h-14 mx-auto mb-4 flex items-center justify-center">
         <CheckCircle className="h-7 w-7 text-green-600" />
       </div>
-      <h3 className="font-semibold text-green-800 mb-1">ไม่มีงานค้าง!</h3>
+      <h3 className="font-semibold text-green-800 mb-1">{tp('sanitation.index.allCaughtUpTitle')}</h3>
       <p className="text-sm text-green-700 max-w-sm">
-        ไม่มีงานสุขาภิบาลที่ค้างในอีก 14 วันข้างหน้า
+        {tp('sanitation.index.allCaughtUpDesc')}
       </p>
     </div>
   );

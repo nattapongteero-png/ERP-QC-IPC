@@ -8,6 +8,7 @@
  * service layer (action UPDATE / DELETE on inspectionRecords).
  */
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
@@ -50,19 +51,20 @@ interface RecordDetail extends RecordRow {
   results: ResultRow[];
 }
 
-const targetLabel = (t: string) =>
-  ({ room: 'ห้องผลิต', storage_area: 'พื้นที่จัดเก็บ', quarantine: 'พื้นที่กักกัน', water_point: 'จุดน้ำ' })[t] ?? t;
-
-const resultBadge = (r: string) =>
-  r === 'in_spec' ? (
-    <Badge className="bg-emerald-100 text-emerald-900">ผ่าน (ในเกณฑ์)</Badge>
-  ) : r === 'out_of_spec' ? (
-    <Badge className="bg-rose-100 text-rose-900">ไม่ผ่าน (เกินเกณฑ์)</Badge>
-  ) : (
-    <Badge className="bg-gray-200 text-gray-700">ไม่ระบุ</Badge>
-  );
-
 export default function InspectionHistoryPage() {
+  const t = useTranslations('premises');
+  const targetLabel = (v: string) =>
+    (['room', 'storage_area', 'quarantine', 'water_point'] as const).includes(v as any)
+      ? t('environmental.common.targetType.' + v)
+      : v;
+  const resultBadge = (r: string) =>
+    r === 'in_spec' ? (
+      <Badge className="bg-emerald-100 text-emerald-900">{t('environmental.common.result.inSpec')}</Badge>
+    ) : r === 'out_of_spec' ? (
+      <Badge className="bg-rose-100 text-rose-900">{t('environmental.common.result.outOfSpec')}</Badge>
+    ) : (
+      <Badge className="bg-gray-200 text-gray-700">{t('environmental.common.result.na')}</Badge>
+    );
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -129,11 +131,11 @@ export default function InspectionHistoryPage() {
       const editedId = viewId;
       setEditMode(false);
       setViewId(null);
-      toast.success('แก้ไขผลตรวจแล้ว (บันทึกใน audit log)');
+      toast.success(t('environmental.inspectionsHistory.editedToast'));
       qc.invalidateQueries({ queryKey: ['env-inspection-records'] });
       if (editedId != null) qc.invalidateQueries({ queryKey: ['env-inspection-record', editedId] });
     },
-    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(t('environmental.inspectionsHistory.saveFailedToast'), e.message),
   });
 
   const deleteMut = useMutation({
@@ -145,11 +147,11 @@ export default function InspectionHistoryPage() {
       }
     },
     onSuccess: () => {
-      toast.success('ลบผลตรวจแล้ว (บันทึกใน audit log)');
+      toast.success(t('environmental.inspectionsHistory.deletedToast'));
       qc.invalidateQueries({ queryKey: ['env-inspection-records'] });
       setDeleteTarget(null);
     },
-    onError: (e: Error) => toast.error('ลบไม่สำเร็จ', e.message),
+    onError: (e: Error) => toast.error(t('environmental.inspectionsHistory.deleteFailedToast'), e.message),
   });
 
   const closeView = () => {
@@ -161,19 +163,19 @@ export default function InspectionHistoryPage() {
     <div className="p-6 space-y-4">
       <Breadcrumbs
         items={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
-          { label: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections' },
-          { label: 'ประวัติผลตรวจ' },
+          { label: t('environmental.common.breadcrumb.premises'), href: '/premises' },
+          { label: t('environmental.common.breadcrumb.environmental'), href: '/premises/environmental/inspections' },
+          { label: t('environmental.inspectionsHistory.breadcrumb') },
         ]}
       />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">ประวัติผลตรวจสภาพแวดล้อม</h1>
+          <h1 className="text-2xl font-bold">{t('environmental.inspectionsHistory.title')}</h1>
           <p className="text-gray-600 text-sm mt-1">
-            ผลการตรวจที่บันทึกไปแล้ว — ดูรายละเอียด แก้ไข (กรณีบันทึกผิด) หรือลบได้ ทุกการแก้ไข/ลบจะถูกบันทึกใน audit log
+            {t('environmental.inspectionsHistory.subtitle')}
           </p>
         </div>
-        <Button icon="refresh" text="รีเฟรช" onClick={() => refetch()} />
+        <Button icon="refresh" text={t('environmental.common.refresh')} onClick={() => refetch()} />
       </div>
 
       <DataGrid
@@ -183,43 +185,43 @@ export default function InspectionHistoryPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
-        noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีผลตรวจที่บันทึก'}
+        noDataText={isLoading ? t('environmental.common.loading') : t('environmental.inspectionsHistory.noData')}
         data-testid="env-history-grid"
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
         <Column dataField="id" caption="#" width={60} />
-        <Column dataField="performedAt" caption="วันเวลาที่ตรวจ" dataType="datetime" width={170} />
+        <Column dataField="performedAt" caption={t('environmental.inspectionsHistory.performedAtColumn')} dataType="datetime" width={170} />
         <Column
           dataField="targetType"
-          caption="ประเภท"
+          caption={t('environmental.inspectionsHistory.typeColumn')}
           width={120}
           cellRender={(c) => targetLabel(c.value)}
         />
-        <Column dataField="targetName" caption="เป้าหมาย (สถานที่)" />
-        <Column dataField="templateName" caption="แบบฟอร์ม" />
-        <Column dataField="operatorName" caption="ผู้ตรวจ" width={150} />
+        <Column dataField="targetName" caption={t('environmental.common.targetWithLocationColumn')} />
+        <Column dataField="templateName" caption={t('environmental.common.templateColumn')} />
+        <Column dataField="operatorName" caption={t('environmental.inspectionsHistory.operatorColumn')} width={150} />
         <Column
           dataField="overallResult"
-          caption="ผลรวม"
+          caption={t('environmental.inspectionsHistory.overallResultColumn')}
           width={140}
           cellRender={(c) => resultBadge(c.value)}
         />
         <Column
-          caption="การกระทำ"
+          caption={t('environmental.common.actionsColumn')}
           width={210}
           cellRender={(c) => {
             const row = c.data as RecordRow;
             return (
               <div className="flex gap-1">
                 <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`view-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> ดู</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> {t('environmental.inspectionsHistory.viewAction')}</span>
                 </Button>
                 <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`edit-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> แก้ไข</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> {t('environmental.common.edit')}</span>
                 </Button>
                 <Button stylingMode="text" type="danger" onClick={() => setDeleteTarget(row)} data-testid={`delete-${row.id}`}>
-                  <span className="inline-flex items-center gap-1 text-xs"><Trash2 className="w-3 h-3" /> ลบ</span>
+                  <span className="inline-flex items-center gap-1 text-xs"><Trash2 className="w-3 h-3" /> {t('environmental.inspectionsHistory.deleteAction')}</span>
                 </Button>
               </div>
             );
@@ -240,31 +242,31 @@ export default function InspectionHistoryPage() {
         visible={viewId != null}
         onHiding={closeView}
         showCloseButton
-        title={detail ? `ผลตรวจ #${detail.id} — ${detail.targetName ?? targetLabel(detail.targetType)}` : 'ผลตรวจ'}
+        title={detail ? t('environmental.inspectionsHistory.popupTitle', { id: detail.id, target: detail.targetName ?? targetLabel(detail.targetType) }) : t('environmental.inspectionsHistory.popupTitleFallback')}
         width={680}
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[75vh] overflow-y-auto">
           {!detail ? (
-            <div className="text-gray-500 text-sm">กำลังโหลด…</div>
+            <div className="text-gray-500 text-sm">{t('environmental.common.loading')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">วันเวลา:</span> {new Date(detail.performedAt).toLocaleString('th-TH')}</div>
-                <div><span className="text-gray-500">ผู้ตรวจ:</span> {detail.operatorName ?? '—'}</div>
-                <div><span className="text-gray-500">แบบฟอร์ม:</span> {detail.templateName ?? '—'}</div>
-                <div><span className="text-gray-500">ผลรวม:</span> {resultBadge(detail.overallResult)}</div>
+                <div><span className="text-gray-500">{t('environmental.inspectionsHistory.labelDateTime')}</span> {new Date(detail.performedAt).toLocaleString('th-TH')}</div>
+                <div><span className="text-gray-500">{t('environmental.inspectionsHistory.labelOperator')}</span> {detail.operatorName ?? '—'}</div>
+                <div><span className="text-gray-500">{t('environmental.inspectionsHistory.labelTemplate')}</span> {detail.templateName ?? '—'}</div>
+                <div><span className="text-gray-500">{t('environmental.inspectionsHistory.labelOverallResult')}</span> {resultBadge(detail.overallResult)}</div>
               </div>
 
               <div className="border rounded">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-600">
                     <tr>
-                      <th className="text-left p-2">รายการ</th>
-                      <th className="text-left p-2 w-28">ค่าที่วัด</th>
-                      <th className="text-left p-2 w-28">เกณฑ์</th>
-                      <th className="text-left p-2 w-24">ผล</th>
-                      <th className="text-left p-2">หมายเหตุ</th>
+                      <th className="text-left p-2">{t('environmental.inspectionsHistory.tableItem')}</th>
+                      <th className="text-left p-2 w-28">{t('environmental.inspectionsHistory.tableMeasured')}</th>
+                      <th className="text-left p-2 w-28">{t('environmental.inspectionsHistory.tableSpec')}</th>
+                      <th className="text-left p-2 w-24">{t('environmental.inspectionsHistory.tableResult')}</th>
+                      <th className="text-left p-2">{t('environmental.inspectionsHistory.tableRemarks')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -329,7 +331,7 @@ export default function InspectionHistoryPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">หมายเหตุการตรวจ</label>
+                <label className="block text-sm font-medium mb-1">{t('environmental.inspectionsHistory.notesLabel')}</label>
                 {/* Both nodes always mounted; CSS toggle only. Plain <textarea>
                     (not DevExtreme TextArea) for overlay-DOM stability. */}
                 <div className={`text-sm text-gray-700 ${editMode ? 'hidden' : ''}`}>{detail.notes ?? '—'}</div>
@@ -342,24 +344,24 @@ export default function InspectionHistoryPage() {
               </div>
 
               <div className={`bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs ${editMode ? '' : 'hidden'}`}>
-                ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log (ใคร/แก้อะไร/เมื่อไหร่) — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
+                {t('environmental.inspectionsHistory.editWarning')}
               </div>
 
               {/* All four buttons always mounted; the inactive pair is hidden via
                   CSS so the overlay's DOM never changes shape on editMode. */}
               <div className="flex justify-end gap-2 pt-2">
                 <div className={`flex gap-2 ${editMode ? 'hidden' : ''}`}>
-                  <Button text="ปิด" stylingMode="text" onClick={closeView} />
+                  <Button text={t('environmental.inspectionsHistory.closeButton')} stylingMode="text" onClick={closeView} />
                   <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
-                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
+                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> {t('environmental.common.edit')}</span>
                   </Button>
                 </div>
                 <div className={`flex gap-2 ${editMode ? '' : 'hidden'}`}>
-                  <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
+                  <Button text={t('environmental.common.cancel')} stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
                   <Button
                     type="success"
                     stylingMode="contained"
-                    text="บันทึกการแก้ไข"
+                    text={t('environmental.common.saveEdit')}
                     disabled={saveMut.isPending}
                     onClick={() => saveMut.mutate()}
                   />
@@ -372,14 +374,18 @@ export default function InspectionHistoryPage() {
 
       <ConfirmationDialog
         visible={!!deleteTarget}
-        title="ลบผลตรวจ"
+        title={t('environmental.inspectionsHistory.deleteDialogTitle')}
         message={
           deleteTarget
-            ? `ยืนยันการลบผลตรวจ #${deleteTarget.id} (${deleteTarget.targetName ?? ''} — ${new Date(deleteTarget.performedAt).toLocaleString('th-TH')}) ? การลบจะถูกบันทึกใน audit log และย้อนกลับไม่ได้`
+            ? t('environmental.inspectionsHistory.deleteDialogMessage', {
+                id: deleteTarget.id,
+                name: deleteTarget.targetName ?? '',
+                datetime: new Date(deleteTarget.performedAt).toLocaleString('th-TH'),
+              })
             : ''
         }
-        confirmText="ลบ"
-        cancelText="ยกเลิก"
+        confirmText={t('environmental.inspectionsHistory.deleteConfirmText')}
+        cancelText={t('environmental.common.cancel')}
         confirmType="danger"
         isLoading={deleteMut.isPending}
         onConfirm={() => {

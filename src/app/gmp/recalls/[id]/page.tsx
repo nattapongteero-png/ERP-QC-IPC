@@ -164,16 +164,12 @@ export default function RecallDetailPage() {
       router.push('/gmp/recalls');
     },
     onError: (err) => {
-      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      alert(err instanceof Error ? err.message : t('recalls.detail.deleteFailed'));
     },
   });
 
   const handleDeleteRecall = () => {
-    if (
-      !window.confirm(
-        'ต้องการลบการเรียกคืนสินค้านี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งเริ่ม (สถานะ "initiated") และยังไม่ได้ดำเนินการ'
-      )
-    ) {
+    if (!window.confirm(t('recalls.detail.deleteConfirm'))) {
       return;
     }
     deleteMutation.mutate();
@@ -287,7 +283,7 @@ export default function RecallDetailPage() {
             {/* Delete only offered while still "initiated" (typo / test entry). */}
             {recall.status === 'initiated' && (
               <DxButton
-                text="ลบ"
+                text={t('recalls.detail.delete')}
                 icon="trash"
                 type="danger"
                 stylingMode="outlined"
@@ -302,13 +298,13 @@ export default function RecallDetailPage() {
 
       {/* Workflow status — สถานะการดำเนินงาน */}
       <StatusStepper
-        title="สถานะการดำเนินงาน"
+        title={t('recalls.detail.workflowTitle')}
         current={recall.status}
         steps={[
-          { key: 'initiated', label: 'เริ่มเรียกคืน' },
-          { key: 'in_progress', label: 'กำลังดำเนินการ' },
-          { key: 'completed', label: 'เสร็จสิ้น' },
-          { key: 'closed', label: 'ปิด' },
+          { key: 'initiated', label: t('recalls.detail.steps.initiated') },
+          { key: 'in_progress', label: t('recalls.detail.steps.in_progress') },
+          { key: 'completed', label: t('recalls.detail.steps.completed') },
+          { key: 'closed', label: t('recalls.detail.steps.closed') },
         ]}
       />
 

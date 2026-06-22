@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -80,6 +81,7 @@ const EMPTY_FORM: FormState = {
 
 export default function TestPanelsAdminPage() {
   const toast = useToast();
+  const t = useTranslations('quality');
 
   const [rows, setRows] = useState<TestPanelRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,18 +184,18 @@ export default function TestPanelsAdminPage() {
 
   const handleSubmit = async () => {
     if (!form.productId && !form.productCategory) {
-      toast.error('กรุณาเลือกสินค้าหรือหมวดหมู่อย่างน้อย 1 อย่าง');
+      toast.error(t('testPanels.toast.selectProductOrCategory'));
       return;
     }
     const isNew = form.id == null;
 
     // Edit mode = single criteria; New mode = multi-select array.
     if (!isNew && !form.criteriaId) {
-      toast.error('กรุณาเลือกเกณฑ์ (criteria)');
+      toast.error(t('testPanels.toast.selectCriteria'));
       return;
     }
     if (isNew && form.criteriaIds.length === 0) {
-      toast.error('กรุณาเลือกเกณฑ์ (criteria) อย่างน้อย 1 รายการ');
+      toast.error(t('testPanels.toast.selectCriteriaMulti'));
       return;
     }
 
@@ -234,17 +236,17 @@ export default function TestPanelsAdminPage() {
         }
 
         if (failures.length === 0) {
-          toast.success('เพิ่มแล้ว', `${okCount} รายการ`);
+          toast.success(t('testPanels.toast.added'), t('testPanels.toast.addedCount', { count: okCount }));
           setShowForm(false);
           await fetchPanels();
         } else if (okCount > 0) {
           toast.warning(
-            `เพิ่มสำเร็จ ${okCount}/${form.criteriaIds.length}`,
+            t('testPanels.toast.addedPartial', { ok: okCount, total: form.criteriaIds.length }),
             failures.join('\n'),
           );
           await fetchPanels();
         } else {
-          toast.error('เพิ่มไม่สำเร็จ', failures.join('\n'));
+          toast.error(t('testPanels.toast.addFailed'), failures.join('\n'));
         }
       } else {
         // Edit existing row — single PUT with single criteriaId.
@@ -263,41 +265,41 @@ export default function TestPanelsAdminPage() {
         });
         const data = await res.json();
         if (!data.success) {
-          toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
+          toast.error(t('testPanels.toast.saveFailed'), data.error || 'Unknown error');
         } else {
-          toast.success('อัปเดตแล้ว');
+          toast.success(t('testPanels.toast.updated'));
           setShowForm(false);
           await fetchPanels();
         }
       }
     } catch (e) {
-      toast.error('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('testPanels.toast.saveFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('ลบ panel-row นี้ใช่หรือไม่?')) return;
+    if (!confirm(t('testPanels.confirmDelete'))) return;
     try {
       const res = await fetch(`/api/quality/test-panels/${id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('ลบไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('testPanels.toast.deleteFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('ลบแล้ว');
+        toast.success(t('testPanels.toast.deleted'));
         await fetchPanels();
       }
     } catch (e) {
-      toast.error('ลบไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('testPanels.toast.deleteFailed'), e instanceof Error ? e.message : 'Network error');
     }
   };
 
   const columns: DxDataGridColumn[] = [
     {
-      caption: 'ลำดับ',
+      caption: t('testPanels.columns.order'),
       width: 60,
       alignment: 'center',
       allowFiltering: false,
@@ -308,7 +310,7 @@ export default function TestPanelsAdminPage() {
     },
     {
       dataField: 'productCode',
-      caption: 'สินค้า',
+      caption: t('testPanels.columns.product'),
       minWidth: 220,
       cellRender: (cell) => (
         <div>
@@ -323,12 +325,12 @@ export default function TestPanelsAdminPage() {
             </>
           ) : (
             <span className="text-xs text-gray-500 italic">
-              ระดับหมวดหมู่
+              {t('testPanels.categoryLevel')}
             </span>
           )}
           {cell.data.productCategory && (
             <p className="text-xs text-gray-500">
-              หมวด: {cell.data.productCategory}
+              {t('testPanels.categoryPrefix')}{cell.data.productCategory}
             </p>
           )}
         </div>
@@ -342,7 +344,7 @@ export default function TestPanelsAdminPage() {
     },
     {
       dataField: 'criteriaCode',
-      caption: 'เกณฑ์ (Criteria)',
+      caption: t('testPanels.columns.criteria'),
       minWidth: 220,
       cellRender: (cell) => (
         <div>
@@ -357,31 +359,31 @@ export default function TestPanelsAdminPage() {
     },
     {
       dataField: 'isRequired',
-      caption: 'จำเป็น',
+      caption: t('testPanels.columns.required'),
       width: 100,
       alignment: 'center',
       cellRender: (cell) =>
         cell.data.isRequired ? (
-          <Badge variant="primary">จำเป็น</Badge>
+          <Badge variant="primary">{t('testPanels.required')}</Badge>
         ) : (
-          <Badge variant="default">ไม่บังคับ</Badge>
+          <Badge variant="default">{t('testPanels.optional')}</Badge>
         ),
     },
     {
       dataField: 'isActive',
-      caption: 'ใช้งาน',
+      caption: t('testPanels.columns.active'),
       width: 100,
       alignment: 'center',
       cellRender: (cell) =>
         cell.data.isActive ? (
-          <Badge variant="success">ใช้งาน</Badge>
+          <Badge variant="success">{t('testPanels.active')}</Badge>
         ) : (
-          <Badge variant="default">ไม่ใช้งาน</Badge>
+          <Badge variant="default">{t('testPanels.inactive')}</Badge>
         ),
     },
     {
       dataField: '_actions',
-      caption: 'การกระทำ',
+      caption: t('testPanels.columns.actions'),
       width: 130,
       alignment: 'center',
       allowFiltering: false,
@@ -408,19 +410,19 @@ export default function TestPanelsAdminPage() {
     <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="ชุดการทดสอบ"
-          subtitle="กำหนดชุดทดสอบเริ่มต้นต่อสินค้า/หมวดหมู่ (สำหรับ apply ตอนลงทะเบียน QC)"
+          title={t('testPanels.title')}
+          subtitle={t('testPanels.subtitle')}
           icon={ListChecks}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
           breadcrumbs={[
-            { label: 'คุณภาพ', href: '/quality' },
-            { label: 'ชุดการทดสอบ' },
+            { label: t('testPanels.breadcrumbQuality'), href: '/quality' },
+            { label: t('testPanels.title') },
           ]}
           actions={
             <DxButton
               icon="plus"
-              text="เพิ่ม panel-row"
+              text={t('testPanels.addPanelRow')}
               type="default"
               onClick={handleNew}
             />
@@ -437,7 +439,7 @@ export default function TestPanelsAdminPage() {
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard
-                label="จำนวน panel ทั้งหมด"
+                label={t('testPanels.stats.total')}
                 value={total}
                 icon={ListChecks}
                 iconColor="text-cyan-500"
@@ -445,7 +447,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="เฉพาะสินค้า"
+                label={t('testPanels.stats.productSpecific')}
                 value={productSpecific}
                 icon={Package}
                 iconColor="text-emerald-500"
@@ -453,7 +455,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="ระดับหมวดหมู่"
+                label={t('testPanels.stats.categoryLevel')}
                 value={categoryLevel}
                 icon={FolderOpen}
                 iconColor="text-amber-500"
@@ -461,7 +463,7 @@ export default function TestPanelsAdminPage() {
                 isLoading={loading}
               />
               <StatCard
-                label="ใช้งาน"
+                label={t('testPanels.stats.active')}
                 value={activeCount}
                 icon={CheckCircle2}
                 iconColor="text-green-500"
@@ -474,21 +476,21 @@ export default function TestPanelsAdminPage() {
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-6 text-center text-gray-500">{t('testPanels.loading')}</div>
           ) : rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="h-16 w-16 rounded-2xl bg-cyan-100 flex items-center justify-center mb-4">
                 <ListChecks className="h-8 w-8 text-cyan-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                ยังไม่มี Test Panel
+                {t('testPanels.empty.title')}
               </h3>
               <p className="text-sm text-gray-500 max-w-sm mb-4">
-                กดปุ่มด้านล่างเพื่อสร้าง panel-row แรก
+                {t('testPanels.empty.description')}
               </p>
               <DxButton
                 icon="plus"
-                text="เพิ่ม panel-row"
+                text={t('testPanels.addPanelRow')}
                 type="default"
                 onClick={handleNew}
               />
@@ -509,7 +511,7 @@ export default function TestPanelsAdminPage() {
                   handleEdit(e.data as TestPanelRow);
                 }
               }}
-              noDataText="ไม่พบข้อมูล"
+              noDataText={t('testPanels.noData')}
             />
           )}
         </div>
@@ -521,7 +523,7 @@ export default function TestPanelsAdminPage() {
         onHiding={() => {
           if (!submitting) setShowForm(false);
         }}
-        title={form.id ? 'แก้ไข panel-row' : 'เพิ่ม panel-row'}
+        title={form.id ? t('testPanels.dialog.editTitle') : t('testPanels.dialog.addTitle')}
         // Responsive width — fills 95vw on small phones, caps at 560 on tablets
         // and up so dialogs don't overflow the viewport.
         width="min(560px, 95vw)"
@@ -530,11 +532,10 @@ export default function TestPanelsAdminPage() {
       >
         <div className="p-4 space-y-4">
           <p className="text-xs text-gray-600">
-            กำหนดสินค้า <em>หรือ</em> หมวดหมู่อย่างน้อย 1 อย่าง — หากกรอกทั้งคู่
-            ระบบจะ match สินค้าก่อน
+            {t.rich('testPanels.dialog.hint', { em: (c) => <em>{c}</em> })}
           </p>
           <DxSelectBox
-            label="สินค้า (เฉพาะเจาะจง)"
+            label={t('testPanels.dialog.productLabel')}
             value={form.productId}
             dataSource={productItems}
             displayExpr="label"
@@ -547,7 +548,7 @@ export default function TestPanelsAdminPage() {
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <DxSelectBox
-              label="หมวดหมู่ (fallback)"
+              label={t('testPanels.dialog.categoryLabel')}
               value={form.productCategory}
               items={productCategories}
               displayExpr="label"
@@ -558,7 +559,7 @@ export default function TestPanelsAdminPage() {
               showClearButton
             />
             <DxTextBox
-              label="หรือพิมพ์หมวดเอง"
+              label={t('testPanels.dialog.categoryManualLabel')}
               value={form.productCategory}
               onValueChange={(v) =>
                 setForm({ ...form, productCategory: v || '' })
@@ -569,7 +570,7 @@ export default function TestPanelsAdminPage() {
           {form.id == null ? (
             <>
               <DxTagBox
-                label="เกณฑ์ (QC criteria) — เลือกได้หลายรายการ"
+                label={t('testPanels.dialog.criteriaMultiLabel')}
                 value={form.criteriaIds}
                 dataSource={criteriaItems as unknown as Record<string, unknown>[]}
                 displayExpr="label"
@@ -583,18 +584,22 @@ export default function TestPanelsAdminPage() {
                 }}
                 searchEnabled
                 showSelectionControls
-                placeholder="พิมพ์เพื่อค้นหา หรือเลือกหลายรายการได้..."
+                placeholder={t('testPanels.dialog.criteriaMultiPlaceholder')}
               />
               {form.criteriaIds.length > 0 && (
                 <p className="text-xs text-cyan-700">
-                  จะสร้างทั้งหมด <strong>{form.criteriaIds.length}</strong> รายการ
-                  (ลำดับ {form.sequence}–{form.sequence + form.criteriaIds.length - 1})
+                  {t.rich('testPanels.dialog.willCreate', {
+                    count: form.criteriaIds.length,
+                    from: form.sequence,
+                    to: form.sequence + form.criteriaIds.length - 1,
+                    strong: (c) => <strong>{c}</strong>,
+                  })}
                 </p>
               )}
             </>
           ) : (
             <DxSelectBox
-              label="เกณฑ์ (QC criteria)"
+              label={t('testPanels.dialog.criteriaLabel')}
               value={form.criteriaId}
               dataSource={criteriaItems}
               displayExpr="label"
@@ -608,7 +613,7 @@ export default function TestPanelsAdminPage() {
           )}
           <div className="grid grid-cols-2 gap-3">
             <DxNumberBox
-              label={form.id == null ? 'ลำดับเริ่มต้น' : 'ลำดับ'}
+              label={form.id == null ? t('testPanels.dialog.startSequence') : t('testPanels.dialog.sequence')}
               value={form.sequence}
               onValueChange={(v) => setForm({ ...form, sequence: Number(v) || 1 })}
               min={1}
@@ -624,26 +629,26 @@ export default function TestPanelsAdminPage() {
                     setForm({ ...form, isRequired: Boolean(v) })
                   }
                 />
-                <span>จำเป็น</span>
+                <span>{t('testPanels.required')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <DxCheckBox
                   value={form.isActive}
                   onValueChange={(v) => setForm({ ...form, isActive: Boolean(v) })}
                 />
-                <span>ใช้งาน</span>
+                <span>{t('testPanels.active')}</span>
               </label>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('testPanels.dialog.cancel')}
               stylingMode="outlined"
               onClick={() => setShowForm(false)}
               disabled={submitting}
             />
             <DxButton
-              text={submitting ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={submitting ? t('testPanels.dialog.saving') : t('testPanels.dialog.save')}
               type="default"
               onClick={handleSubmit}
               disabled={

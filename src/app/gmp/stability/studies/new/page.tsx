@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -84,7 +85,7 @@ async function createStudy(data: StabilityStudyCreate): Promise<StabilityStudy> 
     body: JSON.stringify(data),
   });
   const result = await response.json();
-  if (!result.success) throw new Error(result.error || 'ไม่สามารถสร้างการศึกษาได้');
+  if (!result.success) throw new Error(result.error || '');
   return result.data as StabilityStudy;
 }
 
@@ -102,6 +103,7 @@ function todayStr(): string {
 
 export default function NewStudyPage() {
   const router = useRouter();
+  const t = useTranslations('gmp');
 
   // Form state
   const [protocolId, setProtocolId] = useState<number | null>(null);
@@ -128,11 +130,11 @@ export default function NewStudyPage() {
   const createMutation = useMutation({
     mutationFn: createStudy,
     onSuccess: (study) => {
-      setSuccessMsg(`สร้างการศึกษา ${study.studyNumber} สำเร็จ`);
+      setSuccessMsg(t('stability.newStudy.createSuccess', { studyNumber: study.studyNumber }));
       router.push(`/gmp/stability/studies/${study.id}`);
     },
     onError: (err: Error) => {
-      setErrorMsg(err.message || 'ไม่สามารถสร้างการศึกษาได้');
+      setErrorMsg(err.message || t('stability.newStudy.createFailed'));
     },
   });
 
@@ -147,7 +149,7 @@ export default function NewStudyPage() {
     setErrorMsg(null);
     setSuccessMsg(null);
     if (!canSubmit()) {
-      setErrorMsg('กรุณากรอกข้อมูลที่จำเป็นทั้งหมด (โปรโตคอล, ล็อต และวันที่เริ่มต้น)');
+      setErrorMsg(t('stability.newStudy.requiredFieldsError'));
       return;
     }
 
@@ -168,18 +170,18 @@ export default function NewStudyPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
       <ResponsivePageHeader
-        title="สร้างการศึกษาความคงตัวใหม่"
-        subtitle="ลงทะเบียนแบทช์ (ล็อต) เข้าสู่โปรโตคอลความคงตัวที่อนุมัติแล้ว"
+        title={t('stability.newStudy.title')}
+        subtitle={t('stability.newStudy.subtitle')}
         onBack={cancel}
         actions={
           <div className="flex items-center gap-2">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={cancel}
               stylingMode="outlined"
             />
             <DxButton
-              text="บันทึกการศึกษา"
+              text={t('stability.newStudy.saveStudy')}
               icon="save"
               onClick={handleSubmit}
               type="default"
@@ -205,12 +207,12 @@ export default function NewStudyPage() {
       <div className="bg-card border rounded-lg shadow-sm p-6 space-y-6">
         <div>
           <h3 className="text-lg font-semibold mb-4 text-emerald-700 dark:text-emerald-400">
-            ข้อมูลการศึกษา
+            {t('stability.newStudy.studyInfo')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Protocol */}
             <div>
-              <label className="block text-sm font-medium mb-2">โปรโตคอล *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newStudy.protocolLabel')} *</label>
               <DxSelectBox
                 dataSource={protocols || []}
                 valueExpr="id"
@@ -218,7 +220,7 @@ export default function NewStudyPage() {
                 value={protocolId}
                 onValueChanged={(e) => setProtocolId(e.value ?? null)}
                 placeholder={
-                  protocolsLoading ? 'กำลังโหลด...' : 'เลือกโปรโตคอลที่อนุมัติแล้ว...'
+                  protocolsLoading ? t('common.loading') : t('stability.newStudy.protocolPlaceholder')
                 }
                 searchEnabled={true}
                 showClearButton={true}
@@ -226,21 +228,21 @@ export default function NewStudyPage() {
               />
               {protocols && protocols.length === 0 && !protocolsLoading && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  ยังไม่มีโปรโตคอลที่อนุมัติแล้ว กรุณาอนุมัติโปรโตคอลก่อน
+                  {t('stability.newStudy.noApprovedProtocols')}
                 </p>
               )}
             </div>
 
             {/* Lot */}
             <div>
-              <label className="block text-sm font-medium mb-2">ล็อต / แบทช์ *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newStudy.lotLabel')} *</label>
               <DxSelectBox
                 dataSource={lots || []}
                 valueExpr="id"
                 displayExpr="label"
                 value={lotId}
                 onValueChanged={(e) => setLotId(e.value ?? null)}
-                placeholder={lotsLoading ? 'กำลังโหลด...' : 'เลือกล็อต...'}
+                placeholder={lotsLoading ? t('common.loading') : t('stability.newStudy.lotPlaceholder')}
                 searchEnabled={true}
                 showClearButton={true}
                 disabled={lotsLoading}
@@ -249,23 +251,23 @@ export default function NewStudyPage() {
 
             {/* Start date */}
             <div>
-              <label className="block text-sm font-medium mb-2">วันที่เริ่มต้น *</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newStudy.startDateLabel')} *</label>
               <DxDateBox
                 value={startDate}
                 onValueChange={(v) => setStartDate(v)}
                 type="date"
-                placeholder="เลือกวันที่เริ่มต้น..."
+                placeholder={t('stability.newStudy.startDatePlaceholder')}
                 showClearButton={false}
               />
             </div>
 
             {/* Chamber location */}
             <div>
-              <label className="block text-sm font-medium mb-2">ตำแหน่งห้องเก็บ</label>
+              <label className="block text-sm font-medium mb-2">{t('stability.newStudy.chamberLabel')}</label>
               <DxTextBox
                 value={chamberLocation}
                 onValueChange={(v) => setChamberLocation(v)}
-                placeholder="เช่น Chamber A-1 (ไม่บังคับ)"
+                placeholder={t('stability.newStudy.chamberPlaceholder')}
                 maxLength={100}
               />
             </div>
@@ -274,11 +276,11 @@ export default function NewStudyPage() {
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium mb-2">หมายเหตุ</label>
+          <label className="block text-sm font-medium mb-2">{t('stability.newStudy.notesLabel')}</label>
           <DxTextArea
             value={notes}
             onValueChange={(v) => setNotes(v)}
-            placeholder="หมายเหตุเพิ่มเติม (ไม่บังคับ)"
+            placeholder={t('stability.newStudy.notesPlaceholder')}
             maxLength={1000}
             height={100}
           />
@@ -288,7 +290,7 @@ export default function NewStudyPage() {
         {!canSubmit() && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              กรุณาเลือกโปรโตคอล, ล็อต และระบุวันที่เริ่มต้นเพื่อบันทึก
+              {t('stability.newStudy.validationHint')}
             </p>
           </div>
         )}

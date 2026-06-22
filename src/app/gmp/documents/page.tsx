@@ -241,7 +241,7 @@ export default function GmpDocumentsDashboardPage() {
 
   const handleDelete = useCallback((doc: Document) => {
     if (doc.status !== 'draft') return;
-    const confirmed = window.confirm(`ลบเอกสาร "${doc.title}" (${doc.documentNumber})?\nเอกสารที่ลบแล้วจะไม่สามารถกู้คืนได้`);
+    const confirmed = window.confirm(t('documents.deleteConfirm', { title: doc.title, number: doc.documentNumber }));
     if (confirmed) {
       deleteMutation.mutate(doc.id);
     }
@@ -906,10 +906,10 @@ function EmptyState({ onCreate, t }: { onCreate: () => void; t: TranslateFn }) {
         <FileText className="h-10 w-10 text-violet-600" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        ยังไม่มีเอกสาร GMP
+        {t('documents.empty.title')}
       </h3>
       <p className="text-sm text-gray-500 max-w-sm mb-6">
-        เริ่มต้นการจัดการเอกสาร GMP ของคุณโดยสร้างเอกสารใหม่ฉบับแรก
+        {t('documents.empty.description')}
       </p>
       <DxButton
         text={t('documents.actions.newDocument')}

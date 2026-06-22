@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -117,6 +118,7 @@ export default function CoaDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('quality');
   const coaId = Number(params.id);
 
   const [coa, setCoa] = useState<CoaDetail | null>(null);
@@ -186,18 +188,18 @@ export default function CoaDetailPage() {
         });
         const data = await res.json();
         if (!data.success) {
-          toast.error(data.error || 'การดำเนินการล้มเหลว');
+          toast.error(data.error || t('coa.detail.toast.actionFailed'));
           return;
         }
-        toast.success(data.message || 'สำเร็จ');
+        toast.success(data.message || t('coa.detail.toast.success'));
         await fetchDetail();
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'การดำเนินการล้มเหลว');
+        toast.error(e instanceof Error ? e.message : t('coa.detail.toast.actionFailed'));
       } finally {
         setWorking(false);
       }
     },
-    [coa, toast, fetchDetail],
+    [coa, toast, fetchDetail, t],
   );
 
   if (loading) {
@@ -216,14 +218,14 @@ export default function CoaDetailPage() {
         <div className="p-6">
           <ResponsivePageHeader
             title="COA Not Found"
-            subtitle={error || 'ไม่พบ COA ที่ต้องการ'}
+            subtitle={error || t('coa.detail.notFound')}
             icon={Award}
             iconBgColor="bg-red-100"
             iconColor="text-red-600"
           />
           <div className="mt-4">
             <DxButton
-              text="กลับ"
+              text={t('coa.detail.back')}
               icon="back"
               onClick={() => router.push('/quality/coa')}
             />
@@ -264,7 +266,7 @@ export default function CoaDetailPage() {
               <Badge variant={sb.variant}>{sb.label}</Badge>
               <DxButton
                 icon="back"
-                text="กลับ"
+                text={t('coa.detail.back')}
                 stylingMode="outlined"
                 onClick={() => router.push('/quality/coa')}
               />
@@ -274,12 +276,12 @@ export default function CoaDetailPage() {
 
         <div className="mb-6">
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t('coa.detail.stepper.title')}
             steps={[
-              { key: 'draft', label: 'ร่าง' },
-              { key: 'approved', label: 'อนุมัติแล้ว' },
-              { key: 'issued', label: 'ออกใบรับรอง' },
-              { key: 'superseded', label: 'ถูกแทนที่' },
+              { key: 'draft', label: t('coa.detail.stepper.draft') },
+              { key: 'approved', label: t('coa.detail.stepper.approved') },
+              { key: 'issued', label: t('coa.detail.stepper.issued') },
+              { key: 'superseded', label: t('coa.detail.stepper.superseded') },
             ]}
             current={String(coa.status).toLowerCase()}
           />
@@ -333,7 +335,7 @@ export default function CoaDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             {canSubmit && (
               <DxButton
-                text="ส่งทบทวน (Submit for review)"
+                text={t('coa.detail.actions.submitForReview')}
                 icon="upload"
                 type="default"
                 onClick={() => handleAction('submit_for_review')}
@@ -342,7 +344,7 @@ export default function CoaDetailPage() {
             )}
             {canApprove && (
               <DxButton
-                text="อนุมัติ (Approve)"
+                text={t('coa.detail.actions.approve')}
                 icon="check"
                 type="success"
                 onClick={() =>
@@ -353,7 +355,7 @@ export default function CoaDetailPage() {
             )}
             {canIssue && (
               <DxButton
-                text="ออก COA (Issue)"
+                text={t('coa.detail.actions.issue')}
                 icon="export"
                 type="success"
                 onClick={() =>
@@ -364,7 +366,7 @@ export default function CoaDetailPage() {
             )}
             {canSupersede && (
               <DxButton
-                text="แทนที่ด้วย COA ใหม่ (Supersede)"
+                text={t('coa.detail.actions.supersede')}
                 icon="refresh"
                 stylingMode="outlined"
                 onClick={() => setSupersedeOpen(true)}
@@ -373,7 +375,7 @@ export default function CoaDetailPage() {
             )}
             {canRevoke && (
               <DxButton
-                text="เพิกถอน (Revoke)"
+                text={t('coa.detail.actions.revoke')}
                 icon="close"
                 type="danger"
                 stylingMode="outlined"
@@ -390,7 +392,7 @@ export default function CoaDetailPage() {
               rel="noreferrer"
             >
               <DxButton
-                text="ดู preview (PDF)"
+                text={t('coa.detail.actions.previewPdf')}
                 icon="doc"
                 stylingMode="outlined"
               />
@@ -403,7 +405,7 @@ export default function CoaDetailPage() {
                 download
               >
                 <DxButton
-                  text="ดาวน์โหลด PDF ทางการ"
+                  text={t('coa.detail.actions.downloadOfficialPdf')}
                   icon="download"
                   type="default"
                 />
@@ -415,17 +417,19 @@ export default function CoaDetailPage() {
         {/* Signatures */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            ลายเซ็น (Signatures)
+            {t('coa.detail.signatures.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <SignatureCard
               role="approver"
-              roleLabel="ผู้อนุมัติ (Approver)"
+              roleLabel={t('coa.detail.signatures.approver')}
+              notSignedLabel={t('coa.detail.signatures.notSigned')}
               sigs={coa.signatures}
             />
             <SignatureCard
               role="qa_release"
-              roleLabel="ผู้ปล่อย QA (QA Release)"
+              roleLabel={t('coa.detail.signatures.qaRelease')}
+              notSignedLabel={t('coa.detail.signatures.notSigned')}
               sigs={coa.signatures}
             />
           </div>
@@ -444,7 +448,7 @@ export default function CoaDetailPage() {
               rel="noreferrer"
               className="text-xs text-emerald-600 hover:underline"
             >
-              เปิดในแท็บใหม่
+              {t('coa.detail.preview.openInNewTab')}
             </a>
           </div>
           <iframe
@@ -459,7 +463,7 @@ export default function CoaDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
             <h2 className="text-sm font-semibold text-gray-700">
-              ผลการทดสอบ (Snapshot — {coa.results.length} tests)
+              {t('coa.detail.testResults.title', { count: coa.results.length })}
             </h2>
           </div>
           <div className="overflow-x-auto">
@@ -519,32 +523,32 @@ export default function CoaDetailPage() {
           setRevokeOpen(false);
           setRevokeReason('');
         }}
-        title="เพิกถอน COA"
+        title={t('coa.detail.revoke.title')}
         width={520}
         height="auto"
       >
         <div className="p-4 space-y-3">
           <p className="text-sm text-gray-600">
-            กรุณาระบุเหตุผลที่เพิกถอน COA ฉบับนี้ — เหตุผลจะถูกบันทึกในประวัติ.
+            {t('coa.detail.revoke.description')}
           </p>
           <DxTextArea
             value={revokeReason}
             onValueChange={setRevokeReason}
-            placeholder="เช่น: พบข้อผิดพลาดในผลทดสอบ Test #5"
+            placeholder={t('coa.detail.revoke.reasonPlaceholder')}
             height={120}
           />
           <div className="flex items-center justify-end gap-2 pt-2">
             <DxButton
-              text="ยกเลิก"
+              text={t('coa.detail.revoke.cancel')}
               stylingMode="outlined"
               onClick={() => setRevokeOpen(false)}
             />
             <DxButton
-              text="ยืนยันการเพิกถอน"
+              text={t('coa.detail.revoke.confirm')}
               type="danger"
               onClick={async () => {
                 if (!revokeReason.trim()) {
-                  toast.error('ต้องระบุเหตุผล');
+                  toast.error(t('coa.detail.revoke.reasonRequired'));
                   return;
                 }
                 await handleAction('revoke', { reason: revokeReason });
@@ -564,32 +568,32 @@ export default function CoaDetailPage() {
           setSupersedeOpen(false);
           setSupersedeId(null);
         }}
-        title="แทนที่ COA ด้วยฉบับใหม่"
+        title={t('coa.detail.supersede.title')}
         width={520}
         height="auto"
       >
         <div className="p-4 space-y-3">
           <p className="text-sm text-gray-600">
-            ระบุ ID ของ COA ที่จะมาแทนที่ฉบับนี้ — สถานะจะเปลี่ยนเป็น &quot;superseded&quot;.
+            {t('coa.detail.supersede.description')}
           </p>
           <DxNumberBox
             value={supersedeId}
             onValueChange={(v) => setSupersedeId(v)}
-            placeholder="COA ID (ตัวเลข)"
+            placeholder={t('coa.detail.supersede.idPlaceholder')}
             min={1}
           />
           <div className="flex items-center justify-end gap-2 pt-2">
             <DxButton
-              text="ยกเลิก"
+              text={t('coa.detail.supersede.cancel')}
               stylingMode="outlined"
               onClick={() => setSupersedeOpen(false)}
             />
             <DxButton
-              text="ยืนยัน"
+              text={t('coa.detail.supersede.confirm')}
               type="default"
               onClick={async () => {
                 if (!supersedeId) {
-                  toast.error('ต้องระบุ COA ID');
+                  toast.error(t('coa.detail.supersede.idRequired'));
                   return;
                 }
                 await handleAction('supersede', { supersededBy: supersedeId });
@@ -633,10 +637,12 @@ function Field({
 function SignatureCard({
   role,
   roleLabel,
+  notSignedLabel,
   sigs,
 }: {
   role: string;
   roleLabel: string;
+  notSignedLabel: string;
   sigs: CoaSignature[];
 }) {
   const sig = sigs.find((s) => s.role === role);
@@ -644,7 +650,7 @@ function SignatureCard({
     return (
       <div className="border border-dashed border-gray-300 rounded p-3 bg-gray-50">
         <p className="text-xs text-gray-500 mb-1">{roleLabel}</p>
-        <p className="text-sm text-gray-400">ยังไม่ลงนาม</p>
+        <p className="text-sm text-gray-400">{notSignedLabel}</p>
       </div>
     );
   }

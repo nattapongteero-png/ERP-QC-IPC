@@ -21,6 +21,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -279,7 +280,9 @@ function resultBadge(status: string) {
  * not a human-readable string. Decode it to a short readable summary instead
  * of dumping the raw JSON. Falls back to the raw string for legacy/plain rows.
  */
-function readableSpecText(test: QcSampleTestRow): string | null {
+type TFunc = ReturnType<typeof useTranslations>;
+
+function readableSpecText(test: QcSampleTestRow, t: TFunc): string | null {
   const raw = test.specText;
   if (!raw) return null;
   const trimmed = raw.trim();
@@ -296,15 +299,26 @@ function readableSpecText(test: QcSampleTestRow): string | null {
       return parts.join('  —  ') || raw;
     }
     case 'pass_fail':
-      return `ผ่าน: ${payload.passDefinition || '—'} / ไม่ผ่าน: ${payload.failDefinition || '—'}`;
+      return t('qcEntry.detail.spec.passFail', {
+        pass: payload.passDefinition || '—',
+        fail: payload.failDefinition || '—',
+      });
     case 'text':
       return payload.format || payload.example || raw;
     case 'multi_point':
-      return `${payload.pointCount} จุด · เป้า ${payload.perPointTarget} ± ${payload.perPointTolerance}%`;
+      return t('qcEntry.detail.spec.multiPoint', {
+        pointCount: payload.pointCount,
+        target: payload.perPointTarget,
+        tolerance: payload.perPointTolerance,
+      });
     case 'tare':
       return `${payload.referenceLabel || 'Tare'} (${payload.referenceUnit || ''})`;
     case 'calibration':
-      return `สอบเทียบ ${payload.instrumentName || ''} กับ ${payload.standardValue} ${payload.standardUnit}`;
+      return t('qcEntry.detail.spec.calibration', {
+        instrument: payload.instrumentName || '',
+        standardValue: payload.standardValue,
+        standardUnit: payload.standardUnit,
+      });
     case 'calculated':
       return payload.formula || raw;
     case 'custom_multi_field':
@@ -314,8 +328,8 @@ function readableSpecText(test: QcSampleTestRow): string | null {
   }
 }
 
-function formatSpec(test: QcSampleTestRow): string {
-  const readable = readableSpecText(test);
+function formatSpec(test: QcSampleTestRow, t: TFunc): string {
+  const readable = readableSpecText(test, t);
   if (readable) return readable;
   if (test.specMin != null && test.specMax != null) {
     return `${test.specMin} – ${test.specMax}${test.unit ? ' ' + test.unit : ''}`;
@@ -348,6 +362,7 @@ export default function QcSampleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('quality');
 
   const sampleId = Number(params.id);
   const [detail, setDetail] = useState<QcSampleDetail | null>(null);
@@ -559,12 +574,15 @@ export default function QcSampleDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('บันทึกไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.saveFailed'), data.error || 'Unknown error');
       } else {
         const savedStatus = data.data?.resultStatus as string | undefined;
         toast.success(
-          'บันทึกแล้ว',
-          `Round ${editing.testRound} — Result: ${savedStatus || 'pending'}`,
+          t('qcEntry.detail.toast.saveSuccess'),
+          t('qcEntry.detail.toast.saveSuccessDetail', {
+            round: editing.testRound,
+            result: savedStatus || 'pending',
+          }),
         );
         const savedTestId = editing.testId;
         setEditing(null);
@@ -580,26 +598,41 @@ export default function QcSampleDetailPage() {
             (o) => o.sampleTestId === savedTestId && o.closedAt == null,
           );
           if (!alreadyOpen) {
-            const savedTest = detail.tests.find((t) => t.id === savedTestId);
+            const savedTest = detail.tests.find((tt) => tt.id === savedTestId);
             const testName =
-              savedTest?.criteriaNameTh || savedTest?.criteriaName || savedTest?.criteriaCode || 'การทดสอบ';
+              savedTest?.criteriaNameTh || savedTest?.criteriaName || savedTest?.criteriaCode || t('qcEntry.detail.deviation.defaultTestName');
             const measured =
               editing.numericResult != null
                 ? `${editing.numericResult}${savedTest?.unit ? ' ' + savedTest.unit : ''}`
                 : editing.textResult || '-';
             const spec =
               savedTest?.specMin != null || savedTest?.specMax != null
-                ? `เกณฑ์ ${savedTest?.specMin ?? '-'} – ${savedTest?.specMax ?? '-'}${savedTest?.unit ? ' ' + savedTest.unit : ''}`
+                ? t('qcEntry.detail.deviation.spec', {
+                    min: savedTest?.specMin ?? '-',
+                    max: savedTest?.specMax ?? '-',
+                    unit: savedTest?.unit ? ' ' + savedTest.unit : '',
+                  })
                 : savedTest?.specText || '';
             const productLabel = detail.productName ?? detail.productNameEn ?? '';
             const title = `QC ${savedStatus.toUpperCase()}: ${testName} — ${detail.sampleNumber}`;
             const description =
-              `ผลตรวจ QC ${savedStatus.toUpperCase()} ของตัวอย่าง ${detail.sampleNumber}` +
-              (productLabel ? ` (${productLabel})` : '') +
-              `\nรายการทดสอบ: ${testName} (รอบที่ ${editing.testRound})` +
-              `\nค่าที่วัดได้: ${measured}${spec ? ` — ${spec}` : ''}`;
+              t('qcEntry.detail.deviation.descLine1', {
+                status: savedStatus.toUpperCase(),
+                sampleNumber: detail.sampleNumber,
+                product: productLabel ? ` (${productLabel})` : '',
+              }) +
+              '\n' +
+              t('qcEntry.detail.deviation.descLine2', {
+                testName,
+                round: editing.testRound,
+              }) +
+              '\n' +
+              t('qcEntry.detail.deviation.descLine3', {
+                measured,
+                spec: spec ? ` — ${spec}` : '',
+              });
             toast.error(
-              `ผลทดสอบ ${savedStatus.toUpperCase()} — กำลังเปิดฟอร์ม Deviation`,
+              t('qcEntry.detail.deviation.openingToast', { status: savedStatus.toUpperCase() }),
             );
             const params = new URLSearchParams({
               title,
@@ -613,7 +646,7 @@ export default function QcSampleDetailPage() {
         }
       }
     } catch (e) {
-      toast.error('บันทึกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('qcEntry.detail.toast.saveFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setWorking(false);
     }
@@ -621,7 +654,7 @@ export default function QcSampleDetailPage() {
 
   const handleDeleteTest = async (testId: number) => {
     if (!detail) return;
-    if (!confirm('ลบการทดสอบนี้ใช่หรือไม่?')) return;
+    if (!confirm(t('qcEntry.detail.confirmDeleteTest'))) return;
     setWorking(true);
     try {
       const res = await fetch(
@@ -630,13 +663,13 @@ export default function QcSampleDetailPage() {
       );
       const data = await res.json();
       if (!data.success) {
-        toast.error('ลบไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.deleteFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('ลบแล้ว');
+        toast.success(t('qcEntry.detail.toast.deleteSuccess'));
         await fetchDetail();
       }
     } catch (e) {
-      toast.error('ลบไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('qcEntry.detail.toast.deleteFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setWorking(false);
     }
@@ -680,15 +713,15 @@ export default function QcSampleDetailPage() {
 
       if (failures.length === 0) {
         toast.success(
-          'Apply panel สำเร็จ',
-          `เพิ่ม ${totalAdded} รายการ (ข้าม ${totalSkipped})`,
+          t('qcEntry.detail.toast.applyPanelSuccess'),
+          t('qcEntry.detail.toast.applyPanelSummary', { added: totalAdded, skipped: totalSkipped }),
         );
         setShowApplyPanel(false);
         setSelectedPanelIds([]);
         await fetchDetail();
       } else if (totalAdded > 0) {
         toast.warning(
-          `Apply สำเร็จบางส่วน — เพิ่ม ${totalAdded} ข้าม ${totalSkipped}`,
+          t('qcEntry.detail.toast.applyPanelPartial', { added: totalAdded, skipped: totalSkipped }),
           failures.join('\n'),
         );
         await fetchDetail();
@@ -717,9 +750,9 @@ export default function QcSampleDetailPage() {
       );
       const data = await res.json();
       if (!data.success) {
-        toast.error('เพิ่มการทดสอบไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.addTestFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('เพิ่มการทดสอบแล้ว');
+        toast.success(t('qcEntry.detail.toast.addTestSuccess'));
         setShowAddTest(false);
         setNewCriteriaId(null);
         setNewSequence(1);
@@ -727,7 +760,7 @@ export default function QcSampleDetailPage() {
       }
     } catch (e) {
       toast.error(
-        'เพิ่มการทดสอบไม่สำเร็จ',
+        t('qcEntry.detail.toast.addTestFailed'),
         e instanceof Error ? e.message : 'Network error',
       );
     } finally {
@@ -744,7 +777,7 @@ export default function QcSampleDetailPage() {
     // The buttons remain visible so operators can SEE what's blocking them
     // (the toast surfaces the service-level error message).
     if (action === 'reject') {
-      const reason = prompt('ระบุเหตุผลในการปฏิเสธ:');
+      const reason = prompt(t('qcEntry.detail.rejectReasonPrompt'));
       if (!reason) return;
       await postStatus(action, reason);
       return;
@@ -800,19 +833,22 @@ export default function QcSampleDetailPage() {
       );
       const data = await res.json();
       if (!data.success) {
-        toast.error('ลงนามไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.signFailed'), data.error || 'Unknown error');
       } else {
         const meta = data.data?.transitionedStatus
-          ? `สถานะ: ${data.data.transitionedStatus.fromStatus} → ${data.data.transitionedStatus.toStatus}`
-          : 'บันทึกการลงนามแล้ว';
-        toast.success('ลงนามสำเร็จ', meta);
+          ? t('qcEntry.detail.toast.signStatusMeta', {
+              from: data.data.transitionedStatus.fromStatus,
+              to: data.data.transitionedStatus.toStatus,
+            })
+          : t('qcEntry.detail.toast.signSavedMeta');
+        toast.success(t('qcEntry.detail.toast.signSuccess'), meta);
         setSignRole(null);
         setSignNotes('');
         setSignPassword('');
         await fetchDetail();
       }
     } catch (e) {
-      toast.error('ลงนามไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('qcEntry.detail.toast.signFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setWorking(false);
     }
@@ -851,10 +887,10 @@ export default function QcSampleDetailPage() {
       );
       const data = await res.json();
       if (!data.success) {
-        toast.error('เปิดสอบสวน OOS ไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.openOosFailed'), data.error || 'Unknown error');
       } else {
         toast.success(
-          'เปิดสอบสวน OOS สำเร็จ',
+          t('qcEntry.detail.toast.openOosSuccess'),
           data.data?.deviationNumber
             ? `Auto-deviation: ${data.data.deviationNumber}`
             : `OOS #${data.data?.oosId} created`,
@@ -864,7 +900,7 @@ export default function QcSampleDetailPage() {
       }
     } catch (e) {
       toast.error(
-        'เปิดสอบสวน OOS ไม่สำเร็จ',
+        t('qcEntry.detail.toast.openOosFailed'),
         e instanceof Error ? e.message : 'Network error',
       );
     } finally {
@@ -875,7 +911,7 @@ export default function QcSampleDetailPage() {
   const handleCloseOos = async () => {
     if (!closingOosId) return;
     if (oosCloseConclusion.trim().length < 10) {
-      toast.error('ปิดสอบสวนไม่สำเร็จ', 'ข้อสรุปต้องยาวอย่างน้อย 10 ตัวอักษร');
+      toast.error(t('qcEntry.detail.toast.closeOosFailed'), t('qcEntry.detail.toast.conclusionTooShort'));
       return;
     }
     setWorking(true);
@@ -890,16 +926,16 @@ export default function QcSampleDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('ปิดสอบสวนไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.closeOosFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('ปิดสอบสวนแล้ว');
+        toast.success(t('qcEntry.detail.toast.closeOosSuccess'));
         setClosingOosId(null);
         setOosCloseConclusion('');
         await Promise.all([fetchDetail(), fetchOosList()]);
       }
     } catch (e) {
       toast.error(
-        'ปิดสอบสวนไม่สำเร็จ',
+        t('qcEntry.detail.toast.closeOosFailed'),
         e instanceof Error ? e.message : 'Network error',
       );
     } finally {
@@ -918,17 +954,17 @@ export default function QcSampleDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('เปลี่ยนสถานะไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('qcEntry.detail.toast.statusChangeFailed'), data.error || 'Unknown error');
       } else {
         toast.success(
-          'เปลี่ยนสถานะแล้ว',
+          t('qcEntry.detail.toast.statusChangeSuccess'),
           `${data.data?.fromStatus} → ${data.data?.toStatus}`,
         );
         await fetchDetail();
       }
     } catch (e) {
       toast.error(
-        'เปลี่ยนสถานะไม่สำเร็จ',
+        t('qcEntry.detail.toast.statusChangeFailed'),
         e instanceof Error ? e.message : 'Network error',
       );
     } finally {
@@ -955,13 +991,13 @@ export default function QcSampleDetailPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-red-800">ไม่สามารถโหลดข้อมูลได้</p>
+              <p className="font-medium text-red-800">{t('qcEntry.detail.loadError')}</p>
               <p className="text-sm text-red-700">
                 {error || 'QC sample not found'}
               </p>
             </div>
             <DxButton
-              text="กลับ"
+              text={t('qcEntry.detail.actions.back')}
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/quality/qc-entry')}
@@ -989,17 +1025,17 @@ export default function QcSampleDetailPage() {
   const sourceLabel = (() => {
     switch (detail.sourceType) {
       case 'raw_material_lot':
-        return 'วัตถุดิบเข้า';
+        return t('qcEntry.detail.source.rawMaterialLot');
       case 'work_order_batch':
-        return 'ใบสั่งผลิต';
+        return t('qcEntry.detail.source.workOrderBatch');
       case 'customer_return':
-        return 'คืนจากลูกค้า';
+        return t('qcEntry.detail.source.customerReturn');
       case 'stability':
         return 'Stability';
       case 'purchased_herb':
-        return 'ซื้อสมุนไพร';
+        return t('qcEntry.detail.source.purchasedHerb');
       case 'outgoing_shipment':
-        return 'ส่งออกให้ลูกค้า';
+        return t('qcEntry.detail.source.outgoingShipment');
       default:
         return detail.sourceType;
     }
@@ -1040,13 +1076,13 @@ export default function QcSampleDetailPage() {
             actions={
               <div className="flex items-center gap-2 flex-wrap">
                 <DxButton
-                  text="กลับ"
+                  text={t('qcEntry.detail.actions.back')}
                   icon="back"
                   stylingMode="outlined"
                   onClick={() => router.push('/quality/qc-entry')}
                 />
                 <DxButton
-                  text="พิมพ์"
+                  text={t('qcEntry.detail.actions.print')}
                   icon="print"
                   stylingMode="outlined"
                   onClick={handlePrint}
@@ -1058,12 +1094,12 @@ export default function QcSampleDetailPage() {
 
         <div className="mb-6 print:hidden">
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t('qcEntry.detail.stepper.title')}
             steps={[
-              { key: 'registered', label: 'ลงทะเบียน' },
-              { key: 'testing', label: 'กำลังทดสอบ' },
-              { key: 'reviewed', label: 'ตรวจทาน' },
-              { key: 'approved', label: 'อนุมัติแล้ว' },
+              { key: 'registered', label: t('qcEntry.detail.stepper.registered') },
+              { key: 'testing', label: t('qcEntry.detail.stepper.testing') },
+              { key: 'reviewed', label: t('qcEntry.detail.stepper.reviewed') },
+              { key: 'approved', label: t('qcEntry.detail.stepper.approved') },
             ]}
             current={String(detail.status).toLowerCase()}
           />
@@ -1076,19 +1112,19 @@ export default function QcSampleDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6 print:hidden">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">สถานะ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.status')}</p>
               <div className="mt-1">
                 <Badge variant={sInfo.variant}>{sInfo.label}</Badge>
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">วันที่รับ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.receivedDate')}</p>
               <p className="mt-1 text-sm font-medium">
                 {formatDateOnlyTh(detail.receivedDate)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">ผู้รับ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.receivedBy')}</p>
               <p className="mt-1 text-sm font-medium">
                 {detail.receivedByName || '—'}
               </p>
@@ -1107,7 +1143,7 @@ export default function QcSampleDetailPage() {
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">จำนวน</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.quantity')}</p>
               <p className="mt-1 text-sm font-medium">
                 {detail.quantityReceived != null
                   ? `${Number(detail.quantityReceived).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${detail.unit || ''}`
@@ -1115,16 +1151,16 @@ export default function QcSampleDetailPage() {
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">วันผลิต</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.manufactureDate')}</p>
               <p className="mt-1 text-sm">{formatDateOnlyTh(detail.manufactureDate)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">วันหมดอายุ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.expiryDate')}</p>
               <p className="mt-1 text-sm">{formatDateOnlyTh(detail.expiryDate)}</p>
             </div>
             {detail.customerName && (
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">ลูกค้า</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">{t('qcEntry.detail.headerCard.customer')}</p>
                 <p className="mt-1 text-sm font-medium">{detail.customerName}</p>
                 {detail.salesOrderRef && (
                   <p className="text-xs text-gray-500 font-mono">
@@ -1136,7 +1172,7 @@ export default function QcSampleDetailPage() {
             {detail.storageConditions && (
               <div className="col-span-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  สภาพการเก็บ
+                  {t('qcEntry.detail.headerCard.storage')}
                 </p>
                 <p className="mt-1 text-sm">{detail.storageConditions}</p>
               </div>
@@ -1145,7 +1181,7 @@ export default function QcSampleDetailPage() {
           {detail.notes && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 uppercase tracking-wide">
-                หมายเหตุ
+                {t('qcEntry.detail.headerCard.notes')}
               </p>
               <p className="mt-1 text-sm whitespace-pre-line">{detail.notes}</p>
             </div>
@@ -1166,7 +1202,7 @@ export default function QcSampleDetailPage() {
             )}
             {canEditTests && (
               <DxButton
-                text="เพิ่มการทดสอบ"
+                text={t('qcEntry.detail.actions.addTest')}
                 icon="plus"
                 stylingMode="outlined"
                 onClick={() => setShowAddTest(true)}
@@ -1175,7 +1211,7 @@ export default function QcSampleDetailPage() {
             )}
             {showStartTesting && (
               <DxButton
-                text="เริ่มทดสอบ"
+                text={t('qcEntry.detail.actions.startTesting')}
                 icon="runner"
                 type="default"
                 onClick={() => handleStatusAction('start_testing')}
@@ -1184,7 +1220,7 @@ export default function QcSampleDetailPage() {
             )}
             {showSubmitReview && (
               <DxButton
-                text="ส่งทบทวน"
+                text={t('qcEntry.detail.actions.submitReview')}
                 icon="check"
                 type="success"
                 onClick={() => handleStatusAction('submit_for_review')}
@@ -1193,7 +1229,7 @@ export default function QcSampleDetailPage() {
             )}
             {showApprove && (
               <DxButton
-                text="อนุมัติ"
+                text={t('qcEntry.detail.actions.approve')}
                 icon="check"
                 type="success"
                 onClick={() => handleStatusAction('approve')}
@@ -1202,7 +1238,7 @@ export default function QcSampleDetailPage() {
             )}
             {showRelease && (
               <DxButton
-                text="ปล่อยใช้งาน"
+                text={t('qcEntry.detail.actions.release')}
                 icon="check"
                 type="success"
                 onClick={() => handleStatusAction('release')}
@@ -1211,7 +1247,7 @@ export default function QcSampleDetailPage() {
             )}
             {showReject && (
               <DxButton
-                text="ปฏิเสธ"
+                text={t('qcEntry.detail.actions.reject')}
                 icon="close"
                 type="danger"
                 stylingMode="outlined"
@@ -1237,8 +1273,8 @@ export default function QcSampleDetailPage() {
                     <DxButton
                       text={
                         detail.linkedCoa
-                          ? 'ออก COA ใหม่ (Generate new COA)'
-                          : 'ออก COA (Generate COA)'
+                          ? t('qcEntry.detail.actions.generateNewCoa')
+                          : t('qcEntry.detail.actions.generateCoa')
                       }
                       icon="doc"
                       type="success"
@@ -1252,10 +1288,10 @@ export default function QcSampleDetailPage() {
                           });
                           const data = await res.json();
                           if (!data.success) {
-                            toast.error(data.error || 'ออก COA ล้มเหลว');
+                            toast.error(data.error || t('qcEntry.detail.toast.coaFailed'));
                             return;
                           }
-                          toast.success(data.message || 'ออก COA สำเร็จ');
+                          toast.success(data.message || t('qcEntry.detail.toast.coaSuccess'));
                           if (data.data?.coaId) {
                             router.push(`/quality/coa/${data.data.coaId}`);
                           } else {
@@ -1263,7 +1299,7 @@ export default function QcSampleDetailPage() {
                           }
                         } catch (e) {
                           toast.error(
-                            e instanceof Error ? e.message : 'ออก COA ล้มเหลว',
+                            e instanceof Error ? e.message : t('qcEntry.detail.toast.coaFailed'),
                           );
                         } finally {
                           setWorking(false);
@@ -1274,7 +1310,7 @@ export default function QcSampleDetailPage() {
                   )}
                   {detail.linkedCoa && (
                     <DxButton
-                      text={`ดู COA: ${detail.linkedCoa.coaNumber}${
+                      text={`${t('qcEntry.detail.actions.viewCoa')}: ${detail.linkedCoa.coaNumber}${
                         lastCoaStatus === 'revoked'
                           ? ' (revoked)'
                           : lastCoaStatus === 'superseded'
@@ -1299,7 +1335,7 @@ export default function QcSampleDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden print:hidden">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">
-              ผลการทดสอบ ({detail.tests.length})
+              {t('qcEntry.detail.testResultsTitle', { count: detail.tests.length })}
             </h2>
             {detail.linkedCoa && (
               <a
@@ -1313,20 +1349,20 @@ export default function QcSampleDetailPage() {
           {detail.tests.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">
               <FlaskConical className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
-              ยังไม่มีรายการทดสอบ — กด &quot;Apply test panel&quot; หรือ &quot;เพิ่มการทดสอบ&quot;
+              {t('qcEntry.detail.noTests')}
             </div>
           ) : (
             <div className="space-y-3 p-4">
-              {detail.tests.map((t) => {
-                const isEditing = editing?.testId === t.id;
-                const isReviewed = t.reviewedBy != null;
-                const isExpanded = expandedTests.has(t.id);
+              {detail.tests.map((test) => {
+                const isEditing = editing?.testId === test.id;
+                const isReviewed = test.reviewedBy != null;
+                const isExpanded = expandedTests.has(test.id);
                 const hasResult =
-                  t.numericResult != null ||
-                  !!t.textResult ||
-                  t.totalRounds > 0;
-                const isPass = t.resultStatus === 'pass';
-                const isFail = t.resultStatus === 'fail' || t.resultStatus === 'oos';
+                  test.numericResult != null ||
+                  !!test.textResult ||
+                  test.totalRounds > 0;
+                const isPass = test.resultStatus === 'pass';
+                const isFail = test.resultStatus === 'fail' || test.resultStatus === 'oos';
                 const borderColor = isReviewed
                   ? 'border-l-emerald-500'
                   : isPass
@@ -1336,15 +1372,15 @@ export default function QcSampleDetailPage() {
                   : 'border-l-gray-300';
 
                 // Master-data driven recording config for this test.
-                const sampleSize = Math.max(1, Number(t.criteriaSampleSize) || 1);
+                const sampleSize = Math.max(1, Number(test.criteriaSampleSize) || 1);
                 const isMultiSample = sampleSize > 1;
-                const tolerancePct = Number(t.criteriaTolerancePercent) || 0;
+                const tolerancePct = Number(test.criteriaTolerancePercent) || 0;
                 // maxRetestRounds = number of retests allowed (separate from
                 // the initial Round 1). Total possible rounds = 1 + retests.
-                const maxRetestRounds = Math.max(0, Number(t.criteriaMaxRetestRounds ?? 0));
+                const maxRetestRounds = Math.max(0, Number(test.criteriaMaxRetestRounds ?? 0));
                 const canRetest =
-                  t.totalRounds > 0 &&
-                  t.totalRounds <= maxRetestRounds &&
+                  test.totalRounds > 0 &&
+                  test.totalRounds <= maxRetestRounds &&
                   !isReviewed;
 
                 // Live preview for the form being edited.
@@ -1356,27 +1392,27 @@ export default function QcSampleDetailPage() {
                     );
                     if (filled.length === sampleSize) {
                       const failCount = filled.filter((v) =>
-                        evaluateNumeric(v, t.specMin, t.specMax) === 'fail',
+                        evaluateNumeric(v, test.specMin, test.specMax) === 'fail',
                       ).length;
                       const failPct = (failCount / filled.length) * 100;
                       livePreview = failPct <= tolerancePct ? 'pass' : 'fail';
                     }
                   } else {
-                    livePreview = evaluateNumeric(editing.numericResult, t.specMin, t.specMax);
+                    livePreview = evaluateNumeric(editing.numericResult, test.specMin, test.specMax);
                   }
                 }
 
                 return (
-                  <Card key={t.id} className={`border-l-4 ${borderColor}`}>
+                  <Card key={test.id} className={`border-l-4 ${borderColor}`}>
                     <CardContent className="p-4">
                       {/* Test Header Row */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <button
                             type="button"
-                            onClick={() => toggleExpanded(t.id)}
+                            onClick={() => toggleExpanded(test.id)}
                             className="cursor-pointer pt-1"
-                            aria-label={isExpanded ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}
+                            aria-label={isExpanded ? t('qcEntry.detail.test.collapse') : t('qcEntry.detail.test.expand')}
                           >
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -1386,14 +1422,14 @@ export default function QcSampleDetailPage() {
                           </button>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs text-gray-500 font-mono">#{t.sequence}</span>
+                              <span className="text-xs text-gray-500 font-mono">#{test.sequence}</span>
                               <span className="font-medium text-gray-900">
-                                {t.criteriaNameTh || t.criteriaName || `criteria#${t.criteriaId}`}
+                                {test.criteriaNameTh || test.criteriaName || `criteria#${test.criteriaId}`}
                               </span>
-                              {resultBadge(t.resultStatus)}
-                              {t.criteriaCode && (
+                              {resultBadge(test.resultStatus)}
+                              {test.criteriaCode && (
                                 <span className="text-xs text-gray-500 font-mono">
-                                  ({t.criteriaCode})
+                                  ({test.criteriaCode})
                                 </span>
                               )}
                               {isReviewed && (
@@ -1403,27 +1439,27 @@ export default function QcSampleDetailPage() {
                               )}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
-                              {t.testMethod && <span>{t.testMethod} · </span>}
-                              <span>Spec: {formatSpec(t)}</span>
+                              {test.testMethod && <span>{test.testMethod} · </span>}
+                              <span>Spec: {formatSpec(test, t)}</span>
                             </div>
-                            {(t.testedByName || t.reviewedByName) && (
+                            {(test.testedByName || test.reviewedByName) && (
                               <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
-                                {t.testedByName && (
+                                {test.testedByName && (
                                   <span>
-                                    ผู้บันทึก:{' '}
-                                    <strong className="text-gray-700">{t.testedByName}</strong>
-                                    {t.testedAt && (
+                                    {t('qcEntry.detail.test.recordedBy')}:{' '}
+                                    <strong className="text-gray-700">{test.testedByName}</strong>
+                                    {test.testedAt && (
                                       <span className="text-gray-400 ml-1">
-                                        ({formatDateTh(t.testedAt)})
+                                        ({formatDateTh(test.testedAt)})
                                       </span>
                                     )}
                                   </span>
                                 )}
-                                {t.reviewedByName && (
+                                {test.reviewedByName && (
                                   <span>
-                                    ผู้ทบทวน:{' '}
+                                    {t('qcEntry.detail.test.reviewedBy')}:{' '}
                                     <strong className="text-emerald-700">
-                                      {t.reviewedByName}
+                                      {test.reviewedByName}
                                     </strong>
                                   </span>
                                 )}
@@ -1436,13 +1472,13 @@ export default function QcSampleDetailPage() {
                         {hasResult && !isEditing && (
                           <div className="text-right mr-2">
                             <div className="text-sm font-medium">
-                              {t.numericResult != null
-                                ? `${Number(t.numericResult).toLocaleString(undefined, { maximumFractionDigits: 4 })}${t.unit ? ` ${t.unit}` : ''}`
-                                : t.textResult || '—'}
+                              {test.numericResult != null
+                                ? `${Number(test.numericResult).toLocaleString(undefined, { maximumFractionDigits: 4 })}${test.unit ? ` ${test.unit}` : ''}`
+                                : test.textResult || '—'}
                             </div>
-                            {t.totalRounds > 0 && (
+                            {test.totalRounds > 0 && (
                               <div className="text-xs text-gray-500">
-                                Round {t.totalRounds}{' '}
+                                Round {test.totalRounds}{' '}
                                 {isMultiSample && `(avg, n=${sampleSize})`}
                               </div>
                             )}
@@ -1455,10 +1491,10 @@ export default function QcSampleDetailPage() {
                             {!hasResult ? (
                               <>
                                 <DxButton
-                                  text="บันทึกผล"
+                                  text={t('qcEntry.detail.test.recordResult')}
                                   type="default"
                                   stylingMode="contained"
-                                  onClick={() => handleStartEdit(t)}
+                                  onClick={() => handleStartEdit(test)}
                                   disabled={working}
                                 />
                                 {/* Delete unrecorded test rows — useful when
@@ -1468,27 +1504,27 @@ export default function QcSampleDetailPage() {
                                   icon="trash"
                                   type="danger"
                                   stylingMode="text"
-                                  hint="ลบการทดสอบนี้"
-                                  onClick={() => handleDeleteTest(t.id)}
+                                  hint={t('qcEntry.detail.test.deleteHint')}
+                                  onClick={() => handleDeleteTest(test.id)}
                                   disabled={working}
                                 />
                               </>
                             ) : (
                               <>
                                 <DxButton
-                                  text={`แก้ไข Round ${t.totalRounds}`}
+                                  text={t('qcEntry.detail.test.editRound', { round: test.totalRounds })}
                                   icon="edit"
                                   stylingMode="outlined"
-                                  onClick={() => handleStartEdit(t, t.totalRounds || 1)}
+                                  onClick={() => handleStartEdit(test, test.totalRounds || 1)}
                                   disabled={working}
                                 />
                                 {canRetest && (
                                   <DxButton
-                                    text={`+ Round ${t.totalRounds + 1}`}
+                                    text={`+ Round ${test.totalRounds + 1}`}
                                     type="normal"
                                     stylingMode="outlined"
-                                    hint={`บันทึกรอบใหม่ (สูงสุด ${maxRetestRounds} รอบ)`}
-                                    onClick={() => handleStartEdit(t, t.totalRounds + 1)}
+                                    hint={t('qcEntry.detail.test.newRoundHint', { max: maxRetestRounds })}
+                                    onClick={() => handleStartEdit(test, test.totalRounds + 1)}
                                     disabled={working}
                                   />
                                 )}
@@ -1496,23 +1532,23 @@ export default function QcSampleDetailPage() {
                                     AttachmentPanel lives in the expanded detail,
                                     so this just expands the row and reveals it. */}
                                 <DxButton
-                                  hint="แนบไฟล์รูป / รายงาน QC (COA)"
+                                  hint={t('qcEntry.detail.test.attachHint')}
                                   stylingMode="text"
                                   onClick={() => {
-                                    if (!expandedTests.has(t.id)) toggleExpanded(t.id);
+                                    if (!expandedTests.has(test.id)) toggleExpanded(test.id);
                                   }}
-                                  elementAttr={{ 'data-testid': `qc-test-attach-btn-${t.id}` }}
+                                  elementAttr={{ 'data-testid': `qc-test-attach-btn-${test.id}` }}
                                 >
                                   <span className="inline-flex items-center gap-1 text-xs">
-                                    <Paperclip className="w-3.5 h-3.5" /> แนบไฟล์
+                                    <Paperclip className="w-3.5 h-3.5" /> {t('qcEntry.detail.test.attach')}
                                   </span>
                                 </DxButton>
                                 <DxButton
                                   icon="trash"
                                   type="danger"
                                   stylingMode="text"
-                                  hint="ลบการทดสอบนี้"
-                                  onClick={() => handleDeleteTest(t.id)}
+                                  hint={t('qcEntry.detail.test.deleteHint')}
+                                  onClick={() => handleDeleteTest(test.id)}
                                   disabled={working}
                                 />
                               </>
@@ -1530,9 +1566,9 @@ export default function QcSampleDetailPage() {
                       {isExpanded && !isEditing && (
                         <div className="mt-3 pt-3 border-t text-xs text-gray-600 space-y-2">
                           {/* Round history */}
-                          {t.rounds.length > 0 && (
+                          {test.rounds.length > 0 && (
                             <div className="space-y-2">
-                              {t.rounds.map((round) => (
+                              {test.rounds.map((round) => (
                                 <div
                                   key={round.roundNumber}
                                   className="border rounded-lg p-2.5 bg-gray-50/50"
@@ -1546,7 +1582,7 @@ export default function QcSampleDetailPage() {
                                       <span className="text-xs text-gray-500">
                                         Avg:{' '}
                                         <strong>{round.avg.toFixed(2)}</strong>
-                                        {t.unit ? ` ${t.unit}` : ''}
+                                        {test.unit ? ` ${test.unit}` : ''}
                                       </span>
                                     )}
                                   </div>
@@ -1575,22 +1611,22 @@ export default function QcSampleDetailPage() {
                               ))}
                             </div>
                           )}
-                          {t.notes && (
+                          {test.notes && (
                             <div>
-                              <span className="font-medium">หมายเหตุ:</span> {t.notes}
+                              <span className="font-medium">{t('qcEntry.detail.test.notesInline')}:</span> {test.notes}
                             </div>
                           )}
-                          {!t.notes && !hasResult && (
-                            <p className="text-gray-400">ยังไม่มีผลการทดสอบ</p>
+                          {!test.notes && !hasResult && (
+                            <p className="text-gray-400">{t('qcEntry.detail.test.noResultYet')}</p>
                           )}
                           {/* Audit Q4 — attach analytical report / COA per QC test */}
                           <div className="pt-2">
                             <AttachmentPanel
                               moduleName="quality_test"
-                              entityId={t.id}
+                              entityId={test.id}
                               defaultCategory="lab_result"
-                              title="เอกสารผลวิเคราะห์ (COA / Report)"
-                              testIdBase={`qc-test-attach-${t.id}`}
+                              title={t('qcEntry.detail.test.labResultTitle')}
+                              testIdBase={`qc-test-attach-${test.id}`}
                             />
                           </div>
                         </div>
@@ -1606,7 +1642,7 @@ export default function QcSampleDetailPage() {
                             </span>
                             {editing.testRound > 1 && (
                               <span className="text-xs text-gray-500">
-                                (ทดสอบรอบที่ {editing.testRound} จากสูงสุด {maxRetestRounds})
+                                {t('qcEntry.detail.recordForm.roundOf', { round: editing.testRound, max: maxRetestRounds })}
                               </span>
                             )}
                           </div>
@@ -1620,15 +1656,15 @@ export default function QcSampleDetailPage() {
                               </span>
                             </div>
                             <div className="text-sm text-gray-800 font-medium">
-                              {formatSpec(t)}
+                              {formatSpec(test, t)}
                             </div>
-                            {t.testMethod && (
+                            {test.testMethod && (
                               <div className="text-xs text-gray-500 mt-1">
-                                Method: {t.testMethod}
+                                Method: {test.testMethod}
                               </div>
                             )}
                             <div className="text-xs text-gray-500 mt-1">
-                              ตัวอย่าง: <strong>{sampleSize}</strong>
+                              {t('qcEntry.detail.recordForm.sampleLabel')}: <strong>{sampleSize}</strong>
                               {tolerancePct > 0 && (
                                 <> · Tolerance: <strong>±{tolerancePct}%</strong></>
                               )}
@@ -1639,7 +1675,7 @@ export default function QcSampleDetailPage() {
                           {isMultiSample && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                ผลการทดสอบ ({sampleSize} ตัวอย่าง){t.unit ? ` — หน่วย ${t.unit}` : ''}
+                                {t('qcEntry.detail.recordForm.multiResultLabel', { count: sampleSize })}{test.unit ? t('qcEntry.detail.recordForm.unitSuffix', { unit: test.unit }) : ''}
                               </label>
                               <div className="grid grid-cols-5 gap-2">
                                 {editing.sampleValues.map((val, idx) => {
@@ -1673,7 +1709,7 @@ export default function QcSampleDetailPage() {
                           {!isMultiSample && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                ผลการทดสอบ (ตัวเลข) {t.unit ? `(${t.unit})` : ''}
+                                {t('qcEntry.detail.recordForm.numericResultLabel')} {test.unit ? `(${test.unit})` : ''}
                               </label>
                               <DxNumberBox
                                 value={editing.numericResult ?? null}
@@ -1694,7 +1730,7 @@ export default function QcSampleDetailPage() {
                           {!isMultiSample && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                หรือผลแบบข้อความ (ถ้าไม่ใช่ตัวเลข)
+                                {t('qcEntry.detail.recordForm.textResultLabel')}
                               </label>
                               <DxTextBox
                                 value={editing.textResult}
@@ -1703,7 +1739,7 @@ export default function QcSampleDetailPage() {
                                     editing ? { ...editing, textResult: v } : editing,
                                   )
                                 }
-                                placeholder="เช่น Pass, ใส, สีเหลืองอ่อน"
+                                placeholder={t('qcEntry.detail.recordForm.textResultPlaceholder')}
                               />
                             </div>
                           )}
@@ -1722,7 +1758,7 @@ export default function QcSampleDetailPage() {
                             const passCount = isMultiSample
                               ? editing.sampleValues.filter(
                                   (v) =>
-                                    v != null && evaluateNumeric(v, t.specMin, t.specMax) === 'pass',
+                                    v != null && evaluateNumeric(v, test.specMin, test.specMax) === 'pass',
                                 ).length
                               : livePreview === 'pass'
                               ? 1
@@ -1742,12 +1778,12 @@ export default function QcSampleDetailPage() {
                                 }`}
                               >
                                 <span>
-                                  ผ่าน {passCount}/{filled} ตัวอย่าง
+                                  {t('qcEntry.detail.recordForm.passSummary', { passCount, filled })}
                                   {filled > 0 && ` (${(100 - failPct).toFixed(0)}%)`}
                                 </span>
                                 <span className="text-xs">
                                   {!allFilled
-                                    ? `กรอก ${filled}/${total}`
+                                    ? t('qcEntry.detail.recordForm.fillProgress', { filled, total })
                                     : `Tolerance ±${tolerancePct}% — ${overallPass ? 'PASS' : 'FAIL'}`}
                                 </span>
                               </div>
@@ -1757,14 +1793,14 @@ export default function QcSampleDetailPage() {
                           {/* Notes */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              หมายเหตุ
+                              {t('qcEntry.detail.recordForm.notesLabel')}
                             </label>
                             <DxTextArea
                               value={editing.notes}
                               onValueChange={(v) =>
                                 setEditing(editing ? { ...editing, notes: v } : editing)
                               }
-                              placeholder="ระบุข้อสังเกต / เงื่อนไขการทดสอบ"
+                              placeholder={t('qcEntry.detail.recordForm.notesPlaceholder')}
                               height={60}
                             />
                           </div>
@@ -1772,13 +1808,13 @@ export default function QcSampleDetailPage() {
                           {/* Actions */}
                           <div className="flex items-center justify-end gap-2">
                             <DxButton
-                              text="ยกเลิก"
+                              text={t('qcEntry.detail.actions.cancel')}
                               stylingMode="text"
                               onClick={handleCancelEdit}
                               disabled={working}
                             />
                             <DxButton
-                              text={working ? 'กำลังบันทึก...' : 'บันทึก'}
+                              text={working ? t('qcEntry.detail.actions.saving') : t('qcEntry.detail.actions.save')}
                               type="success"
                               stylingMode="contained"
                               onClick={handleSaveEdit}
@@ -1848,10 +1884,10 @@ export default function QcSampleDetailPage() {
             sig: typeof detail.signatures[number] | undefined;
             canSign: boolean;
           }> = [
-            { role: 'analyst', label: 'Tested by / ผู้ทดสอบ', sig: analystSig, canSign: canSignAnalyst },
-            { role: 'reviewer', label: 'Reviewed by / ผู้ทบทวน', sig: reviewerSig, canSign: canSignReviewer },
-            { role: 'approver', label: 'Approved by / ผู้อนุมัติ', sig: approverSig, canSign: canSignApprover },
-            { role: 'qa_release', label: 'Released by / QA ปล่อยใช้งาน', sig: releaseSig, canSign: canSignRelease },
+            { role: 'analyst', label: t('qcEntry.detail.signoff.tierAnalyst'), sig: analystSig, canSign: canSignAnalyst },
+            { role: 'reviewer', label: t('qcEntry.detail.signoff.tierReviewer'), sig: reviewerSig, canSign: canSignReviewer },
+            { role: 'approver', label: t('qcEntry.detail.signoff.tierApprover'), sig: approverSig, canSign: canSignApprover },
+            { role: 'qa_release', label: t('qcEntry.detail.signoff.tierRelease'), sig: releaseSig, canSign: canSignRelease },
           ];
 
           return (
@@ -1859,7 +1895,7 @@ export default function QcSampleDetailPage() {
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
                 <h2 className="text-sm font-semibold text-gray-700">
-                  การลงนาม / Sign-off (21 CFR Part 11)
+                  {t('qcEntry.detail.signoff.title')}
                 </h2>
               </div>
               <div className="space-y-2">
@@ -1891,7 +1927,7 @@ export default function QcSampleDetailPage() {
                           )}
                         </div>
                       ) : (
-                        <p className="mt-0.5 text-sm text-gray-400">— ยังไม่ลงนาม</p>
+                        <p className="mt-0.5 text-sm text-gray-400">{t('qcEntry.detail.signoff.notSigned')}</p>
                       )}
                     </div>
                     {!tier.sig && tier.canSign && (
@@ -1920,11 +1956,11 @@ export default function QcSampleDetailPage() {
               <div className="flex items-center gap-2">
                 <AlertOctagon className="h-4 w-4 text-rose-600" />
                 <h2 className="text-sm font-semibold text-gray-700">
-                  สอบสวน OOS / Out-of-Spec Investigation
+                  {t('qcEntry.detail.oos.title')}
                 </h2>
               </div>
               <DxButton
-                text="+ เปิดสอบสวน OOS"
+                text={t('qcEntry.detail.oos.openButton')}
                 icon="plus"
                 type="danger"
                 stylingMode="outlined"
@@ -1937,15 +1973,15 @@ export default function QcSampleDetailPage() {
             </div>
             {oosList.length === 0 ? (
               <p className="text-xs text-gray-500">
-                {detail.tests.some((t) => t.resultStatus === 'fail')
-                  ? 'มีผลทดสอบที่ไม่ผ่านเกณฑ์ — กด "เปิดสอบสวน OOS" เพื่อเริ่ม phase 1/2'
-                  : 'ยังไม่มีผลทดสอบที่ไม่ผ่าน — ไม่จำเป็นต้องเปิด OOS'}
+                {detail.tests.some((tt) => tt.resultStatus === 'fail')
+                  ? t('qcEntry.detail.oos.hasFailHint')
+                  : t('qcEntry.detail.oos.noFailHint')}
               </p>
             ) : (
               <div className="space-y-2">
                 {oosList.map((oos) => {
                   const failedTest = detail.tests.find(
-                    (t) => t.id === oos.sampleTestId,
+                    (tt) => tt.id === oos.sampleTestId,
                   );
                   return (
                     <div
@@ -1962,7 +1998,7 @@ export default function QcSampleDetailPage() {
                             OOS #{oos.id}
                           </span>
                           <span className="text-xs text-gray-600">
-                            ทดสอบ:{' '}
+                            {t('qcEntry.detail.oos.testLabel')}:{' '}
                             {failedTest
                               ? failedTest.criteriaNameTh ||
                                 failedTest.criteriaName ||
@@ -1998,7 +2034,7 @@ export default function QcSampleDetailPage() {
                         </div>
                         {!oos.closedAt && (
                           <DxButton
-                            text="ปิดสอบสวน"
+                            text={t('qcEntry.detail.oos.closeButton')}
                             icon="check"
                             stylingMode="outlined"
                             onClick={() => {
@@ -2028,11 +2064,11 @@ export default function QcSampleDetailPage() {
                         </p>
                       )}
                       <p className="mt-1 text-[11px] text-gray-500">
-                        เปิดโดย {oos.initiatedByName ?? `user#${oos.initiatedBy}`} ·{' '}
+                        {t('qcEntry.detail.oos.openedBy')} {oos.initiatedByName ?? `user#${oos.initiatedBy}`} ·{' '}
                         {formatDateTh(oos.initiatedAt)}
                         {oos.closedAt && (
                           <>
-                            {' '}— ปิดโดย {oos.closedByName ?? `user#${oos.closedBy}`} ·{' '}
+                            {' '}— {t('qcEntry.detail.oos.closedBy')} {oos.closedByName ?? `user#${oos.closedBy}`} ·{' '}
                             {formatDateTh(oos.closedAt)}
                           </>
                         )}
@@ -2076,13 +2112,13 @@ export default function QcSampleDetailPage() {
         <div className="p-4 space-y-4">
           {panels.length === 0 ? (
             <p className="text-sm text-gray-600">
-              ไม่มี test panel ที่กำหนดสำหรับสินค้านี้ — ไปสร้างที่ <a className="text-cyan-600 hover:underline" href="/quality/test-panels">/quality/test-panels</a>
+              {t('qcEntry.detail.applyPanelDialog.noPanel')} <a className="text-cyan-600 hover:underline" href="/quality/test-panels">/quality/test-panels</a>
             </p>
           ) : (
             <>
               <p className="text-sm text-gray-700">
-                เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้
-                <span className="text-xs text-gray-500"> (เลือกได้หลายรายการ)</span>:
+                {t('qcEntry.detail.applyPanelDialog.selectPrompt')}
+                <span className="text-xs text-gray-500"> {t('qcEntry.detail.applyPanelDialog.multiHint')}</span>:
               </p>
               <DxTagBox
                 value={selectedPanelIds}
@@ -2093,21 +2129,20 @@ export default function QcSampleDetailPage() {
                   const next = Array.isArray(e.value) ? (e.value as number[]) : [];
                   setSelectedPanelIds(next);
                 }}
-                placeholder="เลือก panel"
+                placeholder={t('qcEntry.detail.applyPanelDialog.tagPlaceholder')}
                 searchEnabled
                 showSelectionControls
               />
               {selectedPanelIds.length > 0 && (
                 <p className="text-xs text-cyan-700">
-                  เลือกแล้ว <strong>{selectedPanelIds.length}</strong> panel — ระบบจะ apply
-                  ทุก panel เข้าตัวอย่างนี้
+                  {t('qcEntry.detail.applyPanelDialog.selectedCount', { count: selectedPanelIds.length })}
                 </p>
               )}
             </>
           )}
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.detail.actions.cancel')}
               stylingMode="outlined"
               onClick={() => {
                 setShowApplyPanel(false);
@@ -2116,7 +2151,7 @@ export default function QcSampleDetailPage() {
               disabled={working}
             />
             <DxButton
-              text={working ? 'กำลัง apply...' : 'Apply'}
+              text={working ? t('qcEntry.detail.applyPanelDialog.applying') : 'Apply'}
               type="default"
               onClick={handleApplyPanel}
               disabled={working || selectedPanelIds.length === 0}
@@ -2135,14 +2170,14 @@ export default function QcSampleDetailPage() {
             setNewSequence(1);
           }
         }}
-        title="เพิ่มการทดสอบ"
+        title={t('qcEntry.detail.addTestDialog.title')}
         width={520}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <DxSelectBox
-            label="เกณฑ์ (IPC criteria)"
+            label={t('qcEntry.detail.addTestDialog.criteriaLabel')}
             value={newCriteriaId}
             dataSource={availableCriteria.map((c) => ({
               id: c.id,
@@ -2155,7 +2190,7 @@ export default function QcSampleDetailPage() {
             required
           />
           <DxNumberBox
-            label="ลำดับการแสดงผล"
+            label={t('qcEntry.detail.addTestDialog.sequenceLabel')}
             value={newSequence}
             onValueChange={(v) => setNewSequence(Number(v) || 1)}
             min={1}
@@ -2165,7 +2200,7 @@ export default function QcSampleDetailPage() {
           />
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.detail.actions.cancel')}
               stylingMode="outlined"
               onClick={() => {
                 setShowAddTest(false);
@@ -2175,7 +2210,7 @@ export default function QcSampleDetailPage() {
               disabled={working}
             />
             <DxButton
-              text={working ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
+              text={working ? t('qcEntry.detail.addTestDialog.adding') : t('qcEntry.detail.addTestDialog.add')}
               type="default"
               onClick={handleAddCustomTest}
               disabled={working || !newCriteriaId}
@@ -2190,8 +2225,8 @@ export default function QcSampleDetailPage() {
         onHiding={closeSignDialog}
         title={
           signRole
-            ? `ลงนาม — ${meaningForRole(signRole)} (${signRole})`
-            : 'ลงนาม'
+            ? t('qcEntry.detail.signDialog.title', { meaning: meaningForRole(signRole), role: signRole })
+            : t('qcEntry.detail.signDialog.titleDefault')
         }
         width={520}
         height="auto"
@@ -2201,11 +2236,11 @@ export default function QcSampleDetailPage() {
         <div className="p-4 space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-sm text-amber-800">
-              ฉันยืนยันว่าฉันเป็นผู้ลงนามในฐานะ{' '}
+              {t('qcEntry.detail.signDialog.certifyPrefix')}{' '}
               <span className="font-semibold">
                 {signRole ? meaningForRole(signRole) : ''}
               </span>{' '}
-              ของตัวอย่าง{' '}
+              {t('qcEntry.detail.signDialog.certifyMid')}{' '}
               <span className="font-mono">{detail?.sampleNumber}</span>
             </p>
             <p className="text-xs text-amber-700 mt-1">
@@ -2216,36 +2251,36 @@ export default function QcSampleDetailPage() {
           </div>
 
           <DxTextArea
-            label="หมายเหตุ / Notes (optional)"
+            label={t('qcEntry.detail.signDialog.notesLabel')}
             labelMode="outside"
             value={signNotes}
             onValueChange={setSignNotes}
-            placeholder="เช่น: ตรวจซ้ำตัวอย่างหมายเลข ... และอ่านค่าตรงกัน"
+            placeholder={t('qcEntry.detail.signDialog.notesPlaceholder')}
             height={80}
             maxLength={2000}
           />
 
           <DxTextBox
-            label="รหัสผ่าน / Password re-entry (optional)"
+            label={t('qcEntry.detail.signDialog.passwordLabel')}
             labelMode="outside"
             value={signPassword}
             onValueChange={setSignPassword}
             mode="password"
-            placeholder="ระบุรหัสผ่านเพื่อยืนยันตัวตน"
+            placeholder={t('qcEntry.detail.signDialog.passwordPlaceholder')}
           />
           <p className="text-[11px] text-gray-500 -mt-2">
-            ปล่อยว่างได้ในช่วงทดสอบระบบ — เมื่อ enforced บัญชีต้องมี bcrypt hash
+            {t('qcEntry.detail.signDialog.passwordHint')}
           </p>
 
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.detail.actions.cancel')}
               stylingMode="outlined"
               onClick={closeSignDialog}
               disabled={working}
             />
             <DxButton
-              text={working ? 'กำลังลงนาม...' : 'Sign'}
+              text={working ? t('qcEntry.detail.signDialog.signing') : 'Sign'}
               type="success"
               onClick={handleSign}
               disabled={working}
@@ -2260,7 +2295,7 @@ export default function QcSampleDetailPage() {
         onHiding={() => {
           if (!working) setShowOpenOos(false);
         }}
-        title="เปิดสอบสวน OOS (FDA 21 CFR 211.192)"
+        title={t('qcEntry.detail.openOosDialog.title')}
         width={640}
         height="auto"
         showCloseButton
@@ -2268,23 +2303,23 @@ export default function QcSampleDetailPage() {
       >
         <div className="p-4 space-y-3">
           <DxSelectBox
-            label="ทดสอบที่ไม่ผ่าน (failed test) *"
+            label={t('qcEntry.detail.openOosDialog.failedTestLabel')}
             labelMode="outside"
             value={oosTestId}
             dataSource={(detail?.tests ?? [])
-              .filter((t) => t.resultStatus === 'fail')
-              .map((t) => ({
-                id: t.id,
-                label: `#${t.sequence} ${t.criteriaNameTh || t.criteriaName || `criteria#${t.criteriaId}`} — result: ${
-                  t.numericResult != null
-                    ? Number(t.numericResult).toString()
-                    : t.textResult || ''
+              .filter((tt) => tt.resultStatus === 'fail')
+              .map((tt) => ({
+                id: tt.id,
+                label: `#${tt.sequence} ${tt.criteriaNameTh || tt.criteriaName || `criteria#${tt.criteriaId}`} — result: ${
+                  tt.numericResult != null
+                    ? Number(tt.numericResult).toString()
+                    : tt.textResult || ''
                 }`,
               }))}
             displayExpr="label"
             valueExpr="id"
             onValueChange={(v) => setOosTestId(v == null ? null : Number(v))}
-            placeholder="เลือกทดสอบที่ไม่ผ่าน"
+            placeholder={t('qcEntry.detail.openOosDialog.failedTestPlaceholder')}
             searchEnabled
           />
           <DxTextArea
@@ -2292,7 +2327,7 @@ export default function QcSampleDetailPage() {
             labelMode="outside"
             value={oosPhase1}
             onValueChange={setOosPhase1}
-            placeholder="เช่น: เครื่องมือวัดสอบเทียบหรือไม่? วิธีการเตรียมตัวอย่างถูกต้องหรือไม่?"
+            placeholder={t('qcEntry.detail.openOosDialog.phase1Placeholder')}
             height={80}
             maxLength={4000}
           />
@@ -2301,7 +2336,7 @@ export default function QcSampleDetailPage() {
             labelMode="outside"
             value={oosPhase2}
             onValueChange={setOosPhase2}
-            placeholder="ผลการสืบสวนเชิงลึก เมื่อ Phase 1 ไม่พบสาเหตุจาก lab"
+            placeholder={t('qcEntry.detail.openOosDialog.phase2Placeholder')}
             height={80}
             maxLength={4000}
           />
@@ -2310,44 +2345,44 @@ export default function QcSampleDetailPage() {
             labelMode="outside"
             value={oosClassification}
             dataSource={[
-              { id: 'lab_error', label: 'Lab Error — สาเหตุจากห้องปฏิบัติการ' },
+              { id: 'lab_error', label: t('qcEntry.detail.openOosDialog.classLabError') },
               {
                 id: 'manufacturing_error',
-                label: 'Manufacturing Error — สาเหตุจากการผลิต (auto-creates Deviation)',
+                label: t('qcEntry.detail.openOosDialog.classManufacturingError'),
               },
-              { id: 'undetermined', label: 'Undetermined — ระบุไม่ได้' },
+              { id: 'undetermined', label: t('qcEntry.detail.openOosDialog.classUndetermined') },
             ]}
             displayExpr="label"
             valueExpr="id"
             onValueChange={(v) =>
               setOosClassification(v == null ? null : String(v))
             }
-            placeholder="ยังไม่ระบุ — ระบุภายหลังก็ได้"
+            placeholder={t('qcEntry.detail.openOosDialog.classPlaceholder')}
           />
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-700">
-              อนุญาตให้ทดสอบซ้ำ (Retest authorized)
+              {t('qcEntry.detail.openOosDialog.retestAuthorized')}
             </span>
             <DxSwitch value={oosRetest} onValueChange={setOosRetest} />
           </div>
           <DxTextArea
-            label="ข้อสรุปเบื้องต้น / Initial conclusion (optional)"
+            label={t('qcEntry.detail.openOosDialog.initialConclusionLabel')}
             labelMode="outside"
             value={oosConclusionInit}
             onValueChange={setOosConclusionInit}
-            placeholder="เพิ่มเติมภายหลังเมื่อปิดสอบสวนได้"
+            placeholder={t('qcEntry.detail.openOosDialog.initialConclusionPlaceholder')}
             height={70}
             maxLength={4000}
           />
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.detail.actions.cancel')}
               stylingMode="outlined"
               onClick={() => setShowOpenOos(false)}
               disabled={working}
             />
             <DxButton
-              text={working ? 'กำลังเปิด...' : 'เปิดสอบสวน'}
+              text={working ? t('qcEntry.detail.openOosDialog.opening') : t('qcEntry.detail.openOosDialog.openSubmit')}
               type="danger"
               onClick={handleOpenOos}
               disabled={working || !oosTestId}
@@ -2365,7 +2400,7 @@ export default function QcSampleDetailPage() {
             setOosCloseConclusion('');
           }
         }}
-        title={`ปิดสอบสวน OOS #${closingOosId ?? ''}`}
+        title={t('qcEntry.detail.closeOosDialog.title', { id: closingOosId ?? '' })}
         width={520}
         height="auto"
         showCloseButton
@@ -2373,20 +2408,20 @@ export default function QcSampleDetailPage() {
       >
         <div className="p-4 space-y-3">
           <p className="text-sm text-gray-700">
-            ระบุข้อสรุปการสอบสวน — ต้องอย่างน้อย 10 ตัวอักษร (FDA 211.192)
+            {t('qcEntry.detail.closeOosDialog.instruction')}
           </p>
           <DxTextArea
-            label="ข้อสรุป / Conclusion *"
+            label={t('qcEntry.detail.closeOosDialog.conclusionLabel')}
             labelMode="outside"
             value={oosCloseConclusion}
             onValueChange={setOosCloseConclusion}
-            placeholder="เช่น: หลังตรวจซ้ำพบว่าผลของวันแรกผิดพลาดจาก calibration ของเครื่องมือ ..."
+            placeholder={t('qcEntry.detail.closeOosDialog.conclusionPlaceholder')}
             height={120}
             maxLength={4000}
           />
           <div className="flex justify-end gap-2 pt-3 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('qcEntry.detail.actions.cancel')}
               stylingMode="outlined"
               onClick={() => {
                 setClosingOosId(null);
@@ -2395,7 +2430,7 @@ export default function QcSampleDetailPage() {
               disabled={working}
             />
             <DxButton
-              text={working ? 'กำลังปิด...' : 'ปิดสอบสวน'}
+              text={working ? t('qcEntry.detail.closeOosDialog.closing') : t('qcEntry.detail.closeOosDialog.closeSubmit')}
               type="success"
               onClick={handleCloseOos}
               disabled={working || oosCloseConclusion.trim().length < 10}

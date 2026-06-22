@@ -121,19 +121,19 @@ export default function NewChangeRequestPage() {
 
   // Form configuration
   const changeTypeOptions = [
-    { value: 'process', text: 'กระบวนการ' },
-    { value: 'equipment', text: 'เครื่องจักร/อุปกรณ์' },
-    { value: 'document', text: 'เอกสาร' },
-    { value: 'supplier', text: 'ผู้ขาย/ผู้ส่งมอบ' },
-    { value: 'formula', text: 'สูตรการผลิต' },
-    { value: 'other', text: 'อื่น ๆ' },
+    { value: 'process', text: t('changes.new.changeTypes.process') },
+    { value: 'equipment', text: t('changes.new.changeTypes.equipment') },
+    { value: 'document', text: t('changes.new.changeTypes.document') },
+    { value: 'supplier', text: t('changes.new.changeTypes.supplier') },
+    { value: 'formula', text: t('changes.new.changeTypes.formula') },
+    { value: 'other', text: t('changes.new.changeTypes.other') },
   ];
 
   const priorityOptions = [
-    { value: 'low', text: 'ต่ำ' },
-    { value: 'medium', text: 'ปานกลาง' },
-    { value: 'high', text: 'สูง' },
-    { value: 'urgent', text: 'เร่งด่วน' },
+    { value: 'low', text: t('changes.priority.low') },
+    { value: 'medium', text: t('changes.priority.medium') },
+    { value: 'high', text: t('changes.priority.high') },
+    { value: 'urgent', text: t('changes.priority.urgent') },
   ];
 
   const userOptions = users?.map((u) => ({ value: u.id, text: u.name })) || [];
@@ -141,11 +141,11 @@ export default function NewChangeRequestPage() {
   // Handlers
   const handleSubmit = useCallback(() => {
     if (!formData.title.trim()) {
-      alert('กรุณากรอกหัวข้อ');
+      alert(t('changes.new.validation.titleRequired'));
       return;
     }
     if (!formData.ownerId) {
-      alert('กรุณาเลือกผู้รับผิดชอบการเปลี่ยนแปลง');
+      alert(t('changes.new.validation.ownerRequired'));
       return;
     }
 
@@ -164,7 +164,7 @@ export default function NewChangeRequestPage() {
     };
 
     createMutation.mutate(submitData);
-  }, [formData, createMutation]);
+  }, [formData, createMutation, t]);
 
   const handleCancel = useCallback(() => {
     router.push('/gmp/changes');
@@ -174,19 +174,19 @@ export default function NewChangeRequestPage() {
   const formItems = [
     {
       itemType: 'group' as const,
-      caption: 'ข้อมูลพื้นฐาน',
+      caption: t('changes.new.groups.basicInfo'),
       items: [
         {
           dataField: 'title',
-          label: { text: 'หัวข้อ' },
+          label: { text: t('changes.new.fields.title') },
           isRequired: true,
           editorOptions: {
-            placeholder: 'คำอธิบายการเปลี่ยนแปลงโดยย่อ',
+            placeholder: t('changes.new.fields.titlePlaceholder'),
           },
         },
         {
           dataField: 'changeType',
-          label: { text: 'ประเภทการเปลี่ยนแปลง' },
+          label: { text: t('changes.new.fields.changeType') },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -197,7 +197,7 @@ export default function NewChangeRequestPage() {
         },
         {
           dataField: 'priority',
-          label: { text: 'ความสำคัญ' },
+          label: { text: t('changes.new.fields.priority') },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -208,7 +208,7 @@ export default function NewChangeRequestPage() {
         },
         {
           dataField: 'ownerId',
-          label: { text: 'ผู้รับผิดชอบการเปลี่ยนแปลง' },
+          label: { text: t('changes.new.fields.owner') },
           editorType: 'dxSelectBox',
           isRequired: true,
           editorOptions: {
@@ -216,66 +216,66 @@ export default function NewChangeRequestPage() {
             displayExpr: 'text',
             valueExpr: 'value',
             searchEnabled: true,
-            placeholder: 'เลือกผู้รับผิดชอบ',
+            placeholder: t('changes.new.fields.ownerPlaceholder'),
           },
         },
         {
           dataField: 'targetDate',
-          label: { text: 'วันที่กำหนดดำเนินการ' },
+          label: { text: t('changes.new.fields.targetDate') },
           editorType: 'dxDateBox',
           editorOptions: {
             type: 'date',
             displayFormat: 'dd MMM yyyy',
-            placeholder: 'เลือกวันที่',
+            placeholder: t('changes.new.fields.targetDatePlaceholder'),
           },
         },
       ],
     },
     {
       itemType: 'group' as const,
-      caption: 'รายละเอียดการเปลี่ยนแปลง',
+      caption: t('changes.new.groups.changeDetails'),
       items: [
         {
           dataField: 'description',
-          label: { text: 'รายละเอียด' },
+          label: { text: t('changes.new.fields.description') },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'รายละเอียดของการเปลี่ยนแปลงที่เสนอ',
+            placeholder: t('changes.new.fields.descriptionPlaceholder'),
           },
         },
       ],
     },
     {
       itemType: 'group' as const,
-      caption: 'การประเมินการเปลี่ยนแปลง',
+      caption: t('changes.new.groups.assessment'),
       colCount: 1,
       items: [
         {
           dataField: 'justification',
-          label: { text: 'เหตุผลความจำเป็น' },
+          label: { text: t('changes.new.fields.justification') },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'เหตุใดจึงจำเป็นต้องมีการเปลี่ยนแปลงนี้?',
+            placeholder: t('changes.new.fields.justificationPlaceholder'),
           },
         },
         {
           dataField: 'impactAssessment',
-          label: { text: 'การประเมินผลกระทบ' },
+          label: { text: t('changes.new.fields.impactAssessment') },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'การเปลี่ยนแปลงนี้จะส่งผลกระทบต่อส่วนใดบ้าง?',
+            placeholder: t('changes.new.fields.impactAssessmentPlaceholder'),
           },
         },
         {
           dataField: 'riskAssessment',
-          label: { text: 'การประเมินความเสี่ยง' },
+          label: { text: t('changes.new.fields.riskAssessment') },
           editorType: 'dxTextArea',
           editorOptions: {
             height: 100,
-            placeholder: 'มีความเสี่ยงใดบ้างหากไม่ดำเนินการเปลี่ยนแปลงนี้?',
+            placeholder: t('changes.new.fields.riskAssessmentPlaceholder'),
           },
         },
       ],
@@ -302,13 +302,13 @@ export default function NewChangeRequestPage() {
             <div className="flex items-center gap-3">
               <Button
                 icon="back"
-                text="ยกเลิก"
+                text={t('common.cancel')}
                 stylingMode="outlined"
                 onClick={handleCancel}
               />
               <Button
                 icon="save"
-                text="สร้างคำขอเปลี่ยนแปลง"
+                text={t('changes.new.submit')}
                 type="success"
                 onClick={handleSubmit}
                 disabled={createMutation.isPending}
@@ -324,10 +324,9 @@ export default function NewChangeRequestPage() {
           <div className="flex items-start gap-3">
             <FileEdit className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <p className="font-medium text-blue-800 dark:text-blue-200">การสร้างคำขอเปลี่ยนแปลงแบบร่าง</p>
+              <p className="font-medium text-blue-800 dark:text-blue-200">{t('changes.new.banner.title')}</p>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                แบบฟอร์มนี้จะสร้างคำขอเปลี่ยนแปลงแบบร่าง หลังจากสร้างแล้ว คุณสามารถเพิ่มรายละเอียดและส่งเข้าสู่ขั้นตอนการอนุมัติได้
-                ทุกฟิลด์ยกเว้นหัวข้อและผู้รับผิดชอบสามารถแก้ไขภายหลังได้
+                {t('changes.new.banner.description')}
               </p>
             </div>
           </div>
@@ -364,13 +363,13 @@ export default function NewChangeRequestPage() {
         <div className="mt-6 flex items-center justify-end gap-3 lg:hidden">
           <Button
             icon="back"
-            text="ยกเลิก"
+            text={t('common.cancel')}
             stylingMode="outlined"
             onClick={handleCancel}
           />
           <Button
             icon="save"
-            text="สร้าง"
+            text={t('changes.new.create')}
             type="success"
             onClick={handleSubmit}
             disabled={createMutation.isPending}

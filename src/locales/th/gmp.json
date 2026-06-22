@@ -144,7 +144,14 @@
       "notAssigned": "ยังไม่ได้กำหนด",
       "unknown": "ไม่ทราบ",
       "unknownProduct": "ผลิตภัณฑ์ไม่ทราบ",
-      "viewProtocol": "ดูโปรโตคอล"
+      "viewProtocol": "ดูโปรโตคอล",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "steps": {
+        "pending": "รอเริ่ม",
+        "active": "กำลังศึกษา",
+        "on_hold": "พักการศึกษา",
+        "completed": "เสร็จสิ้น"
+      }
     },
     "columns": {
       "protocolNumber": "หมายเลขโปรโตคอล",
@@ -214,6 +221,27 @@
       "testsCompletedLegend": "จำนวนทดสอบเสร็จ",
       "samplesTestedSuffix": "ตัวอย่างที่ทดสอบ",
       "thisMonth": "เดือนนี้"
+    },
+    "newStudy": {
+      "createSuccess": "สร้างการศึกษา {studyNumber} สำเร็จ",
+      "createFailed": "ไม่สามารถสร้างการศึกษาได้",
+      "requiredFieldsError": "กรุณากรอกข้อมูลที่จำเป็นทั้งหมด (โปรโตคอล, ล็อต และวันที่เริ่มต้น)",
+      "title": "สร้างการศึกษาความคงตัวใหม่",
+      "subtitle": "ลงทะเบียนแบทช์ (ล็อต) เข้าสู่โปรโตคอลความคงตัวที่อนุมัติแล้ว",
+      "saveStudy": "บันทึกการศึกษา",
+      "studyInfo": "ข้อมูลการศึกษา",
+      "protocolLabel": "โปรโตคอล",
+      "protocolPlaceholder": "เลือกโปรโตคอลที่อนุมัติแล้ว...",
+      "noApprovedProtocols": "ยังไม่มีโปรโตคอลที่อนุมัติแล้ว กรุณาอนุมัติโปรโตคอลก่อน",
+      "lotLabel": "ล็อต / แบทช์",
+      "lotPlaceholder": "เลือกล็อต...",
+      "startDateLabel": "วันที่เริ่มต้น",
+      "startDatePlaceholder": "เลือกวันที่เริ่มต้น...",
+      "chamberLabel": "ตำแหน่งห้องเก็บ",
+      "chamberPlaceholder": "เช่น Chamber A-1 (ไม่บังคับ)",
+      "notesLabel": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม (ไม่บังคับ)",
+      "validationHint": "กรุณาเลือกโปรโตคอล, ล็อต และระบุวันที่เริ่มต้นเพื่อบันทึก"
     }
   },
   "capa": {
@@ -368,6 +396,160 @@
     "resultCountSingular": "แสดง CAPA {count} รายการ",
     "mobile": {
       "viewDetails": "ดูรายละเอียด"
+    },
+    "detail": {
+      "deleteConfirm": "ต้องการลบ CAPA นี้หรือไม่?\nลบได้เฉพาะรายการที่ยังไม่ได้ดำเนินการ (สถานะ \"เปิด\")",
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "notFound": "ไม่พบ CAPA",
+      "loadingDetails": "กำลังโหลดรายละเอียด CAPA...",
+      "backToList": "กลับไปรายการ CAPA",
+      "print": "พิมพ์",
+      "edit": "แก้ไข",
+      "delete": "ลบ",
+      "closeCapa": "ปิด CAPA",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "generalInfo": "ข้อมูลทั่วไป",
+      "rootCauseAnalysis": "การวิเคราะห์สาเหตุ (Root Cause)",
+      "rootCauseCategory": "หมวดหมู่ (5M+E):",
+      "analysisDetail": "รายละเอียดการวิเคราะห์:",
+      "noRootCause": "ยังไม่มีการวิเคราะห์สาเหตุ",
+      "riskDetails": "รายละเอียดความเสี่ยง",
+      "severityLabel": "ความรุนแรง (Severity)",
+      "probabilityLabel": "โอกาสเกิด (Probability)",
+      "riskScore": "คะแนนความเสี่ยง",
+      "riskLevel": "ระดับความเสี่ยง",
+      "riskJustification": "เหตุผลประกอบ:",
+      "impactAssessment": "ผลกระทบ (Impact Assessment)",
+      "impactScope": "ขอบเขตผลกระทบ",
+      "patientImpact": "ผลกระทบต่อผู้ป่วย",
+      "regulatoryNotificationRequired": "ต้องแจ้งหน่วยงานกำกับ",
+      "notificationDate": "วันที่แจ้ง",
+      "approvalHistory": "ประวัติการอนุมัติ",
+      "noApprovalHistory": "ยังไม่มีประวัติการอนุมัติ",
+      "attachmentsTitle": "เอกสารแนบ (Attachments)",
+      "cannotCloseTitle": "CAPA ยังไม่สามารถปิดได้",
+      "cannotCloseActions": "การดำเนินการทั้งหมดต้องเสร็จสิ้น ({completed}/{total})",
+      "cannotCloseEffectiveness": "ต้องมีการตรวจสอบประสิทธิผลอย่างน้อย 1 รายการที่แสดงผลว่า \"ได้ผล\"",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "actions": "การดำเนินการ",
+        "effectiveness": "ประสิทธิผล",
+        "riskAssessment": "การประเมินความเสี่ยง",
+        "attachments": "เอกสารแนบ",
+        "approvals": "การอนุมัติ"
+      },
+      "metrics": {
+        "actions": "การดำเนินการ",
+        "completed": "เสร็จสิ้น",
+        "dueDate": "กำหนดเสร็จ",
+        "closedOn": "ปิดเมื่อ",
+        "risk": "ความเสี่ยง",
+        "effectiveness": "ประสิทธิผล",
+        "effective": "ได้ผล",
+        "pendingCheck": "รอตรวจสอบ",
+        "checkCount": "{count} รายการตรวจสอบ"
+      },
+      "type": {
+        "corrective": "แก้ไข",
+        "preventive": "ป้องกัน",
+        "both": "แก้ไข/ป้องกัน"
+      },
+      "typeLong": {
+        "corrective": "แก้ไข (Corrective)",
+        "preventive": "ป้องกัน (Preventive)",
+        "both": "แก้ไข/ป้องกัน (Both)"
+      },
+      "source": {
+        "deviation": "ความเบี่ยงเบน",
+        "complaint": "ข้อร้องเรียน",
+        "auditFinding": "ผลการตรวจสอบ",
+        "other": "อื่นๆ"
+      },
+      "fields": {
+        "type": "ประเภท",
+        "source": "แหล่งที่มา",
+        "referenceNumber": "เลขที่อ้างอิง",
+        "owner": "ผู้รับผิดชอบ",
+        "createdBy": "สร้างโดย",
+        "createdAt": "วันที่สร้าง"
+      },
+      "workflowStatus": {
+        "open": "เปิด",
+        "investigation": "สืบสวน",
+        "actionPending": "รอดำเนินการ",
+        "verification": "ตรวจสอบ",
+        "pendingApproval": "รออนุมัติ",
+        "closed": "ปิด",
+        "cancelled": "ยกเลิก"
+      },
+      "steps": {
+        "verifyEffectiveness": "ตรวจสอบประสิทธิผล"
+      },
+      "severity": {
+        "negligible": "น้อยมาก",
+        "minor": "น้อย",
+        "moderate": "ปานกลาง",
+        "major": "มาก",
+        "critical": "วิกฤต"
+      },
+      "probability": {
+        "rare": "น้อยมาก",
+        "unlikely": "ไม่น่าจะเกิด",
+        "possible": "อาจเกิด",
+        "likely": "น่าจะเกิด",
+        "certain": "แน่นอน"
+      },
+      "rootCauseCategories": {
+        "man": "Man (คน)",
+        "machine": "Machine (เครื่องจักร)",
+        "method": "Method (วิธีการ)",
+        "material": "Material (วัตถุดิบ)",
+        "measurement": "Measurement (การวัด)",
+        "environment": "Environment (สภาพแวดล้อม)"
+      },
+      "yesNo": {
+        "has": "มี",
+        "hasNot": "ไม่มี",
+        "yes": "ใช่",
+        "no": "ไม่"
+      },
+      "approvalColumns": {
+        "role": "บทบาท",
+        "approver": "ผู้อนุมัติ",
+        "status": "สถานะ",
+        "comments": "ความคิดเห็น",
+        "signedAt": "วันที่ลงนาม"
+      },
+      "approvalRoles": {
+        "owner": "เจ้าของ",
+        "qaReviewer": "ผู้ตรวจสอบ QA",
+        "qaManager": "ผู้จัดการ QA",
+        "plantManager": "ผู้จัดการโรงงาน"
+      },
+      "approvalStatus": {
+        "pending": "รอดำเนินการ",
+        "approved": "อนุมัติ",
+        "rejected": "ปฏิเสธ",
+        "revisionRequired": "ต้องแก้ไข"
+      },
+      "closure": {
+        "actionLabel": "การดำเนินการ (Action)",
+        "effectivenessLabel": "ประสิทธิผล (Effectiveness)",
+        "riskLabel": "ความเสี่ยง (Risk Assessment)",
+        "rootCauseLabel": "สาเหตุ (Root Cause)",
+        "done": "เสร็จ",
+        "noItems": "ไม่มีรายการ",
+        "passed": "ผ่าน",
+        "noEffectiveResult": "ยังไม่มีผลเป็น Effective",
+        "notAssessed": "ยังไม่ได้ประเมิน",
+        "specified": "ระบุแล้ว",
+        "notSpecified": "ยังไม่ได้ระบุ",
+        "checklistTitle": "ตรวจสอบความครบถ้วนก่อนปิด CAPA:",
+        "readyToClose": "ข้อมูลครบถ้วน — พร้อมปิด CAPA",
+        "notesLabel": "หมายเหตุการปิด (ไม่บังคับ)",
+        "notesPlaceholder": "เพิ่มหมายเหตุเกี่ยวกับการปิด CAPA นี้...",
+        "cannotClose": "ไม่สามารถปิด CAPA ได้ — กรุณากรอกข้อมูลที่ยังขาดให้ครบก่อน"
+      }
     }
   },
   "complaints": {
@@ -482,7 +664,85 @@
     "noDataText": "ไม่พบข้อร้องเรียน",
     "regulatoryTag": "ต้องรายงานหน่วยงาน",
     "lotPrefix": "ล็อต",
-    "viewDetails": "ดูรายละเอียด"
+    "viewDetails": "ดูรายละเอียด",
+    "detail": {
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "deleteConfirm": "ต้องการลบข้อร้องเรียนนี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งรับเข้า (สถานะ \"received\") และยังไม่ได้ดำเนินการ",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "investigation": "การสืบสวน",
+        "attachments": "เอกสารแนบ"
+      },
+      "loading": "กำลังโหลดรายละเอียดข้อร้องเรียน...",
+      "notFound": "ไม่พบข้อร้องเรียน",
+      "backToList": "กลับไปรายการข้อร้องเรียน",
+      "print": "พิมพ์",
+      "delete": "ลบ",
+      "deleteHint": "ลบข้อร้องเรียน",
+      "heading": "ข้อร้องเรียน {number}",
+      "unknownProduct": "ไม่ทราบผลิตภัณฑ์",
+      "regulatoryRequired": "ต้องแจ้งหน่วยงานกำกับ",
+      "edit": "แก้ไข",
+      "createCapa": "สร้าง CAPA",
+      "closeComplaint": "ปิดข้อร้องเรียน",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "steps": {
+        "received": "รับเรื่อง",
+        "under_investigation": "กำลังสอบสวน",
+        "resolved": "แก้ไขแล้ว",
+        "closed": "ปิด"
+      },
+      "metrics": {
+        "severity": "ความรุนแรง",
+        "category": "หมวดหมู่",
+        "source": "แหล่งที่มา",
+        "investigation": "การสืบสวน"
+      },
+      "source": {
+        "customer": "ลูกค้า",
+        "distributor": "ผู้จัดจำหน่าย",
+        "regulatory": "หน่วยงานกำกับ",
+        "internal": "ภายใน"
+      },
+      "investigationState": {
+        "completed": "เสร็จสิ้น",
+        "inProgress": "กำลังดำเนินการ",
+        "pending": "รอดำเนินการ"
+      },
+      "notAssigned": "ยังไม่ได้มอบหมาย",
+      "regulatoryBanner": {
+        "title": "ต้องรายงานหน่วยงานกำกับ (Regulatory Report Required)",
+        "reportedOn": "รายงานเมื่อ: {date}",
+        "notReported": "ยังไม่ได้รายงาน - กรุณาดำเนินการโดยเร็ว"
+      },
+      "sections": {
+        "generalInfo": "ข้อมูลทั่วไป",
+        "complainantInfo": "ข้อมูลผู้ร้องเรียน",
+        "description": "รายละเอียดข้อร้องเรียน",
+        "linkedRecords": "เอกสารที่เกี่ยวข้อง",
+        "closureInfo": "ข้อมูลการปิด"
+      },
+      "fields": {
+        "complaintNumber": "เลขที่ข้อร้องเรียน",
+        "receivedDate": "วันที่ได้รับ",
+        "product": "ผลิตภัณฑ์",
+        "lotNumber": "เลขที่ล็อต",
+        "createdBy": "ผู้บันทึก",
+        "createdAt": "วันที่สร้าง",
+        "name": "ชื่อ",
+        "contact": "ช่องทางติดต่อ",
+        "closedDate": "วันที่ปิด",
+        "closedBy": "ปิดโดย"
+      },
+      "noComplainantInfo": "ไม่ได้ระบุข้อมูลผู้ร้องเรียน",
+      "attachmentsTitle": "เอกสารแนบ (Attachments)",
+      "closeDialog": {
+        "investigationDone": "การสืบสวนเสร็จสิ้น",
+        "readyToClose": "ข้อร้องเรียนพร้อมที่จะปิดได้แล้ว",
+        "notesLabel": "หมายเหตุการปิด (ไม่บังคับ)",
+        "notesPlaceholder": "เพิ่มหมายเหตุเกี่ยวกับการปิดข้อร้องเรียนนี้..."
+      }
+    }
   },
   "documents": {
     "title": "เอกสาร",
@@ -572,6 +832,104 @@
       "viewDocument": "ดูเอกสาร",
       "editDocument": "แก้ไขเอกสาร",
       "deleteDraft": "ลบเอกสารร่าง"
+    },
+    "detail": {
+      "version": "เวอร์ชัน {number}",
+      "download": "ดาวน์โหลด",
+      "openInNewTab": "เปิดในแท็บใหม่",
+      "fullscreen": "เต็มหน้าจอ",
+      "exitFullscreen": "ออกจากเต็มหน้าจอ",
+      "loadingPdf": "กำลังโหลด PDF...",
+      "previewUnavailable": "ไม่สามารถแสดงตัวอย่างได้",
+      "pdfPreviewUnavailable": "ไม่สามารถแสดงไฟล์ PDF ในเบราว์เซอร์ได้ กรุณาดาวน์โหลดเพื่อดู",
+      "downloadPdf": "ดาวน์โหลด PDF",
+      "downloadFile": "ดาวน์โหลดไฟล์",
+      "fileTypePreviewUnavailable": "ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้ กรุณาดาวน์โหลดไฟล์เพื่อดูเนื้อหา",
+      "documentContent": "เนื้อหาเอกสาร",
+      "documentPreview": "ตัวอย่างเอกสาร",
+      "noContent": "ไม่มีเนื้อหา",
+      "noContentDescription": "เวอร์ชันนี้ไม่มีไฟล์แนบหรือเนื้อหาข้อความ",
+      "fileType": {
+        "pdf": "เอกสาร PDF",
+        "doc": "เอกสาร Word (.doc)",
+        "docx": "เอกสาร Word (.docx)",
+        "xls": "ตารางงาน Excel (.xls)",
+        "xlsx": "ตารางงาน Excel (.xlsx)",
+        "generic": "เอกสาร"
+      },
+      "statusLabels": {
+        "draft": "ฉบับร่าง",
+        "active": "ใช้งาน",
+        "obsolete": "ยกเลิกใช้งาน",
+        "archived": "จัดเก็บ"
+      },
+      "updateStatusFailed": "ไม่สามารถอัปเดตสถานะได้",
+      "loadingDocument": "กำลังโหลดเอกสาร...",
+      "loadFailed": "ไม่สามารถโหลดเอกสารได้",
+      "change": "เปลี่ยน",
+      "trainingCourse": "หลักสูตรอบรม: {code} - {name}",
+      "trainingCourseId": "หลักสูตรอบรม #{id}",
+      "edit": "แก้ไข",
+      "newVersion": "เวอร์ชันใหม่",
+      "submitForApproval": "ส่งเพื่อขออนุมัติ",
+      "historical": "ย้อนหลัง",
+      "current": "ปัจจุบัน",
+      "by": "โดย",
+      "unknown": "ไม่ทราบ",
+      "effectiveDate": "มีผลบังคับใช้",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "steps": {
+        "draft": "ร่าง",
+        "approved": "อนุมัติแล้ว",
+        "active": "ใช้งาน",
+        "archived": "จัดเก็บ",
+        "obsolete": "ยกเลิกใช้"
+      },
+      "documentDetails": "รายละเอียดเอกสาร",
+      "metaType": "ประเภท",
+      "metaDepartment": "แผนก",
+      "metaCreatedBy": "สร้างโดย",
+      "metaCreatedAt": "วันที่สร้าง",
+      "metaRetention": "ระยะเวลาจัดเก็บ",
+      "retentionYears": "{years} ปี",
+      "approvalStatus": "สถานะการอนุมัติ",
+      "newVersionDialog": {
+        "title": "สร้างเวอร์ชันใหม่",
+        "changeDescription": "รายละเอียดการเปลี่ยนแปลง",
+        "changeDescriptionPlaceholder": "อธิบายสิ่งที่เปลี่ยนแปลงในเวอร์ชันนี้...",
+        "newContent": "เนื้อหาใหม่ (ถ้ามี)",
+        "newContentPlaceholder": "กรอกเนื้อหาเอกสารใหม่...",
+        "attachFile": "แนบไฟล์ (ถ้ามี)",
+        "uploadHint": "คลิกเพื่ออัปโหลดหรือลากไฟล์มาวาง",
+        "uploadFormats": "PDF, DOC, DOCX, XLS, XLSX (สูงสุด 10MB)",
+        "fileSizeError": "ขนาดไฟล์ต้องไม่เกิน 10MB",
+        "majorRevision": "การแก้ไขครั้งใหญ่ (เพิ่มหมายเลขเวอร์ชันหลัก)",
+        "uploading": "กำลังอัปโหลด...",
+        "createVersion": "สร้างเวอร์ชัน"
+      },
+      "submitDialog": {
+        "line1": "ระบบจะส่งเวอร์ชัน {version} เพื่อขออนุมัติ ตามลำดับการอนุมัติของประเภทเอกสาร",
+        "line2": "ผู้อนุมัติที่เกี่ยวข้องจะได้รับการแจ้งเตือน และสถานะของเวอร์ชันจะเปลี่ยนเป็น \"รออนุมัติ\"",
+        "send": "ส่ง"
+      },
+      "statusDialog": {
+        "title": "เปลี่ยนสถานะเอกสาร",
+        "currentStatus": "สถานะปัจจุบัน",
+        "newStatus": "สถานะใหม่",
+        "warning": {
+          "active": "การดำเนินการนี้จะทำให้เอกสารอยู่ในสถานะใช้งาน และทำให้เวอร์ชันปัจจุบันมีผลบังคับใช้",
+          "draft": "การดำเนินการนี้จะเปลี่ยนเอกสารกลับเป็นสถานะฉบับร่าง",
+          "obsolete": "การดำเนินการนี้จะทำให้เอกสารถูกยกเลิกใช้งานและแทนที่ทุกเวอร์ชัน",
+          "archived": "การดำเนินการนี้จะจัดเก็บเอกสารไว้เพื่อการอ้างอิงย้อนหลังเท่านั้น"
+        },
+        "updating": "กำลังอัปเดต...",
+        "updateStatus": "อัปเดตสถานะ"
+      }
+    },
+    "deleteConfirm": "ลบเอกสาร \"{title}\" ({number})?\nเอกสารที่ลบแล้วจะไม่สามารถกู้คืนได้",
+    "empty": {
+      "title": "ยังไม่มีเอกสาร GMP",
+      "description": "เริ่มต้นการจัดการเอกสาร GMP ของคุณโดยสร้างเอกสารใหม่ฉบับแรก"
     }
   },
   "internalAudit": {
@@ -710,7 +1068,154 @@
     "totalLabel": "รวม",
     "daysSuffix": "วัน",
     "notAvailable": "ไม่มี",
-    "percentOfTotal": "% จากทั้งหมด"
+    "percentOfTotal": "% จากทั้งหมด",
+    "auditDetail": {
+      "toast": {
+        "createFinding": {
+          "success": "บันทึกข้อค้นพบแล้ว",
+          "error": "ไม่สามารถบันทึกข้อค้นพบได้"
+        },
+        "closeFinding": {
+          "success": "ปิดข้อค้นพบแล้ว",
+          "error": "ไม่สามารถปิดข้อค้นพบได้"
+        },
+        "start": {
+          "success": "เริ่มการตรวจประเมินแล้ว",
+          "error": "ไม่สามารถเริ่มการตรวจประเมินได้"
+        },
+        "complete": {
+          "success": "เสร็จสิ้นการตรวจประเมินแล้ว",
+          "error": "ไม่สามารถเสร็จสิ้นการตรวจประเมินได้"
+        }
+      },
+      "validation": {
+        "descriptionRequired": "กรุณากรอกรายละเอียด"
+      },
+      "confirm": {
+        "closeFinding": "ต้องการปิดข้อค้นพบนี้ใช่หรือไม่?"
+      },
+      "categoryOptions": {
+        "observation": "ข้อสังเกต",
+        "minor": "เล็กน้อย",
+        "major": "สำคัญ",
+        "critical": "วิกฤต"
+      },
+      "chapterLabel": "หมวด {chapter}: {name}",
+      "chapterShort": "หมวด {chapter}",
+      "notFound": "ไม่พบการตรวจประเมิน",
+      "backToAudits": "กลับไปหน้าการตรวจประเมิน",
+      "actions": {
+        "complete": "เสร็จสิ้น",
+        "addFinding": "เพิ่มข้อค้นพบ"
+      },
+      "stepper": {
+        "title": "สถานะการดำเนินงาน",
+        "scheduled": "กำหนดการ",
+        "inProgress": "กำลังตรวจ",
+        "completed": "เสร็จสิ้น"
+      },
+      "fields": {
+        "status": "สถานะ",
+        "type": "ประเภท",
+        "scheduledDate": "วันที่นัดหมาย",
+        "leadAuditor": "หัวหน้าผู้ตรวจประเมิน",
+        "gmpChapters": "หมวด GMP",
+        "objectives": "วัตถุประสงค์",
+        "startedAt": "เริ่มเมื่อ",
+        "completedAt": "เสร็จสิ้นเมื่อ"
+      },
+      "summary": {
+        "total": "ทั้งหมด"
+      },
+      "findingsHeading": "ข้อค้นพบจากการตรวจประเมิน",
+      "findingPopup": {
+        "title": "บันทึกข้อค้นพบ",
+        "gmpChapter": "หมวด GMP *",
+        "category": "ประเภท *",
+        "description": "รายละเอียด *",
+        "descriptionPlaceholder": "อธิบายข้อค้นพบ",
+        "evidence": "หลักฐาน",
+        "evidencePlaceholder": "หลักฐานประกอบ",
+        "requirement": "อ้างอิงข้อกำหนด GMP",
+        "requirementPlaceholder": "e.g., หมวด 3 ข้อ 3.1",
+        "capaRequired": "ต้องมี CAPA",
+        "capaHint": "ข้อค้นพบระดับสำคัญและวิกฤตโดยทั่วไปต้องมี CAPA",
+        "submit": "บันทึกข้อค้นพบ"
+      }
+    },
+    "auditsList": {
+      "toast": {
+        "create": {
+          "success": "กำหนดการตรวจประเมินเรียบร้อยแล้ว",
+          "error": "ไม่สามารถกำหนดการตรวจประเมินได้"
+        },
+        "start": {
+          "success": "เริ่มการตรวจประเมินแล้ว",
+          "error": "ไม่สามารถเริ่มการตรวจประเมินได้"
+        },
+        "complete": {
+          "success": "การตรวจประเมินเสร็จสิ้นแล้ว",
+          "error": "ไม่สามารถปิดการตรวจประเมินได้"
+        }
+      },
+      "validation": {
+        "scopeRequired": "กรุณาระบุขอบเขตการตรวจประเมิน",
+        "chaptersRequired": "กรุณาเลือกหมวด GMP อย่างน้อยหนึ่งหมวด"
+      },
+      "confirm": {
+        "start": "คุณต้องการเริ่มการตรวจประเมินนี้ใช่หรือไม่?",
+        "complete": "คุณต้องการปิดการตรวจประเมินนี้ใช่หรือไม่?"
+      },
+      "auditTypes": {
+        "internal": "การตรวจประเมินภายใน",
+        "external": "การตรวจประเมินภายนอก",
+        "regulatory": "การตรวจประเมินตามกฎระเบียบ"
+      },
+      "chapterLabel": "หมวด {chapter}: {name}",
+      "loadError": "เกิดข้อผิดพลาดในการโหลดการตรวจประเมิน",
+      "subtitleForPlan": "การตรวจประเมินสำหรับแผน #{planId}",
+      "scheduleAudit": "กำหนดการตรวจประเมิน",
+      "form": {
+        "auditType": "ประเภทการตรวจประเมิน *",
+        "scheduledDate": "วันที่กำหนดตรวจประเมิน *",
+        "scope": "ขอบเขตการตรวจประเมิน *",
+        "scopePlaceholder": "เช่น พื้นที่การผลิต, ห้องปฏิบัติการควบคุมคุณภาพ",
+        "gmpChapters": "หมวด GMP *",
+        "gmpChaptersPlaceholder": "เลือกหมวด GMP ที่ต้องการตรวจประเมิน",
+        "objectives": "วัตถุประสงค์",
+        "objectivesPlaceholder": "กรอกวัตถุประสงค์ของการตรวจประเมิน"
+      }
+    },
+    "plansList": {
+      "defaultPlanName": "แผนการตรวจประเมินภายในประจำปี {year}",
+      "toast": {
+        "create": {
+          "success": "สร้างแผนการตรวจประเมินสำเร็จ",
+          "error": "ไม่สามารถสร้างแผนการตรวจประเมินได้"
+        },
+        "approve": {
+          "success": "อนุมัติแผนการตรวจประเมินแล้ว",
+          "error": "ไม่สามารถอนุมัติแผนการตรวจประเมินได้"
+        }
+      },
+      "validation": {
+        "nameRequired": "กรุณากรอกชื่อแผนการตรวจประเมิน"
+      },
+      "confirm": {
+        "approve": "คุณแน่ใจหรือไม่ว่าต้องการอนุมัติแผนการตรวจประเมินนี้?"
+      },
+      "loadError": "เกิดข้อผิดพลาดในการโหลดแผนการตรวจประเมิน",
+      "createPlan": "สร้างแผน",
+      "createPopupTitle": "สร้างแผนการตรวจประเมิน",
+      "form": {
+        "planYear": "ปีของแผน",
+        "name": "ชื่อแผน *",
+        "namePlaceholder": "กรอกชื่อแผน",
+        "description": "รายละเอียด",
+        "descriptionPlaceholder": "กรอกรายละเอียดแผน"
+      },
+      "create": "สร้าง"
+    }
   },
   "recalls": {
     "title": "การเรียกคืน",
@@ -825,7 +1330,19 @@
       "customersIdentified": "ลูกค้าที่ระบุได้",
       "unitsDistributed": "หน่วยที่กระจายออกไป"
     },
-    "viewRecall": "ดูการเรียกคืน"
+    "viewRecall": "ดูการเรียกคืน",
+    "detail": {
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "deleteConfirm": "ต้องการลบการเรียกคืนสินค้านี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งเริ่ม (สถานะ \"initiated\") และยังไม่ได้ดำเนินการ",
+      "delete": "ลบ",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "steps": {
+        "initiated": "เริ่มเรียกคืน",
+        "in_progress": "กำลังดำเนินการ",
+        "completed": "เสร็จสิ้น",
+        "closed": "ปิด"
+      }
+    }
   },
   "sanitation": {
     "title": "สุขาภิบาล",
@@ -981,7 +1498,125 @@
       "description": "ลองปรับคำค้นหาหรือเลือกแท็บอื่น"
     },
     "resultCount": "{count} จาก {total}",
-    "overdue": "เกินกำหนด"
+    "overdue": "เกินกำหนด",
+    "new": {
+      "changeTypes": {
+        "process": "กระบวนการ",
+        "equipment": "เครื่องจักร/อุปกรณ์",
+        "document": "เอกสาร",
+        "supplier": "ผู้ขาย/ผู้ส่งมอบ",
+        "formula": "สูตรการผลิต",
+        "other": "อื่น ๆ"
+      },
+      "validation": {
+        "titleRequired": "กรุณากรอกหัวข้อ",
+        "ownerRequired": "กรุณาเลือกผู้รับผิดชอบการเปลี่ยนแปลง"
+      },
+      "groups": {
+        "basicInfo": "ข้อมูลพื้นฐาน",
+        "changeDetails": "รายละเอียดการเปลี่ยนแปลง",
+        "assessment": "การประเมินการเปลี่ยนแปลง"
+      },
+      "fields": {
+        "title": "หัวข้อ",
+        "titlePlaceholder": "คำอธิบายการเปลี่ยนแปลงโดยย่อ",
+        "changeType": "ประเภทการเปลี่ยนแปลง",
+        "priority": "ความสำคัญ",
+        "owner": "ผู้รับผิดชอบการเปลี่ยนแปลง",
+        "ownerPlaceholder": "เลือกผู้รับผิดชอบ",
+        "targetDate": "วันที่กำหนดดำเนินการ",
+        "targetDatePlaceholder": "เลือกวันที่",
+        "description": "รายละเอียด",
+        "descriptionPlaceholder": "รายละเอียดของการเปลี่ยนแปลงที่เสนอ",
+        "justification": "เหตุผลความจำเป็น",
+        "justificationPlaceholder": "เหตุใดจึงจำเป็นต้องมีการเปลี่ยนแปลงนี้?",
+        "impactAssessment": "การประเมินผลกระทบ",
+        "impactAssessmentPlaceholder": "การเปลี่ยนแปลงนี้จะส่งผลกระทบต่อส่วนใดบ้าง?",
+        "riskAssessment": "การประเมินความเสี่ยง",
+        "riskAssessmentPlaceholder": "มีความเสี่ยงใดบ้างหากไม่ดำเนินการเปลี่ยนแปลงนี้?"
+      },
+      "submit": "สร้างคำขอเปลี่ยนแปลง",
+      "create": "สร้าง",
+      "banner": {
+        "title": "การสร้างคำขอเปลี่ยนแปลงแบบร่าง",
+        "description": "แบบฟอร์มนี้จะสร้างคำขอเปลี่ยนแปลงแบบร่าง หลังจากสร้างแล้ว คุณสามารถเพิ่มรายละเอียดและส่งเข้าสู่ขั้นตอนการอนุมัติได้ ทุกฟิลด์ยกเว้นหัวข้อและผู้รับผิดชอบสามารถแก้ไขภายหลังได้"
+      }
+    },
+    "detail": {
+      "roles": {
+        "qa": "ฝ่ายประกันคุณภาพ",
+        "production": "ฝ่ายผลิต",
+        "regulatory": "ฝ่ายกำกับดูแล",
+        "management": "ฝ่ายบริหาร"
+      },
+      "approvalStatus": {
+        "pending": "รอดำเนินการ",
+        "approved": "อนุมัติ",
+        "rejected": "ปฏิเสธ"
+      },
+      "signed": "ลงนามเมื่อ",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "confirmDelete": "ต้องการลบคำขอเปลี่ยนแปลงนี้หรือไม่?\nลบได้เฉพาะรายการที่ยังเป็นฉบับร่าง (สถานะ \"draft\")",
+      "validation": {
+        "justificationRequired": "ต้องระบุเหตุผลความจำเป็นก่อนส่งเข้าตรวจสอบ",
+        "impactRequired": "ต้องระบุการประเมินผลกระทบก่อนส่งเข้าตรวจสอบ",
+        "riskRequired": "ต้องระบุการประเมินความเสี่ยงก่อนส่งเข้าตรวจสอบ"
+      },
+      "loadError": "ไม่สามารถโหลดคำขอเปลี่ยนแปลงได้",
+      "submitForReview": "ส่งเข้าตรวจสอบ",
+      "markImplemented": "ทำเครื่องหมายว่าดำเนินการแล้ว",
+      "closeChange": "ปิดคำขอเปลี่ยนแปลง",
+      "delete": "ลบ",
+      "stepper": {
+        "title": "สถานะการดำเนินงาน",
+        "draft": "ร่าง",
+        "pendingReview": "รออนุมัติ",
+        "approved": "อนุมัติ",
+        "implemented": "ดำเนินการ",
+        "closed": "ปิด"
+      },
+      "warning": {
+        "cannotSubmit": "ยังไม่สามารถส่งเข้าตรวจสอบได้",
+        "justificationRequired": "ต้องระบุเหตุผลความจำเป็น",
+        "impactRequired": "ต้องระบุการประเมินผลกระทบ",
+        "riskRequired": "ต้องระบุการประเมินความเสี่ยง"
+      },
+      "meta": {
+        "type": "ประเภท",
+        "owner": "ผู้รับผิดชอบ",
+        "requester": "ผู้ร้องขอ",
+        "target": "กำหนดเสร็จ",
+        "implemented": "ดำเนินการแล้ว"
+      },
+      "sections": {
+        "description": "รายละเอียด",
+        "justification": "เหตุผลความจำเป็น",
+        "impactAssessment": "การประเมินผลกระทบ",
+        "riskAssessment": "การประเมินความเสี่ยง"
+      },
+      "approvalWorkflow": "ขั้นตอนการอนุมัติ",
+      "noApprovals": "รายการอนุมัติจะถูกสร้างเมื่อส่งเข้าตรวจสอบ",
+      "approvalDialog": {
+        "approveTitle": "อนุมัติคำขอเปลี่ยนแปลง",
+        "rejectTitle": "ปฏิเสธคำขอเปลี่ยนแปลง",
+        "comments": "ความคิดเห็น",
+        "rejectPlaceholder": "กรุณาอธิบายเหตุผลที่ปฏิเสธ...",
+        "optionalPlaceholder": "ความคิดเห็นเพิ่มเติม (ถ้ามี)..."
+      },
+      "implementDialog": {
+        "title": "ทำเครื่องหมายว่าดำเนินการแล้ว",
+        "notesLabel": "บันทึกการดำเนินการ (ถ้ามี)",
+        "notesPlaceholder": "เพิ่มบันทึกเกี่ยวกับการดำเนินการ..."
+      },
+      "closeDialog": {
+        "title": "ปิดคำขอเปลี่ยนแปลง",
+        "verified": "การเปลี่ยนแปลงได้ดำเนินการและตรวจสอบยืนยันแล้ว",
+        "notesLabel": "บันทึกการปิด (ถ้ามี)",
+        "notesPlaceholder": "เพิ่มบันทึกปิดท้าย..."
+      }
+    }
   },
   "contracts": {
     "title": "สัญญา",
@@ -1072,7 +1707,137 @@
     },
     "generate": {
       "title": "สร้างรายงาน PQR",
-      "description": "สร้างรายงานทบทวนคุณภาพผลิตภัณฑ์"
+      "description": "สร้างรายงานทบทวนคุณภาพผลิตภัณฑ์",
+      "backToDashboard": "กลับสู่แดชบอร์ด PQR",
+      "selectProduct": "เลือกผลิตภัณฑ์",
+      "productLabel": "ผลิตภัณฑ์",
+      "productPlaceholder": "เลือกผลิตภัณฑ์สำเร็จรูป...",
+      "productHint": "เลือกผลิตภัณฑ์สำเร็จรูปสำหรับการทบทวนคุณภาพ",
+      "reviewPeriod": "ช่วงเวลาที่ทบทวน",
+      "reviewYearLabel": "ปีที่ทบทวน",
+      "reviewYearHint": "ปีที่ทำการทบทวน (โดยทั่วไปคือปีที่ผ่านมา)",
+      "periodStartLabel": "วันที่เริ่มต้นช่วงเวลา",
+      "periodEndLabel": "วันที่สิ้นสุดช่วงเวลา",
+      "periodDefaultHint": "ค่าเริ่มต้นคือตลอดทั้งปีปฏิทิน (1 ม.ค. - 31 ธ.ค.)",
+      "previewTitle": "ตัวอย่างรายงาน",
+      "previewProduct": "ผลิตภัณฑ์:",
+      "previewReviewYear": "ปีที่ทบทวน:",
+      "previewPeriod": "ช่วงเวลาที่ทบทวน:",
+      "periodRange": "{start} ถึง {end}",
+      "previewReportNumber": "เลขที่รายงาน:",
+      "autoGeneratedNumber": "สร้างอัตโนมัติ (PQR-{year}-XXX)",
+      "whatWillBeCreated": "สิ่งที่จะถูกสร้างขึ้น:",
+      "created": {
+        "draftReport": "รายงาน PQR ฉบับร่างพร้อมเลขที่รายงานที่สร้างอัตโนมัติ",
+        "dataAggregation": "การรวบรวมข้อมูลจากแบตช์การผลิต การเบี่ยงเบน CAPA และข้อร้องเรียน",
+        "kpiCalculation": "การคำนวณ KPI และการวิเคราะห์ตัวชี้วัด",
+        "autoRecommendations": "ข้อเสนอแนะอัตโนมัติจากข้อมูลคุณภาพ"
+      },
+      "actionsTitle": "การดำเนินการ",
+      "creating": "กำลังสร้าง...",
+      "createReport": "สร้างรายงาน",
+      "requiredInfo": "ข้อมูลที่จำเป็น",
+      "enterReviewYear": "กรอกปีที่ทบทวน",
+      "aboutTitle": "เกี่ยวกับรายงาน PQR",
+      "aboutPqrTerm": "การทบทวนคุณภาพผลิตภัณฑ์ (PQR)",
+      "aboutDescription": "คือการทบทวนคุณภาพผลิตภัณฑ์ประจำปี อย่างครอบคลุมตามที่ข้อกำหนด GMP กำหนด",
+      "aboutAggregateIntro": "ระบบจะรวบรวมข้อมูลโดยอัตโนมัติจาก:",
+      "aboutSource": {
+        "batches": "แบตช์การผลิตและผลผลิต",
+        "deviations": "การเบี่ยงเบนและความไม่สอดคล้อง",
+        "capa": "กิจกรรม CAPA",
+        "complaints": "ข้อร้องเรียนของลูกค้า",
+        "oos": "ผลที่อยู่นอกข้อกำหนด (OOS)",
+        "stability": "การศึกษาความคงสภาพ"
+      },
+      "aboutFooter": "หลังจากสร้างแล้ว คุณสามารถทบทวน แก้ไข และส่งรายงานเพื่อขออนุมัติได้"
+    },
+    "list": {
+      "statusLabel": {
+        "draftDoc": "ฉบับร่าง",
+        "pendingReview": "รอตรวจสอบ",
+        "approved": "อนุมัติแล้ว"
+      },
+      "percentOfTotal": "{percent}% ของทั้งหมด",
+      "viewDetails": "ดูรายละเอียด",
+      "moreOptions": "ตัวเลือกเพิ่มเติม",
+      "reports": "รายงาน",
+      "newPqr": "สร้าง PQR ใหม่",
+      "kpi": {
+        "totalReports": "รายงานทั้งหมด",
+        "draft": "ฉบับร่าง",
+        "pendingReview": "รอตรวจสอบ",
+        "approved": "อนุมัติแล้ว",
+        "approvedThisYear": "อนุมัติปี {year}",
+        "avgDeviation": "ความเบี่ยงเบนเฉลี่ย",
+        "avgOos": "OOS เฉลี่ย"
+      },
+      "sections": {
+        "reportsByStatus": "รายงานตามสถานะ",
+        "statusDistribution": "การกระจายตามสถานะ",
+        "reportsByYear": "รายงานตามปี",
+        "avgMetrics": "ค่าเฉลี่ยตัวชี้วัด",
+        "quickSummary": "สรุปโดยย่อ"
+      },
+      "noReportData": "ไม่มีข้อมูลรายงาน",
+      "noYearData": "ไม่มีข้อมูลรายปี",
+      "indicators": {
+        "deviationRate": "อัตราความเบี่ยงเบน",
+        "oosRate": "อัตรา OOS",
+        "capaClosure": "การปิด CAPA",
+        "complaintRate": "อัตราข้อร้องเรียน"
+      },
+      "approvedYear": "อนุมัติแล้ว {year}",
+      "tabs": {
+        "all": "รายงานทั้งหมด",
+        "draft": "ฉบับร่าง",
+        "underReview": "กำลังตรวจสอบ",
+        "approved": "อนุมัติแล้ว"
+      },
+      "reportCount": "{count} รายงาน",
+      "searchPlaceholder": "ค้นหารายงาน...",
+      "columns": {
+        "reportNumber": "เลขที่รายงาน",
+        "product": "ผลิตภัณฑ์",
+        "year": "ปี",
+        "status": "สถานะ",
+        "keyMetrics": "ตัวชี้วัดสำคัญ",
+        "batches": "จำนวนแบทช์",
+        "approvedBy": "อนุมัติโดย",
+        "createdAt": "สร้างเมื่อ"
+      },
+      "summaryTotal": "รวม: '{0}'",
+      "dialog": {
+        "title": "สร้างรายงาน PQR ใหม่",
+        "subtitle": "Product Quality Review - รายงานทบทวนคุณภาพผลิตภัณฑ์ประจำปี",
+        "selectProduct": "เลือกผลิตภัณฑ์ *",
+        "change": "เปลี่ยน",
+        "clickToSelect": "คลิกเพื่อเลือกผลิตภัณฑ์...",
+        "finishedGoodsOnly": "เฉพาะผลิตภัณฑ์สำเร็จรูป (Finished Goods)",
+        "reviewYear": "ปีที่ทบทวน (Review Year) *",
+        "reviewYearHint": "เลือกปีที่ต้องการทบทวนคุณภาพผลิตภัณฑ์ (ค.ศ.)",
+        "reviewPeriod": "ช่วงเวลาที่ทบทวน (Review Period)",
+        "optional": "ไม่บังคับ",
+        "startDate": "วันที่เริ่มต้น",
+        "endDate": "วันที่สิ้นสุด",
+        "startDatePlaceholder": "เลือกวันที่เริ่มต้น...",
+        "endDatePlaceholder": "เลือกวันที่สิ้นสุด...",
+        "reviewPeriodHint": "ระบุช่วงเวลาที่จะรวบรวมข้อมูลสำหรับการทบทวน (โดยปกติ 1 ม.ค. - 31 ธ.ค.)",
+        "autoCollectTitle": "ข้อมูลที่จะรวบรวมอัตโนมัติ",
+        "autoCollect": {
+          "batches": "จำนวน Batch ที่ผลิตในช่วงเวลา",
+          "deviations": "ข้อมูล Deviation, CAPA, OOS, Complaints",
+          "quality": "ผลการทดสอบคุณภาพและ Stability",
+          "recall": "ข้อมูลการ Recall และ Market Returns"
+        },
+        "requiredNote": "จำเป็นต้องกรอก",
+        "creating": "กำลังสร้าง...",
+        "create": "สร้างรายงาน PQR",
+        "itemSearchTitle": "เลือกผลิตภัณฑ์สำหรับ PQR"
+      }
+    },
+    "detail": {
+      "workflowTitle": "สถานะการดำเนินงาน"
     }
   },
   "audits": {

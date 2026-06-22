@@ -4,6 +4,7 @@
  * Audit Q6 — บันทึก/ดู/รับทราบ alert
  */
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -56,17 +57,21 @@ const alertColor = (level: string) =>
       ? 'bg-red-100 text-red-700'
       : 'bg-amber-100 text-amber-700';
 
-const alertLabel = (level: string) =>
-  ({
-    in_spec: '✓ ปกติ',
-    temp_low: '↓ อุณหภูมิต่ำ',
-    temp_high: '↑ อุณหภูมิสูง',
-    humidity_low: '↓ ความชื้นต่ำ',
-    humidity_high: '↑ ความชื้นสูง',
-    multiple: '⚠ หลายค่า',
-  })[level] || level;
-
 export default function StorageMonitoringPage() {
+  const t = useTranslations('premises');
+  const alertLabel = (level: string) => {
+    const known = [
+      'in_spec',
+      'temp_low',
+      'temp_high',
+      'humidity_low',
+      'humidity_high',
+      'multiple',
+    ];
+    return known.includes(level)
+      ? t(`storageMonitoring.alertLabel.${level}` as any)
+      : level;
+  };
   const toast = useToast();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [logs, setLogs] = useState<LogRow[]>([]);
@@ -114,7 +119,7 @@ export default function StorageMonitoringPage() {
       const logRaw = logJson?.data ?? logJson ?? [];
       setLogs(Array.isArray(logRaw) ? logRaw : []);
     } catch (e) {
-      toast.error('โหลดข้อมูลไม่สำเร็จ', (e as Error).message);
+      toast.error(t('storageMonitoring.toast.loadFailed'), (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -174,11 +179,11 @@ export default function StorageMonitoringPage() {
 
   const submitLog = async () => {
     if (!logForm.warehouseId) {
-      toast.error('กรุณาเลือกคลัง');
+      toast.error(t('storageMonitoring.toast.selectWarehouse'));
       return;
     }
     if (logForm.temperature == null && logForm.humidity == null) {
-      toast.error('กรุณากรอกอย่างน้อย 1 ค่า');
+      toast.error(t('storageMonitoring.toast.atLeastOneValue'));
       return;
     }
     setSaving(true);
@@ -196,14 +201,21 @@ export default function StorageMonitoringPage() {
       );
       const json = await res.json();
       if (!res.ok) {
-        toast.error('บันทึกไม่สำเร็จ', json?.error);
+        toast.error(t('storageMonitoring.toast.saveFailed'), json?.error);
         return;
       }
       const saved = json.data;
       if (saved?.alertLevel && saved.alertLevel !== 'in_spec') {
-        toast.error(`⚠ ALERT — ${alertLabel(saved.alertLevel)}`, saved.alertMessage);
+        toast.error(
+          t('storageMonitoring.toast.alertTitle', { label: alertLabel(saved.alertLevel) }),
+          saved.alertMessage,
+        );
       } else {
-        toast.success(isEdit ? 'แก้ไขเรียบร้อย — อยู่ในเกณฑ์' : 'บันทึกเรียบร้อย — อยู่ในเกณฑ์');
+        toast.success(
+          isEdit
+            ? t('storageMonitoring.toast.editedInSpec')
+            : t('storageMonitoring.toast.savedInSpec'),
+        );
       }
       closeDialog();
       void loadData();
@@ -221,10 +233,10 @@ export default function StorageMonitoringPage() {
       });
       if (!res.ok) {
         const j = await res.json();
-        toast.error('ลบไม่สำเร็จ', j?.error);
+        toast.error(t('storageMonitoring.toast.deleteFailed'), j?.error);
         return;
       }
-      toast.success('ลบรายการแล้ว');
+      toast.success(t('storageMonitoring.toast.deleted'));
       setDeleteTarget(null);
       void loadData();
     } finally {
@@ -241,20 +253,20 @@ export default function StorageMonitoringPage() {
     });
     if (!res.ok) {
       const j = await res.json();
-      toast.error('รับทราบไม่สำเร็จ', j?.error);
+      toast.error(t('storageMonitoring.toast.ackFailed'), j?.error);
       return;
     }
-    toast.success('รับทราบ alert แล้ว');
+    toast.success(t('storageMonitoring.toast.acked'));
     setAckDialog(null);
     setAckNotes('');
     void loadData();
   };
 
   const columns: DxDataGridColumn[] = [
-    { dataField: 'readingAt', caption: 'วันเวลา', dataType: 'datetime', width: 160 },
+    { dataField: 'readingAt', caption: t('storageMonitoring.columns.readingAt'), dataType: 'datetime', width: 160 },
     {
       dataField: 'warehouseCode',
-      caption: 'คลัง',
+      caption: t('storageMonitoring.columns.warehouse'),
       width: 220,
       cellRender: (c: any) => {
         const d = c.data as LogRow;
@@ -268,11 +280,11 @@ export default function StorageMonitoringPage() {
         );
       },
     },
-    { dataField: 'temperature', caption: '°C', format: '#,##0.0', width: 80 },
-    { dataField: 'humidity', caption: '%RH', format: '#,##0.0', width: 80 },
+    { dataField: 'temperature', caption: t('storageMonitoring.columns.temperature'), format: '#,##0.0', width: 80 },
+    { dataField: 'humidity', caption: t('storageMonitoring.columns.humidity'), format: '#,##0.0', width: 80 },
     {
       dataField: 'alertLevel',
-      caption: 'สถานะ',
+      caption: t('storageMonitoring.columns.status'),
       width: 130,
       cellRender: (c: any) => (
         <div className="overflow-hidden">
@@ -282,9 +294,9 @@ export default function StorageMonitoringPage() {
         </div>
       ),
     },
-    { dataField: 'alertMessage', caption: 'รายละเอียด', minWidth: 240 },
+    { dataField: 'alertMessage', caption: t('storageMonitoring.columns.details'), minWidth: 240 },
     {
-      caption: 'รับทราบ',
+      caption: t('storageMonitoring.columns.acknowledge'),
       width: 180,
       cellRender: (c: any) => {
         const d = c.data as LogRow;
@@ -302,7 +314,7 @@ export default function StorageMonitoringPage() {
               onClick={() => setAckDialog({ logId: d.id, message: d.alertMessage || '' })}
               data-testid={`ack-btn-${d.id}`}
             >
-              รับทราบ
+              {t('storageMonitoring.actions.acknowledge')}
             </button>
           );
         }
@@ -310,7 +322,7 @@ export default function StorageMonitoringPage() {
       },
     },
     {
-      caption: 'จัดการ',
+      caption: t('storageMonitoring.columns.manage'),
       width: 100,
       cellRender: (c: any) => {
         const d = c.data as LogRow;
@@ -318,7 +330,7 @@ export default function StorageMonitoringPage() {
           <div className="flex gap-1">
             <button
               className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
-              title="แก้ไข"
+              title={t('storageMonitoring.actions.edit')}
               onClick={() => openEdit(d)}
               data-testid={`edit-btn-${d.id}`}
             >
@@ -326,7 +338,7 @@ export default function StorageMonitoringPage() {
             </button>
             <button
               className="p-1.5 rounded hover:bg-red-50 text-red-600"
-              title="ลบ"
+              title={t('storageMonitoring.actions.delete')}
               onClick={() => setDeleteTarget(d)}
               data-testid={`delete-btn-${d.id}`}
             >
@@ -342,15 +354,15 @@ export default function StorageMonitoringPage() {
     <>
       <div className="space-y-4 p-4">
         <ResponsivePageHeader
-          title="ติดตามสภาพแวดล้อมคลังจัดเก็บ"
-          subtitle="บันทึกและติดตามอุณหภูมิ/ความชื้นของห้องเก็บ"
+          title={t('storageMonitoring.header.title')}
+          subtitle={t('storageMonitoring.header.subtitle')}
           breadcrumbs={[
-            { label: 'อาคารและสถานที่', href: '/premises' },
-            { label: 'ติดตามสภาพคลังจัดเก็บ' },
+            { label: t('storageMonitoring.header.breadcrumbPremises'), href: '/premises' },
+            { label: t('storageMonitoring.header.breadcrumbCurrent') },
           ]}
           actions={
             <DxButton
-              text="+ บันทึกค่า"
+              text={t('storageMonitoring.actions.addReading')}
               type="default"
               onClick={openCreate}
               data-testid="storage-monitoring-add"
@@ -360,20 +372,20 @@ export default function StorageMonitoringPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
-            label="แจ้งเตือนค้างรับทราบ"
+            label={t('storageMonitoring.stats.openAlerts')}
             value={stats.openAlerts}
             icon={AlertTriangle}
             iconColor="text-red-500"
             accentColor={stats.openAlerts > 0 ? 'border-red-500' : 'border-emerald-500'}
           />
-          <StatCard label="บันทึก 24h" value={stats.last24h} icon={Bell} />
+          <StatCard label={t('storageMonitoring.stats.last24h')} value={stats.last24h} icon={Bell} />
           <StatCard
-            label="คลังที่ติดตาม"
+            label={t('storageMonitoring.stats.monitoredAreas')}
             value={stats.monitoredAreas}
             icon={Thermometer}
           />
           <StatCard
-            label="บันทึกทั้งหมด"
+            label={t('storageMonitoring.stats.total')}
             value={stats.total}
             icon={CheckCircle2}
           />
@@ -381,9 +393,9 @@ export default function StorageMonitoringPage() {
 
         <div className="flex flex-wrap items-center gap-3 bg-white rounded-lg border p-3">
           <DxSelectBox
-            placeholder="เลือกคลัง..."
+            placeholder={t('storageMonitoring.filters.selectWarehousePlaceholder')}
             dataSource={[
-              { id: null, name: 'ทุกคลัง' },
+              { id: null, name: t('storageMonitoring.filters.allWarehouses') },
               ...warehouses.map((w) => ({ id: w.id, name: `${w.code} — ${w.name}` })),
             ]}
             valueExpr="id"
@@ -399,24 +411,24 @@ export default function StorageMonitoringPage() {
               onChange={(e) => setAlertsOnly(e.target.checked)}
               data-testid="alerts-only-filter"
             />
-            เฉพาะรายการที่เกินเกณฑ์
+            {t('storageMonitoring.filters.alertsOnly')}
           </label>
         </div>
 
         {/* Status legend — explains what each สถานะ means */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-600 px-1">
-          <span className="font-medium text-gray-500">ความหมายสถานะ:</span>
+          <span className="font-medium text-gray-500">{t('storageMonitoring.legend.label')}</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
-            ปกติ — อยู่ในเกณฑ์
+            {t('storageMonitoring.legend.normal')}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-amber-500" />
-            เกินเกณฑ์ 1 ค่า (อุณหภูมิ หรือ ความชื้น)
+            {t('storageMonitoring.legend.oneExceeded')}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-            เกินเกณฑ์หลายค่า — ต้องกดรับทราบ
+            {t('storageMonitoring.legend.multipleExceeded')}
           </span>
         </div>
 
@@ -433,7 +445,7 @@ export default function StorageMonitoringPage() {
         <DxPopup
           visible={showLogDialog}
           onHiding={closeDialog}
-          title={editingId ? 'แก้ไขบันทึกค่า' : 'บันทึกค่าอุณหภูมิ/ความชื้น'}
+          title={editingId ? t('storageMonitoring.dialog.editTitle') : t('storageMonitoring.dialog.createTitle')}
           width={500}
           height="auto"
           showCloseButton
@@ -445,7 +457,7 @@ export default function StorageMonitoringPage() {
               though logForm held them. */}
           <div key={editingId ?? 'new'} className="space-y-3 p-2">
             <DxSelectBox
-              placeholder="เลือกคลัง *"
+              placeholder={t('storageMonitoring.dialog.selectWarehouseRequired')}
               dataSource={warehouseOptions}
               valueExpr="id"
               displayExpr="name"
@@ -455,8 +467,8 @@ export default function StorageMonitoringPage() {
             />
             <div>
               <label className="text-sm text-gray-700 mb-1 block">
-                วันเวลาที่บันทึก{' '}
-                <span className="text-gray-400">(เว้นว่าง = เวลาปัจจุบัน)</span>
+                {t('storageMonitoring.dialog.readingAtLabel')}{' '}
+                <span className="text-gray-400">{t('storageMonitoring.dialog.readingAtHint')}</span>
               </label>
               <DxDateBox
                 type="datetime"
@@ -477,15 +489,19 @@ export default function StorageMonitoringPage() {
                 if (!w) return null;
                 return (
                   <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                    เกณฑ์: {w.temperatureMin}–{w.temperatureMax}°C / {w.humidityMin}–
-                    {w.humidityMax}%RH
+                    {t('storageMonitoring.dialog.criteria', {
+                      tempMin: String(w.temperatureMin),
+                      tempMax: String(w.temperatureMax),
+                      humidityMin: String(w.humidityMin),
+                      humidityMax: String(w.humidityMax),
+                    })}
                   </div>
                 );
               })()}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="flex items-center gap-1 text-sm text-gray-700 mb-1">
-                  <Thermometer className="w-4 h-4" /> อุณหภูมิ (°C)
+                  <Thermometer className="w-4 h-4" /> {t('storageMonitoring.dialog.temperatureLabel')}
                 </label>
                 <DxNumberBox
                   value={logForm.temperature ?? undefined}
@@ -496,7 +512,7 @@ export default function StorageMonitoringPage() {
               </div>
               <div>
                 <label className="flex items-center gap-1 text-sm text-gray-700 mb-1">
-                  <Droplets className="w-4 h-4" /> ความชื้น (%RH)
+                  <Droplets className="w-4 h-4" /> {t('storageMonitoring.dialog.humidityLabel')}
                 </label>
                 <DxNumberBox
                   value={logForm.humidity ?? undefined}
@@ -507,14 +523,14 @@ export default function StorageMonitoringPage() {
               </div>
             </div>
             <DxTextBox
-              placeholder="หมายเหตุ"
+              placeholder={t('storageMonitoring.dialog.notesPlaceholder')}
               value={logForm.notes}
               onValueChanged={(e) => setLogForm({ ...logForm, notes: e.value || '' })}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <DxButton text="ยกเลิก" onClick={closeDialog} disabled={saving} />
+              <DxButton text={t('storageMonitoring.dialog.cancel')} onClick={closeDialog} disabled={saving} />
               <DxButton
-                text={editingId ? 'บันทึกการแก้ไข' : 'บันทึก'}
+                text={editingId ? t('storageMonitoring.dialog.saveEdit') : t('storageMonitoring.dialog.save')}
                 type="success"
                 onClick={submitLog}
                 disabled={saving}
@@ -528,7 +544,7 @@ export default function StorageMonitoringPage() {
         <DxPopup
           visible={!!ackDialog}
           onHiding={() => setAckDialog(null)}
-          title="รับทราบ Alert"
+          title={t('storageMonitoring.ack.title')}
           width={460}
           height="auto"
           showCloseButton
@@ -538,14 +554,14 @@ export default function StorageMonitoringPage() {
               {ackDialog?.message}
             </div>
             <DxTextBox
-              placeholder="หมายเหตุ / การดำเนินการ"
+              placeholder={t('storageMonitoring.ack.notesPlaceholder')}
               value={ackNotes}
               onValueChanged={(e) => setAckNotes(e.value || '')}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <DxButton text="ยกเลิก" onClick={() => setAckDialog(null)} />
+              <DxButton text={t('storageMonitoring.ack.cancel')} onClick={() => setAckDialog(null)} />
               <DxButton
-                text="ยืนยันรับทราบ"
+                text={t('storageMonitoring.ack.confirm')}
                 type="danger"
                 onClick={acknowledge}
                 data-testid="storage-monitoring-ack-submit"
@@ -557,23 +573,24 @@ export default function StorageMonitoringPage() {
         {/* Delete confirmation */}
         <ConfirmationDialog
           visible={!!deleteTarget}
-          title="ลบรายการบันทึก"
+          title={t('storageMonitoring.delete.title')}
           message={
             deleteTarget
-              ? `ยืนยันการลบบันทึกของ ${deleteTarget.warehouseCode} วันที่ ${new Date(
-                  deleteTarget.readingAt,
-                ).toLocaleString('th-TH')} ? การลบไม่สามารถย้อนกลับได้`
+              ? t('storageMonitoring.delete.message', {
+                  warehouseCode: deleteTarget.warehouseCode,
+                  date: new Date(deleteTarget.readingAt).toLocaleString('th-TH'),
+                })
               : ''
           }
-          confirmText="ลบ"
-          cancelText="ยกเลิก"
+          confirmText={t('storageMonitoring.delete.confirm')}
+          cancelText={t('storageMonitoring.delete.cancel')}
           confirmType="danger"
           isLoading={saving}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
         />
 
-        {loading && <div className="text-center text-gray-500 py-4">กำลังโหลด...</div>}
+        {loading && <div className="text-center text-gray-500 py-4">{t('storageMonitoring.loading')}</div>}
       </div>
     </>
   );

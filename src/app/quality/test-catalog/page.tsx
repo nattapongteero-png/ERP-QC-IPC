@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column, Paging, Pager, Sorting, LoadPanel, SearchPanel,
 } from 'devextreme-react/data-grid';
@@ -25,33 +26,35 @@ interface CatalogRow {
   updatedAt: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  chemical: 'เคมี',
-  physical: 'กายภาพ',
-  microbial: 'จุลชีววิทยา',
-  sensory: 'ประสาทสัมผัส',
-  stability: 'ความคงตัว',
-  other: 'อื่นๆ',
-};
-
-const CATEGORY_FILTER_OPTIONS = [
-  { value: '', label: 'ทั้งหมด' },
-  { value: 'chemical', label: 'เคมี' },
-  { value: 'physical', label: 'กายภาพ' },
-  { value: 'microbial', label: 'จุลชีววิทยา' },
-  { value: 'sensory', label: 'ประสาทสัมผัส' },
-  { value: 'stability', label: 'ความคงตัว' },
-  { value: 'other', label: 'อื่นๆ' },
-];
-
-const ACTIVE_FILTER_OPTIONS = [
-  { value: 'true', label: 'ใช้งาน' },
-  { value: 'false', label: 'ไม่ใช้งาน' },
-  { value: 'all', label: 'ทั้งหมด' },
-];
+// Category keys map to testCatalog.list.categories.* translation keys.
+const CATEGORY_KEYS = ['chemical', 'physical', 'microbial', 'sensory', 'stability', 'other'] as const;
 
 export default function QcTestCatalogPage() {
   const router = useRouter();
+  const t = useTranslations('quality');
+
+  const categoryLabel = (category: string) =>
+    (CATEGORY_KEYS as readonly string[]).includes(category)
+      ? t(`testCatalog.list.categories.${category}`)
+      : category;
+
+  const CATEGORY_FILTER_OPTIONS = useMemo(
+    () => [
+      { value: '', label: t('testCatalog.list.filters.all') },
+      ...CATEGORY_KEYS.map((c) => ({ value: c, label: t(`testCatalog.list.categories.${c}`) })),
+    ],
+    [t],
+  );
+
+  const ACTIVE_FILTER_OPTIONS = useMemo(
+    () => [
+      { value: 'true', label: t('testCatalog.list.filters.active') },
+      { value: 'false', label: t('testCatalog.list.filters.inactive') },
+      { value: 'all', label: t('testCatalog.list.filters.all') },
+    ],
+    [t],
+  );
+
   const [rows, setRows] = useState<CatalogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('');
@@ -68,7 +71,7 @@ export default function QcTestCatalogPage() {
       const j = await res.json();
       if (j?.success) setRows(j.data?.data ?? []);
     } catch {
-      notify('โหลดข้อมูลไม่สำเร็จ', 'error', 3000);
+      notify(t('testCatalog.list.notify.loadFailed'), 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -87,25 +90,25 @@ export default function QcTestCatalogPage() {
   }, [rows]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('ยืนยันการลบ (soft-delete — Active = false) ?')) return;
+    if (!confirm(t('testCatalog.list.confirmDelete'))) return;
     const res = await fetch(`/api/quality/test-catalog/${id}`, { method: 'DELETE' });
     const j = await res.json();
     if (j?.success) {
-      notify('ลบรายการเรียบร้อย', 'success', 2000);
+      notify(t('testCatalog.list.notify.deleted'), 'success', 2000);
       fetchData();
     } else {
-      notify(j?.error || 'ลบไม่สำเร็จ', 'error', 3000);
+      notify(j?.error || t('testCatalog.list.notify.deleteFailed'), 'error', 3000);
     }
   };
 
   return (
     <div className="p-4 space-y-4">
       <PageHeader
-        title="แคตตาล็อกการทดสอบ QC"
-        description="ข้อมูลหลักรายการทดสอบ QC — ใช้กำหนดข้อกำหนดคุณภาพ"
+        title={t('testCatalog.list.title')}
+        description={t('testCatalog.list.description')}
         actions={
           <DxButton
-            text="+ เพิ่มการทดสอบใหม่"
+            text={t('testCatalog.list.addNew')}
             type="default"
             icon="plus"
             onClick={() => router.push('/quality/test-catalog/new')}
@@ -117,19 +120,19 @@ export default function QcTestCatalogPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-gray-500">ทั้งหมด</div>
+            <div className="text-xs text-gray-500">{t('testCatalog.list.stats.total')}</div>
             <div className="text-2xl font-bold text-emerald-600">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-gray-500">ใช้งาน</div>
+            <div className="text-xs text-gray-500">{t('testCatalog.list.stats.active')}</div>
             <div className="text-2xl font-bold text-emerald-600">{stats.activeCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-gray-500">หมวด</div>
+            <div className="text-xs text-gray-500">{t('testCatalog.list.stats.categories')}</div>
             <div className="text-2xl font-bold text-emerald-600">{stats.categories}</div>
           </CardContent>
         </Card>
@@ -140,7 +143,7 @@ export default function QcTestCatalogPage() {
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
             <div className="flex-1">
-              <label className="text-xs text-gray-500 block mb-1">หมวด</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('testCatalog.list.filterLabels.category')}</label>
               <DxSelectBox
                 dataSource={CATEGORY_FILTER_OPTIONS}
                 valueExpr="value"
@@ -150,7 +153,7 @@ export default function QcTestCatalogPage() {
               />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-gray-500 block mb-1">สถานะ</label>
+              <label className="text-xs text-gray-500 block mb-1">{t('testCatalog.list.filterLabels.status')}</label>
               <DxSelectBox
                 dataSource={ACTIVE_FILTER_OPTIONS}
                 valueExpr="value"
@@ -173,49 +176,49 @@ export default function QcTestCatalogPage() {
             wordWrapEnabled
             keyExpr="id"
             hoverStateEnabled
-            noDataText={loading ? 'กำลังโหลด...' : 'ไม่มีข้อมูล'}
+            noDataText={loading ? t('testCatalog.list.loading') : t('testCatalog.list.noData')}
           >
             <LoadPanel enabled={loading} />
-            <SearchPanel visible placeholder="ค้นหา..." width={240} />
+            <SearchPanel visible placeholder={t('testCatalog.list.searchPlaceholder')} width={240} />
             <Sorting mode="multiple" />
             <Paging defaultPageSize={25} />
             <Pager showPageSizeSelector allowedPageSizes={[10, 25, 50, 100]} showInfo />
 
-            <Column dataField="code" caption="รหัส" width={110} />
-            <Column dataField="name" caption="ชื่อทดสอบ (EN)" />
-            <Column dataField="nameTh" caption="ชื่อทดสอบ (TH)" />
+            <Column dataField="code" caption={t('testCatalog.list.columns.code')} width={110} />
+            <Column dataField="name" caption={t('testCatalog.list.columns.nameEn')} />
+            <Column dataField="nameTh" caption={t('testCatalog.list.columns.nameTh')} />
             <Column
               dataField="category"
-              caption="หมวด"
+              caption={t('testCatalog.list.columns.category')}
               width={110}
-              calculateCellValue={(d: CatalogRow) => CATEGORY_LABELS[d.category] ?? d.category}
+              calculateCellValue={(d: CatalogRow) => categoryLabel(d.category)}
             />
-            <Column dataField="defaultUnit" caption="หน่วย" width={80} />
-            <Column dataField="defaultMin" caption="ต่ำสุด" width={80} dataType="number" />
-            <Column dataField="defaultMax" caption="สูงสุด" width={80} dataType="number" />
-            <Column dataField="testMethod" caption="วิธีทดสอบ" />
+            <Column dataField="defaultUnit" caption={t('testCatalog.list.columns.unit')} width={80} />
+            <Column dataField="defaultMin" caption={t('testCatalog.list.columns.min')} width={80} dataType="number" />
+            <Column dataField="defaultMax" caption={t('testCatalog.list.columns.max')} width={80} dataType="number" />
+            <Column dataField="testMethod" caption={t('testCatalog.list.columns.testMethod')} />
             <Column
               dataField="isActive"
-              caption="ใช้งาน"
+              caption={t('testCatalog.list.columns.active')}
               width={80}
               dataType="boolean"
             />
             <Column
-              caption="การจัดการ"
+              caption={t('testCatalog.list.columns.actions')}
               width={180}
               cellRender={(cellData) => {
                 const row = cellData.data as CatalogRow;
                 return (
                   <div className="flex gap-1">
                     <DxButton
-                      text="แก้ไข"
+                      text={t('testCatalog.list.edit')}
                       icon="edit"
                       stylingMode="text"
                       onClick={() => router.push(`/quality/test-catalog/${row.id}`)}
                     />
                     {row.isActive && (
                       <DxButton
-                        text="ปิดใช้"
+                        text={t('testCatalog.list.deactivate')}
                         icon="close"
                         stylingMode="text"
                         type="danger"

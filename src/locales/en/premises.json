@@ -1,0 +1,713 @@
+{
+  "hub": {
+    "title": "Premises & Facilities",
+    "subtitle": "Premises & Facilities — GMP records for premises and equipment",
+    "storageMonitoring": {
+      "title": "Storage Monitoring",
+      "desc": "Track temperature/humidity of storage areas over time"
+    },
+    "environmentalInspection": {
+      "title": "Environmental Inspection",
+      "desc": "Record scheduled environmental inspections of production areas (temperature/humidity/area condition)"
+    },
+    "scaleVerification": {
+      "title": "Scale Verification",
+      "desc": "Verify scales with certified standard weights before use (configure the weight registry at Master Data > Standard Weight Registry)"
+    },
+    "sanitation": {
+      "title": "Sanitation Management",
+      "desc": "Record cleaning, sanitation schedules, trends, and pest control"
+    },
+    "waterQuality": {
+      "title": "Water System (Water Quality)",
+      "desc": "Water quality of utility systems against criteria"
+    },
+    "notifications": {
+      "title": "Maintenance Alerts",
+      "desc": "Maintenance/calibration tasks due + out-of-spec results (list and calendar views)"
+    }
+  },
+  "sanitation": {
+    "common": {
+      "breadcrumbPremises": "Premises",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create",
+      "recordResult": "Record Result",
+      "upcoming": "Due Soon",
+      "overdueDays": "{n} days overdue",
+      "area": {
+        "production": "Production Area",
+        "warehouse": "Warehouse",
+        "lab": "Laboratory",
+        "office": "Office"
+      }
+    },
+    "index": {
+      "noPendingTasks": "No pending tasks",
+      "allCaughtUpTitle": "All caught up!",
+      "allCaughtUpDesc": "No sanitation tasks are due in the next 14 days",
+      "taskColumns": {
+        "task": "Task",
+        "area": "Area",
+        "frequency": "Frequency",
+        "dueDate": "Due Date",
+        "status": "Status"
+      }
+    },
+    "pestControl": {
+      "recordService": "Record Service",
+      "dialogTitle": "Record Pest Control Service",
+      "serviceTypePlaceholder": "Service Type",
+      "serviceType": {
+        "all": "All Types",
+        "routine": "Routine",
+        "emergency": "Emergency",
+        "follow_up": "Follow-up"
+      },
+      "areas": {
+        "production": "Production Area",
+        "warehouse": "Warehouse",
+        "lab": "Laboratory",
+        "office": "Office",
+        "loadingBay": "Loading Bay",
+        "surrounding": "Surrounding Area",
+        "kitchen": "Kitchen / Canteen",
+        "restroom": "Restroom"
+      },
+      "form": {
+        "serviceDate": "Service Date",
+        "serviceType": "Service Type",
+        "contractorName": "Contractor Name",
+        "contractorNamePlaceholder": "Company name",
+        "technicianName": "Technician Name",
+        "technicianNamePlaceholder": "Technician name",
+        "areasServiced": "Areas Serviced",
+        "treatmentMethod": "Treatment Method",
+        "treatmentMethodPlaceholder": "Describe the treatment method",
+        "findingsCount": "Findings Count",
+        "followUpRequired": "Follow-up Required",
+        "followUpDate": "Follow-up Date",
+        "findings": "Findings",
+        "findingsPlaceholder": "Describe the findings",
+        "recommendations": "Recommendations",
+        "recommendationsPlaceholder": "Recommendations from the service provider"
+      }
+    },
+    "logs": {
+      "dialogTitle": "Record Sanitation Result",
+      "allSchedules": "All Schedules",
+      "filterBySchedule": "Filter by schedule",
+      "statusPlaceholder": "Status",
+      "status": {
+        "all": "All Statuses",
+        "completed": "Completed",
+        "partial": "Partial",
+        "missed": "Missed"
+      },
+      "form": {
+        "schedule": "Schedule",
+        "schedulePlaceholder": "Select a schedule",
+        "performedDate": "Performed Date",
+        "status": "Status",
+        "chemicalsUsed": "Chemicals Used",
+        "chemicalsUsedPlaceholder": "Specify chemicals used",
+        "notes": "Notes",
+        "notesPlaceholder": "Additional notes"
+      }
+    },
+    "schedules": {
+      "addSchedule": "Add Schedule",
+      "dialogTitle": "Add Sanitation Schedule",
+      "areaTypePlaceholder": "Area Type",
+      "frequencyPlaceholder": "Frequency",
+      "areaType": {
+        "all": "All Areas"
+      },
+      "frequency": {
+        "all": "All Frequencies",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "quarterly": "Quarterly"
+      },
+      "dayOfWeek": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      },
+      "form": {
+        "name": "Schedule Name",
+        "namePlaceholder": "Enter schedule name",
+        "areaType": "Area Type",
+        "frequency": "Frequency",
+        "dayOfWeek": "Day of Week",
+        "dayOfMonth": "Day of Month",
+        "method": "Cleaning Method",
+        "methodPlaceholder": "Describe the cleaning method",
+        "verificationRequired": "Verification Required"
+      }
+    },
+    "trends": {
+      "areaType": {
+        "all": "All Areas"
+      },
+      "period": {
+        "week": "Past Week",
+        "month": "Past Month",
+        "quarter": "Past Quarter",
+        "year": "Past Year"
+      }
+    }
+  },
+  "waterQuality": {
+    "common": {
+      "result": {
+        "inSpec": "Pass (within spec)",
+        "outOfSpec": "Fail (out of spec)",
+        "na": "N/A"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "breadcrumb": {
+        "premises": "Premises & Facilities",
+        "waterQuality": "Water System (Water Quality)"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saveEdit": "Save changes"
+      }
+    },
+    "index": {
+      "title": "Test Records",
+      "subtitle": "Registry of recorded water test results — record, view, edit, or delete here",
+      "settingsLink": "Water system settings",
+      "recordButton": "Record water test",
+      "moveNotice": {
+        "before": "Configuration (water systems / sample points / specs) has moved to the",
+        "after": "— this page is the \"Test Records Registry\" where data recorded via \"Record water test\" appears"
+      },
+      "grid": {
+        "loading": "Loading…",
+        "empty": "No test results recorded yet",
+        "performedAt": "Date & time tested",
+        "samplePoint": "Sample point",
+        "system": "Water system",
+        "operator": "Operator",
+        "overallResult": "Overall result",
+        "actions": "Actions"
+      },
+      "view": "View",
+      "popup": {
+        "recordTitle": "Record water test",
+        "specRange": "Spec {min} – {max}",
+        "noSpecBefore": "This sample point's water system has no specs defined yet — add specs on the",
+        "noSpecLink": "Water system settings",
+        "noSpecAfter": "page first",
+        "password": "Password"
+      },
+      "detail": {
+        "loading": "Loading…",
+        "title": "Test #{id} — {point}",
+        "titleFallback": "Test result",
+        "dateTime": "Date & time:",
+        "operator": "Operator:",
+        "system": "Water system:",
+        "overallResult": "Overall result:",
+        "parameter": "Parameter",
+        "measuredValue": "Measured value",
+        "spec": "Spec",
+        "result": "Result",
+        "notes": "Notes",
+        "editWarning": "⚠️ Editing a signed test result is recorded in the audit log — the \"Pass/Fail\" outcome is recalculated against the original spec",
+        "close": "Close",
+        "saveEdit": "Save changes"
+      },
+      "delete": {
+        "title": "Delete test result",
+        "message": "Confirm deletion of test #{id} ({point} — {dateTime})? The deletion will be recorded in the audit log and cannot be undone",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "recordSuccess": "Water test recorded",
+        "recordError": "Failed to record",
+        "editSuccess": "Test result edited (recorded in audit log)",
+        "editError": "Failed to save",
+        "deleteSuccess": "Test result deleted (recorded in audit log)",
+        "deleteError": "Failed to delete"
+      }
+    },
+    "settings": {
+      "breadcrumb": "Configuration Registry",
+      "title": "Water System Configuration Registry",
+      "subtitle": "Configure the master data used when recording tests — water system → sample point → spec",
+      "recordsLink": "Go to test records",
+      "stepNotice": {
+        "before": "Configure in order: 1) Create a",
+        "system": "water system",
+        "mid1": "→ 2) Add",
+        "point": "sample points",
+        "mid2": "for that system → 3) Define",
+        "spec": "specs",
+        "after": "for each value such as pH, conductivity — then you can record tests"
+      },
+      "systems": {
+        "heading": "Water Systems",
+        "addButton": "Add water system",
+        "code": "Code",
+        "name": "Name",
+        "type": "Type",
+        "description": "Description",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "points": {
+        "heading": "Sample Points",
+        "addButton": "Add sample point",
+        "code": "Code",
+        "name": "Name",
+        "location": "Location",
+        "system": "Water system",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "specs": {
+        "heading": "Specs",
+        "addButton": "Add spec",
+        "system": "Water system",
+        "parameter": "Parameter",
+        "unit": "Unit",
+        "min": "Minimum",
+        "max": "Maximum",
+        "actions": "Actions"
+      },
+      "systemPopup": {
+        "titleEdit": "Edit water system",
+        "titleCreate": "Add water system",
+        "codeLabel": "Code *",
+        "codeLocked": "Code cannot be changed after creation",
+        "nameLabel": "Name *",
+        "namePlaceholder": "e.g. Purified Water 1",
+        "typeLabel": "Type *",
+        "descriptionLabel": "Description"
+      },
+      "pointPopup": {
+        "titleEdit": "Edit sample point",
+        "titleCreate": "Add sample point",
+        "systemLabel": "Water system *",
+        "codeLabel": "Code *",
+        "nameLabel": "Name *",
+        "namePlaceholder": "e.g. Storage tank outlet",
+        "locationLabel": "Location",
+        "locationPlaceholder": "Building A, Floor 2"
+      },
+      "specPopup": {
+        "titleEdit": "Edit spec",
+        "titleCreate": "Add spec",
+        "systemLabel": "Water system *",
+        "pointLabel": "Sample point (optional — leave blank = whole system)",
+        "pointAll": "— Whole system —",
+        "parameterLabel": "Parameter *",
+        "unitLabel": "Unit",
+        "minLabel": "Minimum value",
+        "maxLabel": "Maximum value"
+      },
+      "delete": {
+        "title": "Deactivate",
+        "message": "Deactivate \"{label}\"? (Historical data is preserved — it is only hidden from new selections)",
+        "confirm": "Deactivate"
+      },
+      "toast": {
+        "systemEditSuccess": "Water system updated",
+        "systemCreateSuccess": "Water system added",
+        "pointEditSuccess": "Sample point updated",
+        "pointCreateSuccess": "Sample point added",
+        "specEditSuccess": "Spec updated",
+        "specCreateSuccess": "Spec added",
+        "failed": "Failed",
+        "deactivateSuccess": "Deactivated",
+        "deleteError": "Failed to delete"
+      }
+    }
+  },
+  "environmental": {
+    "common": {
+      "breadcrumb": {
+        "premises": "Premises & Facilities",
+        "environmental": "Environmental Monitoring"
+      },
+      "targetType": {
+        "room": "Production Room",
+        "storage_area": "Storage Area",
+        "quarantine": "Quarantine Area",
+        "water_point": "Water Point"
+      },
+      "frequency": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "yearly": "Yearly"
+      },
+      "result": {
+        "inSpec": "Pass (in spec)",
+        "outOfSpec": "Fail (out of spec)",
+        "na": "N/A"
+      },
+      "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Deactivated"
+      },
+      "badge": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "loading": "Loading…",
+      "refresh": "Refresh",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "create": "Create",
+      "saveEdit": "Save changes",
+      "actionsColumn": "Actions",
+      "statusColumn": "Status",
+      "targetColumn": "Target",
+      "templateColumn": "Template",
+      "frequencyColumn": "Frequency",
+      "nextDueColumn": "Next Due",
+      "lastDoneColumn": "Last Done",
+      "targetWithLocationColumn": "Target (Location)",
+      "failedToast": "Failed",
+      "deleteFailedToast": "Cannot delete"
+    },
+    "schedules": {
+      "breadcrumb": "Inspection Schedules",
+      "title": "Inspection Schedules",
+      "subtitle": "Define which \"room / area / water point\" uses which template and how often it is inspected — the \"Inspect\" button on the main page is generated from this table.",
+      "infoTitle": "What is an Inspection Schedule?",
+      "infoBodyPart1": "It defines which",
+      "infoBodyPlace": "\"actual physical location\"",
+      "infoBodyTargetSuffix": "(target) uses",
+      "infoBodyTemplate": "\"which template\"",
+      "infoBodyAnd": "and is inspected",
+      "infoBodyFreq": "\"how often\"",
+      "infoHint": "⏱ The system automatically calculates \"Next Due\" = last inspection date + frequency (e.g. Daily = +1 day, Weekly = +7 days) and sends an advance reminder based on the number of days set in the \"Alert Days Before\" field.",
+      "createNew": "New Schedule",
+      "noData": "No schedules yet",
+      "areaTypeColumn": "Area Type",
+      "alertDaysColumn": "Alert Days Before",
+      "closeAction": "Disable",
+      "updatedToast": "Schedule updated",
+      "createdToast": "Schedule created",
+      "deactivatedToast": "Schedule deactivated",
+      "deleteConfirm": "Deactivate the Schedule for \"{name}\"?\n(Past records are kept — it just won't be inspected next cycle)",
+      "popupEditTitle": "Edit Schedule — {name}",
+      "popupCreateTitle": "+ Create Schedule",
+      "fieldAreaType": "Area Type *",
+      "fieldTarget": "Target to Inspect (Actual Location) *",
+      "fieldTargetHint": "The actual location to inspect, e.g. \"Mixing Room A\", \"Raw Material Warehouse\", \"Water Point RO-01\" — names are pulled from Master Data.",
+      "targetPlaceholder": "Select {type}…",
+      "noTargetWarning": "⚠️ No {type} in the system yet — create one in Master Data first.",
+      "fieldDisplayName": "Display Name on Schedule",
+      "displayNamePlaceholder": "auto from dropdown — editable",
+      "displayNameHint": "The name shown in the dashboard / notification — normally taken directly from the dropdown above.",
+      "fieldTemplate": "Template *",
+      "templatePlaceholder": "Select a template…",
+      "noTemplateWarningPart1": "⚠️ No Template for {type} yet — create one first on the",
+      "noTemplateWarningLink": "Inspection Templates",
+      "fieldFrequency": "Frequency *",
+      "fieldAlertDays": "Alert Days Before"
+    },
+    "templates": {
+      "breadcrumb": "Inspection Templates",
+      "title": "Inspection Templates",
+      "subtitle": "Create/edit environmental inspection templates — the items in a Template appear as a checklist when you click \"Inspect\" on the inspections page.",
+      "infoTitle": "What is an Inspection Template?",
+      "infoBody": "It is a \"list of things to measure\", e.g. temperature, humidity, cleanliness, along with their criteria (min–max) — not yet tied to an actual room/area. To use it to inspect a real location, link it on the",
+      "infoLink": "Inspection Schedules",
+      "createNew": "New Template",
+      "noData": "No templates yet",
+      "nameColumn": "Template Name",
+      "usedWithAreaTypeColumn": "Used With Area Type",
+      "itemCountColumn": "Item Count",
+      "descriptionColumn": "Description",
+      "closeAction": "Disable",
+      "updatedToast": "Template updated",
+      "createdToast": "Template created",
+      "deactivatedToast": "Template deactivated",
+      "deleteConfirm": "Deactivate Template \"{name}\"?\n(Past data is not deleted — it is just hidden from new selections)",
+      "popupEditTitle": "Edit Template — {name}",
+      "popupCreateTitle": "+ Create Inspection Template",
+      "fieldName": "Template Name *",
+      "namePlaceholder": "e.g. Daily Room Inspection",
+      "fieldDescription": "Description",
+      "descriptionPlaceholder": "e.g. Daily inspection form for production rooms",
+      "fieldTargetType": "Use This Template With Area Type *",
+      "targetTypeHint": "Select the \"type\" of location this template will be used to inspect — Production Room / Storage Area / Quarantine Area / Water Point.",
+      "targetTypeLockedHint": "* The target type cannot be changed after the Template is created (it would affect schedules + past records).",
+      "itemsHeading": "Inspection Items",
+      "itemLabelPlaceholder": "Label",
+      "itemParameterPlaceholder": "parameter",
+      "itemUnitPlaceholder": "Unit",
+      "itemMinPlaceholder": "min",
+      "itemMaxPlaceholder": "max",
+      "itemMandatory": "Required",
+      "addItem": "+ Add Item"
+    },
+    "inspections": {
+      "title": "Environmental Inspections",
+      "historyLink": "Inspection History",
+      "manageTemplates": "Manage Templates",
+      "manageSchedules": "Manage Schedules",
+      "scanButton": "Notify Due Items",
+      "scanHint": "Creates a notification (bell) for items that are due/overdue right now — this is not recording an inspection. The system normally sends these reminders automatically.",
+      "infoTitle": "What is this page for?",
+      "infoBodyPart1": "It automatically shows \"due inspection schedules\" — when the time comes, items appear on their own (no button needed), then click the",
+      "infoBodyPart2": "button on each row to",
+      "infoBodyRecord": "record the inspection result",
+      "infoHintPart1": "• The \"Notify Due Items\" button = only sends a notification (bell), not a recording · Edit/delete already-recorded results on the",
+      "infoHintPart2": "· If a schedule is set up wrong, edit/disable it on",
+      "recordOkTitle": "Recorded — Result: Pass",
+      "recordOkBody": "All values within spec",
+      "recordFailTitle": "Recorded — Result: Fail",
+      "recordFailBody": "Found {count} out-of-spec value(s); the system created a Deviation automatically.",
+      "saveFailedToast": "Save failed",
+      "itemPass": "Pass (in spec)",
+      "itemFail": "Fail (out of spec)",
+      "itemNoSpec": "No criteria",
+      "inspectTitle": "{action}: {name}",
+      "passwordLabel": "Password"
+    },
+    "inspectionsHistory": {
+      "breadcrumb": "Inspection History",
+      "title": "Environmental Inspection History",
+      "subtitle": "Inspection results that have been recorded — view details, edit (if recorded incorrectly) or delete. Every edit/delete is written to the audit log.",
+      "noData": "No recorded inspection results yet",
+      "performedAtColumn": "Inspected At",
+      "typeColumn": "Type",
+      "operatorColumn": "Inspector",
+      "overallResultColumn": "Overall Result",
+      "viewAction": "View",
+      "deleteAction": "Delete",
+      "editedToast": "Inspection result edited (logged in audit log)",
+      "deletedToast": "Inspection result deleted (logged in audit log)",
+      "saveFailedToast": "Save failed",
+      "deleteFailedToast": "Delete failed",
+      "popupTitle": "Result #{id} — {target}",
+      "popupTitleFallback": "Inspection Result",
+      "labelDateTime": "Date/Time:",
+      "labelOperator": "Inspector:",
+      "labelTemplate": "Template:",
+      "labelOverallResult": "Overall Result:",
+      "tableItem": "Item",
+      "tableMeasured": "Measured Value",
+      "tableSpec": "Criteria",
+      "tableResult": "Result",
+      "tableRemarks": "Remarks",
+      "notesLabel": "Inspection Notes",
+      "editWarning": "⚠️ Editing a signed-off inspection result will be written to the audit log (who/what/when) — the Pass/Fail result is recalculated against the original criteria.",
+      "closeButton": "Close",
+      "deleteDialogTitle": "Delete Inspection Result",
+      "deleteDialogMessage": "Confirm deletion of inspection result #{id} ({name} — {datetime})? The deletion will be written to the audit log and cannot be undone.",
+      "deleteConfirmText": "Delete"
+    }
+  },
+  "storageMonitoring": {
+    "alertLabel": {
+      "in_spec": "✓ Normal",
+      "temp_low": "↓ Temp low",
+      "temp_high": "↑ Temp high",
+      "humidity_low": "↓ Humidity low",
+      "humidity_high": "↑ Humidity high",
+      "multiple": "⚠ Multiple"
+    },
+    "toast": {
+      "loadFailed": "Failed to load data",
+      "selectWarehouse": "Please select a warehouse",
+      "atLeastOneValue": "Please enter at least 1 value",
+      "saveFailed": "Save failed",
+      "alertTitle": "⚠ ALERT — {label}",
+      "editedInSpec": "Edited successfully — within range",
+      "savedInSpec": "Saved successfully — within range",
+      "deleteFailed": "Delete failed",
+      "deleted": "Record deleted",
+      "ackFailed": "Acknowledge failed",
+      "acked": "Alert acknowledged"
+    },
+    "columns": {
+      "readingAt": "Date/Time",
+      "warehouse": "Warehouse",
+      "temperature": "°C",
+      "humidity": "%RH",
+      "status": "Status",
+      "details": "Details",
+      "acknowledge": "Acknowledge",
+      "manage": "Manage"
+    },
+    "actions": {
+      "acknowledge": "Acknowledge",
+      "edit": "Edit",
+      "delete": "Delete",
+      "addReading": "+ Add reading"
+    },
+    "header": {
+      "title": "Storage Area Environmental Monitoring",
+      "subtitle": "Record and track temperature/humidity of storage rooms",
+      "breadcrumbPremises": "Premises & Facilities",
+      "breadcrumbCurrent": "Storage Monitoring"
+    },
+    "stats": {
+      "openAlerts": "Alerts pending acknowledgement",
+      "last24h": "Records (24h)",
+      "monitoredAreas": "Monitored warehouses",
+      "total": "Total records"
+    },
+    "filters": {
+      "selectWarehousePlaceholder": "Select warehouse...",
+      "allWarehouses": "All warehouses",
+      "alertsOnly": "Out-of-range records only"
+    },
+    "legend": {
+      "label": "Status meaning:",
+      "normal": "Normal — within range",
+      "oneExceeded": "One value out of range (temperature or humidity)",
+      "multipleExceeded": "Multiple values out of range — acknowledgement required"
+    },
+    "dialog": {
+      "editTitle": "Edit reading",
+      "createTitle": "Record temperature/humidity",
+      "selectWarehouseRequired": "Select warehouse *",
+      "readingAtLabel": "Reading date/time",
+      "readingAtHint": "(leave blank = current time)",
+      "criteria": "Range: {tempMin}–{tempMax}°C / {humidityMin}–{humidityMax}%RH",
+      "temperatureLabel": "Temperature (°C)",
+      "humidityLabel": "Humidity (%RH)",
+      "notesPlaceholder": "Notes",
+      "cancel": "Cancel",
+      "saveEdit": "Save changes",
+      "save": "Save"
+    },
+    "ack": {
+      "title": "Acknowledge Alert",
+      "notesPlaceholder": "Notes / action taken",
+      "cancel": "Cancel",
+      "confirm": "Confirm acknowledgement"
+    },
+    "delete": {
+      "title": "Delete record",
+      "message": "Confirm deletion of the record for {warehouseCode} dated {date}? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "loading": "Loading..."
+  },
+  "scaleVerification": {
+    "common": {
+      "back": "Premises & Facilities"
+    },
+    "index": {
+      "errorExtremeDeviation": "The reading differs from the certified standard weight by more than 10× — the wrong weight was likely chosen or the value mistyped. Please check the weight and the reading.",
+      "errorBelowMinimum": "The standard weight is lighter than this scale's minimum range — please choose a heavier weight.",
+      "errorAboveMaximum": "The standard weight is heavier than this scale's maximum range — please choose a lighter weight.",
+      "errorInactive": "This standard weight has been deactivated — please choose another weight.",
+      "errorPasswordRequired": "Please enter your password to sign.",
+      "colWeightUsed": "Weight used",
+      "colActualReading": "Actual reading",
+      "history": "History",
+      "noWeightFits": "No weight fits this scale's range",
+      "weightRangeLabel": "Weight range usable for this scale:",
+      "noValidWeights": "No weights with a valid (unexpired) certificate — please add one to the register.",
+      "noFittingWeights": "Existing weights are not within this scale's range — please add a weight of suitable mass.",
+      "readingUnit": "(unit: {unit})",
+      "placeWeightHint": "Place weight {code} on the scale, then enter the displayed value — it should be approximately {value} {unit} (cert value)",
+      "extremeReadingWarning": "The reading ({reading}) differs from the certified standard weight ({value} {unit}) by more than 10× — the wrong weight was likely chosen or the value mistyped. Please choose a weight close to this scale's range, then enter the actual reading.",
+      "passwordPlaceholder": "Sign with password"
+    },
+    "history": {
+      "scaleLabel": "Scale #{scaleId}",
+      "back": "Back",
+      "title": "Scale Verification History — {scaleCode}",
+      "subtitle": "View all verifications for this scale — read-only verification records",
+      "statTotal": "Total records",
+      "statPass": "Pass",
+      "statFail": "Fail",
+      "statActive": "Active",
+      "hasValidVerification": "✓ Has an unexpired verification",
+      "noValidVerification": "Expired / never verified",
+      "refresh": "Refresh",
+      "itemCount": "{count} records",
+      "loading": "Loading…",
+      "noData": "No verifications yet for this scale",
+      "colPerformedAt": "Verified at",
+      "colWeight": "Weight",
+      "colWeightSize": "Weight size",
+      "colCertifiedValue": "Certified value",
+      "colActualReading": "Actual reading",
+      "colResult": "Result",
+      "resultPass": "Pass",
+      "resultFail": "Fail",
+      "colOperator": "Operator",
+      "colValidUntil": "Valid until",
+      "colNotes": "Notes"
+    }
+  },
+  "notifications": {
+    "common": {
+      "title": "Maintenance Alerts",
+      "premises": "Premises & Facilities",
+      "cancel": "Cancel"
+    },
+    "list": {
+      "tab": "List",
+      "col": {
+        "severity": "Severity",
+        "type": "Type",
+        "title": "Title",
+        "dueAt": "Due",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    },
+    "calendar": {
+      "tab": "Calendar",
+      "helpLead": "The calendar shows maintenance tasks/alerts that are",
+      "helpDue": "due",
+      "helpRest": "on each day of the month — use it for advance planning",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Today",
+      "weekday": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    },
+    "info": {
+      "sourceLabel": "Where does this data come from?",
+      "sourceLead": "The system generates it",
+      "sourceAuto": "automatically",
+      "sourceRest": "from (1) maintenance/calibration schedules that are due or overdue, and (2) inspection results that exceed limits (environment/water) — no manual scan button needed",
+      "actionLead": "Click",
+      "actionAck": "\"Acknowledge/Act\"",
+      "actionAckRest": "to close the alert (records the acknowledger + time), or",
+      "actionSnooze": "\"Snooze\"",
+      "actionSnoozeRest": "to postpone the alert · items that exceed limits will have a Deviation record linked automatically"
+    },
+    "ack": {
+      "banner": "Acknowledged and will act"
+    }
+  }
+}

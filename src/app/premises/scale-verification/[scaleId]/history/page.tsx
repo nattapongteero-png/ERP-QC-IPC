@@ -11,6 +11,7 @@
  * "ประวัติ" link in the actions column.
  */
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import {
   DataGrid,
@@ -41,6 +42,7 @@ interface HistoryRow {
 }
 
 export default function ScaleHistoryPage() {
+  const tp = useTranslations('premises');
   const params = useParams<{ scaleId: string }>();
   const router = useRouter();
   const scaleId = Number(params.scaleId);
@@ -61,9 +63,7 @@ export default function ScaleHistoryPage() {
   const history = data?.history ?? [];
   const passCount = history.filter((h) => h.result === 'pass').length;
   const failCount = history.filter((h) => h.result === 'fail').length;
-  const scaleCode = history[0]
-    ? `เครื่องชั่ง #${scaleId}`
-    : `เครื่องชั่ง #${scaleId}`;
+  const scaleCode = tp('scaleVerification.history.scaleLabel', { scaleId });
 
   return (
     <div className="p-6 space-y-4">
@@ -74,44 +74,46 @@ export default function ScaleHistoryPage() {
           stylingMode="text"
           render={() => (
             <span className="inline-flex items-center gap-1.5 text-sm">
-              <ArrowLeft className="w-4 h-4" /> กลับ
+              <ArrowLeft className="w-4 h-4" /> {tp('scaleVerification.history.back')}
             </span>
           )}
         />
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Scale className="w-6 h-6" />
-          ประวัติการตรวจสอบเครื่องชั่ง — {scaleCode}
+          {tp('scaleVerification.history.title', { scaleCode })}
         </h1>
       </div>
       <p className="text-gray-600 text-sm">
-        ดูประวัติการตรวจสอบทั้งหมดของเครื่องนี้ — บันทึกตรวจสอบแบบอ่านอย่างเดียว
+        {tp('scaleVerification.history.subtitle')}
       </p>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
-          <div className="text-xs uppercase text-gray-500">บันทึกทั้งหมด</div>
+          <div className="text-xs uppercase text-gray-500">{tp('scaleVerification.history.statTotal')}</div>
           <div className="text-3xl font-bold text-gray-900 mt-1">{history.length}</div>
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase text-gray-500">ผ่าน</div>
+            <div className="text-xs uppercase text-gray-500">{tp('scaleVerification.history.statPass')}</div>
             <div className="text-3xl font-bold text-gray-900 mt-1">{passCount}</div>
           </div>
           <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-rose-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase text-gray-500">ไม่ผ่าน</div>
+            <div className="text-xs uppercase text-gray-500">{tp('scaleVerification.history.statFail')}</div>
             <div className="text-3xl font-bold text-gray-900 mt-1">{failCount}</div>
           </div>
           <XCircle className="w-5 h-5 text-rose-500" />
         </div>
         <div className="bg-white border border-gray-200 border-l-4 border-l-cyan-500 rounded-[14px] p-4 shadow-[0_6px_20px_rgba(6,78,59,0.06)] flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase text-gray-500">ใช้งานอยู่</div>
+            <div className="text-xs uppercase text-gray-500">{tp('scaleVerification.history.statActive')}</div>
             <div className="text-base font-medium text-gray-900 mt-1">
-              {data?.current ? '✓ มี verification ที่ยังไม่หมดอายุ' : 'หมดอายุแล้ว / ยังไม่เคยตรวจ'}
+              {data?.current
+                ? tp('scaleVerification.history.hasValidVerification')
+                : tp('scaleVerification.history.noValidVerification')}
             </div>
           </div>
           <Clock className="w-5 h-5 text-cyan-500" />
@@ -119,8 +121,8 @@ export default function ScaleHistoryPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <Button text="รีเฟรช" icon="refresh" onClick={() => refetch()} />
-        <span className="text-sm text-gray-500">{history.length} รายการ</span>
+        <Button text={tp('scaleVerification.history.refresh')} icon="refresh" onClick={() => refetch()} />
+        <span className="text-sm text-gray-500">{tp('scaleVerification.history.itemCount', { count: history.length })}</span>
       </div>
 
       {/* History grid */}
@@ -131,15 +133,15 @@ export default function ScaleHistoryPage() {
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
-        noDataText={isLoading ? 'กำลังโหลด…' : 'ยังไม่มีการตรวจสอบเครื่องชั่งนี้'}
+        noDataText={isLoading ? tp('scaleVerification.history.loading') : tp('scaleVerification.history.noData')}
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
-        <Column dataField="performedAt" caption="วันเวลาที่ตรวจ" dataType="datetime" width={170} />
-        <Column dataField="weightCode" caption="ลูกตุ้ม" width={110} />
-        <Column dataField="weightDenomination" caption="ขนาดลูกตุ้ม" width={130} />
+        <Column dataField="performedAt" caption={tp('scaleVerification.history.colPerformedAt')} dataType="datetime" width={170} />
+        <Column dataField="weightCode" caption={tp('scaleVerification.history.colWeight')} width={110} />
+        <Column dataField="weightDenomination" caption={tp('scaleVerification.history.colWeightSize')} width={130} />
         <Column
-          caption="ค่าผ่านการรับรอง"
+          caption={tp('scaleVerification.history.colCertifiedValue')}
           width={130}
           cellRender={(c) => {
             const row = c.data as HistoryRow;
@@ -151,7 +153,7 @@ export default function ScaleHistoryPage() {
           }}
         />
         <Column
-          caption="ค่าที่อ่านได้"
+          caption={tp('scaleVerification.history.colActualReading')}
           dataField="actualReading"
           width={130}
           cellRender={(c) => (
@@ -170,24 +172,24 @@ export default function ScaleHistoryPage() {
         />
         <Column
           dataField="result"
-          caption="ผล"
+          caption={tp('scaleVerification.history.colResult')}
           width={90}
           cellRender={(c) => {
             const v = c.value as string;
             return v === 'pass' ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900">
-                <CheckCircle2 className="w-3 h-3" /> ผ่าน
+                <CheckCircle2 className="w-3 h-3" /> {tp('scaleVerification.history.resultPass')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-900">
-                <XCircle className="w-3 h-3" /> ไม่ผ่าน
+                <XCircle className="w-3 h-3" /> {tp('scaleVerification.history.resultFail')}
               </span>
             );
           }}
         />
-        <Column dataField="operatorName" caption="ผู้ตรวจ" />
-        <Column dataField="validUntil" caption="ใช้ได้ถึง" dataType="datetime" width={170} />
-        <Column dataField="notes" caption="หมายเหตุ" />
+        <Column dataField="operatorName" caption={tp('scaleVerification.history.colOperator')} />
+        <Column dataField="validUntil" caption={tp('scaleVerification.history.colValidUntil')} dataType="datetime" width={170} />
+        <Column dataField="notes" caption={tp('scaleVerification.history.colNotes')} />
       </DataGrid>
     </div>
   );

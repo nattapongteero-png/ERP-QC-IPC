@@ -98,11 +98,12 @@ async function updateDocumentStatus(
 // Helper Functions
 // ============================================
 
-const statusLabels: Record<string, string> = {
-  draft: 'ฉบับร่าง',
-  active: 'ใช้งาน',
-  obsolete: 'ยกเลิกใช้งาน',
-  archived: 'จัดเก็บ',
+// Maps document status -> i18n key (relative to 'gmp' namespace), resolved via t() at call sites.
+const statusLabelKeys: Record<string, string> = {
+  draft: 'documents.detail.statusLabels.draft',
+  active: 'documents.detail.statusLabels.active',
+  obsolete: 'documents.detail.statusLabels.obsolete',
+  archived: 'documents.detail.statusLabels.archived',
 };
 
 function getFileExtension(filePath: string): string {
@@ -124,20 +125,21 @@ function getFileIcon(extension: string) {
   }
 }
 
-function getFileTypeLabel(extension: string): string {
+// Returns the i18n key (relative to 'gmp' namespace) for a file type label.
+function getFileTypeLabelKey(extension: string): string {
   switch (extension) {
     case 'pdf':
-      return 'เอกสาร PDF';
+      return 'documents.detail.fileType.pdf';
     case 'doc':
-      return 'เอกสาร Word (.doc)';
+      return 'documents.detail.fileType.doc';
     case 'docx':
-      return 'เอกสาร Word (.docx)';
+      return 'documents.detail.fileType.docx';
     case 'xls':
-      return 'ตารางงาน Excel (.xls)';
+      return 'documents.detail.fileType.xls';
     case 'xlsx':
-      return 'ตารางงาน Excel (.xlsx)';
+      return 'documents.detail.fileType.xlsx';
     default:
-      return 'เอกสาร';
+      return 'documents.detail.fileType.generic';
   }
 }
 
@@ -160,6 +162,7 @@ function DocumentPreview({
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
 }) {
+  const t = useTranslations('gmp');
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -178,7 +181,7 @@ function DocumentPreview({
             <FileText className="h-5 w-5 text-red-500" />
             <div>
               <p className="font-medium text-sm">{fileName}</p>
-              <p className="text-xs text-muted-foreground">เวอร์ชัน {versionNumber}</p>
+              <p className="text-xs text-muted-foreground">{t('documents.detail.version', { number: versionNumber })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -187,7 +190,7 @@ function DocumentPreview({
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
               <Download className="h-4 w-4" />
-              ดาวน์โหลด
+              {t('documents.detail.download')}
             </a>
             <a
               href={viewUrl}
@@ -196,12 +199,12 @@ function DocumentPreview({
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors"
             >
               <ExternalLink className="h-4 w-4" />
-              เปิดในแท็บใหม่
+              {t('documents.detail.openInNewTab')}
             </a>
             <button
               onClick={onToggleFullscreen}
               className="p-1.5 rounded-md hover:bg-muted transition-colors"
-              title={isFullscreen ? 'ออกจากเต็มหน้าจอ' : 'เต็มหน้าจอ'}
+              title={isFullscreen ? t('documents.detail.exitFullscreen') : t('documents.detail.fullscreen')}
             >
               {isFullscreen ? (
                 <Minimize2 className="h-4 w-4" />
@@ -218,7 +221,7 @@ function DocumentPreview({
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
               <div className="text-center">
                 <RotateCw className="h-8 w-8 animate-spin text-primary mx-auto" />
-                <p className="mt-2 text-sm text-muted-foreground">กำลังโหลด PDF...</p>
+                <p className="mt-2 text-sm text-muted-foreground">{t('documents.detail.loadingPdf')}</p>
               </div>
             </div>
           )}
@@ -226,16 +229,16 @@ function DocumentPreview({
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
               <div className="text-center p-8">
                 <FileText className="h-16 w-16 text-red-500 mx-auto" />
-                <h3 className="mt-4 text-lg font-semibold">ไม่สามารถแสดงตัวอย่างได้</h3>
+                <h3 className="mt-4 text-lg font-semibold">{t('documents.detail.previewUnavailable')}</h3>
                 <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                  ไม่สามารถแสดงไฟล์ PDF ในเบราว์เซอร์ได้ กรุณาดาวน์โหลดเพื่อดู
+                  {t('documents.detail.pdfPreviewUnavailable')}
                 </p>
                 <a
                   href={downloadUrl}
                   className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Download className="h-5 w-5" />
-                  ดาวน์โหลด PDF
+                  {t('documents.detail.downloadPdf')}
                 </a>
               </div>
             </div>
@@ -271,7 +274,7 @@ function DocumentPreview({
           {getFileIcon(extension)}
           <div>
             <p className="font-medium text-sm">{fileName}</p>
-            <p className="text-xs text-muted-foreground">เวอร์ชัน {versionNumber}</p>
+            <p className="text-xs text-muted-foreground">{t('documents.detail.version', { number: versionNumber })}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -282,7 +285,7 @@ function DocumentPreview({
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
             <Download className="h-4 w-4" />
-            ดาวน์โหลด
+            {t('documents.detail.download')}
           </a>
         </div>
       </div>
@@ -292,16 +295,16 @@ function DocumentPreview({
         <div className="text-center p-8">
           {getFileIcon(extension)}
           <h3 className="mt-4 text-lg font-semibold">{fileName}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{getFileTypeLabel(extension)}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t(getFileTypeLabelKey(extension))}</p>
           <p className="mt-4 text-xs text-muted-foreground max-w-xs">
-            ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้ กรุณาดาวน์โหลดไฟล์เพื่อดูเนื้อหา
+            {t('documents.detail.fileTypePreviewUnavailable')}
           </p>
           <a
             href={downloadUrl}
             className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             <Download className="h-5 w-5" />
-            ดาวน์โหลดไฟล์
+            {t('documents.detail.downloadFile')}
           </a>
         </div>
       </div>
@@ -314,12 +317,13 @@ function DocumentPreview({
 // ============================================
 
 function TextContentPreview({ content }: { content: string }) {
+  const t = useTranslations('gmp');
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
-          <p className="font-medium text-sm">เนื้อหาเอกสาร</p>
+          <p className="font-medium text-sm">{t('documents.detail.documentContent')}</p>
         </div>
       </div>
       <div className="flex-1 overflow-auto p-6 bg-white dark:bg-gray-950">
@@ -338,12 +342,13 @@ function TextContentPreview({ content }: { content: string }) {
 // ============================================
 
 function NoContentPlaceholder() {
+  const t = useTranslations('gmp');
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center px-4 py-2 bg-muted/50 border-b">
         <div className="flex items-center gap-3">
           <Eye className="h-5 w-5 text-muted-foreground" />
-          <p className="font-medium text-sm text-muted-foreground">ตัวอย่างเอกสาร</p>
+          <p className="font-medium text-sm text-muted-foreground">{t('documents.detail.documentPreview')}</p>
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -351,9 +356,9 @@ function NoContentPlaceholder() {
           <div className="w-20 h-20 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
             <FileText className="h-10 w-10 text-muted-foreground" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">ไม่มีเนื้อหา</h3>
+          <h3 className="mt-4 text-lg font-semibold text-muted-foreground">{t('documents.detail.noContent')}</h3>
           <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-            เวอร์ชันนี้ไม่มีไฟล์แนบหรือเนื้อหาข้อความ
+            {t('documents.detail.noContentDescription')}
           </p>
         </div>
       </div>
@@ -421,7 +426,7 @@ export default function DocumentDetailPage() {
       refetch();
     },
     onError: (error) => {
-      alert(error instanceof Error ? error.message : 'ไม่สามารถอัปเดตสถานะได้');
+      alert(error instanceof Error ? error.message : t('documents.detail.updateStatusFailed'));
     },
   });
 
@@ -502,7 +507,7 @@ export default function DocumentDetailPage() {
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <RotateCw className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="mt-2 text-muted-foreground">กำลังโหลดเอกสาร...</p>
+          <p className="mt-2 text-muted-foreground">{t('documents.detail.loadingDocument')}</p>
         </div>
       </div>
     );
@@ -514,12 +519,12 @@ export default function DocumentDetailPage() {
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <FileText className="h-12 w-12 text-destructive mx-auto" />
-          <p className="mt-2 text-destructive font-medium">ไม่สามารถโหลดเอกสารได้</p>
+          <p className="mt-2 text-destructive font-medium">{t('documents.detail.loadFailed')}</p>
           <button
             onClick={() => router.back()}
             className="mt-4 px-4 py-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
           >
-            ย้อนกลับ
+            {t('common.goBack')}
           </button>
         </div>
       </div>
@@ -554,7 +559,7 @@ export default function DocumentDetailPage() {
                   onClick={() => setShowStatusDialog(true)}
                   className="text-xs px-2 py-0.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
                 >
-                  เปลี่ยน
+                  {t('documents.detail.change')}
                 </button>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -575,8 +580,8 @@ export default function DocumentDetailPage() {
                       className="text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       {document.trainingCourseName
-                        ? `หลักสูตรอบรม: ${document.trainingCourseCode} - ${document.trainingCourseName}`
-                        : `หลักสูตรอบรม #${document.trainingCourseId}`}
+                        ? t('documents.detail.trainingCourse', { code: document.trainingCourseCode ?? '', name: document.trainingCourseName })
+                        : t('documents.detail.trainingCourseId', { id: document.trainingCourseId })}
                     </a>
                   </>
                 )}
@@ -588,7 +593,7 @@ export default function DocumentDetailPage() {
           <div className="flex items-center gap-2">
             {canEdit && (
               <DxButton
-                text="แก้ไข"
+                text={t('documents.detail.edit')}
                 icon="edit"
                 onClick={() => setShowEditForm(true)}
                 stylingMode="outlined"
@@ -596,7 +601,7 @@ export default function DocumentDetailPage() {
             )}
             {canCreateVersion && (
               <DxButton
-                text="เวอร์ชันใหม่"
+                text={t('documents.detail.newVersion')}
                 icon="add"
                 onClick={() => setShowNewVersionDialog(true)}
                 stylingMode="outlined"
@@ -604,7 +609,7 @@ export default function DocumentDetailPage() {
             )}
             {hasDraftVersion && (
               <DxButton
-                text="ส่งเพื่อขออนุมัติ"
+                text={t('documents.detail.submitForApproval')}
                 icon="upload"
                 onClick={() => setShowSubmitDialog(true)}
                 type="success"
@@ -622,21 +627,21 @@ export default function DocumentDetailPage() {
           }`}>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="font-medium">เวอร์ชัน {selectedVersion.versionNumber}</span>
+                <span className="font-medium">{t('documents.detail.version', { number: selectedVersion.versionNumber })}</span>
                 <WorkflowStatusBadge status={selectedVersion.status} />
                 {!isViewingLatest && (
                   <span className="px-2 py-0.5 text-xs bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200 rounded-full">
-                    ย้อนหลัง
+                    {t('documents.detail.historical')}
                   </span>
                 )}
                 {isViewingLatest && selectedVersion.id === document.currentVersionId && (
                   <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
-                    ปัจจุบัน
+                    {t('documents.detail.current')}
                   </span>
                 )}
               </div>
               <span className="text-muted-foreground">
-                โดย {selectedVersion.createdByName || 'ไม่ทราบ'} •{' '}
+                {t('documents.detail.by')} {selectedVersion.createdByName || t('documents.detail.unknown')} •{' '}
                 {new Date(selectedVersion.createdAt).toLocaleDateString('th-TH', {
                   year: 'numeric',
                   month: 'short',
@@ -645,7 +650,7 @@ export default function DocumentDetailPage() {
               </span>
               {selectedVersion.effectiveDate && (
                 <span className="text-green-700 dark:text-green-400 font-medium">
-                  มีผลบังคับใช้: {new Date(selectedVersion.effectiveDate).toLocaleDateString('th-TH')}
+                  {t('documents.detail.effectiveDate')}: {new Date(selectedVersion.effectiveDate).toLocaleDateString('th-TH')}
                 </span>
               )}
               {selectedVersion.changeDescription && (
@@ -660,13 +665,13 @@ export default function DocumentDetailPage() {
 
       <div className="mb-6 flex-none px-4 pt-4">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t('documents.detail.workflowTitle')}
           steps={[
-            { key: 'draft', label: 'ร่าง' },
-            { key: 'approved', label: 'อนุมัติแล้ว' },
-            { key: 'active', label: 'ใช้งาน' },
-            { key: 'archived', label: 'จัดเก็บ' },
-            { key: 'obsolete', label: 'ยกเลิกใช้' },
+            { key: 'draft', label: t('documents.detail.steps.draft') },
+            { key: 'approved', label: t('documents.detail.steps.approved') },
+            { key: 'active', label: t('documents.detail.steps.active') },
+            { key: 'archived', label: t('documents.detail.steps.archived') },
+            { key: 'obsolete', label: t('documents.detail.steps.obsolete') },
           ]}
           current={String(document.status).toLowerCase()}
         />
@@ -698,13 +703,13 @@ export default function DocumentDetailPage() {
           {/* Document Metadata */}
           <div className="p-4 border-b">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              รายละเอียดเอกสาร
+              {t('documents.detail.documentDetails')}
             </h2>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-3">
                 <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-muted-foreground">ประเภท</p>
+                  <p className="text-muted-foreground">{t('documents.detail.metaType')}</p>
                   <p className="font-medium">{document.typeName}</p>
                 </div>
               </div>
@@ -712,7 +717,7 @@ export default function DocumentDetailPage() {
                 <div className="flex items-start gap-3">
                   <Building className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-muted-foreground">แผนก</p>
+                    <p className="text-muted-foreground">{t('documents.detail.metaDepartment')}</p>
                     <p className="font-medium">{document.departmentName}</p>
                   </div>
                 </div>
@@ -720,14 +725,14 @@ export default function DocumentDetailPage() {
               <div className="flex items-start gap-3">
                 <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-muted-foreground">สร้างโดย</p>
-                  <p className="font-medium">{document.createdByName || 'ไม่ทราบ'}</p>
+                  <p className="text-muted-foreground">{t('documents.detail.metaCreatedBy')}</p>
+                  <p className="font-medium">{document.createdByName || t('documents.detail.unknown')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-muted-foreground">วันที่สร้าง</p>
+                  <p className="text-muted-foreground">{t('documents.detail.metaCreatedAt')}</p>
                   <p className="font-medium">
                     {new Date(document.createdAt).toLocaleDateString('th-TH', {
                       year: 'numeric',
@@ -740,8 +745,8 @@ export default function DocumentDetailPage() {
               <div className="flex items-start gap-3">
                 <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-muted-foreground">ระยะเวลาจัดเก็บ</p>
-                  <p className="font-medium">{document.retentionYears} ปี</p>
+                  <p className="text-muted-foreground">{t('documents.detail.metaRetention')}</p>
+                  <p className="font-medium">{t('documents.detail.retentionYears', { years: document.retentionYears })}</p>
                 </div>
               </div>
             </div>
@@ -751,7 +756,7 @@ export default function DocumentDetailPage() {
           {selectedVersion?.approvals && selectedVersion.approvals.length > 0 && (
             <div className="p-4 border-b">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                สถานะการอนุมัติ
+                {t('documents.detail.approvalStatus')}
               </h2>
               <ApprovalChain
                 steps={selectedVersion.approvals.map((a) => ({
@@ -799,35 +804,35 @@ export default function DocumentDetailPage() {
       <DxPopup
         visible={showNewVersionDialog}
         onHiding={() => setShowNewVersionDialog(false)}
-        title="สร้างเวอร์ชันใหม่"
+        title={t('documents.detail.newVersionDialog.title')}
         width={600}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">รายละเอียดการเปลี่ยนแปลง</label>
+            <label className="text-sm font-medium">{t('documents.detail.newVersionDialog.changeDescription')}</label>
             <DxTextArea
               value={newVersionDescription}
               onValueChange={(value) => setNewVersionDescription(value || '')}
-              placeholder="อธิบายสิ่งที่เปลี่ยนแปลงในเวอร์ชันนี้..."
+              placeholder={t('documents.detail.newVersionDialog.changeDescriptionPlaceholder')}
               height={80}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">เนื้อหาใหม่ (ถ้ามี)</label>
+            <label className="text-sm font-medium">{t('documents.detail.newVersionDialog.newContent')}</label>
             <DxTextArea
               value={newVersionContent}
               onValueChange={(value) => setNewVersionContent(value || '')}
-              placeholder="กรอกเนื้อหาเอกสารใหม่..."
+              placeholder={t('documents.detail.newVersionDialog.newContentPlaceholder')}
               height={150}
             />
           </div>
 
           {/* File Upload */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">แนบไฟล์ (ถ้ามี)</label>
+            <label className="text-sm font-medium">{t('documents.detail.newVersionDialog.attachFile')}</label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
               {selectedFile ? (
                 <div className="flex items-center justify-between">
@@ -850,10 +855,10 @@ export default function DocumentDetailPage() {
                 <label className="flex flex-col items-center gap-2 cursor-pointer">
                   <Upload className="h-8 w-8 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    คลิกเพื่ออัปโหลดหรือลากไฟล์มาวาง
+                    {t('documents.detail.newVersionDialog.uploadHint')}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    PDF, DOC, DOCX, XLS, XLSX (สูงสุด 10MB)
+                    {t('documents.detail.newVersionDialog.uploadFormats')}
                   </span>
                   <input
                     type="file"
@@ -863,7 +868,7 @@ export default function DocumentDetailPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         if (file.size > 10 * 1024 * 1024) {
-                          alert('ขนาดไฟล์ต้องไม่เกิน 10MB');
+                          alert(t('documents.detail.newVersionDialog.fileSizeError'));
                           return;
                         }
                         setSelectedFile(file);
@@ -884,13 +889,13 @@ export default function DocumentDetailPage() {
               className="rounded border-gray-300"
             />
             <label htmlFor="majorRevision" className="text-sm">
-              การแก้ไขครั้งใหญ่ (เพิ่มหมายเลขเวอร์ชันหลัก)
+              {t('documents.detail.newVersionDialog.majorRevision')}
             </label>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={() => {
                 setShowNewVersionDialog(false);
                 setSelectedFile(null);
@@ -899,7 +904,7 @@ export default function DocumentDetailPage() {
               disabled={isUploading || createVersionMutation.isPending}
             />
             <DxButton
-              text={isUploading ? 'กำลังอัปโหลด...' : 'สร้างเวอร์ชัน'}
+              text={isUploading ? t('documents.detail.newVersionDialog.uploading') : t('documents.detail.newVersionDialog.createVersion')}
               icon={isUploading ? undefined : 'add'}
               onClick={handleCreateVersion}
               type="success"
@@ -913,28 +918,26 @@ export default function DocumentDetailPage() {
       <DxPopup
         visible={showSubmitDialog}
         onHiding={() => setShowSubmitDialog(false)}
-        title="ส่งเพื่อขออนุมัติ"
+        title={t('documents.detail.submitForApproval')}
         width={500}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            ระบบจะส่งเวอร์ชัน {document.currentVersion?.versionNumber} เพื่อขออนุมัติ
-            ตามลำดับการอนุมัติของประเภทเอกสาร
+            {t('documents.detail.submitDialog.line1', { version: document.currentVersion?.versionNumber ?? '' })}
           </p>
           <p className="text-sm">
-            ผู้อนุมัติที่เกี่ยวข้องจะได้รับการแจ้งเตือน และสถานะของเวอร์ชันจะเปลี่ยนเป็น
-            &quot;รออนุมัติ&quot;
+            {t('documents.detail.submitDialog.line2')}
           </p>
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={() => setShowSubmitDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="ส่ง"
+              text={t('documents.detail.submitDialog.send')}
               icon="upload"
               onClick={() => {
                 setShowSubmitDialog(false);
@@ -953,17 +956,17 @@ export default function DocumentDetailPage() {
           setShowStatusDialog(false);
           setPendingStatus(null);
         }}
-        title="เปลี่ยนสถานะเอกสาร"
+        title={t('documents.detail.statusDialog.title')}
         width={400}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            สถานะปัจจุบัน: <span className="font-medium">{statusLabels[document.status] ?? document.status}</span>
+            {t('documents.detail.statusDialog.currentStatus')}: <span className="font-medium">{statusLabelKeys[document.status] ? t(statusLabelKeys[document.status]) : document.status}</span>
           </p>
           <div className="space-y-2">
-            <label className="text-sm font-medium">สถานะใหม่</label>
+            <label className="text-sm font-medium">{t('documents.detail.statusDialog.newStatus')}</label>
             <div className="grid grid-cols-2 gap-2">
               {(['draft', 'active', 'obsolete', 'archived'] as DocumentStatus[])
                 .filter((s) => s !== document.status)
@@ -977,7 +980,7 @@ export default function DocumentDetailPage() {
                         : 'border-gray-200 hover:border-primary/50'
                     }`}
                   >
-                    {statusLabels[status] ?? status}
+                    {statusLabelKeys[status] ? t(statusLabelKeys[status]) : status}
                   </button>
                 ))}
             </div>
@@ -985,16 +988,16 @@ export default function DocumentDetailPage() {
           {pendingStatus && (
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                {pendingStatus === 'active' && 'การดำเนินการนี้จะทำให้เอกสารอยู่ในสถานะใช้งาน และทำให้เวอร์ชันปัจจุบันมีผลบังคับใช้'}
-                {pendingStatus === 'draft' && 'การดำเนินการนี้จะเปลี่ยนเอกสารกลับเป็นสถานะฉบับร่าง'}
-                {pendingStatus === 'obsolete' && 'การดำเนินการนี้จะทำให้เอกสารถูกยกเลิกใช้งานและแทนที่ทุกเวอร์ชัน'}
-                {pendingStatus === 'archived' && 'การดำเนินการนี้จะจัดเก็บเอกสารไว้เพื่อการอ้างอิงย้อนหลังเท่านั้น'}
+                {pendingStatus === 'active' && t('documents.detail.statusDialog.warning.active')}
+                {pendingStatus === 'draft' && t('documents.detail.statusDialog.warning.draft')}
+                {pendingStatus === 'obsolete' && t('documents.detail.statusDialog.warning.obsolete')}
+                {pendingStatus === 'archived' && t('documents.detail.statusDialog.warning.archived')}
               </p>
             </div>
           )}
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={() => {
                 setShowStatusDialog(false);
                 setPendingStatus(null);
@@ -1003,7 +1006,7 @@ export default function DocumentDetailPage() {
               disabled={updateStatusMutation.isPending}
             />
             <DxButton
-              text={updateStatusMutation.isPending ? 'กำลังอัปเดต...' : 'อัปเดตสถานะ'}
+              text={updateStatusMutation.isPending ? t('documents.detail.statusDialog.updating') : t('documents.detail.statusDialog.updateStatus')}
               onClick={() => {
                 if (pendingStatus) {
                   updateStatusMutation.mutate(pendingStatus);

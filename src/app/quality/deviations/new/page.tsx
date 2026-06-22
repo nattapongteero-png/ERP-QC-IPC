@@ -17,24 +17,24 @@ import {
   AlertOctagon,
 } from 'lucide-react';
 
-const sourceTypeOptions = [
-  { value: '', label: 'เลือกประเภทแหล่งที่มา...' },
-  { value: 'production', label: 'การผลิต' },
-  { value: 'quality', label: 'ควบคุมคุณภาพ' },
-  { value: 'warehouse', label: 'คลังสินค้า' },
-];
-
-const severityOptions = [
-  { value: 'minor', label: 'น้อย' },
-  { value: 'major', label: 'มาก' },
-  { value: 'critical', label: 'วิกฤต' },
-];
-
 function NewDeviationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('quality');
   const [isSaving, setIsSaving] = useState(false);
+
+  const sourceTypeOptions = [
+    { value: '', label: t('deviations.new.sourceTypePlaceholder') },
+    { value: 'production', label: t('deviations.source.production') },
+    { value: 'quality', label: t('deviations.source.quality') },
+    { value: 'warehouse', label: t('deviations.source.warehouse') },
+  ];
+
+  const severityOptions = [
+    { value: 'minor', label: t('deviations.severity.minor') },
+    { value: 'major', label: t('deviations.severity.major') },
+    { value: 'critical', label: t('deviations.severity.critical') },
+  ];
 
   // Pre-fill from query params. When a QC result is recorded as OOS/FAIL, the
   // QC entry page navigates here with title/description/severity/source filled
@@ -51,12 +51,12 @@ function NewDeviationForm() {
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
-      alert('กรุณากรอกหัวข้อ');
+      alert(t('deviations.new.titleRequired'));
       return;
     }
 
     if (!formData.description.trim()) {
-      alert('กรุณากรอกรายละเอียด');
+      alert(t('deviations.new.descriptionRequired'));
       return;
     }
 
@@ -100,11 +100,11 @@ function NewDeviationForm() {
   const getSeverityDescription = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'ต้องดำเนินการทันที อาจส่งผลต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์';
+        return t('deviations.new.severityDescription.critical');
       case 'major':
-        return 'ความเบี่ยงเบนที่มีนัยสำคัญ ต้องให้ความสนใจและสืบสวนโดยเร็ว';
+        return t('deviations.new.severityDescription.major');
       default:
-        return 'ความเบี่ยงเบนเล็กน้อยที่ควรบันทึกและแก้ไข';
+        return t('deviations.new.severityDescription.minor');
     }
   };
 
@@ -132,7 +132,7 @@ function NewDeviationForm() {
           description={t('nonConformance.description')}
           backButton={
             <DxButton
-              text="กลับ"
+              text={t('deviations.new.back')}
               icon="back"
               type="normal"
               stylingMode="text"
@@ -147,16 +147,16 @@ function NewDeviationForm() {
             {/* Basic Information */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>รายละเอียดความเบี่ยงเบน</CardTitle>
+                <CardTitle>{t('deviations.new.detailsTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      หัวข้อ <span className="text-red-500">*</span>
+                      {t('deviations.new.titleLabel')} <span className="text-red-500">*</span>
                     </label>
                     <DxTextBox
-                      placeholder="คำอธิบายสั้น ๆ ของความเบี่ยงเบน"
+                      placeholder={t('deviations.new.titlePlaceholder')}
                       value={formData.title}
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, title: value }))
@@ -165,12 +165,12 @@ function NewDeviationForm() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      รายละเอียด <span className="text-red-500">*</span>
+                      {t('deviations.new.descriptionLabel')} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       rows={5}
-                      placeholder="อธิบายรายละเอียดว่าเกิดอะไรขึ้น เมื่อใด ที่ไหน และการดำเนินการเบื้องต้นที่ได้ทำไป..."
+                      placeholder={t('deviations.new.descriptionPlaceholder')}
                       value={formData.description}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, description: e.target.value }))
@@ -184,13 +184,13 @@ function NewDeviationForm() {
             {/* Classification */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>การจัดประเภท</CardTitle>
+                <CardTitle>{t('deviations.new.classificationTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ประเภทแหล่งที่มา
+                      {t('deviations.new.sourceTypeLabel')}
                     </label>
                     <DxSelectBox
                       items={sourceTypeOptions}
@@ -198,12 +198,12 @@ function NewDeviationForm() {
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, sourceType: value }))
                       }
-                      placeholder="เลือกประเภทแหล่งที่มา..."
+                      placeholder={t('deviations.new.sourceTypePlaceholder')}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ความรุนแรง <span className="text-red-500">*</span>
+                      {t('deviations.new.severityLabel')} <span className="text-red-500">*</span>
                     </label>
                     <DxSelectBox
                       items={severityOptions}
@@ -236,7 +236,7 @@ function NewDeviationForm() {
                         ? 'text-yellow-800'
                         : 'text-blue-800'
                     }`}>
-                      ความรุนแรงระดับ{formData.severity === 'critical' ? 'วิกฤต' : formData.severity === 'major' ? 'มาก' : 'น้อย'}
+                      {t('deviations.new.severityLevelLabel', { level: t(`deviations.severity.${formData.severity}`) })}
                     </p>
                     <p className={`text-sm ${
                       formData.severity === 'critical'
@@ -255,13 +255,13 @@ function NewDeviationForm() {
             {/* Timeline */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>กรอบเวลา</CardTitle>
+                <CardTitle>{t('deviations.new.timelineTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      วันครบกำหนด
+                      {t('deviations.new.dueDateLabel')}
                     </label>
                     <DxDateBox
                       value={formData.dueDate}
@@ -269,17 +269,17 @@ function NewDeviationForm() {
                         setFormData((prev) => ({ ...prev, dueDate: value || '' }))
                       }
                       min={toLocalDateStr(new Date())}
-                      placeholder="เลือกวันครบกำหนด"
+                      placeholder={t('deviations.new.dueDatePlaceholder')}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      กรอบเวลาที่แนะนำ
+                      {t('deviations.new.recommendedTimelineLabel')}
                     </label>
                     <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                      {formData.severity === 'critical' && 'วิกฤต: แก้ไขภายใน 3 วัน'}
-                      {formData.severity === 'major' && 'มาก: แก้ไขภายใน 14 วัน'}
-                      {formData.severity === 'minor' && 'น้อย: แก้ไขภายใน 30 วัน'}
+                      {formData.severity === 'critical' && t('deviations.new.timeline.critical')}
+                      {formData.severity === 'major' && t('deviations.new.timeline.major')}
+                      {formData.severity === 'minor' && t('deviations.new.timeline.minor')}
                     </div>
                   </div>
                 </div>
@@ -292,11 +292,11 @@ function NewDeviationForm() {
             {/* Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">การดำเนินการ</CardTitle>
+                <CardTitle className="text-sm">{t('deviations.new.actionsTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DxButton
-                  text={isSaving ? 'กำลังสร้าง...' : 'รายงานความเบี่ยงเบน'}
+                  text={isSaving ? t('deviations.new.creating') : t('deviations.new.submit')}
                   icon="save"
                   type="success"
                   width="100%"
@@ -304,7 +304,7 @@ function NewDeviationForm() {
                   disabled={!formData.title || !formData.description || isSaving}
                 />
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('deviations.new.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   width="100%"
@@ -318,23 +318,23 @@ function NewDeviationForm() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
-                  เกี่ยวกับความเบี่ยงเบน
+                  {t('deviations.new.help.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-gray-600">
                   <p>
-                    ความเบี่ยงเบน คือ การเบี่ยงเบนใด ๆ จากขั้นตอน ข้อกำหนด หรือมาตรฐานที่ได้รับการอนุมัติ
+                    {t('deviations.new.help.definition')}
                   </p>
                   <p>
-                    <strong>รายงานเมื่อ:</strong>
+                    <strong>{t('deviations.new.help.reportWhen')}</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-gray-500">
-                    <li>พารามิเตอร์กระบวนการอยู่นอกขีดจำกัด</li>
-                    <li>เครื่องจักรทำงานผิดปกติ</li>
-                    <li>ผลการทดสอบอยู่นอกข้อกำหนด</li>
-                    <li>ข้อผิดพลาดในเอกสาร</li>
-                    <li>สภาวะแวดล้อมเบี่ยงเบน</li>
+                    <li>{t('deviations.new.help.case1')}</li>
+                    <li>{t('deviations.new.help.case2')}</li>
+                    <li>{t('deviations.new.help.case3')}</li>
+                    <li>{t('deviations.new.help.case4')}</li>
+                    <li>{t('deviations.new.help.case5')}</li>
                   </ul>
                 </div>
               </CardContent>
@@ -343,34 +343,34 @@ function NewDeviationForm() {
             {/* Severity Guide */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">การจัดระดับความรุนแรง</CardTitle>
+                <CardTitle className="text-sm">{t('deviations.new.severityGuide.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <AlertOctagon className="h-4 w-4 text-red-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-red-800">วิกฤต</p>
+                      <p className="font-medium text-red-800">{t('deviations.severity.critical')}</p>
                       <p className="text-xs text-gray-500">
-                        ส่งผลโดยตรงต่อความปลอดภัยของผลิตภัณฑ์ สุขภาพผู้ป่วย หรือการปฏิบัติตามกฎระเบียบ
+                        {t('deviations.new.severityGuide.critical')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-yellow-800">มาก</p>
+                      <p className="font-medium text-yellow-800">{t('deviations.severity.major')}</p>
                       <p className="text-xs text-gray-500">
-                        ส่งผลกระทบอย่างมีนัยสำคัญต่อคุณภาพผลิตภัณฑ์หรือการควบคุมกระบวนการ
+                        {t('deviations.new.severityGuide.major')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-blue-800">น้อย</p>
+                      <p className="font-medium text-blue-800">{t('deviations.severity.minor')}</p>
                       <p className="text-xs text-gray-500">
-                        ผลกระทบจำกัด แก้ไขได้ง่าย ไม่ส่งผลโดยตรงต่อคุณภาพ
+                        {t('deviations.new.severityGuide.minor')}
                       </p>
                     </div>
                   </div>
@@ -384,9 +384,14 @@ function NewDeviationForm() {
   );
 }
 
+function NewDeviationLoading() {
+  const t = useTranslations('quality');
+  return <div className="p-6 text-gray-500">{t('deviations.new.loading')}</div>;
+}
+
 export default function NewDeviationPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-gray-500">กำลังโหลด…</div>}>
+    <Suspense fallback={<NewDeviationLoading />}>
       <NewDeviationForm />
     </Suspense>
   );

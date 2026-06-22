@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -175,6 +176,7 @@ function rowsToCsv(rows: AuditRow[]): string {
 
 export default function AuditTrailPage() {
   const toast = useToast();
+  const t = useTranslations('quality');
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [kpis, setKpis] = useState<AuditKpis | null>(null);
   const [total, setTotal] = useState(0);
@@ -283,7 +285,7 @@ export default function AuditTrailPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="Audit Trail"
-          subtitle="เส้นทางการตรวจสอบ — 21 CFR Part 11 §11.10(e)"
+          subtitle={t('auditTrail.subtitle')}
           icon={ScrollText}
           iconBgColor="bg-emerald-100"
           iconColor="text-emerald-600"
@@ -295,7 +297,7 @@ export default function AuditTrailPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
-                text="รีเฟรช"
+                text={t('auditTrail.refresh')}
                 stylingMode="outlined"
                 onClick={fetchAudit}
                 disabled={loading}
@@ -343,7 +345,7 @@ export default function AuditTrailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 md:p-4">
           <div className="flex items-center gap-2 mb-3">
             <Filter className="h-4 w-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-gray-700">ตัวกรอง</h2>
+            <h2 className="text-sm font-semibold text-gray-700">{t('auditTrail.filters')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
             <SelectInput
@@ -417,7 +419,7 @@ export default function AuditTrailPage() {
               onClick={clearFilters}
               className="text-xs text-gray-500 hover:text-gray-700"
             >
-              ล้างตัวกรอง
+              {t('auditTrail.clearFilters')}
             </button>
           </div>
         </div>
@@ -439,7 +441,7 @@ export default function AuditTrailPage() {
             </div>
           ) : rows.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-500">
-              ไม่พบเหตุการณ์ที่ตรงกับตัวกรอง
+              {t('auditTrail.noEvents')}
             </div>
           ) : (
             <>
@@ -452,7 +454,7 @@ export default function AuditTrailPage() {
                     <tr>
                       <th className="w-8 px-3 py-2"></th>
                       <th className="w-12 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        ลำดับ
+                        {t('auditTrail.columns.no')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                         Timestamp
@@ -522,7 +524,7 @@ export default function AuditTrailPage() {
                     onClick={() => setPage(1)}
                     disabled={page <= 1}
                     className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
-                    title="หน้าแรก"
+                    title={t('auditTrail.pager.firstPage')}
                   >
                     « First
                   </button>
@@ -544,7 +546,7 @@ export default function AuditTrailPage() {
                     onClick={() => setPage(totalPages)}
                     disabled={page >= totalPages}
                     className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
-                    title="หน้าสุดท้าย"
+                    title={t('auditTrail.pager.lastPage')}
                   >
                     Last »
                   </button>

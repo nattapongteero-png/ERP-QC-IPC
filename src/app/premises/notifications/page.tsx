@@ -48,6 +48,7 @@ function monthOffset(yearMonth: string, delta: number): string {
 
 export default function MaintenanceAlertsPage() {
   const t = useTranslations('equipmentNotifications');
+  const tp = useTranslations('premises');
   const qc = useQueryClient();
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [ackOpen, setAckOpen] = useState<{ id: number } | null>(null);
@@ -171,33 +172,37 @@ export default function MaintenanceAlertsPage() {
     <div className="p-6 space-y-4">
       <Breadcrumbs
         items={[
-          { label: 'อาคารและสถานที่', href: '/premises' },
-          { label: 'แจ้งเตือนบำรุงรักษา' },
+          { label: tp('notifications.common.premises'), href: '/premises' },
+          { label: tp('notifications.common.title') },
         ]}
       />
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Bell className="w-6 h-6" />
-            แจ้งเตือนบำรุงรักษา
+            {tp('notifications.common.title')}
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {tabBtn('list', 'รายการ', List)}
-          {tabBtn('calendar', 'ปฏิทิน', CalendarDays)}
+          {tabBtn('list', tp('notifications.list.tab'), List)}
+          {tabBtn('calendar', tp('notifications.calendar.tab'), CalendarDays)}
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
         </div>
       </header>
 
       <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
         <div>
-          <span className="font-medium">ข้อมูลมาจากไหน?</span> ระบบสร้างให้
-          <span className="font-medium"> อัตโนมัติ</span> จาก (1) กำหนดการบำรุงรักษา/สอบเทียบเครื่องมือที่ถึง/เกินกำหนด
-          และ (2) ผลตรวจที่เกินเกณฑ์ (สิ่งแวดล้อม/น้ำ) — ไม่ต้องกดปุ่มสแกนเอง
+          <span className="font-medium">{tp('notifications.info.sourceLabel')}</span>{' '}
+          {tp('notifications.info.sourceLead')}
+          <span className="font-medium"> {tp('notifications.info.sourceAuto')}</span>{' '}
+          {tp('notifications.info.sourceRest')}
         </div>
         <div className="text-xs text-sky-800">
-          กด <span className="font-medium">"รับทราบ/ดำเนินการ"</span> เพื่อปิดงานเตือน (บันทึกผู้รับทราบ+เวลา) หรือ{' '}
-          <span className="font-medium">"เลื่อน"</span> เพื่อเลื่อนการเตือนออกไป · รายการที่เกินเกณฑ์จะมีใบ Deviation ผูกให้อัตโนมัติ
+          {tp('notifications.info.actionLead')}{' '}
+          <span className="font-medium">{tp('notifications.info.actionAck')}</span>{' '}
+          {tp('notifications.info.actionAckRest')}{' '}
+          <span className="font-medium">{tp('notifications.info.actionSnooze')}</span>{' '}
+          {tp('notifications.info.actionSnoozeRest')}
         </div>
       </div>
 
@@ -245,7 +250,7 @@ export default function MaintenanceAlertsPage() {
           <Paging pageSize={20} />
           <Column
             dataField="severity"
-            caption="ระดับ"
+            caption={tp('notifications.list.col.severity')}
             width={140}
             cellRender={(c) => {
               const v = String(c.value) as NotificationSeverity;
@@ -266,12 +271,12 @@ export default function MaintenanceAlertsPage() {
               );
             }}
           />
-          <Column dataField="type" caption="ประเภท" width={150} cellRender={(c) => t(`type.${c.value}` as any)} />
-          <Column dataField="title" caption="หัวข้อ" />
-          <Column dataField="dueAt" caption="ครบกำหนด" width={160} dataType="datetime" />
-          <Column dataField="status" caption="สถานะ" width={130} cellRender={(c) => t(`status.${c.value}` as any)} />
+          <Column dataField="type" caption={tp('notifications.list.col.type')} width={150} cellRender={(c) => t(`type.${c.value}` as any)} />
+          <Column dataField="title" caption={tp('notifications.list.col.title')} />
+          <Column dataField="dueAt" caption={tp('notifications.list.col.dueAt')} width={160} dataType="datetime" />
+          <Column dataField="status" caption={tp('notifications.list.col.status')} width={130} cellRender={(c) => t(`status.${c.value}` as any)} />
           <Column
-            caption="การกระทำ"
+            caption={tp('notifications.list.col.actions')}
             width={220}
             cellRender={(c) => {
               const n = c.data as EquipmentNotification;
@@ -289,14 +294,14 @@ export default function MaintenanceAlertsPage() {
         <div className="bg-white border rounded-lg p-3">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="text-xs text-gray-500">
-              ปฏิทินแสดงงานบำรุงรักษา/แจ้งเตือนที่ <span className="font-medium">ครบกำหนด</span> ในแต่ละวันของเดือน — ใช้วางแผนล่วงหน้า
+              {tp('notifications.calendar.helpLead')} <span className="font-medium">{tp('notifications.calendar.helpDue')}</span> {tp('notifications.calendar.helpRest')}
             </div>
             <div className="flex items-center gap-2">
-              <Button icon="chevronleft" hint="เดือนก่อนหน้า" onClick={() => setMonth(monthOffset(month, -1))} data-testid="cal-prev" />
+              <Button icon="chevronleft" hint={tp('notifications.calendar.prevMonth')} onClick={() => setMonth(monthOffset(month, -1))} data-testid="cal-prev" />
               <span className="font-medium text-lg w-28 text-center">{month}</span>
-              <Button icon="chevronright" hint="เดือนถัดไป" onClick={() => setMonth(monthOffset(month, +1))} data-testid="cal-next" />
+              <Button icon="chevronright" hint={tp('notifications.calendar.nextMonth')} onClick={() => setMonth(monthOffset(month, +1))} data-testid="cal-next" />
               <Button
-                text="วันนี้"
+                text={tp('notifications.calendar.today')}
                 onClick={() => {
                   const d = new Date();
                   setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
@@ -305,8 +310,8 @@ export default function MaintenanceAlertsPage() {
             </div>
           </div>
           <div className="grid grid-cols-7 gap-1 text-xs font-medium text-gray-500 mb-1">
-            {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d) => (
-              <div key={d} className="text-center py-1">{d}</div>
+            {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((d) => (
+              <div key={d} className="text-center py-1">{tp('notifications.calendar.weekday.' + d)}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -342,14 +347,14 @@ export default function MaintenanceAlertsPage() {
       <Popup visible={!!ackOpen} onHiding={() => setAckOpen(null)} showCloseButton title={t('actions.acknowledge')} width={460} height="auto">
         <div className="p-4 space-y-3">
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded p-3 text-emerald-900 text-sm">
-            <CheckCircle2 className="w-4 h-4" /> รับทราบและจะดำเนินการ
+            <CheckCircle2 className="w-4 h-4" /> {tp('notifications.ack.banner')}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.note.label')}</label>
             <TextArea value={note} height={80} onValueChanged={(e) => setNote(String(e.value ?? ''))} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button text="ยกเลิก" stylingMode="text" onClick={() => setAckOpen(null)} />
+            <Button text={tp('notifications.common.cancel')} stylingMode="text" onClick={() => setAckOpen(null)} />
             <Button type="success" stylingMode="contained" text={t('actions.acknowledge')} disabled={ackMut.isPending} onClick={() => ackMut.mutate()} />
           </div>
         </div>
@@ -367,7 +372,7 @@ export default function MaintenanceAlertsPage() {
             <TextArea value={note} height={60} onValueChanged={(e) => setNote(String(e.value ?? ''))} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button text="ยกเลิก" stylingMode="text" onClick={() => setSnoozeOpen(null)} />
+            <Button text={tp('notifications.common.cancel')} stylingMode="text" onClick={() => setSnoozeOpen(null)} />
             <Button type="default" stylingMode="contained" text={t('actions.snooze')} disabled={snoozeMut.isPending} onClick={() => snoozeMut.mutate()} />
           </div>
         </div>

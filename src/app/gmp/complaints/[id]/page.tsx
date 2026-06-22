@@ -95,7 +95,6 @@ async function deleteComplaint(id: number): Promise<void> {
 
 const SEVERITY_CONFIG: Record<ComplaintSeverity, {
   label: string;
-  labelTh: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -103,7 +102,6 @@ const SEVERITY_CONFIG: Record<ComplaintSeverity, {
 }> = {
   minor: {
     label: 'Minor',
-    labelTh: 'น้อย',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -111,7 +109,6 @@ const SEVERITY_CONFIG: Record<ComplaintSeverity, {
   },
   major: {
     label: 'Major',
-    labelTh: 'ปานกลาง',
     color: '#f59e0b',
     bgClass: 'bg-amber-100',
     textClass: 'text-amber-700',
@@ -119,7 +116,6 @@ const SEVERITY_CONFIG: Record<ComplaintSeverity, {
   },
   critical: {
     label: 'Critical',
-    labelTh: 'วิกฤต',
     color: '#ef4444',
     bgClass: 'bg-red-100',
     textClass: 'text-red-700',
@@ -129,7 +125,6 @@ const SEVERITY_CONFIG: Record<ComplaintSeverity, {
 
 const STATUS_CONFIG: Record<ComplaintStatus, {
   label: string;
-  labelTh: string;
   color: string;
   bgClass: string;
   textClass: string;
@@ -138,7 +133,6 @@ const STATUS_CONFIG: Record<ComplaintStatus, {
 }> = {
   received: {
     label: 'Received',
-    labelTh: 'ได้รับ',
     color: '#3b82f6',
     bgClass: 'bg-blue-100',
     textClass: 'text-blue-700',
@@ -147,7 +141,6 @@ const STATUS_CONFIG: Record<ComplaintStatus, {
   },
   under_investigation: {
     label: 'Under Investigation',
-    labelTh: 'กำลังสืบสวน',
     color: '#8b5cf6',
     bgClass: 'bg-violet-100',
     textClass: 'text-violet-700',
@@ -156,7 +149,6 @@ const STATUS_CONFIG: Record<ComplaintStatus, {
   },
   resolved: {
     label: 'Resolved',
-    labelTh: 'แก้ไขแล้ว',
     color: '#06b6d4',
     bgClass: 'bg-cyan-100',
     textClass: 'text-cyan-700',
@@ -165,7 +157,6 @@ const STATUS_CONFIG: Record<ComplaintStatus, {
   },
   closed: {
     label: 'Closed',
-    labelTh: 'ปิด',
     color: '#22c55e',
     bgClass: 'bg-green-100',
     textClass: 'text-green-700',
@@ -174,20 +165,20 @@ const STATUS_CONFIG: Record<ComplaintStatus, {
   },
 };
 
-const SOURCE_CONFIG: Record<ComplaintSource, { label: string; labelTh: string }> = {
-  customer: { label: 'Customer', labelTh: 'ลูกค้า' },
-  distributor: { label: 'Distributor', labelTh: 'ผู้จัดจำหน่าย' },
-  regulatory: { label: 'Regulatory', labelTh: 'หน่วยงานกำกับ' },
-  internal: { label: 'Internal', labelTh: 'ภายใน' },
+const SOURCE_CONFIG: Record<ComplaintSource, { label: string }> = {
+  customer: { label: 'Customer' },
+  distributor: { label: 'Distributor' },
+  regulatory: { label: 'Regulatory' },
+  internal: { label: 'Internal' },
 };
 
-const CATEGORY_CONFIG: Record<ComplaintCategory, { label: string; labelTh: string; color: string }> = {
-  quality: { label: 'Quality', labelTh: 'คุณภาพ', color: '#3b82f6' },
-  efficacy: { label: 'Efficacy', labelTh: 'ประสิทธิภาพ', color: '#8b5cf6' },
-  safety: { label: 'Safety', labelTh: 'ความปลอดภัย', color: '#ef4444' },
-  packaging: { label: 'Packaging', labelTh: 'บรรจุภัณฑ์', color: '#f59e0b' },
-  labeling: { label: 'Labeling', labelTh: 'ฉลาก', color: '#06b6d4' },
-  other: { label: 'Other', labelTh: 'อื่นๆ', color: '#6b7280' },
+const CATEGORY_CONFIG: Record<ComplaintCategory, { label: string; color: string }> = {
+  quality: { label: 'Quality', color: '#3b82f6' },
+  efficacy: { label: 'Efficacy', color: '#8b5cf6' },
+  safety: { label: 'Safety', color: '#ef4444' },
+  packaging: { label: 'Packaging', color: '#f59e0b' },
+  labeling: { label: 'Labeling', color: '#06b6d4' },
+  other: { label: 'Other', color: '#6b7280' },
 };
 
 const TAB_IDS = {
@@ -268,16 +259,12 @@ export default function ComplaintDetailPage() {
       router.push('/gmp/complaints');
     },
     onError: (err) => {
-      alert(err instanceof Error ? err.message : 'ลบไม่สำเร็จ');
+      alert(err instanceof Error ? err.message : t('complaints.detail.deleteFailed'));
     },
   });
 
   const handleDeleteComplaint = () => {
-    if (
-      !window.confirm(
-        'ต้องการลบข้อร้องเรียนนี้หรือไม่?\nลบได้เฉพาะรายการที่เพิ่งรับเข้า (สถานะ "received") และยังไม่ได้ดำเนินการ'
-      )
-    ) {
+    if (!window.confirm(t('complaints.detail.deleteConfirm'))) {
       return;
     }
     deleteMutation.mutate();
@@ -285,10 +272,10 @@ export default function ComplaintDetailPage() {
 
   // Tabs configuration
   const tabs: DxTabItem[] = useMemo(() => [
-    { id: TAB_IDS.overview, text: 'ภาพรวม', icon: 'home' },
-    { id: TAB_IDS.investigation, text: 'การสืบสวน', icon: 'search' },
-    { id: TAB_IDS.attachments, text: 'เอกสารแนบ', icon: 'attach' },
-  ], []);
+    { id: TAB_IDS.overview, text: t('complaints.detail.tabs.overview'), icon: 'home' },
+    { id: TAB_IDS.investigation, text: t('complaints.detail.tabs.investigation'), icon: 'search' },
+    { id: TAB_IDS.attachments, text: t('complaints.detail.tabs.attachments'), icon: 'attach' },
+  ], [t]);
 
   // Computed values
   const statusConfig = complaint ? STATUS_CONFIG[complaint.status] : null;
@@ -306,7 +293,7 @@ export default function ComplaintDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <DxLoadIndicator height={60} width={60} />
-          <p className="mt-4 text-gray-500">Loading complaint details...</p>
+          <p className="mt-4 text-gray-500">{t('complaints.detail.loading')}</p>
         </div>
       </div>
     );
@@ -320,16 +307,16 @@ export default function ComplaintDetailPage() {
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">{t('complaints.title')} - {t('common.error')}</h2>
-            <p className="text-gray-500 mb-6">{error?.message || 'Complaint not found'}</p>
+            <p className="text-gray-500 mb-6">{error?.message || t('complaints.detail.notFound')}</p>
             <div className="flex gap-3 justify-center">
               <DxButton
-                text="Go Back"
+                text={t('common.goBack')}
                 icon="back"
                 onClick={() => router.back()}
                 stylingMode="outlined"
               />
               <DxButton
-                text="Retry"
+                text={t('common.retry')}
                 icon="refresh"
                 onClick={() => refetch()}
                 type="default"
@@ -356,19 +343,19 @@ export default function ComplaintDetailPage() {
               className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span>Back to Complaints</span>
+              <span>{t('complaints.detail.backToList')}</span>
             </button>
             <div className="flex items-center gap-2">
               <DxButton
                 icon="refresh"
-                hint="Refresh"
+                hint={t('common.refresh')}
                 onClick={() => refetch()}
                 stylingMode="text"
                 className="text-white"
               />
               <DxButton
                 icon="print"
-                hint="Print"
+                hint={t('complaints.detail.print')}
                 onClick={() => window.print()}
                 stylingMode="text"
                 className="text-white"
@@ -376,8 +363,8 @@ export default function ComplaintDetailPage() {
               {canDelete && (
                 <DxButton
                   icon="trash"
-                  text="ลบ"
-                  hint="ลบข้อร้องเรียน"
+                  text={t('complaints.detail.delete')}
+                  hint={t('complaints.detail.deleteHint')}
                   onClick={handleDeleteComplaint}
                   disabled={deleteMutation.isPending}
                   stylingMode="text"
@@ -397,9 +384,9 @@ export default function ComplaintDetailPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl lg:text-3xl font-bold">
-                    ข้อร้องเรียน {complaint.complaintNumber}
+                    {t('complaints.detail.heading', { number: complaint.complaintNumber })}
                   </h1>
-                  <p className="text-white/80 text-lg">{complaint.productName || 'Unknown Product'}</p>
+                  <p className="text-white/80 text-lg">{complaint.productName || t('complaints.detail.unknownProduct')}</p>
                 </div>
               </div>
 
@@ -411,7 +398,7 @@ export default function ComplaintDetailPage() {
                     'bg-white/20 backdrop-blur-sm'
                   )}>
                     <statusConfig.icon className="h-4 w-4" />
-                    {statusConfig.labelTh}
+                    {t(`complaints.status.${complaint.status}`)}
                   </span>
                 )}
 
@@ -423,7 +410,7 @@ export default function ComplaintDetailPage() {
                     severityConfig.textClass
                   )}>
                     <AlertCircle className="h-4 w-4" />
-                    {severityConfig.labelTh}
+                    {t(`complaints.severity.${complaint.severity}`)}
                   </span>
                 )}
 
@@ -431,7 +418,7 @@ export default function ComplaintDetailPage() {
                 {categoryConfig && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 backdrop-blur-sm">
                     <FileText className="h-4 w-4" />
-                    {categoryConfig.labelTh}
+                    {t(`complaints.categories.${complaint.category}`)}
                   </span>
                 )}
 
@@ -439,7 +426,7 @@ export default function ComplaintDetailPage() {
                 {complaint.regulatoryReportRequired && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-500 text-white">
                     <ShieldAlert className="h-4 w-4" />
-                    ต้องแจ้งหน่วยงานกำกับ
+                    {t('complaints.detail.regulatoryRequired')}
                   </span>
                 )}
               </div>
@@ -449,7 +436,7 @@ export default function ComplaintDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               {isOpen && (
                 <DxButton
-                  text="แก้ไข"
+                  text={t('complaints.detail.edit')}
                   icon="edit"
                   onClick={() => setShowEditDialog(true)}
                   stylingMode="outlined"
@@ -458,7 +445,7 @@ export default function ComplaintDetailPage() {
               )}
               {!complaint.capaId && (
                 <DxButton
-                  text="สร้าง CAPA"
+                  text={t('complaints.detail.createCapa')}
                   icon="plus"
                   onClick={() =>
                     router.push(
@@ -472,7 +459,7 @@ export default function ComplaintDetailPage() {
               )}
               {canClose && (
                 <DxButton
-                  text="ปิดข้อร้องเรียน"
+                  text={t('complaints.detail.closeComplaint')}
                   icon="check"
                   onClick={() => setShowCloseDialog(true)}
                   type="success"
@@ -486,13 +473,13 @@ export default function ComplaintDetailPage() {
       {/* Workflow status — สถานะการดำเนินงาน */}
       <div className="container mx-auto px-4 mt-6">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t('complaints.detail.workflowTitle')}
           current={complaint.status}
           steps={[
-            { key: 'received', label: 'รับเรื่อง' },
-            { key: 'under_investigation', label: 'กำลังสอบสวน' },
-            { key: 'resolved', label: 'แก้ไขแล้ว' },
-            { key: 'closed', label: 'ปิด' },
+            { key: 'received', label: t('complaints.detail.steps.received') },
+            { key: 'under_investigation', label: t('complaints.detail.steps.under_investigation') },
+            { key: 'resolved', label: t('complaints.detail.steps.resolved') },
+            { key: 'closed', label: t('complaints.detail.steps.closed') },
           ]}
         />
       </div>
@@ -508,9 +495,9 @@ export default function ComplaintDetailPage() {
                   <Gauge className={cn('h-6 w-6', severityConfig?.textClass || 'text-gray-600')} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">ความรุนแรง</p>
+                  <p className="text-sm text-gray-500">{t('complaints.detail.metrics.severity')}</p>
                   <p className={cn('text-lg font-semibold', severityConfig?.textClass || 'text-gray-900')}>
-                    {severityConfig?.labelTh || '-'}
+                    {complaint ? t(`complaints.severity.${complaint.severity}`) : '-'}
                   </p>
                   <p className="text-xs text-gray-400">{severityConfig?.label || '-'}</p>
                 </div>
@@ -526,9 +513,9 @@ export default function ComplaintDetailPage() {
                   <FileText className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">หมวดหมู่</p>
+                  <p className="text-sm text-gray-500">{t('complaints.detail.metrics.category')}</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {categoryConfig?.labelTh || '-'}
+                    {complaint ? t(`complaints.categories.${complaint.category}`) : '-'}
                   </p>
                   <p className="text-xs text-gray-400">{categoryConfig?.label || '-'}</p>
                 </div>
@@ -544,9 +531,9 @@ export default function ComplaintDetailPage() {
                   <Building className="h-6 w-6 text-violet-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">แหล่งที่มา</p>
+                  <p className="text-sm text-gray-500">{t('complaints.detail.metrics.source')}</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {sourceConfig?.labelTh || '-'}
+                    {complaint ? t(`complaints.detail.source.${complaint.source}`) : '-'}
                   </p>
                   <p className="text-xs text-gray-400">{sourceConfig?.label || '-'}</p>
                 </div>
@@ -568,16 +555,16 @@ export default function ComplaintDetailPage() {
                   )} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">การสืบสวน</p>
+                  <p className="text-sm text-gray-500">{t('complaints.detail.metrics.investigation')}</p>
                   <p className={cn(
                     'text-lg font-semibold',
                     hasInvestigation ? 'text-green-600' : 'text-gray-500'
                   )}>
-                    {complaint.investigation?.completionDate ? 'เสร็จสิ้น' :
-                     hasInvestigation ? 'กำลังดำเนินการ' : 'รอดำเนินการ'}
+                    {complaint.investigation?.completionDate ? t('complaints.detail.investigationState.completed') :
+                     hasInvestigation ? t('complaints.detail.investigationState.inProgress') : t('complaints.detail.investigationState.pending')}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {complaint.investigation?.investigatorName || 'ยังไม่ได้มอบหมาย'}
+                    {complaint.investigation?.investigatorName || t('complaints.detail.notAssigned')}
                   </p>
                 </div>
               </div>
@@ -594,12 +581,12 @@ export default function ComplaintDetailPage() {
               <ShieldAlert className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-red-800 dark:text-red-200">
-                  ต้องรายงานหน่วยงานกำกับ (Regulatory Report Required)
+                  {t('complaints.detail.regulatoryBanner.title')}
                 </p>
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                   {complaint.regulatoryReportDate
-                    ? `รายงานเมื่อ: ${formatDate(complaint.regulatoryReportDate)}`
-                    : 'ยังไม่ได้รายงาน - กรุณาดำเนินการโดยเร็ว'}
+                    ? t('complaints.detail.regulatoryBanner.reportedOn', { date: formatDate(complaint.regulatoryReportDate) })
+                    : t('complaints.detail.regulatoryBanner.notReported')}
                 </p>
               </div>
             </div>
@@ -625,34 +612,34 @@ export default function ComplaintDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <FileText className="h-5 w-5 text-orange-600" />
-                    ข้อมูลทั่วไป
+                    {t('complaints.detail.sections.generalInfo')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">เลขที่ข้อร้องเรียน</span>
+                      <span className="text-gray-500">{t('complaints.detail.fields.complaintNumber')}</span>
                       <span className="font-mono font-medium">{complaint.complaintNumber}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">วันที่ได้รับ</span>
+                      <span className="text-gray-500">{t('complaints.detail.fields.receivedDate')}</span>
                       <span className="font-medium">{formatDate(complaint.receivedDate)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">ผลิตภัณฑ์</span>
+                      <span className="text-gray-500">{t('complaints.detail.fields.product')}</span>
                       <span className="font-medium">{complaint.productName || '-'}</span>
                     </div>
                     {complaint.lotNumber && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">เลขที่ล็อต</span>
+                        <span className="text-gray-500">{t('complaints.detail.fields.lotNumber')}</span>
                         <span className="font-mono">{complaint.lotNumber}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-500">ผู้บันทึก</span>
+                      <span className="text-gray-500">{t('complaints.detail.fields.createdBy')}</span>
                       <span className="font-medium">{complaint.createdByName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">วันที่สร้าง</span>
+                      <span className="text-gray-500">{t('complaints.detail.fields.createdAt')}</span>
                       <span className="font-medium">{formatDateTime(complaint.createdAt)}</span>
                     </div>
                   </div>
@@ -662,28 +649,28 @@ export default function ComplaintDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <User className="h-5 w-5 text-orange-600" />
-                    ข้อมูลผู้ร้องเรียน
+                    {t('complaints.detail.sections.complainantInfo')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">แหล่งที่มา</span>
-                      <span className="font-medium">{sourceConfig?.labelTh || complaint.source}</span>
+                      <span className="text-gray-500">{t('complaints.detail.metrics.source')}</span>
+                      <span className="font-medium">{t(`complaints.detail.source.${complaint.source}`)}</span>
                     </div>
                     {complaint.customerName && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">ชื่อ</span>
+                        <span className="text-gray-500">{t('complaints.detail.fields.name')}</span>
                         <span className="font-medium">{complaint.customerName}</span>
                       </div>
                     )}
                     {complaint.customerContact && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">ช่องทางติดต่อ</span>
+                        <span className="text-gray-500">{t('complaints.detail.fields.contact')}</span>
                         <span className="font-medium">{complaint.customerContact}</span>
                       </div>
                     )}
                     {!complaint.customerName && !complaint.customerContact && (
-                      <p className="text-gray-400 italic">ไม่ได้ระบุข้อมูลผู้ร้องเรียน</p>
+                      <p className="text-gray-400 italic">{t('complaints.detail.noComplainantInfo')}</p>
                     )}
                   </div>
                 </div>
@@ -692,7 +679,7 @@ export default function ComplaintDetailPage() {
                 <div className="lg:col-span-2 space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-orange-600" />
-                    รายละเอียดข้อร้องเรียน
+                    {t('complaints.detail.sections.description')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
@@ -706,7 +693,7 @@ export default function ComplaintDetailPage() {
                 <div className="lg:col-span-2">
                   <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                     <Activity className="h-5 w-5 text-orange-600" />
-                    สถานะการดำเนินงาน
+                    {t('complaints.detail.workflowTitle')}
                   </h3>
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
@@ -735,7 +722,7 @@ export default function ComplaintDetailPage() {
                                   isPassed ? 'text-green-600' :
                                   'text-gray-400'
                                 )}>
-                                  {config.labelTh}
+                                  {t(`complaints.status.${key}`)}
                                 </span>
                               </div>
                               {index < arr.length - 1 && (
@@ -756,7 +743,7 @@ export default function ComplaintDetailPage() {
                   <div className="lg:col-span-2">
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                       <Link2 className="h-5 w-5 text-orange-600" />
-                      เอกสารที่เกี่ยวข้อง
+                      {t('complaints.detail.sections.linkedRecords')}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -806,19 +793,19 @@ export default function ComplaintDetailPage() {
                   <div className="lg:col-span-2">
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      ข้อมูลการปิด
+                      {t('complaints.detail.sections.closureInfo')}
                     </h3>
 
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-500">วันที่ปิด</span>
+                          <span className="text-gray-500">{t('complaints.detail.fields.closedDate')}</span>
                           <p className="font-medium text-green-700 dark:text-green-300">
                             {formatDate(complaint.closedDate)}
                           </p>
                         </div>
                         <div>
-                          <span className="text-gray-500">ปิดโดย</span>
+                          <span className="text-gray-500">{t('complaints.detail.fields.closedBy')}</span>
                           <p className="font-medium text-green-700 dark:text-green-300">
                             {complaint.closedByName || '-'}
                           </p>
@@ -846,7 +833,7 @@ export default function ComplaintDetailPage() {
               <DocumentAttachment
                 moduleName="complaint"
                 entityId={complaintId}
-                title="เอกสารแนบ (Attachments)"
+                title={t('complaints.detail.attachmentsTitle')}
                 categories={['evidence', 'report', 'photo', 'investigation', 'lab_result', 'other']}
                 readOnly={complaint.status === 'closed'}
               />
@@ -871,7 +858,7 @@ export default function ComplaintDetailPage() {
       <DxPopup
         visible={showCloseDialog}
         onHiding={() => setShowCloseDialog(false)}
-        title="ปิดข้อร้องเรียน"
+        title={t('complaints.detail.closeComplaint')}
         width={500}
         height="auto"
         showCloseButton
@@ -882,21 +869,21 @@ export default function ComplaintDetailPage() {
               <CheckCircle className="h-6 w-6 text-green-600" />
               <div>
                 <p className="font-medium text-green-800 dark:text-green-200">
-                  การสืบสวนเสร็จสิ้น
+                  {t('complaints.detail.closeDialog.investigationDone')}
                 </p>
                 <p className="text-sm text-green-600 dark:text-green-300">
-                  ข้อร้องเรียนพร้อมที่จะปิดได้แล้ว
+                  {t('complaints.detail.closeDialog.readyToClose')}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">หมายเหตุการปิด (ไม่บังคับ)</label>
+            <label className="text-sm font-medium">{t('complaints.detail.closeDialog.notesLabel')}</label>
             <DxTextArea
               value={closureNotes}
               onValueChange={(value) => setClosureNotes(value || '')}
-              placeholder="เพิ่มหมายเหตุเกี่ยวกับการปิดข้อร้องเรียนนี้..."
+              placeholder={t('complaints.detail.closeDialog.notesPlaceholder')}
               height={100}
             />
           </div>
@@ -909,12 +896,12 @@ export default function ComplaintDetailPage() {
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('common.cancel')}
               onClick={() => setShowCloseDialog(false)}
               stylingMode="outlined"
             />
             <DxButton
-              text="ปิดข้อร้องเรียน"
+              text={t('complaints.detail.closeComplaint')}
               icon="check"
               onClick={() => closeMutation.mutate()}
               type="success"

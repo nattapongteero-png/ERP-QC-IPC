@@ -9,6 +9,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -21,6 +22,7 @@ import { Layout } from 'lucide-react';
 export default function EditCoaTemplatePage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('quality');
   const id = Number(params?.id);
   const [template, setTemplate] = useState<CoaTemplate | null>(null);
   const [siblings, setSiblings] = useState<CoaTemplate[]>([]);
@@ -85,14 +87,14 @@ export default function EditCoaTemplatePage() {
         <div className="p-6">
           <ResponsivePageHeader
             title="Template Not Found"
-            subtitle={error || 'ไม่พบเทมเพลตที่ต้องการ'}
+            subtitle={error || t('coa.templates.detail.notFound')}
             icon={Layout}
             iconBgColor="bg-red-100"
             iconColor="text-red-600"
           />
           <div className="mt-4">
             <DxButton
-              text="กลับ"
+              text={t('coa.templates.detail.back')}
               icon="back"
               onClick={() => router.push('/quality/coa/templates')}
             />
@@ -106,10 +108,12 @@ export default function EditCoaTemplatePage() {
     <>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title={`แก้ไข: ${template.name}`}
+          title={t('coa.templates.detail.title', { name: template.name })}
           subtitle={
             template.productCategory
-              ? `หมวด: ${template.productCategory}`
+              ? t('coa.templates.detail.subtitle', {
+                  category: template.productCategory,
+                })
               : 'Global default template'
           }
           icon={Layout}

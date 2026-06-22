@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -69,26 +70,26 @@ interface PendingTaskRow {
 }
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'registered', label: 'ลงทะเบียน (Registered)' },
-  { value: 'testing', label: 'กำลังทดสอบ (Testing)' },
-  { value: 'reviewed', label: 'ทบทวนแล้ว (Reviewed)' },
-  { value: 'approved', label: 'อนุมัติ (Approved)' },
-  { value: 'released', label: 'ปล่อยใช้งาน (Released)' },
-  { value: 'rejected', label: 'ปฏิเสธ (Rejected)' },
-  { value: 'quarantine', label: 'กักกัน (Quarantine)' },
-  { value: 'oos', label: 'OOS' },
+  { value: '', labelKey: 'qcEntry.list.statusOptions.all' },
+  { value: 'registered', labelKey: 'qcEntry.list.statusOptions.registered' },
+  { value: 'testing', labelKey: 'qcEntry.list.statusOptions.testing' },
+  { value: 'reviewed', labelKey: 'qcEntry.list.statusOptions.reviewed' },
+  { value: 'approved', labelKey: 'qcEntry.list.statusOptions.approved' },
+  { value: 'released', labelKey: 'qcEntry.list.statusOptions.released' },
+  { value: 'rejected', labelKey: 'qcEntry.list.statusOptions.rejected' },
+  { value: 'quarantine', labelKey: 'qcEntry.list.statusOptions.quarantine' },
+  { value: 'oos', labelKey: 'qcEntry.list.statusOptions.oos' },
 ];
 
 const SOURCE_OPTIONS = [
-  { value: '', label: 'ทุกแหล่งที่มา' },
-  { value: 'raw_material_lot', label: 'วัตถุดิบเข้า' },
-  { value: 'work_order_batch', label: 'ใบสั่งผลิต' },
-  { value: 'customer_return', label: 'คืนจากลูกค้า' },
-  { value: 'stability', label: 'Stability study' },
-  { value: 'purchased_herb', label: 'ซื้อสมุนไพรจาก supplier' },
-  { value: 'outgoing_shipment', label: 'ส่งออกให้ลูกค้า (COA)' },
-  { value: 'other', label: 'อื่นๆ' },
+  { value: '', labelKey: 'qcEntry.list.sourceOptions.all' },
+  { value: 'raw_material_lot', labelKey: 'qcEntry.list.sourceOptions.rawMaterialLot' },
+  { value: 'work_order_batch', labelKey: 'qcEntry.list.sourceOptions.workOrderBatch' },
+  { value: 'customer_return', labelKey: 'qcEntry.list.sourceOptions.customerReturn' },
+  { value: 'stability', labelKey: 'qcEntry.list.sourceOptions.stability' },
+  { value: 'purchased_herb', labelKey: 'qcEntry.list.sourceOptions.purchasedHerb' },
+  { value: 'outgoing_shipment', labelKey: 'qcEntry.list.sourceOptions.outgoingShipment' },
+  { value: 'other', labelKey: 'qcEntry.list.sourceOptions.other' },
 ];
 
 function formatDateTh(dateStr: string | null | undefined): string {
@@ -106,33 +107,34 @@ function formatDateTh(dateStr: string | null | undefined): string {
 
 function statusBadge(status: string): {
   variant: 'default' | 'success' | 'warning' | 'danger' | 'info';
-  label: string;
+  labelKey: string | null;
 } {
   switch (status) {
     case 'registered':
-      return { variant: 'info', label: 'ลงทะเบียน' };
+      return { variant: 'info', labelKey: 'qcEntry.list.statusBadge.registered' };
     case 'testing':
-      return { variant: 'warning', label: 'กำลังทดสอบ' };
+      return { variant: 'warning', labelKey: 'qcEntry.list.statusBadge.testing' };
     case 'reviewed':
-      return { variant: 'info', label: 'ทบทวนแล้ว' };
+      return { variant: 'info', labelKey: 'qcEntry.list.statusBadge.reviewed' };
     case 'approved':
-      return { variant: 'success', label: 'อนุมัติ' };
+      return { variant: 'success', labelKey: 'qcEntry.list.statusBadge.approved' };
     case 'released':
-      return { variant: 'success', label: 'ปล่อยใช้งาน' };
+      return { variant: 'success', labelKey: 'qcEntry.list.statusBadge.released' };
     case 'rejected':
-      return { variant: 'danger', label: 'ปฏิเสธ' };
+      return { variant: 'danger', labelKey: 'qcEntry.list.statusBadge.rejected' };
     case 'quarantine':
-      return { variant: 'warning', label: 'กักกัน' };
+      return { variant: 'warning', labelKey: 'qcEntry.list.statusBadge.quarantine' };
     case 'oos':
-      return { variant: 'danger', label: 'OOS' };
+      return { variant: 'danger', labelKey: 'qcEntry.list.statusBadge.oos' };
     default:
-      return { variant: 'default', label: status };
+      return { variant: 'default', labelKey: null };
   }
 }
 
 export default function QcEntryListPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('quality');
   const [rows, setRows] = useState<QcSampleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -221,7 +223,7 @@ export default function QcEntryListPage() {
 
   const columns: DxDataGridColumn[] = [
     {
-      caption: 'ลำดับ',
+      caption: t('qcEntry.list.columns.index'),
       width: 60,
       alignment: 'center',
       allowFiltering: false,
@@ -232,7 +234,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'sampleNumber',
-      caption: 'เลขที่ตัวอย่าง',
+      caption: t('qcEntry.list.columns.sampleNumber'),
       width: 170,
       cellRender: (cell) => (
         <span className="font-mono font-semibold text-gray-900">{cell.data.sampleNumber}</span>
@@ -240,13 +242,13 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'receivedDate',
-      caption: 'วันที่รับ',
+      caption: t('qcEntry.list.columns.receivedDate'),
       width: 130,
       cellRender: (cell) => <span className="text-sm">{formatDateTh(cell.data.receivedDate)}</span>,
     },
     {
       dataField: 'productName',
-      caption: 'สินค้า',
+      caption: t('qcEntry.list.columns.product'),
       minWidth: 220,
       cellRender: (cell) => (
         <div>
@@ -257,7 +259,7 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'lotNumber',
-      caption: 'เลขที่ล็อต',
+      caption: t('qcEntry.list.columns.lotNumber'),
       width: 140,
       cellRender: (cell) =>
         cell.data.lotNumber ? (
@@ -268,26 +270,26 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'sourceType',
-      caption: 'แหล่งที่มา',
+      caption: t('qcEntry.list.columns.sourceType'),
       width: 150,
       hideOnMobile: true,
       cellRender: (cell) => {
         const opt = SOURCE_OPTIONS.find((o) => o.value === cell.data.sourceType);
-        return <span className="text-xs">{opt?.label || cell.data.sourceType}</span>;
+        return <span className="text-xs">{opt ? t(opt.labelKey) : cell.data.sourceType}</span>;
       },
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('qcEntry.list.columns.status'),
       width: 130,
       cellRender: (cell) => {
         const s = statusBadge(cell.data.status);
-        return <Badge variant={s.variant}>{s.label}</Badge>;
+        return <Badge variant={s.variant}>{s.labelKey ? t(s.labelKey) : cell.data.status}</Badge>;
       },
     },
     {
       dataField: 'testCounts',
-      caption: 'การทดสอบ',
+      caption: t('qcEntry.list.columns.tests'),
       width: 130,
       alignment: 'center',
       cellRender: (cell) => {
@@ -299,10 +301,10 @@ export default function QcEntryListPage() {
               {done}/{c.total}
             </span>
             {c.fail > 0 && (
-              <span className="ml-2 text-red-600 font-medium">{c.fail} ไม่ผ่าน</span>
+              <span className="ml-2 text-red-600 font-medium">{t('qcEntry.list.testCounts.fail', { count: c.fail })}</span>
             )}
             {c.pending > 0 && (
-              <span className="ml-2 text-amber-600">{c.pending} รอ</span>
+              <span className="ml-2 text-amber-600">{t('qcEntry.list.testCounts.pending', { count: c.pending })}</span>
             )}
           </div>
         );
@@ -310,13 +312,13 @@ export default function QcEntryListPage() {
     },
     {
       dataField: 'receivedByName',
-      caption: 'ผู้รับ',
+      caption: t('qcEntry.list.columns.receivedBy'),
       minWidth: 130,
       hideOnMobile: true,
     },
     {
       dataField: '_actions',
-      caption: 'การกระทำ',
+      caption: t('qcEntry.list.columns.actions'),
       width: 160,
       alignment: 'center',
       allowFiltering: false,
@@ -331,7 +333,7 @@ export default function QcEntryListPage() {
         return (
           <div className="flex justify-center gap-1">
             <DxButton
-              text="ดู"
+              text={t('qcEntry.list.actions.view')}
               stylingMode="outlined"
               type="default"
               onClick={() => router.push(`/quality/qc-entry/${sampleId}`)}
@@ -341,11 +343,11 @@ export default function QcEntryListPage() {
               icon="trash"
               type="danger"
               stylingMode="text"
-              hint="ลบรายการนี้"
+              hint={t('qcEntry.list.actions.deleteHint')}
               onClick={async (e) => {
                 // Stop the row click handler from also navigating to detail.
                 if (e?.event) e.event.stopPropagation();
-                if (!confirm(`ลบ ${sampleNumber} ใช่หรือไม่?`)) return;
+                if (!confirm(t('qcEntry.list.confirmDelete', { sampleNumber }))) return;
                 setDeletingId(sampleId);
                 try {
                   const res = await fetch(
@@ -354,14 +356,14 @@ export default function QcEntryListPage() {
                   );
                   const data = await res.json();
                   if (data.success) {
-                    toast.success('ลบแล้ว', sampleNumber);
+                    toast.success(t('qcEntry.list.toast.deleteSuccess'), sampleNumber);
                     await fetchSamples();
                   } else {
-                    toast.error('ลบไม่สำเร็จ', data.error || 'Unknown error');
+                    toast.error(t('qcEntry.list.toast.deleteFailed'), data.error || 'Unknown error');
                   }
                 } catch (err) {
                   toast.error(
-                    'ลบไม่สำเร็จ',
+                    t('qcEntry.list.toast.deleteFailed'),
                     err instanceof Error ? err.message : 'Network error',
                   );
                 } finally {
@@ -381,19 +383,19 @@ export default function QcEntryListPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
           title="QC Entry"
-          subtitle="บันทึก QC — ลงทะเบียนตัวอย่างและบันทึกผลการทดสอบ"
+          subtitle={t('qcEntry.list.subtitle')}
           icon={TestTube}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
           breadcrumbs={[
-            { label: 'คุณภาพ', href: '/quality' },
+            { label: t('qcEntry.list.breadcrumbQuality'), href: '/quality' },
             { label: 'QC Entry' },
           ]}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
               <DxButton
                 icon="refresh"
-                text="รีเฟรช"
+                text={t('qcEntry.list.actions.refresh')}
                 stylingMode="outlined"
                 onClick={() => {
                   void fetchSamples();
@@ -402,7 +404,7 @@ export default function QcEntryListPage() {
               />
               <DxButton
                 icon="preferences"
-                text="กำหนด Test Panels"
+                text={t('qcEntry.list.actions.testPanels')}
                 stylingMode="outlined"
                 onClick={() => router.push('/quality/test-panels')}
               />
@@ -413,7 +415,7 @@ export default function QcEntryListPage() {
                   manual sources (returns, stability, COA, etc.). */}
               <DxButton
                 icon="plus"
-                text="ลงทะเบียนตัวอย่างใหม่"
+                text={t('qcEntry.list.actions.registerNew')}
                 type="default"
                 onClick={() => router.push('/quality/qc-entry/new')}
                 data-testid="qc-entry-register-new"
@@ -425,28 +427,28 @@ export default function QcEntryListPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            label="ลงทะเบียน (รอทดสอบ)"
+            label={t('qcEntry.list.kpi.registered')}
             value={stats.registered}
             icon={Clock}
             iconColor="text-blue-500"
             accentColor="border-blue-500"
           />
           <StatCard
-            label="กำลังทดสอบ"
+            label={t('qcEntry.list.kpi.testing')}
             value={stats.testing}
             icon={FlaskConical}
             iconColor="text-amber-500"
             accentColor="border-amber-500"
           />
           <StatCard
-            label="ทบทวนแล้ว"
+            label={t('qcEntry.list.kpi.reviewed')}
             value={stats.reviewed}
             icon={CheckCircle2}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
           />
           <StatCard
-            label="ปล่อยใช้งานวันนี้"
+            label={t('qcEntry.list.kpi.releasedToday')}
             value={stats.releasedToday}
             icon={Send}
             iconColor="text-cyan-500"
@@ -464,10 +466,10 @@ export default function QcEntryListPage() {
             <div className="flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4 text-amber-600" />
               <h2 className="text-sm font-semibold text-amber-900">
-                รอลงทะเบียน QC ({pendingTasks.length})
+                {t('qcEntry.list.pending.title', { count: pendingTasks.length })}
               </h2>
               <span className="text-xs text-amber-700">
-                — รายการรับเข้าที่รอเซ็นใบตรวจรับ ระบบจะลงทะเบียนตัวอย่างให้อัตโนมัติเมื่อเซ็น checklist
+                {t('qcEntry.list.pending.hint')}
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -482,7 +484,7 @@ export default function QcEntryListPage() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-gray-500">{task.grnNumber}</span>
                     {task.ageDays > 0 && (
-                      <span className="text-[11px] text-amber-700">{task.ageDays} วัน</span>
+                      <span className="text-[11px] text-amber-700">{t('qcEntry.list.pending.days', { count: task.ageDays })}</span>
                     )}
                   </div>
                   <p className="font-medium text-gray-900 truncate mt-0.5">
@@ -503,7 +505,7 @@ export default function QcEntryListPage() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2">
               <DxTextBox
-                placeholder="ค้นหา (Sample#, Lot#, สินค้า, ลูกค้า)"
+                placeholder={t('qcEntry.list.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -512,7 +514,7 @@ export default function QcEntryListPage() {
             </div>
             <DxSelectBox
               value={statusFilter}
-              items={STATUS_OPTIONS}
+              items={STATUS_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
               displayExpr="label"
               valueExpr="value"
               onValueChange={(v) => setStatusFilter(String(v ?? ''))}
@@ -520,7 +522,7 @@ export default function QcEntryListPage() {
             />
             <DxSelectBox
               value={sourceFilter}
-              items={SOURCE_OPTIONS}
+              items={SOURCE_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
               displayExpr="label"
               valueExpr="value"
               onValueChange={(v) => setSourceFilter(String(v ?? ''))}
@@ -530,12 +532,12 @@ export default function QcEntryListPage() {
               <DxDateBox
                 value={dateFrom}
                 onValueChange={(v) => setDateFrom(v || '')}
-                placeholder="จากวันที่"
+                placeholder={t('qcEntry.list.dateFromPlaceholder')}
               />
               <DxDateBox
                 value={dateTo}
                 onValueChange={(v) => setDateTo(v || '')}
-                placeholder="ถึงวันที่"
+                placeholder={t('qcEntry.list.dateToPlaceholder')}
               />
             </div>
           </div>
@@ -544,21 +546,21 @@ export default function QcEntryListPage() {
         {/* Data grid */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-6 text-center text-gray-500">{t('qcEntry.list.loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="h-16 w-16 rounded-2xl bg-cyan-100 flex items-center justify-center mb-4">
                 <AlertTriangle className="h-8 w-8 text-cyan-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                ไม่พบตัวอย่าง QC
+                {t('qcEntry.list.empty.title')}
               </h3>
               <p className="text-sm text-gray-500 max-w-sm mb-4">
-                ลองเปลี่ยนเงื่อนไขการค้นหา หรือลงทะเบียนตัวอย่างใหม่
+                {t('qcEntry.list.empty.subtitle')}
               </p>
               <DxButton
                 icon="plus"
-                text="ลงทะเบียนตัวอย่างใหม่"
+                text={t('qcEntry.list.actions.registerNew')}
                 type="default"
                 onClick={() => router.push('/quality/qc-entry/new')}
               />
@@ -571,7 +573,7 @@ export default function QcEntryListPage() {
               sorting
               pageSize={20}
               height="auto"
-              noDataText="ไม่พบข้อมูล"
+              noDataText={t('qcEntry.list.noData')}
               onRowClick={(e) => {
                 if (e?.data?.id) {
                   router.push(`/quality/qc-entry/${e.data.id}`);

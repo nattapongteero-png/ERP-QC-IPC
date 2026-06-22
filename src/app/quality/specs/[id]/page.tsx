@@ -205,7 +205,7 @@ export default function QualitySpecDetailPage() {
   const testColumns: DxDataGridColumn[] = [
     {
       dataField: 'testType',
-      caption: 'ประเภท',
+      caption: t('specs.detail.grid.testType'),
       width: 100,
       cellRender: (cellInfo) => (
         <Badge variant="secondary" size="sm">
@@ -215,12 +215,12 @@ export default function QualitySpecDetailPage() {
     },
     {
       dataField: 'sampleNumber',
-      caption: 'ตัวอย่าง',
+      caption: t('specs.detail.grid.sample'),
       cellRender: (cellInfo) => cellInfo.data.sampleNumber || '-',
     },
     {
       dataField: 'result',
-      caption: 'ผลลัพธ์',
+      caption: t('specs.detail.grid.result'),
       cellRender: (cellInfo) => (
         <span className="font-medium">
           {cellInfo.data.numericResult !== null ? cellInfo.data.numericResult : cellInfo.data.result || '-'}
@@ -229,7 +229,7 @@ export default function QualitySpecDetailPage() {
     },
     {
       dataField: 'specMinValue',
-      caption: 'ช่วงข้อกำหนด (ณ เวลาทดสอบ)',
+      caption: t('specs.detail.grid.specRange'),
       cellRender: (cellInfo) => {
         const d = cellInfo.data;
         const min = d.specMinValue ?? spec?.minValue;
@@ -240,19 +240,19 @@ export default function QualitySpecDetailPage() {
         return (
           <span className={`text-xs ${hasSnapshot ? 'text-gray-700' : 'text-amber-600 italic'}`}>
             {min !== null && min !== undefined ? min : '—'} ~ {max !== null && max !== undefined ? max : '—'} {unit}
-            {!hasSnapshot && <span title="ใช้ค่าปัจจุบัน (ไม่มี snapshot)"> *</span>}
+            {!hasSnapshot && <span title={t('specs.detail.grid.usingCurrentValue')}> *</span>}
           </span>
         );
       },
     },
     {
       dataField: 'testDate',
-      caption: 'วันที่ทดสอบ',
+      caption: t('specs.detail.grid.testDate'),
       cellRender: (cellInfo) => formatDate(cellInfo.data.testDate),
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('specs.detail.grid.status'),
       cellRender: (cellInfo) => (
         <Badge variant={getStatusBadgeVariant(cellInfo.data.status)} dot size="sm">
           {cellInfo.data.status}
@@ -275,10 +275,10 @@ export default function QualitySpecDetailPage() {
     return (
       
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-gray-900">ไม่พบข้อกำหนด</h2>
-          <p className="text-gray-500 mt-2">ไม่มีข้อกำหนดที่คุณกำลังค้นหา</p>
+          <h2 className="text-xl font-semibold text-gray-900">{t('specs.detail.notFound.title')}</h2>
+          <p className="text-gray-500 mt-2">{t('specs.detail.notFound.description')}</p>
           <DxButton
-            text="กลับไปหน้าข้อกำหนด"
+            text={t('specs.detail.notFound.backButton')}
             type="normal"
             stylingMode="outlined"
             className="mt-4"
@@ -297,7 +297,7 @@ export default function QualitySpecDetailPage() {
           description={`${spec.itemCode} - ${spec.itemName}`}
           backButton={
             <DxButton
-              text="ย้อนกลับ"
+              text={t('specs.detail.back')}
               icon="back"
               type="normal"
               stylingMode="text"
@@ -309,11 +309,11 @@ export default function QualitySpecDetailPage() {
               {spec.isCritical && (
                 <Badge variant="danger" size="md">
                   <AlertTriangle className="h-3 w-3 mr-1" />
-                  วิกฤต
+                  {t('specs.detail.critical')}
                 </Badge>
               )}
               <Badge variant={spec.isActive ? 'primary' : 'default'} dot size="md">
-                {spec.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                {spec.isActive ? t('specs.detail.active') : t('specs.detail.inactive')}
               </Badge>
             </div>
           }
@@ -327,21 +327,21 @@ export default function QualitySpecDetailPage() {
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                   <div>
-                    <p className="font-medium text-red-800">ลบข้อกำหนดนี้?</p>
+                    <p className="font-medium text-red-800">{t('specs.detail.deleteConfirm.title')}</p>
                     <p className="text-sm text-red-600">
-                      การดำเนินการนี้ไม่สามารถยกเลิกได้ ข้อกำหนดที่มีการทดสอบไม่สามารถลบได้
+                      {t('specs.detail.deleteConfirm.description')}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <DxButton
-                    text="ยกเลิก"
+                    text={t('specs.detail.deleteConfirm.cancel')}
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => setShowDeleteConfirm(false)}
                   />
                   <DxButton
-                    text="ลบ"
+                    text={t('specs.detail.deleteConfirm.confirm')}
                     type="danger"
                     onClick={handleDelete}
                     disabled={isSaving}

@@ -303,10 +303,10 @@ export default function PqrDetailPage() {
       {/* Status Stepper */}
       <div className="mb-6">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t('pqr.detail.workflowTitle')}
           steps={[
-            { key: 'draft', label: 'ร่าง' },
-            { key: 'approved', label: 'อนุมัติแล้ว' },
+            { key: 'draft', label: t('pqr.status.draft') },
+            { key: 'approved', label: t('pqr.status.approved') },
           ]}
           current={String(report.status).toLowerCase()}
         />

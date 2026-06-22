@@ -138,12 +138,12 @@ export default function NewQualitySpecPage() {
 
   const handleSubmit = async () => {
     if (!selectedItem) {
-      alert('กรุณาเลือกสินค้า');
+      alert(t('specs.new.validation.selectItem'));
       return;
     }
 
     if (!formData.testName.trim()) {
-      alert('กรุณากรอกชื่อการทดสอบ');
+      alert(t('specs.new.validation.enterTestName'));
       return;
     }
 
@@ -185,7 +185,7 @@ export default function NewQualitySpecPage() {
           description={t('specifications.description')}
           backButton={
             <DxButton
-              text="ย้อนกลับ"
+              text={t('specs.new.back')}
               icon="back"
               type="normal"
               stylingMode="text"
@@ -200,7 +200,7 @@ export default function NewQualitySpecPage() {
             {/* Item Selection */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>เลือกสินค้า</CardTitle>
+                <CardTitle>{t('specs.new.selectItem.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {selectedItem ? (
@@ -216,7 +216,7 @@ export default function NewQualitySpecPage() {
                       </div>
                     </div>
                     <DxButton
-                      text="เปลี่ยน"
+                      text={t('specs.new.selectItem.change')}
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setItemDialogOpen(true)}
@@ -230,7 +230,7 @@ export default function NewQualitySpecPage() {
                   >
                     <div className="flex items-center gap-3 text-gray-500 group-hover:text-green-600">
                       <BoxSelect className="h-5 w-5" />
-                      <span>คลิกเพื่อเลือกสินค้า...</span>
+                      <span>{t('specs.new.selectItem.clickToSelect')}</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-green-500" />
                   </button>
@@ -241,7 +241,7 @@ export default function NewQualitySpecPage() {
             {/* Test Details */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>รายละเอียดการทดสอบ</CardTitle>
+                <CardTitle>{t('specs.new.testDetails.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -249,7 +249,7 @@ export default function NewQualitySpecPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                         <span>
-                          ชื่อการทดสอบ <span className="text-red-500">*</span>
+                          {t('specs.new.testDetails.testName')} <span className="text-red-500">*</span>
                         </span>
                         <a
                           href="/master-data/ipc-criteria"
@@ -257,7 +257,7 @@ export default function NewQualitySpecPage() {
                           rel="noopener noreferrer"
                           className="text-xs text-green-600 hover:text-green-800 hover:underline font-normal"
                         >
-                          จัดการ master →
+                          {t('specs.new.testDetails.manageMaster')}
                         </a>
                       </label>
                       {/* Search + dropdown: user can type to filter or pick
@@ -275,21 +275,21 @@ export default function NewQualitySpecPage() {
                         showClearButton
                         placeholder={
                           masterLoading
-                            ? 'กำลังโหลดรายการทดสอบ...'
+                            ? t('specs.new.testDetails.testNameLoading')
                             : testNameOptions.length === 0
-                            ? 'ยังไม่มีข้อมูล master test parameter'
-                            : 'พิมพ์ค้นหาหรือเลือกจากรายการ...'
+                            ? t('specs.new.testDetails.testNameNoMaster')
+                            : t('specs.new.testDetails.testNamePlaceholder')
                         }
                         disabled={masterLoading}
-                        noDataText="ไม่พบรายการที่ตรงกับคำค้นหา"
+                        noDataText={t('specs.new.testDetails.testNameNoData')}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        วิธีการทดสอบ
+                        {t('specs.new.testDetails.testMethod')}
                       </label>
                       <DxTextBox
-                        placeholder="เช่น USP <731>, AOAC 925.10"
+                        placeholder={t('specs.new.testDetails.testMethodPlaceholder')}
                         value={formData.testMethod}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, testMethod: value }))
@@ -299,10 +299,10 @@ export default function NewQualitySpecPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ข้อกำหนด (ข้อความ)
+                      {t('specs.new.testDetails.specification')}
                     </label>
                     <DxTextBox
-                      placeholder="เช่น ผงสีขาวถึงขาวนวล, ของเหลวใสไม่มีสี"
+                      placeholder={t('specs.new.testDetails.specificationPlaceholder')}
                       value={formData.specification}
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, specification: value }))
@@ -316,17 +316,17 @@ export default function NewQualitySpecPage() {
             {/* Acceptance Criteria */}
             <Card elevation="raised">
               <CardHeader>
-                <CardTitle>เกณฑ์การยอมรับ (ตัวเลข)</CardTitle>
+                <CardTitle>{t('specs.new.acceptance.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        ค่าต่ำสุด
+                        {t('specs.new.acceptance.minValue')}
                       </label>
                       <DxTextBox
-                        placeholder="เช่น 5.0"
+                        placeholder={t('specs.new.acceptance.minValuePlaceholder')}
                         value={formData.minValue?.toString() || ''}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, minValue: value }))
@@ -335,10 +335,10 @@ export default function NewQualitySpecPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        ค่าสูงสุด
+                        {t('specs.new.acceptance.maxValue')}
                       </label>
                       <DxTextBox
-                        placeholder="เช่น 8.0"
+                        placeholder={t('specs.new.acceptance.maxValuePlaceholder')}
                         value={formData.maxValue?.toString() || ''}
                         onValueChange={(value) =>
                           setFormData((prev) => ({ ...prev, maxValue: value }))
@@ -347,7 +347,7 @@ export default function NewQualitySpecPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        หน่วย
+                        {t('specs.new.acceptance.unit')}
                       </label>
                       {/* Unit dropdown — strictly driven by the selected
                           Test Name. Disabled until a test is chosen so the
@@ -365,22 +365,22 @@ export default function NewQualitySpecPage() {
                         disabled={!formData.testName || unitOptions.length === 0}
                         placeholder={
                           !formData.testName
-                            ? 'เลือก Test Name ก่อน'
+                            ? t('specs.new.acceptance.unitSelectTestFirst')
                             : unitOptions.length === 0
-                            ? 'ไม่มีหน่วยที่ผูกกับ test นี้'
-                            : 'เลือกหน่วย...'
+                            ? t('specs.new.acceptance.unitNone')
+                            : t('specs.new.acceptance.unitPlaceholder')
                         }
-                        noDataText="ไม่มีหน่วยที่ใช้ได้สำหรับ test นี้"
+                        noDataText={t('specs.new.acceptance.unitNoData')}
                       />
                       {formData.testName && unitOptions.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
-                          test นี้ยังไม่มี unit ใน master — แก้ไขได้ที่ <a href="/master-data/ipc-criteria" target="_blank" className="underline">Master Data</a>
+                          {t('specs.new.acceptance.unitNoMasterHint')} <a href="/master-data/ipc-criteria" target="_blank" className="underline">Master Data</a>
                         </p>
                       )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">
-                    เว้นค่าต่ำสุด/สูงสุดว่างไว้ หากการทดสอบเป็นแบบผ่าน/ไม่ผ่านตามข้อกำหนดข้อความเท่านั้น
+                    {t('specs.new.acceptance.note')}
                   </p>
                 </div>
               </CardContent>
@@ -391,7 +391,7 @@ export default function NewQualitySpecPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                  พารามิเตอร์การทดสอบวิกฤต
+                  {t('specs.new.critical.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -401,12 +401,11 @@ export default function NewQualitySpecPage() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, isCritical: value }))
                     }
-                    text="ทำเครื่องหมายเป็นการทดสอบวิกฤต"
+                    text={t('specs.new.critical.checkbox')}
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2 ml-6">
-                  การทดสอบวิกฤตคือพารามิเตอร์ที่ส่งผลโดยตรงต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์
-                  หากการทดสอบวิกฤตไม่ผ่าน อาจส่งผลให้ปฏิเสธรุ่นการผลิต
+                  {t('specs.new.critical.description')}
                 </p>
               </CardContent>
             </Card>
@@ -417,11 +416,11 @@ export default function NewQualitySpecPage() {
             {/* Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">การดำเนินการ</CardTitle>
+                <CardTitle className="text-sm">{t('specs.new.actions.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <DxButton
-                  text={isSaving ? 'กำลังสร้าง...' : 'สร้างข้อกำหนด'}
+                  text={isSaving ? t('specs.new.actions.creating') : t('specs.new.actions.create')}
                   icon="save"
                   type="success"
                   width="100%"
@@ -429,7 +428,7 @@ export default function NewQualitySpecPage() {
                   disabled={!selectedItem || !formData.testName || isSaving}
                 />
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('specs.new.actions.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   width="100%"
@@ -443,27 +442,15 @@ export default function NewQualitySpecPage() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <FileCheck className="h-4 w-4" />
-                  เกี่ยวกับข้อกำหนด
+                  {t('specs.new.help.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-gray-600">
-                  <p>
-                    <strong>ชื่อการทดสอบ:</strong> พารามิเตอร์ที่ทำการทดสอบ (เช่น pH, ความชื้น,
-                    การวิเคราะห์ปริมาณ)
-                  </p>
-                  <p>
-                    <strong>วิธีการทดสอบ:</strong> อ้างอิงวิธีมาตรฐานที่ใช้ (เช่น USP,
-                    EP, วิธีภายใน)
-                  </p>
-                  <p>
-                    <strong>ค่าต่ำสุด/สูงสุด:</strong> ขีดจำกัดการยอมรับเชิงตัวเลข ผลลัพธ์ที่อยู่นอก
-                    ขีดจำกัดนี้จะไม่ผ่าน
-                  </p>
-                  <p>
-                    <strong>ข้อกำหนด:</strong> คำอธิบายข้อความสำหรับการทดสอบที่ไม่ใช่ตัวเลข เช่น
-                    ลักษณะภายนอก กลิ่น
-                  </p>
+                  <p>{t.rich('specs.new.help.testName', { strong: (c) => <strong>{c}</strong> })}</p>
+                  <p>{t.rich('specs.new.help.testMethod', { strong: (c) => <strong>{c}</strong> })}</p>
+                  <p>{t.rich('specs.new.help.minMax', { strong: (c) => <strong>{c}</strong> })}</p>
+                  <p>{t.rich('specs.new.help.specification', { strong: (c) => <strong>{c}</strong> })}</p>
                 </div>
               </CardContent>
             </Card>
@@ -479,12 +466,12 @@ export default function NewQualitySpecPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-2">
-                  Test Name และ Unit ทั้งหมดมาจาก Master Data
+                  {t('specs.new.masterData.intro')}
                 </p>
                 <div className="text-xs text-gray-500 space-y-1 mb-3">
-                  <p>• Test Name: ค้นหาและเลือกจาก dropdown</p>
-                  <p>• Unit: filter อัตโนมัติตาม Test Name</p>
-                  <p>• ถ้า test / unit ที่ต้องการไม่มี — เพิ่มที่ Master ก่อน</p>
+                  <p>{t('specs.new.masterData.bulletTestName')}</p>
+                  <p>{t('specs.new.masterData.bulletUnit')}</p>
+                  <p>{t('specs.new.masterData.bulletMissing')}</p>
                 </div>
                 <a
                   href="/master-data/ipc-criteria"
@@ -492,12 +479,12 @@ export default function NewQualitySpecPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 hover:underline font-medium"
                 >
-                  ไปที่ Master Data
+                  {t('specs.new.masterData.goToLink')}
                   <ChevronRight className="h-3 w-3" />
                 </a>
                 {testMaster.length > 0 && (
                   <p className="text-xs text-gray-400 mt-3">
-                    กำลังโหลด {testMaster.length} test parameters
+                    {t('specs.new.masterData.loaded', { count: testMaster.length })}
                   </p>
                 )}
               </CardContent>
@@ -511,7 +498,7 @@ export default function NewQualitySpecPage() {
         open={itemDialogOpen}
         onOpenChange={setItemDialogOpen}
         onSelect={handleSelectItem}
-        title="เลือกสินค้า"
+        title={t('specs.new.selectItem.dialogTitle')}
         showStock
       />
     </>

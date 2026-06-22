@@ -261,6 +261,138 @@
     "overdue": {
       "daysOver": "เกิน {days} วัน",
       "daysRemaining": "อีก {days} วัน"
+    },
+    "detail": {
+      "back": "กลับ",
+      "notFound": "ไม่พบความเบี่ยงเบน",
+      "overdueBadge": "เกินกำหนด",
+      "updateCapa": "อัปเดต CAPA",
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "printReport": "พิมพ์รายงาน",
+      "delete": "ลบ",
+      "deleteConfirm": "ต้องการลบความเบี่ยงเบนนี้หรือไม่?\nลบได้เฉพาะรายการที่ยังไม่ได้ดำเนินการ (สถานะ \"เปิด\")",
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "workflowStatus": "สถานะการดำเนินงาน",
+      "tabs": {
+        "overview": "ภาพรวม",
+        "investigation": "การสืบสวน",
+        "history": "ประวัติ"
+      },
+      "type": {
+        "process": "ความเบี่ยงเบนของกระบวนการ",
+        "product": "ความเบี่ยงเบนของผลิตภัณฑ์",
+        "equipment": "ความเบี่ยงเบนของเครื่องจักร",
+        "documentation": "ความเบี่ยงเบนของเอกสาร",
+        "environmental": "ความเบี่ยงเบนของสภาพแวดล้อม",
+        "other": "อื่น ๆ"
+      },
+      "cards": {
+        "status": "สถานะ",
+        "severity": "ความรุนแรง",
+        "daysOpen": "จำนวนวันที่เปิด",
+        "dueDate": "วันครบกำหนด"
+      },
+      "overdueAlert": {
+        "title": "ความเบี่ยงเบนเกินกำหนด",
+        "message": "ความเบี่ยงเบนนี้เลยวันครบกำหนดแล้ว กรุณาดำเนินการแก้ไขทันที"
+      },
+      "info": {
+        "title": "ข้อมูลความเบี่ยงเบน",
+        "number": "รหัสความเบี่ยงเบน",
+        "type": "ประเภท",
+        "titleField": "หัวข้อ",
+        "description": "รายละเอียด",
+        "reportedBy": "รายงานโดย",
+        "reportedDate": "วันที่รายงาน",
+        "assignedTo": "มอบหมายให้",
+        "dueDate": "วันครบกำหนด"
+      },
+      "related": {
+        "title": "ระเบียนที่เกี่ยวข้อง",
+        "itemCode": "รหัสรายการ",
+        "itemName": "ชื่อรายการ",
+        "lotNumber": "หมายเลขล็อต",
+        "lotStatus": "สถานะล็อต",
+        "workOrder": "ใบสั่งผลิต",
+        "batchNumber": "หมายเลขแบทช์",
+        "none": "ไม่มีระเบียนที่เกี่ยวข้อง"
+      },
+      "investigation": {
+        "title": "การสืบสวนสาเหตุราก",
+        "rootCauseLabel": "การวิเคราะห์สาเหตุราก",
+        "rootCausePlaceholder": "อธิบายการวิเคราะห์สาเหตุรากโดยใช้วิธี 5-Why หรือแผนภาพก้างปลา...",
+        "rootCauseEmpty": "ยังไม่มีการบันทึกการวิเคราะห์สาเหตุราก"
+      },
+      "capa": {
+        "createTitle": "สร้าง CAPA อย่างเป็นทางการ",
+        "createDescription": "เปิดระเบียน CAPA (การแก้ไขและป้องกัน) ที่เชื่อมโยงกับความเบี่ยงเบนนี้เพื่อติดตามการดำเนินการและตรวจสอบประสิทธิผล",
+        "createButton": "สร้าง CAPA จากความเบี่ยงเบนนี้",
+        "correctiveTitle": "การแก้ไข (CA)",
+        "correctivePlaceholder": "อธิบายการแก้ไขที่ดำเนินการเพื่อจัดการกับปัญหาเฉพาะหน้า...",
+        "correctiveEmpty": "ยังไม่มีการบันทึกการแก้ไข",
+        "preventiveTitle": "การป้องกัน (PA)",
+        "preventivePlaceholder": "อธิบายการป้องกันเพื่อไม่ให้เกิดซ้ำ...",
+        "preventiveEmpty": "ยังไม่มีการบันทึกการป้องกัน",
+        "statusUpdateTitle": "อัปเดตสถานะ"
+      },
+      "history": {
+        "title": "ประวัติกิจกรรม",
+        "created": "สร้างความเบี่ยงเบน",
+        "createdBy": "สร้างโดย {name}",
+        "unknown": "ไม่ทราบ",
+        "closed": "ปิดความเบี่ยงเบน"
+      }
+    },
+    "new": {
+      "sourceTypePlaceholder": "เลือกประเภทแหล่งที่มา...",
+      "titleRequired": "กรุณากรอกหัวข้อ",
+      "descriptionRequired": "กรุณากรอกรายละเอียด",
+      "severityDescription": {
+        "critical": "ต้องดำเนินการทันที อาจส่งผลต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์",
+        "major": "ความเบี่ยงเบนที่มีนัยสำคัญ ต้องให้ความสนใจและสืบสวนโดยเร็ว",
+        "minor": "ความเบี่ยงเบนเล็กน้อยที่ควรบันทึกและแก้ไข"
+      },
+      "back": "กลับ",
+      "detailsTitle": "รายละเอียดความเบี่ยงเบน",
+      "titleLabel": "หัวข้อ",
+      "titlePlaceholder": "คำอธิบายสั้น ๆ ของความเบี่ยงเบน",
+      "descriptionLabel": "รายละเอียด",
+      "descriptionPlaceholder": "อธิบายรายละเอียดว่าเกิดอะไรขึ้น เมื่อใด ที่ไหน และการดำเนินการเบื้องต้นที่ได้ทำไป...",
+      "classificationTitle": "การจัดประเภท",
+      "sourceTypeLabel": "ประเภทแหล่งที่มา",
+      "severityLabel": "ความรุนแรง",
+      "severityLevelLabel": "ความรุนแรงระดับ{level}",
+      "timelineTitle": "กรอบเวลา",
+      "dueDateLabel": "วันครบกำหนด",
+      "dueDatePlaceholder": "เลือกวันครบกำหนด",
+      "recommendedTimelineLabel": "กรอบเวลาที่แนะนำ",
+      "timeline": {
+        "critical": "วิกฤต: แก้ไขภายใน 3 วัน",
+        "major": "มาก: แก้ไขภายใน 14 วัน",
+        "minor": "น้อย: แก้ไขภายใน 30 วัน"
+      },
+      "actionsTitle": "การดำเนินการ",
+      "creating": "กำลังสร้าง...",
+      "submit": "รายงานความเบี่ยงเบน",
+      "cancel": "ยกเลิก",
+      "loading": "กำลังโหลด…",
+      "help": {
+        "title": "เกี่ยวกับความเบี่ยงเบน",
+        "definition": "ความเบี่ยงเบน คือ การเบี่ยงเบนใด ๆ จากขั้นตอน ข้อกำหนด หรือมาตรฐานที่ได้รับการอนุมัติ",
+        "reportWhen": "รายงานเมื่อ:",
+        "case1": "พารามิเตอร์กระบวนการอยู่นอกขีดจำกัด",
+        "case2": "เครื่องจักรทำงานผิดปกติ",
+        "case3": "ผลการทดสอบอยู่นอกข้อกำหนด",
+        "case4": "ข้อผิดพลาดในเอกสาร",
+        "case5": "สภาวะแวดล้อมเบี่ยงเบน"
+      },
+      "severityGuide": {
+        "title": "การจัดระดับความรุนแรง",
+        "critical": "ส่งผลโดยตรงต่อความปลอดภัยของผลิตภัณฑ์ สุขภาพผู้ป่วย หรือการปฏิบัติตามกฎระเบียบ",
+        "major": "ส่งผลกระทบอย่างมีนัยสำคัญต่อคุณภาพผลิตภัณฑ์หรือการควบคุมกระบวนการ",
+        "minor": "ผลกระทบจำกัด แก้ไขได้ง่าย ไม่ส่งผลโดยตรงต่อคุณภาพ"
+      }
     }
   },
   "tests": {
@@ -332,6 +464,124 @@
     "breadcrumbs": {
       "quality": "คุณภาพ",
       "tests": "การทดสอบ"
+    },
+    "detail": {
+      "resultPlaceholder": "เลือกผลลัพธ์",
+      "resultRetest": "ต้องทดสอบซ้ำ",
+      "dispositionSaved": "บันทึกการตัดสินใจจัดการแล้ว",
+      "dispositionApproved": "อนุมัติการจัดการแล้ว",
+      "dispositionApprovedWithLot": "อนุมัติการจัดการแล้ว อัปเดตสถานะล็อตเป็น: {status}",
+      "type": {
+        "incoming": "การตรวจสอบขาเข้า",
+        "in_process": "การควบคุมระหว่างกระบวนการ",
+        "finished": "ผลิตภัณฑ์สำเร็จรูป",
+        "stability": "การทดสอบความคงตัว",
+        "release": "การทดสอบเพื่อปล่อยจำหน่าย"
+      },
+      "notFound": "ไม่พบการทดสอบคุณภาพ",
+      "back": "กลับ",
+      "enterResult": "กรอกผลลัพธ์",
+      "cancel": "ยกเลิก",
+      "saving": "กำลังบันทึก...",
+      "saveResult": "บันทึกผลลัพธ์",
+      "printReport": "พิมพ์รายงาน",
+      "cards": {
+        "status": "สถานะ",
+        "result": "ผลลัพธ์",
+        "pending": "รอดำเนินการ",
+        "measuredValue": "ค่าที่วัดได้",
+        "specCompliance": "ความสอดคล้องกับข้อกำหนด",
+        "withinSpec": "อยู่ในข้อกำหนด",
+        "outOfSpec": "นอกข้อกำหนด",
+        "noData": "ไม่มีข้อมูล"
+      },
+      "testInfo": {
+        "title": "ข้อมูลการทดสอบ",
+        "testCode": "รหัสการทดสอบ",
+        "testType": "ประเภทการทดสอบ",
+        "testedBy": "ทดสอบโดย",
+        "testedAt": "วันที่ทดสอบ",
+        "notes": "หมายเหตุ"
+      },
+      "spec": {
+        "title": "ข้อกำหนด",
+        "specCode": "รหัสข้อกำหนด",
+        "parameter": "พารามิเตอร์",
+        "method": "วิธี",
+        "unit": "หน่วย",
+        "minValue": "ค่าต่ำสุด",
+        "maxValue": "ค่าสูงสุด",
+        "targetValue": "ค่าเป้าหมาย",
+        "measuredValue": "ค่าที่วัดได้",
+        "none": "ไม่มีข้อกำหนดที่เชื่อมโยง"
+      },
+      "sampleInfo": {
+        "title": "ข้อมูลตัวอย่าง",
+        "itemCode": "รหัสรายการ",
+        "itemName": "ชื่อรายการ",
+        "lotNumber": "หมายเลขล็อต",
+        "lotStatus": "สถานะล็อต",
+        "expiryDate": "วันหมดอายุ",
+        "workOrder": "ใบสั่งผลิต",
+        "batchNumber": "หมายเลขแบทช์"
+      },
+      "resultForm": {
+        "title": "กรอกผลการทดสอบ",
+        "measuredValueLabel": "ค่าที่วัดได้",
+        "rangePlaceholder": "ช่วง: {min} ถึง {max}",
+        "valuePlaceholder": "กรอกค่า",
+        "resultLabel": "ผลลัพธ์",
+        "notesLabel": "หมายเหตุ",
+        "notesPlaceholder": "กรอกข้อสังเกตหรือหมายเหตุ"
+      }
+    },
+    "new": {
+      "testType": {
+        "incoming": "QC ขาเข้า",
+        "in_process": "QC ระหว่างกระบวนการ",
+        "final": "QC สุดท้าย"
+      },
+      "selectLotAndSpec": "กรุณาเลือกล็อตและข้อกำหนดการทดสอบ",
+      "specPlaceholder": "เลือกข้อกำหนดการทดสอบ...",
+      "critical": "วิกฤต",
+      "back": "กลับ",
+      "loading": "กำลังโหลด...",
+      "lotSelection": {
+        "title": "เลือกล็อต",
+        "prompt": "คลิกปุ่มเพื่อค้นหาและเลือกล็อต",
+        "selectButton": "เลือกล็อต",
+        "quantityExpiry": "จำนวน: {quantity} {unit} | หมดอายุ: {expiry}",
+        "changeButton": "เปลี่ยน"
+      },
+      "specSelection": {
+        "title": "ข้อกำหนดการทดสอบ",
+        "selectLotFirst": "กรุณาเลือกล็อตก่อนเพื่อดูข้อกำหนดการทดสอบที่มี",
+        "noSpecs": "ไม่พบข้อกำหนดการทดสอบสำหรับรายการนี้",
+        "selectTestLabel": "เลือกการทดสอบ",
+        "method": "วิธี: {method}",
+        "specification": "ข้อกำหนด: {spec}",
+        "range": "ช่วง: {min} ถึง {max} {unit}"
+      },
+      "testDetails": {
+        "title": "รายละเอียดการทดสอบ",
+        "testTypeLabel": "ประเภทการทดสอบ",
+        "sampleNumberLabel": "หมายเลขตัวอย่าง",
+        "sampleNumberPlaceholder": "กรอกหมายเลขตัวอย่าง (ไม่บังคับ)"
+      },
+      "actionsTitle": "การดำเนินการ",
+      "creating": "กำลังสร้าง...",
+      "submit": "สร้างการทดสอบ",
+      "cancel": "ยกเลิก",
+      "help": {
+        "title": "เกี่ยวกับการทดสอบคุณภาพ",
+        "incomingLabel": "QC ขาเข้า:",
+        "incomingText": "การทดสอบวัตถุดิบที่รับเข้ามาก่อนรับเข้าคลังสินค้า",
+        "inProcessLabel": "QC ระหว่างกระบวนการ:",
+        "inProcessText": "การทดสอบระหว่างการผลิตเพื่อให้มั่นใจในคุณภาพในแต่ละขั้นตอน",
+        "finalLabel": "QC สุดท้าย:",
+        "finalText": "การทดสอบผลิตภัณฑ์สำเร็จรูปก่อนปล่อยจำหน่าย"
+      },
+      "lotDialogTitle": "เลือกล็อตสำหรับการทดสอบ QC"
     }
   },
   "specs": {
@@ -392,6 +642,98 @@
     "breadcrumbs": {
       "quality": "คุณภาพ",
       "specifications": "ข้อกำหนด"
+    },
+    "detail": {
+      "back": "ย้อนกลับ",
+      "critical": "วิกฤต",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "notFound": {
+        "title": "ไม่พบข้อกำหนด",
+        "description": "ไม่มีข้อกำหนดที่คุณกำลังค้นหา",
+        "backButton": "กลับไปหน้าข้อกำหนด"
+      },
+      "deleteConfirm": {
+        "title": "ลบข้อกำหนดนี้?",
+        "description": "การดำเนินการนี้ไม่สามารถยกเลิกได้ ข้อกำหนดที่มีการทดสอบไม่สามารถลบได้",
+        "cancel": "ยกเลิก",
+        "confirm": "ลบ"
+      },
+      "grid": {
+        "testType": "ประเภท",
+        "sample": "ตัวอย่าง",
+        "result": "ผลลัพธ์",
+        "specRange": "ช่วงข้อกำหนด (ณ เวลาทดสอบ)",
+        "usingCurrentValue": "ใช้ค่าปัจจุบัน (ไม่มี snapshot)",
+        "testDate": "วันที่ทดสอบ",
+        "status": "สถานะ"
+      }
+    },
+    "new": {
+      "back": "ย้อนกลับ",
+      "validation": {
+        "selectItem": "กรุณาเลือกสินค้า",
+        "enterTestName": "กรุณากรอกชื่อการทดสอบ"
+      },
+      "selectItem": {
+        "title": "เลือกสินค้า",
+        "change": "เปลี่ยน",
+        "clickToSelect": "คลิกเพื่อเลือกสินค้า...",
+        "dialogTitle": "เลือกสินค้า"
+      },
+      "testDetails": {
+        "title": "รายละเอียดการทดสอบ",
+        "testName": "ชื่อการทดสอบ",
+        "manageMaster": "จัดการ master →",
+        "testNameLoading": "กำลังโหลดรายการทดสอบ...",
+        "testNameNoMaster": "ยังไม่มีข้อมูล master test parameter",
+        "testNamePlaceholder": "พิมพ์ค้นหาหรือเลือกจากรายการ...",
+        "testNameNoData": "ไม่พบรายการที่ตรงกับคำค้นหา",
+        "testMethod": "วิธีการทดสอบ",
+        "testMethodPlaceholder": "เช่น USP <731>, AOAC 925.10",
+        "specification": "ข้อกำหนด (ข้อความ)",
+        "specificationPlaceholder": "เช่น ผงสีขาวถึงขาวนวล, ของเหลวใสไม่มีสี"
+      },
+      "acceptance": {
+        "title": "เกณฑ์การยอมรับ (ตัวเลข)",
+        "minValue": "ค่าต่ำสุด",
+        "minValuePlaceholder": "เช่น 5.0",
+        "maxValue": "ค่าสูงสุด",
+        "maxValuePlaceholder": "เช่น 8.0",
+        "unit": "หน่วย",
+        "unitSelectTestFirst": "เลือก Test Name ก่อน",
+        "unitNone": "ไม่มีหน่วยที่ผูกกับ test นี้",
+        "unitPlaceholder": "เลือกหน่วย...",
+        "unitNoData": "ไม่มีหน่วยที่ใช้ได้สำหรับ test นี้",
+        "unitNoMasterHint": "test นี้ยังไม่มี unit ใน master — แก้ไขได้ที่",
+        "note": "เว้นค่าต่ำสุด/สูงสุดว่างไว้ หากการทดสอบเป็นแบบผ่าน/ไม่ผ่านตามข้อกำหนดข้อความเท่านั้น"
+      },
+      "critical": {
+        "title": "พารามิเตอร์การทดสอบวิกฤต",
+        "checkbox": "ทำเครื่องหมายเป็นการทดสอบวิกฤต",
+        "description": "การทดสอบวิกฤตคือพารามิเตอร์ที่ส่งผลโดยตรงต่อความปลอดภัยหรือประสิทธิภาพของผลิตภัณฑ์ หากการทดสอบวิกฤตไม่ผ่าน อาจส่งผลให้ปฏิเสธรุ่นการผลิต"
+      },
+      "actions": {
+        "title": "การดำเนินการ",
+        "creating": "กำลังสร้าง...",
+        "create": "สร้างข้อกำหนด",
+        "cancel": "ยกเลิก"
+      },
+      "help": {
+        "title": "เกี่ยวกับข้อกำหนด",
+        "testName": "<strong>ชื่อการทดสอบ:</strong> พารามิเตอร์ที่ทำการทดสอบ (เช่น pH, ความชื้น, การวิเคราะห์ปริมาณ)",
+        "testMethod": "<strong>วิธีการทดสอบ:</strong> อ้างอิงวิธีมาตรฐานที่ใช้ (เช่น USP, EP, วิธีภายใน)",
+        "minMax": "<strong>ค่าต่ำสุด/สูงสุด:</strong> ขีดจำกัดการยอมรับเชิงตัวเลข ผลลัพธ์ที่อยู่นอกขีดจำกัดนี้จะไม่ผ่าน",
+        "specification": "<strong>ข้อกำหนด:</strong> คำอธิบายข้อความสำหรับการทดสอบที่ไม่ใช่ตัวเลข เช่น ลักษณะภายนอก กลิ่น"
+      },
+      "masterData": {
+        "intro": "Test Name และ Unit ทั้งหมดมาจาก Master Data",
+        "bulletTestName": "• Test Name: ค้นหาและเลือกจาก dropdown",
+        "bulletUnit": "• Unit: filter อัตโนมัติตาม Test Name",
+        "bulletMissing": "• ถ้า test / unit ที่ต้องการไม่มี — เพิ่มที่ Master ก่อน",
+        "goToLink": "ไปที่ Master Data",
+        "loaded": "กำลังโหลด {count} test parameters"
+      }
     }
   },
   "items": {
@@ -399,6 +741,745 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "qcEntry": {
+    "list": {
+      "subtitle": "บันทึก QC — ลงทะเบียนตัวอย่างและบันทึกผลการทดสอบ",
+      "breadcrumbQuality": "คุณภาพ",
+      "searchPlaceholder": "ค้นหา (Sample#, Lot#, สินค้า, ลูกค้า)",
+      "dateFromPlaceholder": "จากวันที่",
+      "dateToPlaceholder": "ถึงวันที่",
+      "loading": "กำลังโหลด...",
+      "noData": "ไม่พบข้อมูล",
+      "confirmDelete": "ลบ {sampleNumber} ใช่หรือไม่?",
+      "actions": {
+        "refresh": "รีเฟรช",
+        "testPanels": "กำหนด Test Panels",
+        "registerNew": "ลงทะเบียนตัวอย่างใหม่",
+        "view": "ดู",
+        "deleteHint": "ลบรายการนี้"
+      },
+      "columns": {
+        "index": "ลำดับ",
+        "sampleNumber": "เลขที่ตัวอย่าง",
+        "receivedDate": "วันที่รับ",
+        "product": "สินค้า",
+        "lotNumber": "เลขที่ล็อต",
+        "sourceType": "แหล่งที่มา",
+        "status": "สถานะ",
+        "tests": "การทดสอบ",
+        "receivedBy": "ผู้รับ",
+        "actions": "การกระทำ"
+      },
+      "testCounts": {
+        "fail": "{count} ไม่ผ่าน",
+        "pending": "{count} รอ"
+      },
+      "kpi": {
+        "registered": "ลงทะเบียน (รอทดสอบ)",
+        "testing": "กำลังทดสอบ",
+        "reviewed": "ทบทวนแล้ว",
+        "releasedToday": "ปล่อยใช้งานวันนี้"
+      },
+      "pending": {
+        "title": "รอลงทะเบียน QC ({count})",
+        "hint": "— รายการรับเข้าที่รอเซ็นใบตรวจรับ ระบบจะลงทะเบียนตัวอย่างให้อัตโนมัติเมื่อเซ็น checklist",
+        "days": "{count} วัน"
+      },
+      "empty": {
+        "title": "ไม่พบตัวอย่าง QC",
+        "subtitle": "ลองเปลี่ยนเงื่อนไขการค้นหา หรือลงทะเบียนตัวอย่างใหม่"
+      },
+      "statusOptions": {
+        "all": "ทุกสถานะ",
+        "registered": "ลงทะเบียน (Registered)",
+        "testing": "กำลังทดสอบ (Testing)",
+        "reviewed": "ทบทวนแล้ว (Reviewed)",
+        "approved": "อนุมัติ (Approved)",
+        "released": "ปล่อยใช้งาน (Released)",
+        "rejected": "ปฏิเสธ (Rejected)",
+        "quarantine": "กักกัน (Quarantine)",
+        "oos": "OOS"
+      },
+      "sourceOptions": {
+        "all": "ทุกแหล่งที่มา",
+        "rawMaterialLot": "วัตถุดิบเข้า",
+        "workOrderBatch": "ใบสั่งผลิต",
+        "customerReturn": "คืนจากลูกค้า",
+        "stability": "Stability study",
+        "purchasedHerb": "ซื้อสมุนไพรจาก supplier",
+        "outgoingShipment": "ส่งออกให้ลูกค้า (COA)",
+        "other": "อื่นๆ"
+      },
+      "statusBadge": {
+        "registered": "ลงทะเบียน",
+        "testing": "กำลังทดสอบ",
+        "reviewed": "ทบทวนแล้ว",
+        "approved": "อนุมัติ",
+        "released": "ปล่อยใช้งาน",
+        "rejected": "ปฏิเสธ",
+        "quarantine": "กักกัน",
+        "oos": "OOS"
+      },
+      "toast": {
+        "deleteSuccess": "ลบแล้ว",
+        "deleteFailed": "ลบไม่สำเร็จ"
+      }
+    },
+    "new": {
+      "title": "ลงทะเบียน + ขอเบิกตัวอย่าง QC",
+      "subtitle": "เบิก lot กักกัน → ตัดสต็อก + ลงทะเบียนตัวอย่างในใบเดียว",
+      "selectLotLabel": "เลือก Lot ({count} lots ในสถานะกักกัน)",
+      "singleLotPrefix": "Lot เดียวในสถานะกักกัน",
+      "singleLotSuffix": "ดึงข้อมูลให้อัตโนมัติ",
+      "noProductInQuarantine": "ไม่มีสินค้าในสถานะกักกัน",
+      "noLotInQuarantineHint": "ยังไม่มี lot ในสถานะ \"กักกัน\" — กรุณาตรวจสอบที่ /inventory",
+      "bufferLabel": "Buffer (เผื่อทดสอบซ้ำ)",
+      "applyDefaultPanelLabel": "ใส่ test panel มาตรฐานของสินค้านี้อัตโนมัติ",
+      "applyDefaultPanelHint": "ระบบจะดึงรายการทดสอบจาก Test Panels master ของสินค้า/หมวดหมู่นี้ มาวางในตัวอย่างให้พร้อมบันทึกผล",
+      "stockWarning": "จำนวนที่ต้องเบิก ({totalDraw} {unit}) เกินคงเหลือใน lot ({lotQty} {unit}) — ลดจำนวนสุ่ม / buffer / retain",
+      "actions": {
+        "cancel": "ยกเลิก",
+        "register": "ลงทะเบียน",
+        "saving": "กำลังบันทึก..."
+      },
+      "sections": {
+        "request": "ผู้ขอเบิก / Request",
+        "source": "ที่มาของตัวอย่าง / Source",
+        "product": "ข้อมูลสินค้า / Product",
+        "sampleSize": "คำนวณจำนวนสุ่ม / Sample size",
+        "retainSample": "ตัวอย่างคงคลัง / Retain sample",
+        "customer": "ลูกค้า / Customer (สำหรับ COA)",
+        "receipt": "ข้อมูลการรับ / Receipt"
+      },
+      "fields": {
+        "requestedBy": "ผู้ขอเบิก",
+        "purpose": "วัตถุประสงค์",
+        "sourceType": "ประเภทแหล่งที่มา",
+        "sourceRef": "อ้างอิง (PO#, WO#, Lot#, ฯลฯ)",
+        "product": "สินค้า (เฉพาะที่มี lot สถานะกักกัน)",
+        "lotNumber": "Lot Number",
+        "quantityRemaining": "จำนวนคงเหลือใน lot",
+        "unit": "หน่วย",
+        "manufactureDate": "วันที่ผลิต",
+        "expiryDate": "วันหมดอายุ",
+        "retestDate": "Retest date",
+        "storage": "สภาพการเก็บ (Storage)",
+        "retainQty": "จำนวน retain",
+        "retainStorage": "ที่เก็บ / Storage location",
+        "customer": "ลูกค้า",
+        "receivedDate": "วันที่รับตัวอย่าง",
+        "notes": "หมายเหตุ"
+      },
+      "placeholders": {
+        "requestedBy": "ชื่อผู้ขอเบิกตัวอย่าง",
+        "sourceRef": "เช่น PO-2569-0438",
+        "selectLot": "กรุณาเลือก lot",
+        "lotNumber": "เช่น BG-2026-0070",
+        "storage": "เช่น ต่ำกว่า 30°C",
+        "retainStorage": "เช่น WH-RETAIN-01",
+        "salesOrderRef": "เช่น SO-2026-0042"
+      },
+      "sampleSizeTable": {
+        "test": "ทดสอบ",
+        "method": "วิธีคำนวณ",
+        "sampleCount": "จำนวนสุ่ม"
+      },
+      "totals": {
+        "sampleSum": "รวมจำนวนสุ่ม",
+        "totalDraw": "ต้องเบิกทดสอบรวม"
+      },
+      "sourceOptions": {
+        "rawMaterialLot": "วัตถุดิบเข้า (Raw material lot)",
+        "workOrderBatch": "ใบสั่งผลิต (Work order batch)",
+        "customerReturn": "คืนจากลูกค้า (Customer return)",
+        "stability": "การศึกษาความคงตัว (Stability)",
+        "purchasedHerb": "ซื้อสมุนไพร (Purchased herb)",
+        "outgoingShipment": "ส่งออกให้ลูกค้า (Outgoing shipment / COA)",
+        "other": "อื่นๆ (Other)"
+      },
+      "purposeOptions": {
+        "routine": "Routine QC — ทดสอบรับเข้าปกติ",
+        "retest": "Retest — ทดสอบซ้ำหลัง deviation",
+        "stability": "Stability — ติดตามความคงตัว",
+        "complaint": "Complaint — ตรวจสอบเรื่องร้องเรียน"
+      },
+      "modeOptions": {
+        "usp": "USP (n ตามมาตรฐาน)",
+        "sqrt": "√n + 1 (ตามจำนวน lot)",
+        "fixed": "กำหนดเอง"
+      },
+      "toast": {
+        "selectProduct": "กรุณาเลือกสินค้า",
+        "selectReceivedDate": "กรุณาระบุวันที่รับตัวอย่าง",
+        "exceedsStockTitle": "จำนวนที่ต้องเบิกเกินคงเหลือใน lot",
+        "exceedsStockDetail": "ต้องเบิก {totalDraw} แต่คงเหลือ {lotQty}",
+        "registerFailed": "ลงทะเบียนไม่สำเร็จ",
+        "registerSuccess": "ลงทะเบียนสำเร็จ",
+        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)"
+      }
+    },
+    "detail": {
+      "loadError": "ไม่สามารถโหลดข้อมูลได้",
+      "testResultsTitle": "ผลการทดสอบ ({count})",
+      "noTests": "ยังไม่มีรายการทดสอบ — กด \"Apply test panel\" หรือ \"เพิ่มการทดสอบ\"",
+      "confirmDeleteTest": "ลบการทดสอบนี้ใช่หรือไม่?",
+      "rejectReasonPrompt": "ระบุเหตุผลในการปฏิเสธ:",
+      "actions": {
+        "back": "กลับ",
+        "print": "พิมพ์",
+        "addTest": "เพิ่มการทดสอบ",
+        "startTesting": "เริ่มทดสอบ",
+        "submitReview": "ส่งทบทวน",
+        "approve": "อนุมัติ",
+        "release": "ปล่อยใช้งาน",
+        "reject": "ปฏิเสธ",
+        "generateNewCoa": "ออก COA ใหม่ (Generate new COA)",
+        "generateCoa": "ออก COA (Generate COA)",
+        "viewCoa": "ดู COA",
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saving": "กำลังบันทึก..."
+      },
+      "stepper": {
+        "title": "สถานะการดำเนินงาน",
+        "registered": "ลงทะเบียน",
+        "testing": "กำลังทดสอบ",
+        "reviewed": "ตรวจทาน",
+        "approved": "อนุมัติแล้ว"
+      },
+      "headerCard": {
+        "status": "สถานะ",
+        "receivedDate": "วันที่รับ",
+        "receivedBy": "ผู้รับ",
+        "quantity": "จำนวน",
+        "manufactureDate": "วันผลิต",
+        "expiryDate": "วันหมดอายุ",
+        "customer": "ลูกค้า",
+        "storage": "สภาพการเก็บ",
+        "notes": "หมายเหตุ"
+      },
+      "source": {
+        "rawMaterialLot": "วัตถุดิบเข้า",
+        "workOrderBatch": "ใบสั่งผลิต",
+        "customerReturn": "คืนจากลูกค้า",
+        "purchasedHerb": "ซื้อสมุนไพร",
+        "outgoingShipment": "ส่งออกให้ลูกค้า"
+      },
+      "spec": {
+        "passFail": "ผ่าน: {pass} / ไม่ผ่าน: {fail}",
+        "multiPoint": "{pointCount} จุด · เป้า {target} ± {tolerance}%",
+        "calibration": "สอบเทียบ {instrument} กับ {standardValue} {standardUnit}"
+      },
+      "test": {
+        "collapse": "ซ่อนรายละเอียด",
+        "expand": "ดูรายละเอียด",
+        "recordedBy": "ผู้บันทึก",
+        "reviewedBy": "ผู้ทบทวน",
+        "recordResult": "บันทึกผล",
+        "deleteHint": "ลบการทดสอบนี้",
+        "editRound": "แก้ไข Round {round}",
+        "newRoundHint": "บันทึกรอบใหม่ (สูงสุด {max} รอบ)",
+        "attachHint": "แนบไฟล์รูป / รายงาน QC (COA)",
+        "attach": "แนบไฟล์",
+        "notesInline": "หมายเหตุ",
+        "noResultYet": "ยังไม่มีผลการทดสอบ",
+        "labResultTitle": "เอกสารผลวิเคราะห์ (COA / Report)"
+      },
+      "recordForm": {
+        "roundOf": "(ทดสอบรอบที่ {round} จากสูงสุด {max})",
+        "sampleLabel": "ตัวอย่าง",
+        "multiResultLabel": "ผลการทดสอบ ({count} ตัวอย่าง)",
+        "unitSuffix": " — หน่วย {unit}",
+        "numericResultLabel": "ผลการทดสอบ (ตัวเลข)",
+        "textResultLabel": "หรือผลแบบข้อความ (ถ้าไม่ใช่ตัวเลข)",
+        "textResultPlaceholder": "เช่น Pass, ใส, สีเหลืองอ่อน",
+        "passSummary": "ผ่าน {passCount}/{filled} ตัวอย่าง",
+        "fillProgress": "กรอก {filled}/{total}",
+        "notesLabel": "หมายเหตุ",
+        "notesPlaceholder": "ระบุข้อสังเกต / เงื่อนไขการทดสอบ"
+      },
+      "signoff": {
+        "title": "การลงนาม / Sign-off (21 CFR Part 11)",
+        "notSigned": "— ยังไม่ลงนาม",
+        "tierAnalyst": "Tested by / ผู้ทดสอบ",
+        "tierReviewer": "Reviewed by / ผู้ทบทวน",
+        "tierApprover": "Approved by / ผู้อนุมัติ",
+        "tierRelease": "Released by / QA ปล่อยใช้งาน"
+      },
+      "oos": {
+        "title": "สอบสวน OOS / Out-of-Spec Investigation",
+        "openButton": "+ เปิดสอบสวน OOS",
+        "hasFailHint": "มีผลทดสอบที่ไม่ผ่านเกณฑ์ — กด \"เปิดสอบสวน OOS\" เพื่อเริ่ม phase 1/2",
+        "noFailHint": "ยังไม่มีผลทดสอบที่ไม่ผ่าน — ไม่จำเป็นต้องเปิด OOS",
+        "testLabel": "ทดสอบ",
+        "closeButton": "ปิดสอบสวน",
+        "openedBy": "เปิดโดย",
+        "closedBy": "ปิดโดย"
+      },
+      "applyPanelDialog": {
+        "noPanel": "ไม่มี test panel ที่กำหนดสำหรับสินค้านี้ — ไปสร้างที่",
+        "selectPrompt": "เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้",
+        "multiHint": "(เลือกได้หลายรายการ)",
+        "tagPlaceholder": "เลือก panel",
+        "selectedCount": "เลือกแล้ว {count} panel — ระบบจะ apply ทุก panel เข้าตัวอย่างนี้",
+        "applying": "กำลัง apply..."
+      },
+      "addTestDialog": {
+        "title": "เพิ่มการทดสอบ",
+        "criteriaLabel": "เกณฑ์ (IPC criteria)",
+        "sequenceLabel": "ลำดับการแสดงผล",
+        "add": "เพิ่ม",
+        "adding": "กำลังเพิ่ม..."
+      },
+      "signDialog": {
+        "title": "ลงนาม — {meaning} ({role})",
+        "titleDefault": "ลงนาม",
+        "certifyPrefix": "ฉันยืนยันว่าฉันเป็นผู้ลงนามในฐานะ",
+        "certifyMid": "ของตัวอย่าง",
+        "notesLabel": "หมายเหตุ / Notes (optional)",
+        "notesPlaceholder": "เช่น: ตรวจซ้ำตัวอย่างหมายเลข ... และอ่านค่าตรงกัน",
+        "passwordLabel": "รหัสผ่าน / Password re-entry (optional)",
+        "passwordPlaceholder": "ระบุรหัสผ่านเพื่อยืนยันตัวตน",
+        "passwordHint": "ปล่อยว่างได้ในช่วงทดสอบระบบ — เมื่อ enforced บัญชีต้องมี bcrypt hash",
+        "signing": "กำลังลงนาม..."
+      },
+      "openOosDialog": {
+        "title": "เปิดสอบสวน OOS (FDA 21 CFR 211.192)",
+        "failedTestLabel": "ทดสอบที่ไม่ผ่าน (failed test) *",
+        "failedTestPlaceholder": "เลือกทดสอบที่ไม่ผ่าน",
+        "phase1Placeholder": "เช่น: เครื่องมือวัดสอบเทียบหรือไม่? วิธีการเตรียมตัวอย่างถูกต้องหรือไม่?",
+        "phase2Placeholder": "ผลการสืบสวนเชิงลึก เมื่อ Phase 1 ไม่พบสาเหตุจาก lab",
+        "classLabError": "Lab Error — สาเหตุจากห้องปฏิบัติการ",
+        "classManufacturingError": "Manufacturing Error — สาเหตุจากการผลิต (auto-creates Deviation)",
+        "classUndetermined": "Undetermined — ระบุไม่ได้",
+        "classPlaceholder": "ยังไม่ระบุ — ระบุภายหลังก็ได้",
+        "retestAuthorized": "อนุญาตให้ทดสอบซ้ำ (Retest authorized)",
+        "initialConclusionLabel": "ข้อสรุปเบื้องต้น / Initial conclusion (optional)",
+        "initialConclusionPlaceholder": "เพิ่มเติมภายหลังเมื่อปิดสอบสวนได้",
+        "openSubmit": "เปิดสอบสวน",
+        "opening": "กำลังเปิด..."
+      },
+      "closeOosDialog": {
+        "title": "ปิดสอบสวน OOS #{id}",
+        "instruction": "ระบุข้อสรุปการสอบสวน — ต้องอย่างน้อย 10 ตัวอักษร (FDA 211.192)",
+        "conclusionLabel": "ข้อสรุป / Conclusion *",
+        "conclusionPlaceholder": "เช่น: หลังตรวจซ้ำพบว่าผลของวันแรกผิดพลาดจาก calibration ของเครื่องมือ ...",
+        "closeSubmit": "ปิดสอบสวน",
+        "closing": "กำลังปิด..."
+      },
+      "deviation": {
+        "defaultTestName": "การทดสอบ",
+        "spec": "เกณฑ์ {min} – {max}{unit}",
+        "descLine1": "ผลตรวจ QC {status} ของตัวอย่าง {sampleNumber}{product}",
+        "descLine2": "รายการทดสอบ: {testName} (รอบที่ {round})",
+        "descLine3": "ค่าที่วัดได้: {measured}{spec}",
+        "openingToast": "ผลทดสอบ {status} — กำลังเปิดฟอร์ม Deviation"
+      },
+      "toast": {
+        "saveSuccess": "บันทึกแล้ว",
+        "saveSuccessDetail": "Round {round} — Result: {result}",
+        "saveFailed": "บันทึกไม่สำเร็จ",
+        "deleteSuccess": "ลบแล้ว",
+        "deleteFailed": "ลบไม่สำเร็จ",
+        "applyPanelSuccess": "Apply panel สำเร็จ",
+        "applyPanelSummary": "เพิ่ม {added} รายการ (ข้าม {skipped})",
+        "applyPanelPartial": "Apply สำเร็จบางส่วน — เพิ่ม {added} ข้าม {skipped}",
+        "addTestSuccess": "เพิ่มการทดสอบแล้ว",
+        "addTestFailed": "เพิ่มการทดสอบไม่สำเร็จ",
+        "signSuccess": "ลงนามสำเร็จ",
+        "signFailed": "ลงนามไม่สำเร็จ",
+        "signStatusMeta": "สถานะ: {from} → {to}",
+        "signSavedMeta": "บันทึกการลงนามแล้ว",
+        "openOosSuccess": "เปิดสอบสวน OOS สำเร็จ",
+        "openOosFailed": "เปิดสอบสวน OOS ไม่สำเร็จ",
+        "closeOosSuccess": "ปิดสอบสวนแล้ว",
+        "closeOosFailed": "ปิดสอบสวนไม่สำเร็จ",
+        "conclusionTooShort": "ข้อสรุปต้องยาวอย่างน้อย 10 ตัวอักษร",
+        "statusChangeSuccess": "เปลี่ยนสถานะแล้ว",
+        "statusChangeFailed": "เปลี่ยนสถานะไม่สำเร็จ",
+        "coaSuccess": "ออก COA สำเร็จ",
+        "coaFailed": "ออก COA ล้มเหลว"
+      }
+    }
+  },
+  "qcInspections": {
+    "title": "ใบตรวจ QC",
+    "subtitle": "แบบบันทึกการตรวจคุณภาพของฝ่าย QC — สามารถดู eBMR ของฝ่ายผลิตได้",
+    "addInspection": "+ ใบตรวจใหม่",
+    "typePlaceholder": "ประเภท...",
+    "detailButton": "รายละเอียด / บันทึกผล",
+    "loading": "กำลังโหลด...",
+    "types": {
+      "all": "ทุกประเภท",
+      "incoming": "ตรวจรับ",
+      "inProcess": "ระหว่างผลิต",
+      "finished": "สำเร็จรูป",
+      "adHoc": "ทั่วไป"
+    },
+    "results": {
+      "pending": "รอผล",
+      "pass": "ผ่าน",
+      "fail": "ไม่ผ่าน"
+    },
+    "stats": {
+      "total": "ทั้งหมด",
+      "pending": "รอผล",
+      "pass": "ผ่าน",
+      "fail": "ไม่ผ่าน"
+    },
+    "columns": {
+      "number": "เลขที่",
+      "date": "วันที่",
+      "type": "ประเภท",
+      "subject": "เรื่อง",
+      "result": "ผล",
+      "inspector": "ผู้ตรวจ",
+      "action": "ดำเนินการ"
+    },
+    "actions": {
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "close": "ปิด"
+    },
+    "addDialog": {
+      "title": "ใบตรวจใหม่",
+      "typePlaceholder": "ประเภทการตรวจ *",
+      "woPlaceholderFinished": "Work Order ที่ผลิตเสร็จ (เลือกเพื่อเปิด eBMR)",
+      "woPlaceholderInProcess": "Work Order ที่กำลังผลิต (เลือกเพื่อเปิด eBMR)",
+      "woPlaceholderDefault": "Work Order (เลือกถ้ามี — จะสามารถเปิด eBMR ได้)",
+      "woNone": "— ไม่ระบุ WO —",
+      "woNoDataFinished": "ยังไม่มี Work Order ที่ผลิตเสร็จ",
+      "woNoDataInProcess": "ยังไม่มี Work Order ที่กำลังผลิต",
+      "incomingNote": "การตรวจรับ (Incoming) เป็นการตรวจวัตถุดิบขาเข้า — ไม่ผูกกับ Work Order ฝ่ายผลิต โปรดระบุ Batch number ของวัตถุดิบด้านล่าง",
+      "batchPlaceholderIncoming": "Batch number ของวัตถุดิบ *",
+      "batchPlaceholderDefault": "Batch number (กรอกได้ถ้าไม่มี WO)",
+      "subjectPlaceholder": "เรื่องที่ตรวจ *",
+      "findingsPlaceholder": "ผลที่พบ",
+      "overallResultPlaceholder": "ผลโดยรวม",
+      "notesPlaceholder": "หมายเหตุ"
+    },
+    "detail": {
+      "type": "ประเภท",
+      "inspector": "ผู้ตรวจ",
+      "date": "วันที่",
+      "result": "ผล",
+      "subject": "เรื่อง",
+      "batch": "รุ่นการผลิต",
+      "linkedWith": "ผูกกับ",
+      "openEbmr": "เปิด eBMR ของฝ่ายผลิต",
+      "findingsLabel": "ผลที่พบ",
+      "notesLabel": "หมายเหตุ",
+      "attachmentsTitle": "เอกสาร / รูปภาพประกอบการตรวจ",
+      "saveFail": "บันทึกผลไม่ผ่าน",
+      "savePass": "บันทึกผลผ่าน"
+    },
+    "toast": {
+      "loadFailed": "โหลดข้อมูลไม่สำเร็จ",
+      "subjectRequired": "กรุณากรอกเรื่องที่ตรวจ",
+      "saveFailed": "บันทึกไม่สำเร็จ",
+      "created": "สร้างใบตรวจ {inspectionNumber}",
+      "updateFailed": "อัปเดตไม่สำเร็จ",
+      "updated": "อัปเดตผลการตรวจแล้ว"
+    }
+  },
+  "testPanels": {
+    "title": "ชุดการทดสอบ",
+    "subtitle": "กำหนดชุดทดสอบเริ่มต้นต่อสินค้า/หมวดหมู่ (สำหรับ apply ตอนลงทะเบียน QC)",
+    "breadcrumbQuality": "คุณภาพ",
+    "addPanelRow": "เพิ่ม panel-row",
+    "loading": "กำลังโหลด...",
+    "noData": "ไม่พบข้อมูล",
+    "confirmDelete": "ลบ panel-row นี้ใช่หรือไม่?",
+    "categoryLevel": "ระดับหมวดหมู่",
+    "categoryPrefix": "หมวด: ",
+    "required": "จำเป็น",
+    "optional": "ไม่บังคับ",
+    "active": "ใช้งาน",
+    "inactive": "ไม่ใช้งาน",
+    "stats": {
+      "total": "จำนวน panel ทั้งหมด",
+      "productSpecific": "เฉพาะสินค้า",
+      "categoryLevel": "ระดับหมวดหมู่",
+      "active": "ใช้งาน"
+    },
+    "columns": {
+      "order": "ลำดับ",
+      "product": "สินค้า",
+      "criteria": "เกณฑ์ (Criteria)",
+      "required": "จำเป็น",
+      "active": "ใช้งาน",
+      "actions": "การกระทำ"
+    },
+    "empty": {
+      "title": "ยังไม่มี Test Panel",
+      "description": "กดปุ่มด้านล่างเพื่อสร้าง panel-row แรก"
+    },
+    "toast": {
+      "selectProductOrCategory": "กรุณาเลือกสินค้าหรือหมวดหมู่อย่างน้อย 1 อย่าง",
+      "selectCriteria": "กรุณาเลือกเกณฑ์ (criteria)",
+      "selectCriteriaMulti": "กรุณาเลือกเกณฑ์ (criteria) อย่างน้อย 1 รายการ",
+      "added": "เพิ่มแล้ว",
+      "addedCount": "{count} รายการ",
+      "addedPartial": "เพิ่มสำเร็จ {ok}/{total}",
+      "addFailed": "เพิ่มไม่สำเร็จ",
+      "saveFailed": "บันทึกไม่สำเร็จ",
+      "updated": "อัปเดตแล้ว",
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "deleted": "ลบแล้ว"
+    },
+    "dialog": {
+      "editTitle": "แก้ไข panel-row",
+      "addTitle": "เพิ่ม panel-row",
+      "hint": "กำหนดสินค้า <em>หรือ</em> หมวดหมู่อย่างน้อย 1 อย่าง — หากกรอกทั้งคู่ ระบบจะ match สินค้าก่อน",
+      "productLabel": "สินค้า (เฉพาะเจาะจง)",
+      "categoryLabel": "หมวดหมู่ (fallback)",
+      "categoryManualLabel": "หรือพิมพ์หมวดเอง",
+      "criteriaMultiLabel": "เกณฑ์ (QC criteria) — เลือกได้หลายรายการ",
+      "criteriaMultiPlaceholder": "พิมพ์เพื่อค้นหา หรือเลือกหลายรายการได้...",
+      "willCreate": "จะสร้างทั้งหมด <strong>{count}</strong> รายการ (ลำดับ {from}–{to})",
+      "criteriaLabel": "เกณฑ์ (QC criteria)",
+      "startSequence": "ลำดับเริ่มต้น",
+      "sequence": "ลำดับ",
+      "cancel": "ยกเลิก",
+      "saving": "กำลังบันทึก...",
+      "save": "บันทึก"
+    }
+  },
+  "testCatalog": {
+    "list": {
+      "title": "แคตตาล็อกการทดสอบ QC",
+      "description": "ข้อมูลหลักรายการทดสอบ QC — ใช้กำหนดข้อกำหนดคุณภาพ",
+      "addNew": "+ เพิ่มการทดสอบใหม่",
+      "loading": "กำลังโหลด...",
+      "noData": "ไม่มีข้อมูล",
+      "searchPlaceholder": "ค้นหา...",
+      "edit": "แก้ไข",
+      "deactivate": "ปิดใช้",
+      "confirmDelete": "ยืนยันการลบ (soft-delete — Active = false) ?",
+      "categories": {
+        "chemical": "เคมี",
+        "physical": "กายภาพ",
+        "microbial": "จุลชีววิทยา",
+        "sensory": "ประสาทสัมผัส",
+        "stability": "ความคงตัว",
+        "other": "อื่นๆ"
+      },
+      "filters": {
+        "all": "ทั้งหมด",
+        "active": "ใช้งาน",
+        "inactive": "ไม่ใช้งาน"
+      },
+      "filterLabels": {
+        "category": "หมวด",
+        "status": "สถานะ"
+      },
+      "stats": {
+        "total": "ทั้งหมด",
+        "active": "ใช้งาน",
+        "categories": "หมวด"
+      },
+      "columns": {
+        "code": "รหัส",
+        "nameEn": "ชื่อทดสอบ (EN)",
+        "nameTh": "ชื่อทดสอบ (TH)",
+        "category": "หมวด",
+        "unit": "หน่วย",
+        "min": "ต่ำสุด",
+        "max": "สูงสุด",
+        "testMethod": "วิธีทดสอบ",
+        "active": "ใช้งาน",
+        "actions": "การจัดการ"
+      },
+      "notify": {
+        "loadFailed": "โหลดข้อมูลไม่สำเร็จ",
+        "deleted": "ลบรายการเรียบร้อย",
+        "deleteFailed": "ลบไม่สำเร็จ"
+      }
+    }
+  },
+  "incomingInspection": {
+    "backLabel": "คุณภาพ",
+    "agingDistribution": "การกระจายอายุการกักกัน",
+    "quarantineLots": "ล็อตกักกัน",
+    "columns": {
+      "itemCode": "รหัส",
+      "unit": "หน่วย",
+      "lot": "ล็อต",
+      "itemCodeFull": "รหัสสินค้า",
+      "itemName": "ชื่อสินค้า",
+      "quantity": "จำนวน",
+      "warehouse": "คลังสินค้า"
+    }
+  },
+  "coa": {
+    "detail": {
+      "back": "กลับ",
+      "notFound": "ไม่พบ COA ที่ต้องการ",
+      "toast": {
+        "actionFailed": "การดำเนินการล้มเหลว",
+        "success": "สำเร็จ"
+      },
+      "stepper": {
+        "title": "สถานะการดำเนินงาน",
+        "draft": "ร่าง",
+        "approved": "อนุมัติแล้ว",
+        "issued": "ออกใบรับรอง",
+        "superseded": "ถูกแทนที่"
+      },
+      "actions": {
+        "submitForReview": "ส่งทบทวน (Submit for review)",
+        "approve": "อนุมัติ (Approve)",
+        "issue": "ออก COA (Issue)",
+        "supersede": "แทนที่ด้วย COA ใหม่ (Supersede)",
+        "revoke": "เพิกถอน (Revoke)",
+        "previewPdf": "ดู preview (PDF)",
+        "downloadOfficialPdf": "ดาวน์โหลด PDF ทางการ"
+      },
+      "signatures": {
+        "title": "ลายเซ็น (Signatures)",
+        "approver": "ผู้อนุมัติ (Approver)",
+        "qaRelease": "ผู้ปล่อย QA (QA Release)",
+        "notSigned": "ยังไม่ลงนาม"
+      },
+      "preview": {
+        "openInNewTab": "เปิดในแท็บใหม่"
+      },
+      "testResults": {
+        "title": "ผลการทดสอบ (Snapshot — {count} tests)"
+      },
+      "revoke": {
+        "title": "เพิกถอน COA",
+        "description": "กรุณาระบุเหตุผลที่เพิกถอน COA ฉบับนี้ — เหตุผลจะถูกบันทึกในประวัติ.",
+        "reasonPlaceholder": "เช่น: พบข้อผิดพลาดในผลทดสอบ Test #5",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยันการเพิกถอน",
+        "reasonRequired": "ต้องระบุเหตุผล"
+      },
+      "supersede": {
+        "title": "แทนที่ COA ด้วยฉบับใหม่",
+        "description": "ระบุ ID ของ COA ที่จะมาแทนที่ฉบับนี้ — สถานะจะเปลี่ยนเป็น \"superseded\".",
+        "idPlaceholder": "COA ID (ตัวเลข)",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยัน",
+        "idRequired": "ต้องระบุ COA ID"
+      }
+    },
+    "list": {
+      "subtitle": "ใบรับรองคุณภาพ — รายการ COA ทั้งหมดจากตัวอย่างที่ปล่อยใช้งานแล้ว",
+      "breadcrumbQuality": "คุณภาพ",
+      "refresh": "รีเฟรช",
+      "configureTemplates": "กำหนดเทมเพลต COA",
+      "issueFromSample": "ออก COA จากตัวอย่าง",
+      "loading": "กำลังโหลด...",
+      "noData": "ไม่พบข้อมูล",
+      "searchPlaceholder": "ค้นหา (COA#, Lot#, สินค้า, ลูกค้า)",
+      "dateFrom": "จากวันที่",
+      "dateTo": "ถึงวันที่",
+      "statusOptions": {
+        "all": "ทุกสถานะ",
+        "draft": "ฉบับร่าง (Draft)",
+        "review": "รอทบทวน (Review)",
+        "approved": "อนุมัติ (Approved)",
+        "issued": "ออกแล้ว (Issued)",
+        "superseded": "แทนที่แล้ว (Superseded)",
+        "revoked": "เพิกถอน (Revoked)"
+      },
+      "status": {
+        "draft": "ฉบับร่าง",
+        "review": "รอทบทวน",
+        "approved": "อนุมัติ",
+        "issued": "ออกแล้ว",
+        "superseded": "แทนที่แล้ว",
+        "revoked": "เพิกถอน"
+      },
+      "conclusion": {
+        "complies": "✓ ผ่านข้อกำหนด",
+        "doesNotComply": "✗ ไม่ผ่าน",
+        "partial": "ผ่านบางส่วน"
+      },
+      "columns": {
+        "no": "ลำดับ",
+        "issueDate": "วันที่ออก",
+        "product": "สินค้า",
+        "lotNumber": "เลขที่ล็อต",
+        "customer": "ลูกค้า",
+        "status": "สถานะ",
+        "conclusion": "ผลรวม",
+        "actions": "การกระทำ"
+      },
+      "actions": {
+        "view": "ดู"
+      },
+      "kpi": {
+        "issuedToday": "ออกวันนี้",
+        "pendingReview": "รอทบทวน/ร่าง",
+        "superseded": "ถูกแทนที่",
+        "revoked": "ถูกเพิกถอน"
+      },
+      "empty": {
+        "title": "ยังไม่มี COA",
+        "description": "COA สร้างจากตัวอย่าง QC ที่ปล่อยใช้งาน — เปิดตัวอย่างแล้วกด \"ออก COA\"",
+        "viewReleased": "ดูตัวอย่างที่ปล่อยแล้ว"
+      }
+    },
+    "templates": {
+      "list": {
+        "subtitle": "เทมเพลต COA — ออกแบบเลย์เอาต์ใบรับรองคุณภาพต่อหมวดสินค้า",
+        "searchPlaceholder": "ค้นหา (ชื่อเทมเพลต, หมวดสินค้า)",
+        "loading": "กำลังโหลด...",
+        "noData": "ไม่พบข้อมูล",
+        "toast": {
+          "setDefaultFailed": "ตั้งค่าเริ่มต้นไม่สำเร็จ",
+          "setDefaultSuccess": "ตั้งเป็น default แล้ว",
+          "updateStatusFailed": "อัปเดตสถานะไม่สำเร็จ",
+          "deactivated": "ปิดการใช้งานแล้ว",
+          "activated": "เปิดการใช้งานแล้ว"
+        },
+        "columns": {
+          "no": "ลำดับ",
+          "name": "ชื่อเทมเพลต",
+          "category": "หมวดสินค้า",
+          "language": "ภาษา",
+          "actions": "การกระทำ"
+        },
+        "actions": {
+          "edit": "แก้ไข",
+          "setDefault": "ตั้งเป็นค่าเริ่มต้น",
+          "deactivate": "ปิดการใช้งาน",
+          "activate": "เปิดใช้งาน"
+        },
+        "empty": {
+          "title": "ยังไม่มีเทมเพลต",
+          "description": "สร้างเทมเพลตแรกเพื่อกำหนดเลย์เอาต์ COA ของโรงงาน",
+          "createFirst": "สร้างเทมเพลตแรก"
+        }
+      },
+      "new": {
+        "title": "สร้างเทมเพลต COA",
+        "subtitle": "ออกแบบเลย์เอาต์ใบรับรองคุณภาพ — Live preview ทางขวา"
+      },
+      "detail": {
+        "back": "กลับ",
+        "notFound": "ไม่พบเทมเพลตที่ต้องการ",
+        "title": "แก้ไข: {name}",
+        "subtitle": "หมวด: {category}"
+      }
+    }
+  },
+  "auditTrail": {
+    "subtitle": "เส้นทางการตรวจสอบ — 21 CFR Part 11 §11.10(e)",
+    "refresh": "รีเฟรช",
+    "filters": "ตัวกรอง",
+    "clearFilters": "ล้างตัวกรอง",
+    "noEvents": "ไม่พบเหตุการณ์ที่ตรงกับตัวกรอง",
+    "columns": {
+      "no": "ลำดับ"
+    },
+    "pager": {
+      "firstPage": "หน้าแรก",
+      "lastPage": "หน้าสุดท้าย"
     }
   }
 }

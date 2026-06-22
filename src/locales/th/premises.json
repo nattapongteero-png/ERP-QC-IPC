@@ -1,0 +1,713 @@
+{
+  "hub": {
+    "title": "อาคารและสถานที่",
+    "subtitle": "Premises & Facilities — บันทึกตาม GMP หมวดอาคารสถานที่และเครื่องมือ",
+    "storageMonitoring": {
+      "title": "ติดตามสภาพคลังจัดเก็บ",
+      "desc": "ติดตามอุณหภูมิ/ความชื้นของคลังจัดเก็บตามเวลา"
+    },
+    "environmentalInspection": {
+      "title": "ตรวจสภาพแวดล้อม",
+      "desc": "บันทึกตรวจสภาพแวดล้อมพื้นที่ผลิตตามรอบ (อุณหภูมิ/ความชื้น/สภาพพื้นที่)"
+    },
+    "scaleVerification": {
+      "title": "ตรวจเครื่องชั่ง (ลูกตุ้ม)",
+      "desc": "ตรวจสอบเครื่องชั่งด้วยลูกตุ้มมาตรฐานก่อนใช้งาน (ตั้งค่าทะเบียนลูกตุ้มที่ Master Data > ทะเบียนลูกตุ้มมาตรฐาน)"
+    },
+    "sanitation": {
+      "title": "การจัดการสุขาภิบาล",
+      "desc": "บันทึกการทำความสะอาด ตารางสุขาภิบาล แนวโน้ม และการกำจัดสัตว์พาหะ"
+    },
+    "waterQuality": {
+      "title": "ระบบน้ำ (Water Quality)",
+      "desc": "คุณภาพน้ำของระบบสาธารณูปโภค (utility) ตามเกณฑ์"
+    },
+    "notifications": {
+      "title": "แจ้งเตือนการบำรุงรักษา",
+      "desc": "งานบำรุงรักษา/สอบเทียบที่ถึงกำหนด + ผลตรวจเกินเกณฑ์ (มีทั้งมุมมองรายการและปฏิทิน)"
+    }
+  },
+  "sanitation": {
+    "common": {
+      "breadcrumbPremises": "อาคารและสถานที่",
+      "cancel": "ยกเลิก",
+      "save": "บันทึก",
+      "create": "สร้าง",
+      "recordResult": "บันทึกผล",
+      "upcoming": "ใกล้ถึงกำหนด",
+      "overdueDays": "เกินกำหนด {n} วัน",
+      "area": {
+        "production": "พื้นที่ผลิต",
+        "warehouse": "คลังจัดเก็บ",
+        "lab": "ห้องปฏิบัติการ",
+        "office": "สำนักงาน"
+      }
+    },
+    "index": {
+      "noPendingTasks": "ไม่มีงานค้าง",
+      "allCaughtUpTitle": "ไม่มีงานค้าง!",
+      "allCaughtUpDesc": "ไม่มีงานสุขาภิบาลที่ค้างในอีก 14 วันข้างหน้า",
+      "taskColumns": {
+        "task": "งาน",
+        "area": "พื้นที่",
+        "frequency": "ความถี่",
+        "dueDate": "กำหนดส่ง",
+        "status": "สถานะ"
+      }
+    },
+    "pestControl": {
+      "recordService": "บันทึกบริการ",
+      "dialogTitle": "บันทึกบริการกำจัดสัตว์พาหะ",
+      "serviceTypePlaceholder": "ประเภทบริการ",
+      "serviceType": {
+        "all": "ทุกประเภท",
+        "routine": "ตามรอบปกติ",
+        "emergency": "ฉุกเฉิน",
+        "follow_up": "ติดตามผล"
+      },
+      "areas": {
+        "production": "พื้นที่ผลิต",
+        "warehouse": "คลังจัดเก็บ",
+        "lab": "ห้องปฏิบัติการ",
+        "office": "สำนักงาน",
+        "loadingBay": "ลานขนถ่ายสินค้า",
+        "surrounding": "พื้นที่โดยรอบ",
+        "kitchen": "ครัว/โรงอาหาร",
+        "restroom": "ห้องน้ำ"
+      },
+      "form": {
+        "serviceDate": "วันที่ให้บริการ",
+        "serviceType": "ประเภทบริการ",
+        "contractorName": "ชื่อผู้รับเหมา",
+        "contractorNamePlaceholder": "ชื่อบริษัท",
+        "technicianName": "ชื่อช่างเทคนิค",
+        "technicianNamePlaceholder": "ชื่อช่างเทคนิค",
+        "areasServiced": "พื้นที่ที่ให้บริการ",
+        "treatmentMethod": "วิธีการกำจัด",
+        "treatmentMethodPlaceholder": "อธิบายวิธีการกำจัด",
+        "findingsCount": "จำนวนที่พบ",
+        "followUpRequired": "ต้องติดตามผล",
+        "followUpDate": "วันที่ติดตามผล",
+        "findings": "สิ่งที่ตรวจพบ",
+        "findingsPlaceholder": "อธิบายสิ่งที่ตรวจพบ",
+        "recommendations": "ข้อเสนอแนะ",
+        "recommendationsPlaceholder": "ข้อเสนอแนะจากผู้ให้บริการ"
+      }
+    },
+    "logs": {
+      "dialogTitle": "บันทึกผลสุขาภิบาล",
+      "allSchedules": "ทุกกำหนดการ",
+      "filterBySchedule": "กรองตามกำหนดการ",
+      "statusPlaceholder": "สถานะ",
+      "status": {
+        "all": "ทุกสถานะ",
+        "completed": "เสร็จสิ้น",
+        "partial": "บางส่วน",
+        "missed": "ขาด"
+      },
+      "form": {
+        "schedule": "กำหนดการ",
+        "schedulePlaceholder": "เลือกกำหนดการ",
+        "performedDate": "วันที่ดำเนินการ",
+        "status": "สถานะ",
+        "chemicalsUsed": "สารเคมีที่ใช้",
+        "chemicalsUsedPlaceholder": "ระบุสารเคมีที่ใช้",
+        "notes": "หมายเหตุ",
+        "notesPlaceholder": "หมายเหตุเพิ่มเติม"
+      }
+    },
+    "schedules": {
+      "addSchedule": "เพิ่มกำหนดการ",
+      "dialogTitle": "เพิ่มกำหนดการสุขาภิบาล",
+      "areaTypePlaceholder": "ประเภทพื้นที่",
+      "frequencyPlaceholder": "ความถี่",
+      "areaType": {
+        "all": "ทุกพื้นที่"
+      },
+      "frequency": {
+        "all": "ทุกความถี่",
+        "daily": "รายวัน",
+        "weekly": "รายสัปดาห์",
+        "monthly": "รายเดือน",
+        "quarterly": "รายไตรมาส"
+      },
+      "dayOfWeek": {
+        "0": "อาทิตย์",
+        "1": "จันทร์",
+        "2": "อังคาร",
+        "3": "พุธ",
+        "4": "พฤหัสบดี",
+        "5": "ศุกร์",
+        "6": "เสาร์"
+      },
+      "form": {
+        "name": "ชื่อกำหนดการ",
+        "namePlaceholder": "กรอกชื่อกำหนดการ",
+        "areaType": "ประเภทพื้นที่",
+        "frequency": "ความถี่",
+        "dayOfWeek": "วันในสัปดาห์",
+        "dayOfMonth": "วันที่ของเดือน",
+        "method": "วิธีทำความสะอาด",
+        "methodPlaceholder": "อธิบายวิธีการทำความสะอาด",
+        "verificationRequired": "ต้องมีการตรวจสอบ"
+      }
+    },
+    "trends": {
+      "areaType": {
+        "all": "ทุกพื้นที่"
+      },
+      "period": {
+        "week": "สัปดาห์ที่ผ่านมา",
+        "month": "เดือนที่ผ่านมา",
+        "quarter": "ไตรมาสที่ผ่านมา",
+        "year": "ปีที่ผ่านมา"
+      }
+    }
+  },
+  "waterQuality": {
+    "common": {
+      "result": {
+        "inSpec": "ผ่าน (ในเกณฑ์)",
+        "outOfSpec": "ไม่ผ่าน (เกินเกณฑ์)",
+        "na": "ไม่ระบุ"
+      },
+      "status": {
+        "active": "ใช้งาน",
+        "inactive": "ปิด"
+      },
+      "breadcrumb": {
+        "premises": "อาคารและสถานที่",
+        "waterQuality": "ระบบน้ำ (Water Quality)"
+      },
+      "actions": {
+        "edit": "แก้ไข",
+        "delete": "ลบ",
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saveEdit": "บันทึกการแก้ไข"
+      }
+    },
+    "index": {
+      "title": "บันทึกผลตรวจ",
+      "subtitle": "ทะเบียนผลตรวจน้ำที่บันทึกไว้ — บันทึกใหม่ / ดู / แก้ไข / ลบ ได้ที่นี่",
+      "settingsLink": "ตั้งค่าระบบน้ำ",
+      "recordButton": "บันทึกผลตรวจน้ำ",
+      "moveNotice": {
+        "before": "การตั้งค่า (ระบบน้ำ / จุดสุ่ม / เกณฑ์) ย้ายไปหน้า",
+        "after": "— หน้านี้คือ \"ทะเบียนบันทึกผลตรวจ\" ที่ข้อมูลจากการกด \"บันทึกผลตรวจน้ำ\" จะมาแสดง"
+      },
+      "grid": {
+        "loading": "กำลังโหลด…",
+        "empty": "ยังไม่มีผลตรวจที่บันทึก",
+        "performedAt": "วันเวลาที่ตรวจ",
+        "samplePoint": "จุดสุ่มตัวอย่าง",
+        "system": "ระบบน้ำ",
+        "operator": "ผู้ตรวจ",
+        "overallResult": "ผลรวม",
+        "actions": "การกระทำ"
+      },
+      "view": "ดู",
+      "popup": {
+        "recordTitle": "บันทึกผลตรวจน้ำ",
+        "specRange": "เกณฑ์ {min} – {max}",
+        "noSpecBefore": "ระบบน้ำของจุดเก็บนี้ยังไม่มีการตั้งเกณฑ์ (Spec) — ไปเพิ่มเกณฑ์ที่หน้า",
+        "noSpecLink": "ตั้งค่าระบบน้ำ",
+        "noSpecAfter": "ก่อน",
+        "password": "รหัสผ่าน"
+      },
+      "detail": {
+        "loading": "กำลังโหลด…",
+        "title": "ผลตรวจ #{id} — {point}",
+        "titleFallback": "ผลตรวจ",
+        "dateTime": "วันเวลา:",
+        "operator": "ผู้ตรวจ:",
+        "system": "ระบบน้ำ:",
+        "overallResult": "ผลรวม:",
+        "parameter": "พารามิเตอร์",
+        "measuredValue": "ค่าที่วัด",
+        "spec": "เกณฑ์",
+        "result": "ผล",
+        "notes": "หมายเหตุ",
+        "editWarning": "⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log — ผล \"ผ่าน/ไม่ผ่าน\" จะคำนวณใหม่ตามเกณฑ์เดิม",
+        "close": "ปิด",
+        "saveEdit": "บันทึกการแก้ไข"
+      },
+      "delete": {
+        "title": "ลบผลตรวจ",
+        "message": "ยืนยันการลบผลตรวจ #{id} ({point} — {dateTime}) ? การลบจะถูกบันทึกใน audit log และย้อนกลับไม่ได้",
+        "confirm": "ลบ"
+      },
+      "toast": {
+        "recordSuccess": "บันทึกผลตรวจน้ำแล้ว",
+        "recordError": "บันทึกไม่สำเร็จ",
+        "editSuccess": "แก้ไขผลตรวจแล้ว (บันทึกใน audit log)",
+        "editError": "บันทึกไม่สำเร็จ",
+        "deleteSuccess": "ลบผลตรวจแล้ว (บันทึกใน audit log)",
+        "deleteError": "ลบไม่สำเร็จ"
+      }
+    },
+    "settings": {
+      "breadcrumb": "ทะเบียนการตั้งค่า",
+      "title": "ทะเบียนการตั้งค่าระบบน้ำ",
+      "subtitle": "ตั้งค่าข้อมูลหลักที่ใช้ตอนบันทึกผลตรวจ — ระบบน้ำ → จุดสุ่มตัวอย่าง → เกณฑ์ (Spec)",
+      "recordsLink": "ไปหน้าบันทึกผลตรวจ",
+      "stepNotice": {
+        "before": "ตั้งค่าตามลำดับ: 1) สร้าง",
+        "system": "ระบบน้ำ",
+        "mid1": "→ 2) เพิ่ม",
+        "point": "จุดสุ่มตัวอย่าง",
+        "mid2": "ของระบบนั้น → 3) กำหนด",
+        "spec": "เกณฑ์ (Spec)",
+        "after": "ของแต่ละค่า เช่น pH, conductivity จากนั้นจึงไปบันทึกผลตรวจได้"
+      },
+      "systems": {
+        "heading": "ระบบน้ำ (Water Systems)",
+        "addButton": "เพิ่มระบบน้ำ",
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "type": "ประเภท",
+        "description": "คำอธิบาย",
+        "status": "สถานะ",
+        "actions": "การกระทำ"
+      },
+      "points": {
+        "heading": "จุดสุ่มตัวอย่าง (Sample Points)",
+        "addButton": "เพิ่มจุดสุ่ม",
+        "code": "รหัส",
+        "name": "ชื่อ",
+        "location": "ตำแหน่ง",
+        "system": "ระบบน้ำ",
+        "status": "สถานะ",
+        "actions": "การกระทำ"
+      },
+      "specs": {
+        "heading": "เกณฑ์ (Specs)",
+        "addButton": "เพิ่มเกณฑ์",
+        "system": "ระบบน้ำ",
+        "parameter": "พารามิเตอร์",
+        "unit": "หน่วย",
+        "min": "ต่ำสุด",
+        "max": "สูงสุด",
+        "actions": "การกระทำ"
+      },
+      "systemPopup": {
+        "titleEdit": "แก้ไขระบบน้ำ",
+        "titleCreate": "เพิ่มระบบน้ำ",
+        "codeLabel": "รหัส (Code) *",
+        "codeLocked": "แก้ไขรหัสไม่ได้หลังสร้าง",
+        "nameLabel": "ชื่อ *",
+        "namePlaceholder": "เช่น น้ำบริสุทธิ์ 1",
+        "typeLabel": "ประเภท *",
+        "descriptionLabel": "คำอธิบาย"
+      },
+      "pointPopup": {
+        "titleEdit": "แก้ไขจุดสุ่มตัวอย่าง",
+        "titleCreate": "เพิ่มจุดสุ่มตัวอย่าง",
+        "systemLabel": "ระบบน้ำ *",
+        "codeLabel": "รหัส (Code) *",
+        "nameLabel": "ชื่อ *",
+        "namePlaceholder": "เช่น ทางออกถังเก็บ",
+        "locationLabel": "ตำแหน่ง",
+        "locationPlaceholder": "อาคาร A ชั้น 2"
+      },
+      "specPopup": {
+        "titleEdit": "แก้ไขเกณฑ์",
+        "titleCreate": "เพิ่มเกณฑ์",
+        "systemLabel": "ระบบน้ำ *",
+        "pointLabel": "จุดสุ่ม (ไม่บังคับ — เว้นว่าง = ทั้งระบบ)",
+        "pointAll": "— ทั้งระบบ —",
+        "parameterLabel": "พารามิเตอร์ *",
+        "unitLabel": "หน่วย",
+        "minLabel": "ค่าต่ำสุด",
+        "maxLabel": "ค่าสูงสุด"
+      },
+      "delete": {
+        "title": "ปิดการใช้งาน",
+        "message": "ปิดการใช้งาน \"{label}\" ใช่หรือไม่? (ข้อมูลย้อนหลังไม่หาย — แค่ซ่อนจากตัวเลือกใหม่)",
+        "confirm": "ปิดการใช้งาน"
+      },
+      "toast": {
+        "systemEditSuccess": "แก้ไขระบบน้ำแล้ว",
+        "systemCreateSuccess": "เพิ่มระบบน้ำแล้ว",
+        "pointEditSuccess": "แก้ไขจุดสุ่มแล้ว",
+        "pointCreateSuccess": "เพิ่มจุดสุ่มแล้ว",
+        "specEditSuccess": "แก้ไขเกณฑ์แล้ว",
+        "specCreateSuccess": "เพิ่มเกณฑ์แล้ว",
+        "failed": "ล้มเหลว",
+        "deactivateSuccess": "ปิดการใช้งานแล้ว",
+        "deleteError": "ลบไม่สำเร็จ"
+      }
+    }
+  },
+  "environmental": {
+    "common": {
+      "breadcrumb": {
+        "premises": "อาคารและสถานที่",
+        "environmental": "ตรวจสภาพแวดล้อม"
+      },
+      "targetType": {
+        "room": "ห้องผลิต",
+        "storage_area": "พื้นที่จัดเก็บ",
+        "quarantine": "พื้นที่กักกัน",
+        "water_point": "จุดน้ำ"
+      },
+      "frequency": {
+        "daily": "ประจำวัน",
+        "weekly": "ประจำสัปดาห์",
+        "monthly": "ประจำเดือน",
+        "quarterly": "ทุกไตรมาส",
+        "yearly": "ประจำปี"
+      },
+      "result": {
+        "inSpec": "ผ่าน (ในเกณฑ์)",
+        "outOfSpec": "ไม่ผ่าน (เกินเกณฑ์)",
+        "na": "ไม่ระบุ"
+      },
+      "stats": {
+        "total": "ทั้งหมด",
+        "active": "ใช้งานอยู่",
+        "inactive": "ปิดการใช้งาน"
+      },
+      "badge": {
+        "active": "ใช้งานอยู่",
+        "inactive": "ปิดใช้งาน"
+      },
+      "loading": "กำลังโหลด…",
+      "refresh": "รีเฟรช",
+      "edit": "แก้ไข",
+      "cancel": "ยกเลิก",
+      "create": "สร้าง",
+      "saveEdit": "บันทึกการแก้ไข",
+      "actionsColumn": "การกระทำ",
+      "statusColumn": "สถานะ",
+      "targetColumn": "เป้าหมาย",
+      "templateColumn": "แบบฟอร์ม",
+      "frequencyColumn": "ความถี่",
+      "nextDueColumn": "ครบกำหนดถัดไป",
+      "lastDoneColumn": "ตรวจล่าสุด",
+      "targetWithLocationColumn": "เป้าหมาย (สถานที่)",
+      "failedToast": "ล้มเหลว",
+      "deleteFailedToast": "ลบไม่ได้"
+    },
+    "schedules": {
+      "breadcrumb": "ตารางตรวจ (Schedules)",
+      "title": "ตารางตรวจ (Schedules)",
+      "subtitle": "กำหนดว่า \"ห้อง / พื้นที่ / จุดน้ำ\" ไหน ใช้แบบฟอร์มไหน ตรวจถี่แค่ไหน — ปุ่ม \"ตรวจสอบ\" ที่หน้าหลักสร้างจากตารางนี้",
+      "infoTitle": "ตารางตรวจ (Schedule) คืออะไร?",
+      "infoBodyPart1": "คือการกำหนดว่า",
+      "infoBodyPlace": "\"สถานที่จริงจุดไหน\"",
+      "infoBodyTargetSuffix": "(เป้าหมาย) ใช้",
+      "infoBodyTemplate": "\"แบบฟอร์มไหน\"",
+      "infoBodyAnd": "และตรวจ",
+      "infoBodyFreq": "\"บ่อยแค่ไหน\"",
+      "infoHint": "⏱ ระบบจะคำนวณ \"ครบกำหนดถัดไป\" ให้อัตโนมัติ = วันที่ตรวจล่าสุด + ความถี่ (เช่น ประจำวัน = +1 วัน, ประจำสัปดาห์ = +7 วัน) และจะแจ้งเตือนล่วงหน้าตามจำนวนวันที่ตั้งไว้ในช่อง \"แจ้งล่วงหน้า\"",
+      "createNew": "สร้าง Schedule ใหม่",
+      "noData": "ยังไม่มี Schedule",
+      "areaTypeColumn": "ประเภทพื้นที่",
+      "alertDaysColumn": "แจ้งล่วงหน้า (วัน)",
+      "closeAction": "ปิด",
+      "updatedToast": "อัปเดต Schedule แล้ว",
+      "createdToast": "สร้าง Schedule แล้ว",
+      "deactivatedToast": "ปิดการใช้งาน Schedule แล้ว",
+      "deleteConfirm": "ปิดการใช้งาน Schedule สำหรับ \"{name}\" ใช่หรือไม่?\n(บันทึกย้อนหลังไม่หาย — แค่ไม่ต้องตรวจรอบถัดไป)",
+      "popupEditTitle": "แก้ไข Schedule — {name}",
+      "popupCreateTitle": "+ สร้างตารางตรวจ",
+      "fieldAreaType": "ประเภทพื้นที่ *",
+      "fieldTarget": "เป้าหมายที่จะตรวจ (สถานที่จริง) *",
+      "fieldTargetHint": "สถานที่จริงที่จะเข้าไปตรวจ เช่น \"ห้องผสม A\", \"คลังวัตถุดิบ\", \"จุดน้ำ RO-01\" — ดึงรายชื่อจาก Master Data",
+      "targetPlaceholder": "เลือก{type}…",
+      "noTargetWarning": "⚠️ ยังไม่มี {type} ในระบบ — สร้างที่ Master Data ก่อน",
+      "fieldDisplayName": "ชื่อแสดงบน Schedule",
+      "displayNamePlaceholder": "auto จาก dropdown — แก้ได้",
+      "displayNameHint": "ชื่อที่จะปรากฏใน dashboard / notification — ปกติเอาจาก dropdown ด้านบนได้เลย",
+      "fieldTemplate": "แบบฟอร์ม Template *",
+      "templatePlaceholder": "เลือกแบบฟอร์ม…",
+      "noTemplateWarningPart1": "⚠️ ยังไม่มี Template สำหรับ {type} — สร้างก่อนที่หน้า",
+      "noTemplateWarningLink": "แบบฟอร์มตรวจ",
+      "fieldFrequency": "ความถี่ *",
+      "fieldAlertDays": "แจ้งล่วงหน้า (วัน)"
+    },
+    "templates": {
+      "breadcrumb": "แบบฟอร์มตรวจ (Templates)",
+      "title": "แบบฟอร์มตรวจ (Templates)",
+      "subtitle": "สร้าง/แก้ไขแบบฟอร์มตรวจสภาพแวดล้อม — รายการรอบ ๆ ใน Template จะแสดงเป็น checklist เมื่อกดปุ่ม \"ตรวจสอบ\" ที่หน้า inspections",
+      "infoTitle": "แบบฟอร์มตรวจ (Template) คืออะไร?",
+      "infoBody": "คือ \"รายการสิ่งที่ต้องวัด\" เช่น อุณหภูมิ ความชื้น ความสะอาด พร้อมเกณฑ์ (min–max) — ยังไม่ผูกกับห้อง/พื้นที่จริง การจะเอาไปใช้ตรวจสถานที่จริง ให้ไปผูกที่หน้า",
+      "infoLink": "ตารางตรวจ (Schedules)",
+      "createNew": "สร้าง Template ใหม่",
+      "noData": "ยังไม่มี Template",
+      "nameColumn": "ชื่อ Template",
+      "usedWithAreaTypeColumn": "ใช้กับสถานที่ประเภท",
+      "itemCountColumn": "จำนวน Items",
+      "descriptionColumn": "คำอธิบาย",
+      "closeAction": "ปิด",
+      "updatedToast": "อัปเดต Template แล้ว",
+      "createdToast": "สร้าง Template แล้ว",
+      "deactivatedToast": "ปิดการใช้งาน Template แล้ว",
+      "deleteConfirm": "ปิดการใช้งาน Template \"{name}\" ใช่หรือไม่?\n(ข้อมูลย้อนหลังไม่ถูกลบ — แค่ซ่อนจากตัวเลือกใหม่)",
+      "popupEditTitle": "แก้ไข Template — {name}",
+      "popupCreateTitle": "+ สร้างแบบฟอร์มตรวจ",
+      "fieldName": "ชื่อ Template *",
+      "namePlaceholder": "เช่น Daily Room Inspection",
+      "fieldDescription": "คำอธิบาย",
+      "descriptionPlaceholder": "เช่น แบบฟอร์มตรวจประจำวันสำหรับห้องผลิต",
+      "fieldTargetType": "ใช้แบบฟอร์มนี้กับสถานที่ประเภท *",
+      "targetTypeHint": "เลือก \"ชนิด\" ของสถานที่ที่จะนำแบบฟอร์มนี้ไปใช้ตรวจ — ห้องผลิต / พื้นที่จัดเก็บ / พื้นที่กักกัน / จุดน้ำ",
+      "targetTypeLockedHint": "* เปลี่ยนประเภทเป้าหมายไม่ได้หลังสร้าง Template (จะส่งผลกระทบกับ schedules + records ย้อนหลัง)",
+      "itemsHeading": "รายการตรวจ (Items)",
+      "itemLabelPlaceholder": "ป้ายชื่อ",
+      "itemParameterPlaceholder": "parameter",
+      "itemUnitPlaceholder": "หน่วย",
+      "itemMinPlaceholder": "min",
+      "itemMaxPlaceholder": "max",
+      "itemMandatory": "จำเป็น",
+      "addItem": "+ เพิ่ม Item"
+    },
+    "inspections": {
+      "title": "ตรวจสภาพแวดล้อม",
+      "historyLink": "ประวัติผลตรวจ",
+      "manageTemplates": "จัดการ Templates",
+      "manageSchedules": "จัดการ Schedules",
+      "scanButton": "แจ้งเตือนรายการที่ถึงกำหนด",
+      "scanHint": "สร้างการแจ้งเตือน (กระดิ่ง) สำหรับรายการที่ถึง/เกินกำหนดเดี๋ยวนี้ — ไม่ใช่การบันทึกผลตรวจ ปกติระบบจะแจ้งเตือนให้อัตโนมัติอยู่แล้ว",
+      "infoTitle": "หน้านี้ใช้ทำอะไร?",
+      "infoBodyPart1": "แสดง \"ตารางตรวจที่ถึงกำหนด\" โดยอัตโนมัติ — เมื่อถึงเวลา รายการจะขึ้นเอง (ไม่ต้องกดปุ่มใด ๆ) จากนั้นกดปุ่ม",
+      "infoBodyPart2": "ในแต่ละแถวเพื่อ",
+      "infoBodyRecord": "บันทึกผลตรวจ",
+      "infoHintPart1": "• ปุ่ม \"แจ้งเตือนรายการที่ถึงกำหนด\" = แค่ส่งการแจ้งเตือน (กระดิ่ง) ไม่ใช่การบันทึก · แก้ไข/ลบผลที่บันทึกไปแล้วได้ที่",
+      "infoHintPart2": "· ตั้งค่าตารางผิด แก้/ปิดได้ที่",
+      "recordOkTitle": "บันทึกแล้ว — ผลตรวจ: ผ่าน",
+      "recordOkBody": "ทุกค่าอยู่ในเกณฑ์",
+      "recordFailTitle": "บันทึกแล้ว — ผลตรวจ: ไม่ผ่าน",
+      "recordFailBody": "พบค่าที่เกินเกณฑ์ {count} รายการ ระบบสร้าง Deviation ให้อัตโนมัติ",
+      "saveFailedToast": "บันทึกไม่สำเร็จ",
+      "itemPass": "ผ่าน (ในเกณฑ์)",
+      "itemFail": "ไม่ผ่าน (เกินเกณฑ์)",
+      "itemNoSpec": "ไม่ระบุเกณฑ์",
+      "inspectTitle": "{action}: {name}",
+      "passwordLabel": "รหัสผ่าน"
+    },
+    "inspectionsHistory": {
+      "breadcrumb": "ประวัติผลตรวจ",
+      "title": "ประวัติผลตรวจสภาพแวดล้อม",
+      "subtitle": "ผลการตรวจที่บันทึกไปแล้ว — ดูรายละเอียด แก้ไข (กรณีบันทึกผิด) หรือลบได้ ทุกการแก้ไข/ลบจะถูกบันทึกใน audit log",
+      "noData": "ยังไม่มีผลตรวจที่บันทึก",
+      "performedAtColumn": "วันเวลาที่ตรวจ",
+      "typeColumn": "ประเภท",
+      "operatorColumn": "ผู้ตรวจ",
+      "overallResultColumn": "ผลรวม",
+      "viewAction": "ดู",
+      "deleteAction": "ลบ",
+      "editedToast": "แก้ไขผลตรวจแล้ว (บันทึกใน audit log)",
+      "deletedToast": "ลบผลตรวจแล้ว (บันทึกใน audit log)",
+      "saveFailedToast": "บันทึกไม่สำเร็จ",
+      "deleteFailedToast": "ลบไม่สำเร็จ",
+      "popupTitle": "ผลตรวจ #{id} — {target}",
+      "popupTitleFallback": "ผลตรวจ",
+      "labelDateTime": "วันเวลา:",
+      "labelOperator": "ผู้ตรวจ:",
+      "labelTemplate": "แบบฟอร์ม:",
+      "labelOverallResult": "ผลรวม:",
+      "tableItem": "รายการ",
+      "tableMeasured": "ค่าที่วัด",
+      "tableSpec": "เกณฑ์",
+      "tableResult": "ผล",
+      "tableRemarks": "หมายเหตุ",
+      "notesLabel": "หมายเหตุการตรวจ",
+      "editWarning": "⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log (ใคร/แก้อะไร/เมื่อไหร่) — ผล \"ผ่าน/ไม่ผ่าน\" จะคำนวณใหม่ตามเกณฑ์เดิม",
+      "closeButton": "ปิด",
+      "deleteDialogTitle": "ลบผลตรวจ",
+      "deleteDialogMessage": "ยืนยันการลบผลตรวจ #{id} ({name} — {datetime}) ? การลบจะถูกบันทึกใน audit log และย้อนกลับไม่ได้",
+      "deleteConfirmText": "ลบ"
+    }
+  },
+  "storageMonitoring": {
+    "alertLabel": {
+      "in_spec": "✓ ปกติ",
+      "temp_low": "↓ อุณหภูมิต่ำ",
+      "temp_high": "↑ อุณหภูมิสูง",
+      "humidity_low": "↓ ความชื้นต่ำ",
+      "humidity_high": "↑ ความชื้นสูง",
+      "multiple": "⚠ หลายค่า"
+    },
+    "toast": {
+      "loadFailed": "โหลดข้อมูลไม่สำเร็จ",
+      "selectWarehouse": "กรุณาเลือกคลัง",
+      "atLeastOneValue": "กรุณากรอกอย่างน้อย 1 ค่า",
+      "saveFailed": "บันทึกไม่สำเร็จ",
+      "alertTitle": "⚠ ALERT — {label}",
+      "editedInSpec": "แก้ไขเรียบร้อย — อยู่ในเกณฑ์",
+      "savedInSpec": "บันทึกเรียบร้อย — อยู่ในเกณฑ์",
+      "deleteFailed": "ลบไม่สำเร็จ",
+      "deleted": "ลบรายการแล้ว",
+      "ackFailed": "รับทราบไม่สำเร็จ",
+      "acked": "รับทราบ alert แล้ว"
+    },
+    "columns": {
+      "readingAt": "วันเวลา",
+      "warehouse": "คลัง",
+      "temperature": "°C",
+      "humidity": "%RH",
+      "status": "สถานะ",
+      "details": "รายละเอียด",
+      "acknowledge": "รับทราบ",
+      "manage": "จัดการ"
+    },
+    "actions": {
+      "acknowledge": "รับทราบ",
+      "edit": "แก้ไข",
+      "delete": "ลบ",
+      "addReading": "+ บันทึกค่า"
+    },
+    "header": {
+      "title": "ติดตามสภาพแวดล้อมคลังจัดเก็บ",
+      "subtitle": "บันทึกและติดตามอุณหภูมิ/ความชื้นของห้องเก็บ",
+      "breadcrumbPremises": "อาคารและสถานที่",
+      "breadcrumbCurrent": "ติดตามสภาพคลังจัดเก็บ"
+    },
+    "stats": {
+      "openAlerts": "แจ้งเตือนค้างรับทราบ",
+      "last24h": "บันทึก 24h",
+      "monitoredAreas": "คลังที่ติดตาม",
+      "total": "บันทึกทั้งหมด"
+    },
+    "filters": {
+      "selectWarehousePlaceholder": "เลือกคลัง...",
+      "allWarehouses": "ทุกคลัง",
+      "alertsOnly": "เฉพาะรายการที่เกินเกณฑ์"
+    },
+    "legend": {
+      "label": "ความหมายสถานะ:",
+      "normal": "ปกติ — อยู่ในเกณฑ์",
+      "oneExceeded": "เกินเกณฑ์ 1 ค่า (อุณหภูมิ หรือ ความชื้น)",
+      "multipleExceeded": "เกินเกณฑ์หลายค่า — ต้องกดรับทราบ"
+    },
+    "dialog": {
+      "editTitle": "แก้ไขบันทึกค่า",
+      "createTitle": "บันทึกค่าอุณหภูมิ/ความชื้น",
+      "selectWarehouseRequired": "เลือกคลัง *",
+      "readingAtLabel": "วันเวลาที่บันทึก",
+      "readingAtHint": "(เว้นว่าง = เวลาปัจจุบัน)",
+      "criteria": "เกณฑ์: {tempMin}–{tempMax}°C / {humidityMin}–{humidityMax}%RH",
+      "temperatureLabel": "อุณหภูมิ (°C)",
+      "humidityLabel": "ความชื้น (%RH)",
+      "notesPlaceholder": "หมายเหตุ",
+      "cancel": "ยกเลิก",
+      "saveEdit": "บันทึกการแก้ไข",
+      "save": "บันทึก"
+    },
+    "ack": {
+      "title": "รับทราบ Alert",
+      "notesPlaceholder": "หมายเหตุ / การดำเนินการ",
+      "cancel": "ยกเลิก",
+      "confirm": "ยืนยันรับทราบ"
+    },
+    "delete": {
+      "title": "ลบรายการบันทึก",
+      "message": "ยืนยันการลบบันทึกของ {warehouseCode} วันที่ {date} ? การลบไม่สามารถย้อนกลับได้",
+      "confirm": "ลบ",
+      "cancel": "ยกเลิก"
+    },
+    "loading": "กำลังโหลด..."
+  },
+  "scaleVerification": {
+    "common": {
+      "back": "อาคารและสถานที่"
+    },
+    "index": {
+      "errorExtremeDeviation": "ค่าที่อ่านได้ต่างจากค่าลูกตุ้มมาตรฐานเกิน 10 เท่า — น่าจะเลือกลูกตุ้มผิดหรือกรอกค่าผิด กรุณาตรวจสอบลูกตุ้มและค่าที่อ่านได้",
+      "errorBelowMinimum": "ลูกตุ้มมาตรฐานเบาเกินกว่าพิสัยขั้นต่ำของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่หนักขึ้น",
+      "errorAboveMaximum": "ลูกตุ้มมาตรฐานหนักเกินกว่าพิสัยสูงสุดของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่เบาลง",
+      "errorInactive": "ลูกตุ้มมาตรฐานนี้ถูกปิดใช้งาน — กรุณาเลือกลูกตุ้มอื่น",
+      "errorPasswordRequired": "กรุณากรอกรหัสผ่านเพื่อลงนาม",
+      "colWeightUsed": "ลูกตุ้มที่ใช้",
+      "colActualReading": "ค่าที่อ่านได้",
+      "history": "ประวัติ",
+      "noWeightFits": "ไม่มีลูกตุ้มที่เหมาะกับพิสัยของเครื่องชั่งนี้",
+      "weightRangeLabel": "พิสัยลูกตุ้มที่ใช้ได้กับเครื่องนี้:",
+      "noValidWeights": "ไม่มีลูกตุ้มที่ใบรับรองยังไม่หมดอายุ — กรุณาเพิ่มในทะเบียน",
+      "noFittingWeights": "ลูกตุ้มที่มีอยู่ไม่อยู่ในพิสัยของเครื่องชั่งนี้ — กรุณาเพิ่มลูกตุ้มที่มีน้ำหนักเหมาะสม",
+      "readingUnit": "(หน่วย: {unit})",
+      "placeWeightHint": "วางลูกตุ้ม {code} บนเครื่องชั่ง แล้วกรอกค่าที่เครื่องแสดง — ควรอยู่ประมาณ {value} {unit} (ค่า cert)",
+      "extremeReadingWarning": "ค่าที่อ่านได้ ({reading}) ต่างจากค่าลูกตุ้มมาตรฐาน ({value} {unit}) เกิน 10 เท่า — น่าจะเลือกลูกตุ้มผิดหรือกรอกค่าผิด กรุณาเลือกลูกตุ้มที่มีน้ำหนักใกล้เคียงพิสัยของเครื่องชั่งนี้ แล้วกรอกค่าที่อ่านได้จริง",
+      "passwordPlaceholder": "ลงนามด้วย password"
+    },
+    "history": {
+      "scaleLabel": "เครื่องชั่ง #{scaleId}",
+      "back": "กลับ",
+      "title": "ประวัติการตรวจสอบเครื่องชั่ง — {scaleCode}",
+      "subtitle": "ดูประวัติการตรวจสอบทั้งหมดของเครื่องนี้ — บันทึกตรวจสอบแบบอ่านอย่างเดียว",
+      "statTotal": "บันทึกทั้งหมด",
+      "statPass": "ผ่าน",
+      "statFail": "ไม่ผ่าน",
+      "statActive": "ใช้งานอยู่",
+      "hasValidVerification": "✓ มี verification ที่ยังไม่หมดอายุ",
+      "noValidVerification": "หมดอายุแล้ว / ยังไม่เคยตรวจ",
+      "refresh": "รีเฟรช",
+      "itemCount": "{count} รายการ",
+      "loading": "กำลังโหลด…",
+      "noData": "ยังไม่มีการตรวจสอบเครื่องชั่งนี้",
+      "colPerformedAt": "วันเวลาที่ตรวจ",
+      "colWeight": "ลูกตุ้ม",
+      "colWeightSize": "ขนาดลูกตุ้ม",
+      "colCertifiedValue": "ค่าผ่านการรับรอง",
+      "colActualReading": "ค่าที่อ่านได้",
+      "colResult": "ผล",
+      "resultPass": "ผ่าน",
+      "resultFail": "ไม่ผ่าน",
+      "colOperator": "ผู้ตรวจ",
+      "colValidUntil": "ใช้ได้ถึง",
+      "colNotes": "หมายเหตุ"
+    }
+  },
+  "notifications": {
+    "common": {
+      "title": "แจ้งเตือนบำรุงรักษา",
+      "premises": "อาคารและสถานที่",
+      "cancel": "ยกเลิก"
+    },
+    "list": {
+      "tab": "รายการ",
+      "col": {
+        "severity": "ระดับ",
+        "type": "ประเภท",
+        "title": "หัวข้อ",
+        "dueAt": "ครบกำหนด",
+        "status": "สถานะ",
+        "actions": "การกระทำ"
+      }
+    },
+    "calendar": {
+      "tab": "ปฏิทิน",
+      "helpLead": "ปฏิทินแสดงงานบำรุงรักษา/แจ้งเตือนที่",
+      "helpDue": "ครบกำหนด",
+      "helpRest": "ในแต่ละวันของเดือน — ใช้วางแผนล่วงหน้า",
+      "prevMonth": "เดือนก่อนหน้า",
+      "nextMonth": "เดือนถัดไป",
+      "today": "วันนี้",
+      "weekday": {
+        "sun": "อา",
+        "mon": "จ",
+        "tue": "อ",
+        "wed": "พ",
+        "thu": "พฤ",
+        "fri": "ศ",
+        "sat": "ส"
+      }
+    },
+    "info": {
+      "sourceLabel": "ข้อมูลมาจากไหน?",
+      "sourceLead": "ระบบสร้างให้",
+      "sourceAuto": "อัตโนมัติ",
+      "sourceRest": "จาก (1) กำหนดการบำรุงรักษา/สอบเทียบเครื่องมือที่ถึง/เกินกำหนด และ (2) ผลตรวจที่เกินเกณฑ์ (สิ่งแวดล้อม/น้ำ) — ไม่ต้องกดปุ่มสแกนเอง",
+      "actionLead": "กด",
+      "actionAck": "\"รับทราบ/ดำเนินการ\"",
+      "actionAckRest": "เพื่อปิดงานเตือน (บันทึกผู้รับทราบ+เวลา) หรือ",
+      "actionSnooze": "\"เลื่อน\"",
+      "actionSnoozeRest": "เพื่อเลื่อนการเตือนออกไป · รายการที่เกินเกณฑ์จะมีใบ Deviation ผูกให้อัตโนมัติ"
+    },
+    "ack": {
+      "banner": "รับทราบและจะดำเนินการ"
+    }
+  }
+}
