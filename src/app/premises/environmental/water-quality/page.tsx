@@ -10,7 +10,7 @@
  * Master data (systems / sample points / specs) is managed on the separate
  * configuration page: /premises/environmental/water-quality/settings
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -82,9 +82,6 @@ export default function WaterQualityRecordsPage() {
   // ---- view / edit / delete ----
   const [viewId, setViewId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
-  // When the user clicks "แก้ไข" in the table we open the same popup but want it
-  // to enter edit mode as soon as the record detail finishes loading.
-  const [wantEditOnLoad, setWantEditOnLoad] = useState(false);
   const [draft, setDraft] = useState<{ notes: string; results: Record<number, number | null> }>({ notes: '', results: {} });
   const [deleteTarget, setDeleteTarget] = useState<TestRow | null>(null);
 
@@ -179,16 +176,6 @@ export default function WaterQualityRecordsPage() {
     setEditMode(true);
   };
 
-  // When opened via the "แก้ไข" action, jump straight into edit mode once the
-  // record's detail (incl. its results) has loaded for this viewId.
-  useEffect(() => {
-    if (wantEditOnLoad && detail && detail.id === viewId) {
-      startEdit(detail);
-      setWantEditOnLoad(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantEditOnLoad, detail, viewId]);
-
   const saveMut = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/environmental/water-tests/${viewId}`, {
@@ -236,7 +223,7 @@ export default function WaterQualityRecordsPage() {
     onError: (e: Error) => toast.error('ลบไม่สำเร็จ', e.message),
   });
 
-  const closeView = () => { setViewId(null); setEditMode(false); setWantEditOnLoad(false); };
+  const closeView = () => { setViewId(null); setEditMode(false); };
 
   return (
     <div className="p-6 space-y-4">
@@ -299,10 +286,15 @@ export default function WaterQualityRecordsPage() {
             const row = c.data as TestRow;
             return (
               <div className="flex gap-1">
-                <Button stylingMode="outlined" onClick={() => { setWantEditOnLoad(false); setEditMode(false); setViewId(row.id); }} data-testid={`wq-view-${row.id}`}>
+                {/* Both ดู and แก้ไข open the popup in VIEW mode. The user then
+                    clicks the in-popup "แก้ไข" to enter edit mode AFTER the
+                    DevExtreme overlay has settled — toggling edit mode while the
+                    overlay is still mounting crashed the page (insertBefore DOM
+                    error). This matches the stable inspection-history flow. */}
+                <Button stylingMode="outlined" onClick={() => { setEditMode(false); setViewId(row.id); }} data-testid={`wq-view-${row.id}`}>
                   <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> ดู</span>
                 </Button>
-                <Button stylingMode="outlined" onClick={() => { setWantEditOnLoad(true); setEditMode(false); setViewId(row.id); }} data-testid={`wq-edit-${row.id}`}>
+                <Button stylingMode="outlined" onClick={() => { setEditMode(false); setViewId(row.id); }} data-testid={`wq-edit-${row.id}`}>
                   <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> แก้ไข</span>
                 </Button>
                 <Button stylingMode="text" type="danger" onClick={() => setDeleteTarget(row)} data-testid={`wq-delete-${row.id}`}>
@@ -414,10 +406,7 @@ export default function WaterQualityRecordsPage() {
                   </thead>
                   <tbody>
                     {detail.results.map((r) => (
-                      // key includes editMode so the row + its DevExtreme NumberBox
-                      // remount on view↔edit toggle instead of swapping a span for
-                      // a widget in place (which threw a DOM error → error page).
-                      <tr key={`${r.id}-${editMode ? 'edit' : 'view'}`} className="border-t">
+                      <tr key={r.id} className="border-t">
                         <td className="p-2">{r.parameter} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}</td>
                         <td className="p-2">
                           {editMode ? (

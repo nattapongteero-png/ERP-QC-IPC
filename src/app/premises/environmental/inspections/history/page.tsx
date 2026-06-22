@@ -263,12 +263,7 @@ export default function InspectionHistoryPage() {
                   </thead>
                   <tbody>
                     {detail.results.map((r) => (
-                      // key includes editMode so the row (and its DevExtreme
-                      // NumberBox) fully remounts when toggling view↔edit instead
-                      // of swapping a <span> for a widget in the same <td> — that
-                      // in-place swap made DevExtreme throw a DOM error that
-                      // escaped to the global error page.
-                      <tr key={`${r.id}-${editMode ? 'edit' : 'view'}`} className="border-t">
+                      <tr key={r.id} className="border-t">
                         <td className="p-2">
                           {r.label} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}
                         </td>
