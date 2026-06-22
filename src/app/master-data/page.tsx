@@ -33,7 +33,11 @@ const masterDataModules = [
   { key: 'productionEquipment', href: '/master-data/production-equipment', icon: Wrench, iconBgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
   { key: 'environmentalConditions', href: '/master-data/environmental-conditions', icon: Thermometer, iconBgColor: 'bg-teal-100', iconColor: 'text-teal-600' },
   { key: 'sopTemplates', href: '/master-data/sop-templates', icon: FileText, iconBgColor: 'bg-amber-100', iconColor: 'text-amber-600' },
-  { key: 'packagingQCCriteria', href: '/master-data/packaging-qc-criteria', icon: Scale, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
+  // packagingQCCriteria card removed from the menu: packaging weight/integrity QC
+  // was superseded by IPC criteria (phase=packaging) — see ExecutionDashboard
+  // comment "Packaging Weight Control + Packaging Integrity cards removed". The
+  // table/service stay for historical bom_packaging_qc data; only the dead menu
+  // entry is hidden so operators aren't sent to an orphaned screen.
   { key: 'ipcCriteria', href: '/master-data/ipc-criteria', icon: FlaskConical, iconBgColor: 'bg-emerald-100', iconColor: 'text-emerald-600' },
   // Feature 019
   { key: 'packagingTolerances', href: '/master-data/packaging-tolerances', icon: Sliders, iconBgColor: 'bg-rose-100', iconColor: 'text-rose-600' },
