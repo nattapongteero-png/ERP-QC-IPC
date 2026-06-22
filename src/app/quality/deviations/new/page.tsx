@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 
@@ -30,16 +30,22 @@ const severityOptions = [
   { value: 'critical', label: 'วิกฤต' },
 ];
 
-export default function NewDeviationPage() {
+function NewDeviationForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('quality');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Pre-fill from query params. When a QC result is recorded as OOS/FAIL, the
+  // QC entry page navigates here with title/description/severity/source filled
+  // so the operator only has to confirm + submit the deviation. sourceId links
+  // the deviation back to the originating record (e.g. the QC sample test).
+  const sourceId = searchParams.get('sourceId');
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    sourceType: '',
-    severity: 'minor',
+    title: searchParams.get('title') ?? '',
+    description: searchParams.get('description') ?? '',
+    sourceType: searchParams.get('sourceType') ?? '',
+    severity: searchParams.get('severity') ?? 'minor',
     dueDate: '',
   });
 
@@ -63,6 +69,7 @@ export default function NewDeviationPage() {
           title: formData.title,
           description: formData.description,
           sourceType: formData.sourceType || null,
+          sourceId: sourceId ? Number(sourceId) : null,
           severity: formData.severity,
           dueDate: formData.dueDate || null,
         }),
@@ -373,6 +380,14 @@ export default function NewDeviationPage() {
           </div>
         </div>
       </div>
-    
+
+  );
+}
+
+export default function NewDeviationPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-500">กำลังโหลด…</div>}>
+      <NewDeviationForm />
+    </Suspense>
   );
 }

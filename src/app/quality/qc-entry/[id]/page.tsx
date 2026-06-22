@@ -569,19 +569,45 @@ export default function QcSampleDetailPage() {
         setEditing(null);
         await fetchDetail();
 
-        // Audit Q1 — auto-open the OOS / Deviation correction form when
-        // the saved result is OOS or failed. Operator must record a Phase-1
-        // lab-error check before the round is considered "closed". Only
-        // fires when there is no open OOS investigation on this test yet.
+        // Audit Q1 / spec #025 — when the saved result is OOS or FAIL the
+        // system auto-opens the Deviation form immediately, pre-filled from the
+        // failing test so the operator only confirms + submits. Only fires when
+        // there is no open OOS investigation on this test yet (so re-saving a
+        // round that is already under investigation doesn't reopen the form).
         if (savedStatus === 'oos' || savedStatus === 'fail') {
           const alreadyOpen = oosList.some(
             (o) => o.sampleTestId === savedTestId && o.closedAt == null,
           );
           if (!alreadyOpen) {
+            const savedTest = detail.tests.find((t) => t.id === savedTestId);
+            const testName =
+              savedTest?.criteriaNameTh || savedTest?.criteriaName || savedTest?.criteriaCode || 'การทดสอบ';
+            const measured =
+              editing.numericResult != null
+                ? `${editing.numericResult}${savedTest?.unit ? ' ' + savedTest.unit : ''}`
+                : editing.textResult || '-';
+            const spec =
+              savedTest?.specMin != null || savedTest?.specMax != null
+                ? `เกณฑ์ ${savedTest?.specMin ?? '-'} – ${savedTest?.specMax ?? '-'}${savedTest?.unit ? ' ' + savedTest.unit : ''}`
+                : savedTest?.specText || '';
+            const productLabel = detail.productName ?? detail.productNameEn ?? '';
+            const title = `QC ${savedStatus.toUpperCase()}: ${testName} — ${detail.sampleNumber}`;
+            const description =
+              `ผลตรวจ QC ${savedStatus.toUpperCase()} ของตัวอย่าง ${detail.sampleNumber}` +
+              (productLabel ? ` (${productLabel})` : '') +
+              `\nรายการทดสอบ: ${testName} (รอบที่ ${editing.testRound})` +
+              `\nค่าที่วัดได้: ${measured}${spec ? ` — ${spec}` : ''}`;
             toast.error(
-              `ผลทดสอบ ${savedStatus.toUpperCase()} — กรุณาเปิดบันทึก Deviation`,
+              `ผลทดสอบ ${savedStatus.toUpperCase()} — กำลังเปิดฟอร์ม Deviation`,
             );
-            openOosDialog(savedTestId);
+            const params = new URLSearchParams({
+              title,
+              description,
+              sourceType: 'quality',
+              sourceId: String(savedTestId),
+              severity: 'major',
+            });
+            router.push(`/quality/deviations/new?${params.toString()}`);
           }
         }
       }
