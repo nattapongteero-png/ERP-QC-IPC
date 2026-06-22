@@ -218,7 +218,7 @@ export default function GoodsReceiptListPage() {
         />
         <DxColumn
           caption=""
-          width={130}
+          width={150}
           allowFiltering={false}
           allowSorting={false}
           cellRender={(c) => {
@@ -226,16 +226,19 @@ export default function GoodsReceiptListPage() {
             if (!row.canCancel) return null;
             return (
               <Button
-                text={t('actions.cancelGrn')}
                 type="danger"
                 stylingMode="outlined"
-                icon="trash"
-                width={120}
                 onClick={(e) => {
                   // Stop the row-click navigation to the detail page.
                   (e.event as Event | undefined)?.stopPropagation?.();
                   setCancelTarget(row);
                 }}
+                render={() => (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                    <AlertTriangle className="w-4 h-4" />
+                    {t('actions.cancelGrn')}
+                  </span>
+                )}
               />
             );
           }}
@@ -252,7 +255,6 @@ export default function GoodsReceiptListPage() {
         title={t('actions.cancelGrn')}
         width={460}
         height="auto"
-        container=".dx-viewport"
       >
         {cancelTarget && (
           <div className="space-y-4">
