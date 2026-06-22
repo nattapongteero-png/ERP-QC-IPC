@@ -34,6 +34,14 @@ export async function GET(
             status: purchaseOrders.status,
             totalAmount: purchaseOrders.totalAmount,
             notes: purchaseOrders.notes,
+            // createdBy drives the separation-of-duties guard (the creator must
+            // not approve their own PO).
+            createdBy: purchaseOrders.createdBy,
+            approvedBy: purchaseOrders.approvedBy,
+            approvedAt: purchaseOrders.approvedAt,
+            sentVia: purchaseOrders.sentVia,
+            sentAt: purchaseOrders.sentAt,
+            sentToEmail: purchaseOrders.sentToEmail,
             createdAt: purchaseOrders.createdAt,
             updatedAt: purchaseOrders.updatedAt,
           })

@@ -96,13 +96,21 @@ export default function NewPurchaseOrderPage() {
 
   const [lines, setLines] = useState<POLine[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Extra charges added on top of the goods subtotal (shipping + other), shown
+  // when the user opens the "เพิ่มค่าใช้จ่ายอื่นๆ" panel.
+  const [showCharges, setShowCharges] = useState(false);
+  const [shippingCost, setShippingCost] = useState<number | null>(null);
+  const [otherCharges, setOtherCharges] = useState<number | null>(null);
+  const PO_VAT_RATE = 0.07; // Thailand 7% — matches the PO detail page
 
   // Item selection flow
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
-  const [itemQuantity, setItemQuantity] = useState<number>(1);
-  const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
+  // Start empty (null) so the dialog shows no stuck "1" / "0.00" — the user
+  // must type a real quantity and price.
+  const [itemQuantity, setItemQuantity] = useState<number | null>(null);
+  const [itemUnitPrice, setItemUnitPrice] = useState<number | null>(null);
   // When set, the quantity dialog is editing an existing line (by itemId)
   // instead of adding a new one — same form, "save" replaces in place.
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -127,8 +135,10 @@ export default function NewPurchaseOrderPage() {
 
   const handleSelectItem = (item: Item) => {
     setSelectedItem(item);
-    setItemQuantity(1);
-    setItemUnitPrice(item.costPrice || 0);
+    // Leave quantity empty; pre-fill price from the item's cost only if it has
+    // one (otherwise leave empty rather than showing a stuck 0.00).
+    setItemQuantity(null);
+    setItemUnitPrice(item.costPrice && item.costPrice > 0 ? item.costPrice : null);
     setIsQuantityDialogOpen(true);
   };
 
@@ -137,7 +147,7 @@ export default function NewPurchaseOrderPage() {
   // discards the in-progress entry, which is what users expect from a close
   // button. (Previously closing auto-added the item, which was confusing.)
   const handleAddItemToOrder = () => {
-    if (!selectedItem || itemQuantity <= 0 || itemUnitPrice < 0) return;
+    if (!selectedItem || !itemQuantity || itemQuantity <= 0 || itemUnitPrice == null || itemUnitPrice < 0) return;
     const line: POLine = {
       itemId: selectedItem.id,
       itemCode: selectedItem.code,
@@ -164,8 +174,8 @@ export default function NewPurchaseOrderPage() {
   // Single reset point — used by both the explicit add and any close path.
   const closeQuantityDialog = () => {
     setSelectedItem(null);
-    setItemQuantity(1);
-    setItemUnitPrice(0);
+    setItemQuantity(null);
+    setItemUnitPrice(null);
     setEditingItemId(null);
     setIsQuantityDialogOpen(false);
   };
@@ -197,7 +207,10 @@ export default function NewPurchaseOrderPage() {
   };
 
   const selectedVendor = vendors.find((v) => v.id === parseInt(formData.vendorId));
-  const totalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+  const subtotalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+  const chargesAmount = (shippingCost ?? 0) + (otherCharges ?? 0);
+  const vatAmount = (subtotalAmount + chargesAmount) * PO_VAT_RATE;
+  const totalAmount = subtotalAmount + chargesAmount + vatAmount;
   const totalItems = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   // Step validation
@@ -246,6 +259,11 @@ export default function NewPurchaseOrderPage() {
           paymentTerms: formData.paymentTerms || null,
           shippingAddress: formData.shippingAddress || null,
           notes: formData.notes || null,
+          subtotalAmount,
+          shippingCost: shippingCost ?? 0,
+          otherCharges: otherCharges ?? 0,
+          vatAmount,
+          totalAmount,
           lines: lines.map((l) => ({
             itemId: l.itemId,
             quantity: l.quantity,
@@ -703,21 +721,20 @@ export default function NewPurchaseOrderPage() {
                       </div>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsItemDialogOpen(true)}
-                      className="flex-1 w-full flex items-center justify-center rounded-xl border-2 border-dashed border-gray-200 hover:border-green-400 hover:bg-green-50/40 transition-colors cursor-pointer"
-                    >
+                    // Empty state is a plain placeholder (not a button) — the single
+                    // "เพิ่มสินค้า" action lives in the section header, so a clickable
+                    // empty state here would be a duplicate.
+                    <div className="flex-1 w-full flex items-center justify-center rounded-xl border-2 border-dashed border-gray-200">
                       <div className="text-center py-12 px-4">
                         <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                           <ShoppingCart className="h-10 w-10 text-gray-400" />
                         </div>
                         <p className="text-gray-600 font-medium">ยังไม่มีรายการสินค้า</p>
                         <p className="text-sm text-gray-400 mt-1">
-                          แตะที่นี่ หรือปุ่ม &quot;เพิ่มสินค้า&quot; ด้านบน เพื่อค้นหาและเพิ่มสินค้า
+                          กดปุ่ม &quot;เพิ่มสินค้า&quot; ด้านบน เพื่อค้นหาและเพิ่มสินค้า
                         </p>
                       </div>
-                    </button>
+                    </div>
                   )}
 
                   <div className="flex justify-between mt-6">
@@ -921,14 +938,63 @@ export default function NewPurchaseOrderPage() {
                     {lines.length > 0 && <Check className="h-5 w-5 text-green-500" />}
                   </div>
 
-                  {/* Total Amount */}
+                  {/* Total Amount — goods subtotal, extra charges, VAT, grand total */}
                   <div className="pt-2">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-600">ยอดรวมสินค้า</span>
-                      <span className="font-medium">{formatCurrency(totalAmount)}</span>
+                      <span className="font-medium">{formatCurrency(subtotalAmount)}</span>
                     </div>
+
+                    {/* Add other charges (shipping / misc) */}
+                    {!showCharges ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCharges(true)}
+                        className="text-xs text-blue-600 hover:underline mb-2"
+                      >
+                        + เพิ่มค่าใช้จ่ายอื่นๆ (ค่าขนส่ง ฯลฯ)
+                      </button>
+                    ) : (
+                      <div className="space-y-2 mb-2">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-gray-600 text-sm">ค่าขนส่ง</span>
+                          <DxNumberBox
+                            value={shippingCost ?? undefined}
+                            onValueChange={(v) => setShippingCost(v == null ? null : v)}
+                            min={0}
+                            format="#,##0.00"
+                            placeholder="0.00"
+                            width={130}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-gray-600 text-sm">ค่าใช้จ่ายอื่นๆ</span>
+                          <DxNumberBox
+                            value={otherCharges ?? undefined}
+                            onValueChange={(v) => setOtherCharges(v == null ? null : v)}
+                            min={0}
+                            format="#,##0.00"
+                            placeholder="0.00"
+                            width={130}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {chargesAmount > 0 && (
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-600">รวมค่าใช้จ่าย</span>
+                        <span className="font-medium">{formatCurrency(chargesAmount)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">VAT 7%</span>
+                      <span className="font-medium">{formatCurrency(vatAmount)}</span>
+                    </div>
+
                     <div className="flex justify-between items-center pt-3 border-t border-dashed">
-                      <span className="font-semibold text-gray-900">ยอดรวมทั้งหมด</span>
+                      <span className="font-semibold text-gray-900">ยอดรวมทั้งหมด (รวม VAT)</span>
                       <span className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</span>
                     </div>
                   </div>
@@ -1002,11 +1068,12 @@ export default function NewPurchaseOrderPage() {
                     จำนวน <span className="text-red-500">*</span>
                   </label>
                   <DxNumberBox
-                    value={itemQuantity}
-                    onValueChange={(v) => setItemQuantity(v || 0)}
+                    value={itemQuantity ?? undefined}
+                    onValueChange={(v) => setItemQuantity(v == null ? null : v)}
                     min={1}
                     showSpinButtons
                     format="#,##0"
+                    placeholder="ระบุจำนวน"
                   />
                 </div>
                 <div>
@@ -1014,17 +1081,18 @@ export default function NewPurchaseOrderPage() {
                     ราคาต่อหน่วย (บาท) <span className="text-red-500">*</span>
                   </label>
                   <DxNumberBox
-                    value={itemUnitPrice}
-                    onValueChange={(v) => setItemUnitPrice(v || 0)}
+                    value={itemUnitPrice ?? undefined}
+                    onValueChange={(v) => setItemUnitPrice(v == null ? null : v)}
                     min={0}
                     showSpinButtons
                     format="#,##0.00"
+                    placeholder="ระบุราคา"
                   />
                 </div>
               </div>
 
               {/* Line Total Preview */}
-              {itemQuantity > 0 && itemUnitPrice >= 0 && (
+              {!!itemQuantity && itemQuantity > 0 && itemUnitPrice != null && itemUnitPrice >= 0 && (
                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                   <span className="text-gray-600">ยอดรวมรายการนี้</span>
                   <span className="text-xl font-bold text-blue-600">
@@ -1046,7 +1114,7 @@ export default function NewPurchaseOrderPage() {
                   icon={editingItemId != null ? 'save' : 'plus'}
                   type="success"
                   onClick={handleAddItemToOrder}
-                  disabled={itemQuantity <= 0 || itemUnitPrice < 0}
+                  disabled={!itemQuantity || itemQuantity <= 0 || itemUnitPrice == null || itemUnitPrice < 0}
                 />
               </div>
             </div>

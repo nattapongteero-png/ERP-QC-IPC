@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Check if PO exists
       const existing = await executeDbOperation(async (db) => {
         const result = await db
-          .select({ id: poTable.id, status: poTable.status })
+          .select({ id: poTable.id, status: poTable.status, vendorId: poTable.vendorId })
           .from(poTable)
           .where(eq(poTable.id, poId))
           .limit(1);
@@ -146,6 +146,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
       if (notes !== undefined) updateData.notes = notes;
+
+      // Stamp who/when on approval, and how/when on send-to-vendor, so the detail
+      // page can show "อนุมัติโดย … / ส่งทาง … เมื่อ …" instead of a bare status.
+      if (status === 'approved' && existing.status !== 'approved') {
+        updateData.approvedBy = session.userId;
+        updateData.approvedAt = dbDate();
+      }
+      if (status === 'sent' && existing.status !== 'sent') {
+        // No automated email yet — record the channel (defaults to 'email') and
+        // the vendor's email address so the UI can report how it was sent.
+        const vendorsTable = getTableRef('vendors');
+        const vrow = await executeDbOperation(async (db) =>
+          db.select({ email: vendorsTable.email })
+            .from(vendorsTable)
+            .where(eq(vendorsTable.id, existing.vendorId))
+            .limit(1),
+        );
+        updateData.sentVia = body.sentVia || 'email';
+        updateData.sentAt = dbDate();
+        updateData.sentToEmail = vrow[0]?.email ?? null;
+      }
 
       // Update PO
       await executeDbOperation(async (db) => {

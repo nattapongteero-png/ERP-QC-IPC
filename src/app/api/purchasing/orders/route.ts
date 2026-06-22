@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
         shippingAddress,
         notes,
         lines,
+        shippingCost,
+        otherCharges,
       } = body;
 
       if (!vendorId) {
@@ -115,10 +117,15 @@ export async function POST(request: NextRequest) {
 
       const poNumber = generatePONumber();
 
-      // Calculate total
-      const totalAmount = lines.reduce((sum: number, line: Record<string, unknown>) => {
+      // Compute amounts server-side (don't trust client totals): goods subtotal
+      // + extra charges, then 7% VAT on the sum, then the grand total.
+      const VAT_RATE = 0.07;
+      const subtotalAmount = lines.reduce((sum: number, line: Record<string, unknown>) => {
         return sum + ((line.quantity as number) * (line.unitPrice as number));
       }, 0);
+      const charges = (Number(shippingCost) || 0) + (Number(otherCharges) || 0);
+      const vatAmount = (subtotalAmount + charges) * VAT_RATE;
+      const totalAmount = subtotalAmount + charges + vatAmount;
 
       // Create PO
       const result = await executeDbOperation(async (db) => {
@@ -129,6 +136,10 @@ export async function POST(request: NextRequest) {
           orderDate: dbDate(),
           expectedDate: parseDbDate(expectedDate),
           totalAmount,
+          subtotalAmount,
+          shippingCost: Number(shippingCost) || 0,
+          otherCharges: Number(otherCharges) || 0,
+          vatAmount,
           currency: 'THB',
           paymentTerms,
           shippingAddress,

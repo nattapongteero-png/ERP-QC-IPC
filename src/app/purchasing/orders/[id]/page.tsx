@@ -130,6 +130,12 @@ interface PODetail {
     paymentTerms: string;
     shippingAddress: string;
     notes: string;
+    createdBy: number | null;
+    approvedBy: number | null;
+    approvedAt: string | null;
+    sentVia: string | null;
+    sentAt: string | null;
+    sentToEmail: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -317,6 +323,9 @@ export default function PurchaseOrderDetailPage() {
   const { data: currentUser } = useCurrentUser();
   const expandedRoles = expandRole(currentUser?.role);
   const canSubmit = expandedRoles.some((r) => PO_SUBMIT_ROLES.includes(r));
+  // Approval is governed purely by role/permission — a user who holds an
+  // approver role may approve, even if they also created the PO. (The button is
+  // hidden for users without the approver role.)
   const canApprove = expandedRoles.some((r) => PO_APPROVE_ROLES.includes(r));
 
   // Status transition state
@@ -1058,6 +1067,36 @@ export default function PurchaseOrderDetailPage() {
             </div>
           }
         />
+
+        {/* Sent-to-vendor confirmation banner — shows HOW/WHEN the PO was sent,
+            so the user isn't left guessing whether/where it went. */}
+        {po.status === 'sent' && (
+          <Card className="!p-4 border-l-4 border-l-emerald-500">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold text-emerald-800">ส่งให้ผู้ขายเรียบร้อยแล้ว</p>
+                <p className="text-gray-600 mt-0.5">
+                  ช่องทาง:{' '}
+                  <span className="font-medium">
+                    {po.sentVia === 'email' ? 'อีเมล' : po.sentVia === 'fax' ? 'แฟกซ์' : po.sentVia === 'portal' ? 'ระบบออนไลน์' : po.sentVia || 'ระบุด้วยตนเอง'}
+                  </span>
+                  {po.sentToEmail && (
+                    <> → <span className="font-medium">{po.sentToEmail}</span></>
+                  )}
+                  {po.sentAt && (
+                    <> · เมื่อ {new Date(po.sentAt).toLocaleString('th-TH')}</>
+                  )}
+                </p>
+                {po.sentVia === 'email' && !po.sentToEmail && (
+                  <p className="text-amber-600 mt-1 text-xs">
+                    ⚠️ ผู้ขายยังไม่มีอีเมลในระบบ — โปรดเพิ่มอีเมลผู้ขายเพื่อการส่งที่สมบูรณ์
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Workflow status — สถานะการดำเนินงาน */}
         {isCancelled ? (

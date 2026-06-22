@@ -684,6 +684,12 @@ export const sqlitePurchaseOrders = sqliteTable('purchase_orders', {
   orderDate: text('order_date'),
   expectedDate: text('expected_date'),
   totalAmount: real('total_amount'),
+  // Financial breakdown: goods subtotal, extra charges (shipping/other), VAT.
+  // totalAmount stays the grand total (subtotal + charges + vat) for back-compat.
+  subtotalAmount: real('subtotal_amount'),
+  shippingCost: real('shipping_cost'),
+  otherCharges: real('other_charges'),
+  vatAmount: real('vat_amount'),
   currency: text('currency').notNull().default('THB'),
   paymentTerms: text('payment_terms'),
   shippingAddress: text('shipping_address'),
@@ -691,6 +697,11 @@ export const sqlitePurchaseOrders = sqliteTable('purchase_orders', {
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
   approvedAt: text('approved_at'),
+  // Send-to-vendor record: how/when the PO was sent (status indicator only —
+  // no automated email is performed).
+  sentVia: text('sent_via'), // email | fax | portal | manual
+  sentAt: text('sent_at'),
+  sentToEmail: text('sent_to_email'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2380,6 +2391,10 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   orderDate: datetime('order_date'),
   expectedDate: datetime('expected_date'),
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }),
+  subtotalAmount: decimal('subtotal_amount', { precision: 15, scale: 2 }),
+  shippingCost: decimal('shipping_cost', { precision: 15, scale: 2 }),
+  otherCharges: decimal('other_charges', { precision: 15, scale: 2 }),
+  vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }),
   currency: varchar('currency', { length: 10 }).notNull().default('THB'),
   paymentTerms: varchar('payment_terms', { length: 100 }),
   shippingAddress: mysqlText('shipping_address'),
@@ -2387,6 +2402,9 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   createdBy: int('created_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
   approvedAt: datetime('approved_at'),
+  sentVia: varchar('sent_via', { length: 50 }),
+  sentAt: datetime('sent_at'),
+  sentToEmail: varchar('sent_to_email', { length: 255 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
