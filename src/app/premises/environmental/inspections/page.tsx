@@ -18,10 +18,12 @@ import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus,
 import {
   INSPECTION_TARGET_TYPES,
   INSPECTION_FREQUENCIES,
+  evaluateResult,
   type InspectionTargetType,
   type InspectionFrequency,
 } from '@/types/environmental-monitoring';
 import { Breadcrumbs } from '@/components/shared';
+import { useToast } from '@/hooks/use-toast';
 import type {
   InspectionTemplate,
   InspectionTemplateItem,
@@ -42,6 +44,7 @@ interface ScheduleRow {
 export default function InspectionsPage() {
   const t = useTranslations('environmentalMonitoring');
   const qc = useQueryClient();
+  const toast = useToast();
   const [active, setActive] = useState<ScheduleRow | null>(null);
   const [answers, setAnswers] = useState<Record<number, { value: number | ''; remarks?: string }>>({});
   const [notes, setNotes] = useState('');
@@ -103,13 +106,24 @@ export default function InspectionsPage() {
       if (!res.ok) throw new Error(body?.error ?? 'Failed');
       return body;
     },
-    onSuccess: () => {
+    onSuccess: (body: { overallResult?: string; outOfSpecCount?: number } = {}) => {
       qc.invalidateQueries({ queryKey: ['env-schedules'] });
+      // Surface the evaluated overall result so the operator sees ผ่าน/ไม่ผ่าน
+      // immediately after recording (spec: record WITH pass/fail evaluation).
+      if (body.overallResult === 'out_of_spec') {
+        toast.error(
+          'บันทึกแล้ว — ผลตรวจ: ไม่ผ่าน',
+          `พบค่าที่เกินเกณฑ์ ${body.outOfSpecCount ?? ''} รายการ ระบบสร้าง Deviation ให้อัตโนมัติ`,
+        );
+      } else {
+        toast.success('บันทึกแล้ว — ผลตรวจ: ผ่าน', 'ทุกค่าอยู่ในเกณฑ์');
+      }
       setActive(null);
       setAnswers({});
       setNotes('');
       setPassword('');
     },
+    onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
   });
 
   const schedules = schedData?.items ?? [];
@@ -231,24 +245,39 @@ export default function InspectionsPage() {
         <Column dataField="lastDone" caption="ตรวจล่าสุด" dataType="datetime" />
         <Column
           caption="การกระทำ"
-          width={140}
-          cellRender={(c) => (
-            <Button
-              text={t('actions.inspect')}
-              type="default"
-              stylingMode="outlined"
-              onClick={() => {
-                const row = c.data as ScheduleRow;
-                setActive(row);
-                const tpl = templates?.find((tt) => tt.id === row.templateId);
-                const init: Record<number, { value: number | '' }> = {};
-                (tpl?.items ?? []).forEach((it) => {
-                  init[it.id] = { value: '' };
-                });
-                setAnswers(init);
-              }}
-            />
-          )}
+          width={230}
+          cellRender={(c) => {
+            const row = c.data as ScheduleRow;
+            return (
+              <div className="flex items-center gap-1">
+                <Button
+                  text={t('actions.inspect')}
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={() => {
+                    setActive(row);
+                    const tpl = templates?.find((tt) => tt.id === row.templateId);
+                    const init: Record<number, { value: number | '' }> = {};
+                    (tpl?.items ?? []).forEach((it) => {
+                      init[it.id] = { value: '' };
+                    });
+                    setAnswers(init);
+                  }}
+                />
+                {/* Edit/view an already-recorded result — lives on the history
+                    page (per-item edit + delete, audit-logged). Linked here so
+                    the operator doesn't have to hunt for it. */}
+                {row.lastDone && (
+                  <Link
+                    href={`/premises/environmental/inspections/history?targetId=${row.targetId}&templateId=${row.templateId}`}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs border rounded hover:bg-gray-50 text-gray-700 whitespace-nowrap"
+                  >
+                    <History className="w-3 h-3" /> ดู/แก้ไขผล
+                  </Link>
+                )}
+              </div>
+            );
+          }}
         />
       </DataGrid>
 
@@ -261,33 +290,60 @@ export default function InspectionsPage() {
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
-          {(activeTemplate?.items ?? []).map((item: InspectionTemplateItem) => (
-            <div key={item.id} className="border rounded p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{item.label}</div>
-                  <div className="text-xs text-gray-500">
-                    {item.parameter} {item.unit ? `(${item.unit})` : ''}
-                    {item.specMin != null || item.specMax != null
-                      ? ` · spec ${item.specMin ?? '-'} – ${item.specMax ?? '-'}`
-                      : ''}
+          {(activeTemplate?.items ?? []).map((item: InspectionTemplateItem) => {
+            // Live pass/fail as the operator types — compare the entered value
+            // against the item's spec (same rule the server uses to record).
+            const raw = answers[item.id]?.value;
+            const entered = raw === '' || raw == null ? null : Number(raw);
+            const status =
+              entered == null ? null : evaluateResult(entered, item.specMin, item.specMax);
+            return (
+              <div key={item.id} className="border rounded p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="font-medium">{item.label}</div>
+                    <div className="text-xs text-gray-500">
+                      {item.parameter} {item.unit ? `(${item.unit})` : ''}
+                      {item.specMin != null || item.specMax != null
+                        ? ` · spec ${item.specMin ?? '-'} – ${item.specMax ?? '-'}`
+                        : ''}
+                    </div>
                   </div>
+                  {status && (
+                    <span
+                      className={
+                        'inline-flex px-2 py-1 rounded text-xs font-medium whitespace-nowrap ' +
+                        (status === 'out_of_spec'
+                          ? 'bg-rose-100 text-rose-800'
+                          : status === 'in_spec'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-gray-100 text-gray-600')
+                      }
+                      data-testid={`item-result-${item.id}`}
+                    >
+                      {status === 'out_of_spec'
+                        ? 'ไม่ผ่าน (เกินเกณฑ์)'
+                        : status === 'in_spec'
+                        ? 'ผ่าน (ในเกณฑ์)'
+                        : 'ไม่ระบุเกณฑ์'}
+                    </span>
+                  )}
                 </div>
+                <NumberBox
+                  value={(answers[item.id]?.value as number) ?? null}
+                  onValueChanged={(e) =>
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [item.id]: { value: Number(e.value ?? 0), remarks: prev[item.id]?.remarks },
+                    }))
+                  }
+                  step={0.01}
+                  format="#0.00"
+                  placeholder={t('form.value')}
+                />
               </div>
-              <NumberBox
-                value={(answers[item.id]?.value as number) ?? null}
-                onValueChanged={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [item.id]: { value: Number(e.value ?? 0), remarks: prev[item.id]?.remarks },
-                  }))
-                }
-                step={0.01}
-                format="#0.00"
-                placeholder={t('form.value')}
-              />
-            </div>
-          ))}
+            );
+          })}
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.notes')}</label>
             <TextArea
