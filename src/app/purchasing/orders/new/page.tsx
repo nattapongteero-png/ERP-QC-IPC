@@ -42,6 +42,7 @@ interface Vendor {
   contactPerson: string;
   phone: string;
   email: string;
+  address?: string;
   leadTimeDays?: number;
   paymentTerms?: string;
 }
@@ -461,7 +462,20 @@ export default function NewPurchaseOrderPage() {
                       <DxSelectBox
                         items={vendorOptions}
                         value={formData.vendorId}
-                        onValueChange={(value) => setFormData({ ...formData, vendorId: value })}
+                        // Auto-fill payment terms from the chosen vendor's default
+                        // (only when the user hasn't already typed one), so the
+                        // operator doesn't re-key terms already set on the vendor.
+                        onValueChange={(value) => {
+                          const v = vendors.find((vd) => String(vd.id) === String(value));
+                          setFormData((prev) => ({
+                            ...prev,
+                            vendorId: value,
+                            paymentTerms:
+                              !prev.paymentTerms && v?.paymentTerms
+                                ? v.paymentTerms
+                                : prev.paymentTerms,
+                          }));
+                        }}
                         disabled={loadingVendors}
                         placeholder="-- เลือกผู้ขาย --"
                         searchEnabled
@@ -580,13 +594,29 @@ export default function NewPurchaseOrderPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ที่อยู่จัดส่ง
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          ที่อยู่จัดส่ง
+                        </label>
+                        {/* Quick-fill from the selected vendor's saved address so
+                            the operator doesn't retype an address already on file.
+                            Still fully editable afterwards. */}
+                        {selectedVendor?.address && (
+                          <button
+                            type="button"
+                            className="text-xs text-emerald-700 hover:underline"
+                            onClick={() =>
+                              setFormData((prev) => ({ ...prev, shippingAddress: selectedVendor.address ?? '' }))
+                            }
+                          >
+                            ใช้ที่อยู่ผู้ขาย ({selectedVendor.name})
+                          </button>
+                        )}
+                      </div>
                       <DxTextArea
                         value={formData.shippingAddress}
                         onValueChange={(value) => setFormData({ ...formData, shippingAddress: value })}
-                        placeholder="ระบุที่อยู่สำหรับจัดส่งสินค้า..."
+                        placeholder="ระบุที่อยู่สำหรับจัดส่งสินค้า… หรือกด 'ใช้ที่อยู่ผู้ขาย'"
                         height={80}
                       />
                     </div>

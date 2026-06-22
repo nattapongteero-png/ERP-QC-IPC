@@ -161,8 +161,12 @@ export default function NewVendorPage() {
                 </label>
                 <DxTextBox
                   value={form.taxId}
-                  onValueChange={(value) => setForm({ ...form, taxId: value })}
-                  placeholder="e.g., 0-1234-56789-01-2"
+                  // Thai tax ID is exactly 13 digits — digits only, capped at 13.
+                  onValueChange={(value) =>
+                    setForm({ ...form, taxId: (value ?? '').replace(/\D/g, '').slice(0, 13) })
+                  }
+                  maxLength={13}
+                  placeholder="เลข 13 หลัก"
                 />
               </div>
               <div>

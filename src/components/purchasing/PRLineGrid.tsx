@@ -48,22 +48,34 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
     return Array.from(set).map((u) => ({ value: u, label: u }));
   }, [itemUnits, lines]);
 
+  const toLine = useCallback((item: InventoryItem): PRLineInput => ({
+    itemId: item.id,
+    itemCode: item.code,
+    description: item.nameTh || item.code,
+    quantity: 1,
+    unitOfMeasure: item.primaryUnit || 'EA',
+    estimatedUnitPrice: 0,
+  }), []);
+
   const handleSelectFromInventory = useCallback((item: InventoryItem) => {
     const units = [item.primaryUnit, item.secondaryUnit].filter(
       (u): u is string => !!u,
     );
     if (units.length) setItemUnits((prev) => Array.from(new Set([...prev, ...units])));
-    const newLine: PRLineInput = {
-      itemId: item.id,
-      itemCode: item.code,
-      description: item.nameTh || item.code,
-      quantity: 1,
-      unitOfMeasure: item.primaryUnit || 'EA',
-      estimatedUnitPrice: 0,
-    };
-    onChange([...lines, newLine]);
+    onChange([...lines, toLine(item)]);
     setItemSearchOpen(false);
-  }, [lines, onChange]);
+  }, [lines, onChange, toLine]);
+
+  // Multi-select: add every checked item in one go, skipping any already on the
+  // PR (matched by itemId) so re-opening the picker can't create duplicates.
+  const handleSelectMultiple = useCallback((items: InventoryItem[]) => {
+    const units = items.flatMap((i) => [i.primaryUnit, i.secondaryUnit]).filter((u): u is string => !!u);
+    if (units.length) setItemUnits((prev) => Array.from(new Set([...prev, ...units])));
+    const existingIds = new Set(lines.map((l) => l.itemId).filter(Boolean));
+    const fresh = items.filter((i) => !existingIds.has(i.id)).map(toLine);
+    if (fresh.length) onChange([...lines, ...fresh]);
+    setItemSearchOpen(false);
+  }, [lines, onChange, toLine]);
 
   const handleRowInserted = useCallback(
     (e: any) => {
@@ -231,7 +243,9 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         open={itemSearchOpen}
         onOpenChange={setItemSearchOpen}
         onSelect={handleSelectFromInventory}
-        title="เลือกสินค้าจากคลัง"
+        multiSelect
+        onSelectMultiple={handleSelectMultiple}
+        title="เลือกสินค้าจากคลัง (เลือกได้หลายรายการ)"
         showPrice="cost"
         excludeIds={lines.filter(l => l.itemId).map(l => l.itemId!)}
         allowCreate

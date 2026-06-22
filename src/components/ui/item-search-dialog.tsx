@@ -72,6 +72,14 @@ interface ItemSearchDialogProps {
   excludeIds?: number[];
   showStock?: boolean;
   allowCreate?: boolean;
+  /**
+   * Opt-in multi-select. When true, each row gets a checkbox and an "add
+   * selected" button appears; `onSelectMultiple` is called once with every
+   * checked item. Callers that don't pass this keep the original
+   * one-click-per-item behaviour (no change for the 11 existing usages).
+   */
+  multiSelect?: boolean;
+  onSelectMultiple?: (items: Item[]) => void;
 }
 
 // Item type configuration with icons and colors
@@ -110,6 +118,8 @@ export function ItemSearchDialog({
   excludeIds = [],
   showStock = true,
   allowCreate = false,
+  multiSelect = false,
+  onSelectMultiple,
 }: ItemSearchDialogProps) {
   const toast = useToast();
   const [search, setSearch] = useState('');
@@ -118,6 +128,8 @@ export function ItemSearchDialog({
   const [selectedTypeTab, setSelectedTypeTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  // Multi-select mode: ids checked across the (possibly tab-filtered) results.
+  const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
 
   // Use ref to avoid infinite loop from excludeIds array reference changes
   const excludeIdsRef = useRef(excludeIds);
@@ -261,6 +273,7 @@ export function ItemSearchDialog({
       setSelectedTypeTab(0);
       setSelectedItem(null);
       setShowCreateDialog(false);
+      setCheckedIds(new Set());
     }
   }, [open]);
 
@@ -397,8 +410,30 @@ export function ItemSearchDialog({
     );
   };
 
+  const toggleChecked = useCallback((id: number) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const renderActions = (cellInfo: CellRenderInfo) => {
     const item = cellInfo.data;
+    // Multi-select mode: a checkbox per row; the user confirms all at once via
+    // the footer button. Single-select mode keeps the original "เลือก" button.
+    if (multiSelect) {
+      return (
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-emerald-600 cursor-pointer"
+          checked={checkedIds.has(item.id)}
+          onChange={() => toggleChecked(item.id)}
+          data-testid={`item-check-${item.id}`}
+        />
+      );
+    }
     return (
       <DxButton
         text="เลือก"
@@ -409,6 +444,15 @@ export function ItemSearchDialog({
       />
     );
   };
+
+  const confirmMultiSelect = useCallback(() => {
+    if (!onSelectMultiple) return;
+    const chosen = allResults.filter((it) => checkedIds.has(it.id));
+    if (chosen.length === 0) return;
+    onSelectMultiple(chosen);
+    setCheckedIds(new Set());
+    onOpenChange(false);
+  }, [onSelectMultiple, allResults, checkedIds, onOpenChange]);
 
   const renderDialogContent = () => (
     <div className="flex flex-col h-full bg-[#F6FCF9]">
@@ -642,7 +686,15 @@ export function ItemSearchDialog({
           </div>
 
           <div className="flex items-center gap-2">
-            {selectedItem && (
+            {multiSelect && checkedIds.size > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200 mr-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">
+                  เลือกแล้ว {checkedIds.size} รายการ
+                </span>
+              </div>
+            )}
+            {!multiSelect && selectedItem && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200 mr-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-medium text-emerald-700">
@@ -656,6 +708,16 @@ export function ItemSearchDialog({
               stylingMode="outlined"
               onClick={() => onOpenChange(false)}
             />
+            {multiSelect && (
+              <DxButton
+                text={`เพิ่มที่เลือก (${checkedIds.size})`}
+                type="default"
+                stylingMode="contained"
+                disabled={checkedIds.size === 0}
+                onClick={confirmMultiSelect}
+                elementAttr={{ 'data-testid': 'item-add-selected-btn' }}
+              />
+            )}
           </div>
         </div>
       </div>

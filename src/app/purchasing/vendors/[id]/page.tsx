@@ -855,7 +855,12 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
                 <label className="block text-sm font-medium text-gray-700 mb-1">เลขประจำตัวผู้เสียภาษี</label>
                 <DxTextBox
                   value={editForm.taxId}
-                  onValueChange={(value) => setEditForm({ ...editForm, taxId: value })}
+                  // Thai tax ID is exactly 13 digits — keep digits only and cap
+                  // the length so the field can't exceed 13 characters.
+                  onValueChange={(value) =>
+                    setEditForm({ ...editForm, taxId: (value ?? '').replace(/\D/g, '').slice(0, 13) })
+                  }
+                  maxLength={13}
                   placeholder="เลข 13 หลัก"
                 />
               </div>

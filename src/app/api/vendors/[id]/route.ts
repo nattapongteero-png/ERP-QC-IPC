@@ -153,6 +153,14 @@ export async function PUT(
         return errorResponse('Code and name are required');
       }
 
+      // Thai tax ID must be digits only and at most 13 characters. Normalise
+      // here so a direct API call can't bypass the UI-side cap.
+      const normalizedTaxId =
+        taxId == null ? taxId : String(taxId).replace(/\D/g, '');
+      if (normalizedTaxId && normalizedTaxId.length > 13) {
+        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องไม่เกิน 13 หลัก');
+      }
+
       const vendorsTable = getTableRef('vendors');
 
       // Check if vendor exists
@@ -183,7 +191,7 @@ export async function PUT(
             phone,
             email,
             address,
-            taxId,
+            taxId: normalizedTaxId,
             isApproved: isApproved ?? existing[0].isApproved,
             isVMI: isVMI ?? existing[0].isVMI,
             leadTimeDays,

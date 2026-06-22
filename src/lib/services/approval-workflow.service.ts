@@ -562,22 +562,25 @@ async function ensureDefaultFlow(
     let flowId: number | undefined = existing?.id;
     let flowName: string | undefined = existing?.name;
 
-    if (!flowId) {
-      // Pick any active admin as the default approver (fall back to first active
-      // user) so the seeded step is always assignable.
+    // Resolve a default approver once — reused whether we create a new flow OR
+    // repair an existing-but-stepless one.
+    const resolveApproverId = async (): Promise<number | undefined> => {
       const [admin] = await db
         .select({ id: tables.users.id })
         .from(tables.users)
         .where(and(eq(tables.users.role, 'ADMIN'), eq(tables.users.isActive, true)))
         .limit(1);
-      const [anyUser] = admin
-        ? [admin]
-        : await db
-            .select({ id: tables.users.id })
-            .from(tables.users)
-            .where(eq(tables.users.isActive, true))
-            .limit(1);
-      const approverId: number | undefined = anyUser?.id;
+      if (admin?.id) return admin.id;
+      const [anyUser] = await db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(eq(tables.users.isActive, true))
+        .limit(1);
+      return anyUser?.id;
+    };
+
+    if (!flowId) {
+      const approverId = await resolveApproverId();
       if (!approverId) return null;
 
       const name = `Default ${documentType} Approval`;
@@ -618,11 +621,33 @@ async function ensureDefaultFlow(
       });
     }
 
-    const steps = await db
+    let steps = await db
       .select()
       .from(tables.steps)
       .where(eq(tables.steps.flowId, Number(flowId)))
       .orderBy(asc(tables.steps.stepOrder));
+
+    // Repair: an existing active flow with ZERO steps would still dead-end the
+    // submit ("NO_MATCHING_FLOW"-like failure with an empty approval chain).
+    // Seed a single Admin-approval step so a reused flow is always usable.
+    if (steps.length === 0) {
+      const approverId = await resolveApproverId();
+      if (!approverId) return null;
+      await db.insert(tables.steps).values({
+        flowId: Number(flowId),
+        stepOrder: 1,
+        stepName: 'Admin Approval',
+        approverType: 'user',
+        approverId,
+        canDelegate: false,
+        timeoutDays: 3,
+      });
+      steps = await db
+        .select()
+        .from(tables.steps)
+        .where(eq(tables.steps.flowId, Number(flowId)))
+        .orderBy(asc(tables.steps.stepOrder));
+    }
 
     return {
       matched: true,
