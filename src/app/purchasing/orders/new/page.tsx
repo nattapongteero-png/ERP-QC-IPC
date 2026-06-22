@@ -28,6 +28,7 @@ import {
   Mail,
   FileText,
   Trash2,
+  Pencil,
   Plus,
   AlertCircle,
   Receipt,
@@ -101,6 +102,9 @@ export default function NewPurchaseOrderPage() {
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
+  // When set, the quantity dialog is editing an existing line (by itemId)
+  // instead of adding a new one — same form, "save" replaces in place.
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
 
   // Fetch vendors
   useEffect(() => {
@@ -142,7 +146,12 @@ export default function NewPurchaseOrderPage() {
       unitPrice: itemUnitPrice,
       lineTotal: itemQuantity * itemUnitPrice,
     };
-    setLines((prev) => [...prev, line]);
+    setLines((prev) =>
+      editingItemId != null
+        ? // Editing an existing line — replace it in place, keep its position.
+          prev.map((l) => (l.itemId === editingItemId ? line : l))
+        : [...prev, line],
+    );
     setErrors((prev) => ({ ...prev, lines: '' }));
     closeQuantityDialog();
   };
@@ -156,12 +165,30 @@ export default function NewPurchaseOrderPage() {
     setSelectedItem(null);
     setItemQuantity(1);
     setItemUnitPrice(0);
+    setEditingItemId(null);
     setIsQuantityDialogOpen(false);
   };
 
   const handleQuantityDialogHiding = () => {
     // Close (× / outside click) discards the entry — no auto-add.
     closeQuantityDialog();
+  };
+
+  // Open the quantity/price dialog for an existing line, pre-filled so the user
+  // can change qty/price. We synthesize an `Item` from the stored line fields.
+  const handleEditLine = (line: POLine) => {
+    setSelectedItem({
+      id: line.itemId,
+      code: line.itemCode,
+      nameTh: line.itemName,
+      nameEn: line.itemName,
+      primaryUnit: line.itemUnit,
+      costPrice: line.unitPrice,
+    } as Item);
+    setItemQuantity(line.quantity);
+    setItemUnitPrice(line.unitPrice);
+    setEditingItemId(line.itemId);
+    setIsQuantityDialogOpen(true);
   };
 
   const handleRemoveLine = (itemId: number) => {
@@ -297,15 +324,29 @@ export default function NewPurchaseOrderPage() {
     {
       dataField: 'actions',
       caption: '',
-      width: 80,
+      width: 120,
       alignment: 'center',
       cellRender: (cellInfo) => (
-        <button
-          onClick={() => handleRemoveLine(cellInfo.data.itemId)}
-          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center justify-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleEditLine(cellInfo.data)}
+            aria-label="แก้ไขรายการ"
+            title="แก้ไข"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRemoveLine(cellInfo.data.itemId)}
+            aria-label="ลบรายการ"
+            title="ลบ"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       ),
     },
   ];
@@ -632,23 +673,21 @@ export default function NewPurchaseOrderPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center py-12">
+                    <button
+                      type="button"
+                      onClick={() => setIsItemDialogOpen(true)}
+                      className="flex-1 w-full flex items-center justify-center rounded-xl border-2 border-dashed border-gray-200 hover:border-green-400 hover:bg-green-50/40 transition-colors cursor-pointer"
+                    >
+                      <div className="text-center py-12 px-4">
                         <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                           <ShoppingCart className="h-10 w-10 text-gray-400" />
                         </div>
                         <p className="text-gray-600 font-medium">ยังไม่มีรายการสินค้า</p>
-                        <p className="text-sm text-gray-400 mt-1">คลิก &quot;เพิ่มสินค้า&quot; เพื่อค้นหาและเพิ่มสินค้า</p>
-                        <DxButton
-                          text="เพิ่มสินค้า"
-                          icon="plus"
-                          type="default"
-                          stylingMode="outlined"
-                          className="mt-4"
-                          onClick={() => setIsItemDialogOpen(true)}
-                        />
+                        <p className="text-sm text-gray-400 mt-1">
+                          แตะที่นี่ หรือปุ่ม &quot;เพิ่มสินค้า&quot; ด้านบน เพื่อค้นหาและเพิ่มสินค้า
+                        </p>
                       </div>
-                    </div>
+                    </button>
                   )}
 
                   <div className="flex justify-between mt-6">
@@ -774,20 +813,16 @@ export default function NewPurchaseOrderPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between mt-6">
+                  {/* The single "สร้างใบสั่งซื้อ" submit lives in the summary
+                      sidebar (persistent, and works when stacked on tablet).
+                      Here we only offer "ย้อนกลับ" to avoid a duplicate button. */}
+                  <div className="flex justify-start mt-6">
                     <DxButton
                       text="ย้อนกลับ"
                       icon="arrowleft"
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setCurrentStep(3)}
-                    />
-                    <DxButton
-                      text={isSubmitting ? 'กำลังสร้าง...' : 'สร้างใบสั่งซื้อ'}
-                      icon="check"
-                      type="success"
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
                     />
                   </div>
                 </CardContent>
@@ -909,7 +944,7 @@ export default function NewPurchaseOrderPage() {
       <DxPopup
         visible={isQuantityDialogOpen}
         onHiding={handleQuantityDialogHiding}
-        title="เพิ่มรายการสินค้า"
+        title={editingItemId != null ? 'แก้ไขรายการสินค้า' : 'เพิ่มรายการสินค้า'}
         width={500}
         height="auto"
         showCloseButton
@@ -977,8 +1012,8 @@ export default function NewPurchaseOrderPage() {
                   onClick={handleCancelAddItem}
                 />
                 <DxButton
-                  text="เพิ่มรายการ"
-                  icon="plus"
+                  text={editingItemId != null ? 'บันทึก' : 'เพิ่มรายการ'}
+                  icon={editingItemId != null ? 'save' : 'plus'}
                   type="success"
                   onClick={handleAddItemToOrder}
                   disabled={itemQuantity <= 0 || itemUnitPrice < 0}

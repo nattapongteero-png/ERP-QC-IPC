@@ -11,7 +11,6 @@ import { useTranslations } from 'next-intl';
 import {
   DataGrid,
   Column,
-  Editing,
   Paging,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -20,10 +19,11 @@ import { TextArea } from 'devextreme-react/text-area';
 import { CheckBox } from 'devextreme-react/check-box';
 import {
   ClipboardCheck,
-  ArrowLeft,
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { StatusStepper } from '@/components/shared';
 import type {
@@ -52,6 +52,25 @@ export default function GrnDetailPage() {
 
   const [activeLineId, setActiveLineId] = useState<number | null>(null);
   const [checklistOpen, setChecklistOpen] = useState(false);
+  // Edit-line popup: the line currently being edited + its draft field values.
+  // Replaces the old DevExtreme inline row-edit (cramped per-cell inputs) with a
+  // proper form the user fills in and saves.
+  const [editLine, setEditLine] = useState<GoodsReceiptLine | null>(null);
+  const [editForm, setEditForm] = useState<{
+    actualQuantity: string;
+    vendorLotNumber: string;
+    batchNumber: string;
+    manufacturingDate: string;
+    expiryDate: string;
+    varianceReason: string;
+  }>({
+    actualQuantity: '',
+    vendorLotNumber: '',
+    batchNumber: '',
+    manufacturingDate: '',
+    expiryDate: '',
+    varianceReason: '',
+  });
   const [qaActionOpen, setQaActionOpen] = useState<{ lineId: number; action: 'release' | 'reject' } | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [sigPassword, setSigPassword] = useState('');
@@ -122,8 +141,45 @@ export default function GrnDetailPage() {
       if (!res.ok) throw new Error(body?.error ?? 'Update failed');
       return body;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['grn-detail', grnId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['grn-detail', grnId] });
+      setEditLine(null);
+    },
   });
+
+  // Open the edit popup for a line, pre-filling the form with its current values.
+  // Dates come from the DB as YYYY-MM-DD strings (or with a time part) — slice to
+  // the date portion so the native date input accepts them.
+  function openEditLine(line: GoodsReceiptLine) {
+    setEditLine(line);
+    setEditForm({
+      actualQuantity: line.actualQuantity != null ? String(line.actualQuantity) : '',
+      vendorLotNumber: line.vendorLotNumber ?? '',
+      batchNumber: line.batchNumber ?? '',
+      manufacturingDate: line.manufacturingDate ? String(line.manufacturingDate).slice(0, 10) : '',
+      expiryDate: line.expiryDate ? String(line.expiryDate).slice(0, 10) : '',
+      varianceReason: line.varianceReason ?? '',
+    });
+  }
+
+  // Save the edit form → PATCH the line. Empty optional fields are sent as null
+  // so the user can clear a value; actualQuantity is only sent when numeric.
+  function saveEditLine() {
+    if (!editLine) return;
+    const qtyTrim = editForm.actualQuantity.trim();
+    const qtyNum = Number(qtyTrim);
+    const patch: Partial<GoodsReceiptLine> = {
+      vendorLotNumber: editForm.vendorLotNumber.trim() || null,
+      batchNumber: editForm.batchNumber.trim() || null,
+      manufacturingDate: editForm.manufacturingDate || null,
+      expiryDate: editForm.expiryDate || null,
+      varianceReason: editForm.varianceReason.trim() || null,
+    };
+    if (qtyTrim && Number.isFinite(qtyNum)) {
+      patch.actualQuantity = qtyNum;
+    }
+    updateLineMut.mutate({ lineId: editLine.id, patch });
+  }
 
   const signChecklistMut = useMutation({
     mutationFn: async () => {
@@ -284,24 +340,12 @@ export default function GrnDetailPage() {
         rowAlternationEnabled
         columnAutoWidth
         data-testid="grn-lines-grid"
-        onRowUpdating={async (e) => {
-          // Only allow when status=created
-          const old = e.oldData as GoodsReceiptLine;
-          if (old.status !== 'created') {
-            e.cancel = true;
-            return;
-          }
-          const patch: Partial<GoodsReceiptLine> = e.newData as Partial<GoodsReceiptLine>;
-          await updateLineMut.mutateAsync({ lineId: old.id, patch });
-        }}
       >
-        <Editing mode="row" allowUpdating useIcons />
         <Paging pageSize={20} />
-        <Column dataField="lineNumber" caption="#" width={60} allowEditing={false} />
+        <Column dataField="lineNumber" caption="#" width={60} />
         <Column
           dataField="itemCode"
           caption={t('table.columns.item')}
-          allowEditing={false}
           minWidth={230}
           cellRender={(cell) => (
             <div className="min-w-0">
@@ -316,7 +360,6 @@ export default function GrnDetailPage() {
           dataField="expectedQuantity"
           caption={t('table.columns.expectedQty')}
           dataType="number"
-          allowEditing={false}
           width={120}
         />
         <Column
@@ -325,7 +368,7 @@ export default function GrnDetailPage() {
           dataType="number"
           width={120}
         />
-        <Column dataField="unit" caption="หน่วย" allowEditing={false} width={80} />
+        <Column dataField="unit" caption="หน่วย" width={80} />
         <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} />
         <Column dataField="batchNumber" caption={t('form.batchNumber.label')} />
         <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" />
@@ -333,7 +376,6 @@ export default function GrnDetailPage() {
         <Column
           dataField="variancePercent"
           caption={t('table.columns.variance')}
-          allowEditing={false}
           width={120}
           cellRender={(c) => {
             const v = c.value as number | null;
@@ -350,7 +392,6 @@ export default function GrnDetailPage() {
         <Column
           dataField="status"
           caption={t('table.columns.status')}
-          allowEditing={false}
           width={140}
           cellRender={(c) => (
             <span className="inline-flex px-2 py-1 rounded text-xs bg-gray-100">
@@ -360,12 +401,26 @@ export default function GrnDetailPage() {
         />
         <Column
           caption="การดำเนินการ"
-          allowEditing={false}
-          width={220}
+          width={300}
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
             return (
               <div className="flex gap-1 items-center">
+                {/* Edit the line's actuals — opens a form popup (Save inside).
+                    Only while the line is still editable (status=created). */}
+                {line.status === 'created' && canRelease && (
+                  <Button
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={() => openEditLine(line)}
+                    data-testid={`edit-line-${line.id}`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Pencil className="w-4 h-4" />
+                      {t('actions.edit')}
+                    </span>
+                  </Button>
+                )}
                 {/* QC records the incoming checklist (warehouse cannot) */}
                 {line.status === 'created' && canChecklist && (
                   <Button
@@ -423,6 +478,147 @@ export default function GrnDetailPage() {
           }}
         />
       </DataGrid>
+
+      {/* Edit line popup — replaces inline row-edit with a proper save form.
+          Also hosts the delete control, which voids the whole GRN (returning the
+          PO to the "create GRN" dropdown — see canCancelGrn / cancelGrnMut). */}
+      <Popup
+        visible={!!editLine}
+        onHiding={() => setEditLine(null)}
+        showCloseButton
+        dragEnabled={false}
+        title={`${t('actions.edit')} — ${editLine?.itemCode ?? editLine?.itemName ?? ''}`}
+        width={560}
+        height="auto"
+        data-testid="edit-line-popup"
+      >
+        <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">{t('form.actualQuantity.label')}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  name="edit-actual-qty"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  min={0}
+                  step="any"
+                  value={editForm.actualQuantity}
+                  onChange={(e) => setEditForm((f) => ({ ...f, actualQuantity: e.target.value }))}
+                  className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                  placeholder={t('form.actualQuantity.label')}
+                  data-testid="edit-actual-qty"
+                />
+                <span className="text-sm text-gray-500 whitespace-nowrap">{editLine?.unit}</span>
+              </div>
+              {editLine && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('table.columns.expectedQty')}: <b>{Number(editLine.expectedQuantity).toLocaleString()}</b> {editLine.unit}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t('form.vendorLotNumber.label')}</label>
+              <input
+                type="text"
+                name="edit-vendor-lot"
+                autoComplete="off"
+                value={editForm.vendorLotNumber}
+                onChange={(e) => setEditForm((f) => ({ ...f, vendorLotNumber: e.target.value }))}
+                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                data-testid="edit-vendor-lot"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t('form.batchNumber.label')}</label>
+              <input
+                type="text"
+                name="edit-batch"
+                autoComplete="off"
+                value={editForm.batchNumber}
+                onChange={(e) => setEditForm((f) => ({ ...f, batchNumber: e.target.value }))}
+                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                data-testid="edit-batch"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t('form.manufacturingDate.label')}</label>
+              <input
+                type="date"
+                name="edit-mfg-date"
+                value={editForm.manufacturingDate}
+                onChange={(e) => setEditForm((f) => ({ ...f, manufacturingDate: e.target.value }))}
+                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                data-testid="edit-mfg-date"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t('form.expiryDate.label')}</label>
+              <input
+                type="date"
+                name="edit-expiry-date"
+                value={editForm.expiryDate}
+                onChange={(e) => setEditForm((f) => ({ ...f, expiryDate: e.target.value }))}
+                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                data-testid="edit-expiry-date"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">{t('form.varianceReason.label')}</label>
+              <TextArea
+                value={editForm.varianceReason}
+                height={60}
+                onValueChanged={(e) => setEditForm((f) => ({ ...f, varianceReason: String(e.value ?? '') }))}
+                placeholder={t('form.varianceReason.label')}
+              />
+            </div>
+          </div>
+
+          {updateLineMut.error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {String((updateLineMut.error as Error).message)}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2 pt-2 border-t">
+            {/* Delete the line → voids the GRN so its PO returns to the dropdown.
+                Only offered when the GRN as a whole is still cancellable. */}
+            {canCancelGrn ? (
+              <Button
+                type="danger"
+                stylingMode="outlined"
+                onClick={() => {
+                  setEditLine(null);
+                  setCancelOpen(true);
+                }}
+                data-testid="delete-line-btn"
+              >
+                <span className="flex items-center gap-1">
+                  <Trash2 className="w-4 h-4" />
+                  {t('actions.cancelGrn')}
+                </span>
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setEditLine(null)} />
+              <Button
+                type="success"
+                stylingMode="contained"
+                text={t('actions.save')}
+                disabled={updateLineMut.isPending}
+                onClick={saveEditLine}
+                data-testid="save-line-btn"
+              />
+            </div>
+          </div>
+        </div>
+      </Popup>
 
       {/* Checklist Popup */}
       <Popup

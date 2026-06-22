@@ -768,12 +768,11 @@ export default function PurchaseOrderDetailPage() {
     {
       dataField: 'actions',
       caption: '',
-      width: 120,
+      width: 160,
       cellRender: (cellInfo) => (
         cellInfo.data.pendingQty > 0 ? (
           <DxButton
             text="รับสินค้า"
-            icon="box"
             type="success"
             stylingMode="outlined"
             onClick={() => handleReceive(cellInfo.data)}
