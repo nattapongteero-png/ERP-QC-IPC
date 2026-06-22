@@ -409,15 +409,26 @@ export default function WaterQualityRecordsPage() {
                       <tr key={r.id} className="border-t">
                         <td className="p-2">{r.parameter} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}</td>
                         <td className="p-2">
+                          {/* Plain <input> (not DevExtreme NumberBox) and always
+                              mounted — only its readOnly toggles. Swapping a
+                              <span> for a DevExtreme widget inside a <td> that
+                              the popup overlay manages threw an insertBefore DOM
+                              error → error page. A plain input keeps the DOM
+                              structure stable across the view↔edit toggle. */}
                           {editMode ? (
-                            <NumberBox
-                              value={draft.results[r.id] ?? undefined}
-                              step={0.001}
-                              format="#0.000"
-                              onValueChanged={(e) =>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.001"
+                              className="w-28 border rounded px-2 py-1 text-sm"
+                              value={draft.results[r.id] ?? ''}
+                              onChange={(e) =>
                                 setDraft((prev) => ({
                                   ...prev,
-                                  results: { ...prev.results, [r.id]: e.value == null ? null : Number(e.value) },
+                                  results: {
+                                    ...prev.results,
+                                    [r.id]: e.target.value === '' ? null : Number(e.target.value),
+                                  },
                                 }))
                               }
                             />
@@ -436,7 +447,14 @@ export default function WaterQualityRecordsPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
                 {editMode ? (
-                  <TextArea value={draft.notes} height={60} onValueChanged={(e) => setDraft((prev) => ({ ...prev, notes: String(e.value ?? '') }))} />
+                  // Plain <textarea> (not DevExtreme TextArea) for the same
+                  // overlay-DOM-stability reason as the value inputs above.
+                  <textarea
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    rows={2}
+                    value={draft.notes}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                  />
                 ) : (
                   <div className="text-sm text-gray-700">{detail.notes ?? '—'}</div>
                 )}

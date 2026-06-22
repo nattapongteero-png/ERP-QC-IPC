@@ -12,7 +12,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
-import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs, ConfirmationDialog } from '@/components/shared';
@@ -268,18 +267,24 @@ export default function InspectionHistoryPage() {
                           {r.label} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}
                         </td>
                         <td className="p-2">
+                          {/* Plain <input> (not DevExtreme NumberBox), always
+                              stable across view↔edit — swapping a span for a
+                              DevExtreme widget inside the popup-overlay <td>
+                              threw an insertBefore DOM error → error page. */}
                           {editMode ? (
-                            <NumberBox
-                              value={draft.results[r.id]?.numericValue ?? undefined}
-                              step={0.01}
-                              format="#0.00"
-                              onValueChanged={(e) =>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.01"
+                              className="w-24 border rounded px-2 py-1 text-sm"
+                              value={draft.results[r.id]?.numericValue ?? ''}
+                              onChange={(e) =>
                                 setDraft((prev) => ({
                                   ...prev,
                                   results: {
                                     ...prev.results,
                                     [r.id]: {
-                                      numericValue: e.value == null ? null : Number(e.value),
+                                      numericValue: e.target.value === '' ? null : Number(e.target.value),
                                       remarks: prev.results[r.id]?.remarks ?? '',
                                     },
                                   },
