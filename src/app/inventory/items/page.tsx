@@ -82,44 +82,53 @@ type ItemType = 'raw_material' | 'packaging' | 'wip' | 'finished_goods' | 'consu
 
 const ITEM_TYPE_CONFIG: Record<ItemType, {
   translationKey: string;
+  // Soft colors used for the type chip/tag inside the grid rows.
   bgColor: string;
   textColor: string;
-  borderColor: string;
+  // Solid colors used when the pill is the active filter — strong fill + white
+  // text so the selected tab reads clearly (matches the warehouses page).
+  activeBg: string;
+  activeText: string;
   icon: React.ReactNode;
 }> = {
   raw_material: {
     translationKey: 'rawMaterial',
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
-    borderColor: 'border-green-200',
+    activeBg: 'bg-emerald-600',
+    activeText: 'text-white',
     icon: <Leaf className="h-4 w-4" />,
   },
   packaging: {
     translationKey: 'packaging',
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
-    borderColor: 'border-emerald-200',
+    activeBg: 'bg-teal-600',
+    activeText: 'text-white',
     icon: <Box className="h-4 w-4" />,
   },
   wip: {
     translationKey: 'wip',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
-    borderColor: 'border-orange-200',
+    activeBg: 'bg-orange-500',
+    activeText: 'text-white',
     icon: <FlaskConical className="h-4 w-4" />,
   },
   finished_goods: {
     translationKey: 'finishedGoods',
     bgColor: 'bg-purple-50',
     textColor: 'text-purple-700',
-    borderColor: 'border-purple-200',
+    activeBg: 'bg-purple-600',
+    activeText: 'text-white',
     icon: <Pill className="h-4 w-4" />,
   },
   consumable: {
     translationKey: 'consumable',
     bgColor: 'bg-gray-50',
     textColor: 'text-gray-700',
-    borderColor: 'border-gray-200',
+    activeBg: 'bg-slate-600',
+    activeText: 'text-white',
     icon: <Package className="h-4 w-4" />,
   },
 };
@@ -676,15 +685,15 @@ export default function ItemsPage() {
                       className={cn(
                         'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap',
                         activeTab === type
-                          ? `${config.bgColor} ${config.textColor} ${config.borderColor} border shadow-sm`
+                          ? `${config.activeBg} ${config.activeText} shadow-sm`
                           : 'text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]'
                       )}
                     >
                       {config.icon}
                       {t(`items.types.${config.translationKey}`)}
                       <span className={cn(
-                        'text-xs px-1.5 py-0.5 rounded-full',
-                        activeTab === type ? 'bg-white/60' : 'bg-emerald-100 text-emerald-800'
+                        'text-xs px-1.5 py-0.5 rounded-full font-semibold',
+                        activeTab === type ? 'bg-white/25 text-inherit' : 'bg-emerald-100 text-emerald-800'
                       )}>
                         {typeCounts[type]}
                       </span>

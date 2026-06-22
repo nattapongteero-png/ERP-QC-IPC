@@ -120,38 +120,53 @@ type StatusType = '' | 'quarantine' | 'released' | 'rejected' | 'blocked';
 
 const STATUS_CONFIG: Record<StatusType, {
   translationKey: string;
+  // Soft colors used for the status chip inside the grid rows.
   bgColor: string;
   textColor: string;
+  // Solid colors used when the pill is the active filter — strong fill + white
+  // text so the selected tab reads clearly (matches the warehouses page).
+  activeBg: string;
+  activeText: string;
   icon: React.ReactNode;
 }> = {
   '': {
     translationKey: 'all',
     bgColor: 'bg-gray-900',
     textColor: 'text-white',
+    activeBg: 'bg-gradient-to-br from-[#064E3B] to-emerald-600',
+    activeText: 'text-white',
     icon: <Boxes className="h-4 w-4" />,
   },
   quarantine: {
     translationKey: 'quarantine',
     bgColor: 'bg-yellow-50',
     textColor: 'text-yellow-700',
+    activeBg: 'bg-amber-500',
+    activeText: 'text-white',
     icon: <Clock className="h-4 w-4" />,
   },
   released: {
     translationKey: 'released',
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
+    activeBg: 'bg-emerald-600',
+    activeText: 'text-white',
     icon: <CheckCircle className="h-4 w-4" />,
   },
   rejected: {
     translationKey: 'rejected',
     bgColor: 'bg-red-50',
     textColor: 'text-red-700',
+    activeBg: 'bg-red-600',
+    activeText: 'text-white',
     icon: <XCircle className="h-4 w-4" />,
   },
   blocked: {
     translationKey: 'blocked',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
+    activeBg: 'bg-slate-600',
+    activeText: 'text-white',
     icon: <AlertTriangle className="h-4 w-4" />,
   },
 };
@@ -1222,15 +1237,15 @@ export default function LotsPage() {
                       className={cn(
                         'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                         statusFilter === status
-                          ? status === '' ? 'bg-gradient-to-br from-[#064E3B] to-emerald-600 text-white shadow-sm' : `${config.bgColor} ${config.textColor}`
+                          ? `${config.activeBg} ${config.activeText} shadow-sm`
                           : 'text-[#4B7163] hover:text-[#064E3B] hover:bg-[#E6F6EE]'
                       )}
                     >
                       {config.icon}
                       {status === '' ? t('common.all') : t(`lots.status.${config.translationKey}`)}
                       <span className={cn(
-                        'text-xs px-1.5 py-0.5 rounded-full',
-                        statusFilter === status ? (status === '' ? 'bg-white/20 text-white' : 'bg-white/50') : 'bg-emerald-100 text-emerald-800'
+                        'text-xs px-1.5 py-0.5 rounded-full font-semibold',
+                        statusFilter === status ? 'bg-white/25 text-inherit' : 'bg-emerald-100 text-emerald-800'
                       )}>
                         {count}
                       </span>
