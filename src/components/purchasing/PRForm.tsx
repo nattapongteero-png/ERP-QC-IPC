@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
 import { TextArea } from 'devextreme-react/text-area';
@@ -24,15 +25,17 @@ interface PRFormProps {
   initialData?: PRWithLines;
 }
 
-const priorityOptions = [
-  { value: 'low', label: 'ต่ำ' },
-  { value: 'normal', label: 'ปกติ' },
-  { value: 'high', label: 'สูง' },
-  { value: 'urgent', label: 'ด่วน' },
-];
-
 export function PRForm({ mode, prId, initialData }: PRFormProps) {
   const router = useRouter();
+  const t = useTranslations('purchasing');
+  // Priority options pull their labels from i18n so they switch with the
+  // language toggle (was previously a hardcoded Thai array).
+  const priorityOptions = [
+    { value: 'low', label: t('requisitions.priority.low') },
+    { value: 'normal', label: t('requisitions.priority.normal') },
+    { value: 'high', label: t('requisitions.priority.high') },
+    { value: 'urgent', label: t('requisitions.priority.urgent') },
+  ];
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -239,12 +242,10 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {mode === 'edit' ? 'แก้ไขใบขอซื้อ (PR)' : 'สร้างใบขอซื้อ (PR)'}
+          {mode === 'edit' ? t('requisitions.form.editTitle') : t('requisitions.form.createTitle')}
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {mode === 'edit'
-            ? 'แก้ไขรายละเอียดใบขอซื้อแล้วบันทึกร่าง หรือส่งขออนุมัติ'
-            : 'กรอกรายละเอียด เพิ่มรายการสินค้า แล้วบันทึกร่างก่อนส่งขออนุมัติ'}
+          {mode === 'edit' ? t('requisitions.form.editSubtitle') : t('requisitions.form.createSubtitle')}
         </p>
       </div>
 
@@ -259,13 +260,13 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {prNumber && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่ใบขอซื้อ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.prNumber')}</label>
               <TextBox value={prNumber} readOnly={true} data-testid="pr-number" />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ความสำคัญ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.priority')}</label>
             <SelectBox
               dataSource={priorityOptions}
               value={priority}
@@ -278,7 +279,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ต้องการ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.requiredDate')}</label>
             <DateBox
               value={requiredDate}
               onValueChanged={(e) => setRequiredDate(e.value)}
@@ -289,7 +290,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ยอดรวม</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.totalAmount')}</label>
             <TextBox
               value={totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
               readOnly={true}
@@ -299,7 +300,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.description')}</label>
           <TextArea
             value={description}
             onValueChanged={(e) => setDescription(e.value)}
@@ -310,7 +311,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผลในการขอซื้อ</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('requisitions.form.justification')}</label>
           <TextArea
             value={justification}
             onValueChanged={(e) => setJustification(e.value)}
@@ -323,7 +324,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
 
       {/* Line Items */}
       <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-medium text-gray-800 mb-4">รายการสินค้า</h3>
+        <h3 className="text-lg font-medium text-gray-800 mb-4">{t('requisitions.form.lineItems')}</h3>
         <PRLineGrid
           lines={lines}
           onChange={handleLinesChange}
@@ -335,7 +336,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
       {/* Actions */}
       <div className="flex gap-2 justify-end">
         <Button
-          text="Cancel"
+          text={t('requisitions.buttons.cancel')}
           type="normal"
           onClick={() => router.push('/purchasing/requisitions')}
           data-testid="cancel-btn"
@@ -344,7 +345,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         {isEditable && (
           <>
             <Button
-              text={saving ? 'กำลังบันทึก...' : 'บันทึกร่าง (Save Draft)'}
+              text={saving ? t('requisitions.buttons.saving') : t('requisitions.buttons.saveDraft')}
               type="default"
               stylingMode="outlined"
               onClick={handleSave}
@@ -356,7 +357,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
                 before Save Draft). Clicking it asks for confirmation first. */}
             {canSubmit && (
               <Button
-                text={submitting ? 'กำลังส่ง...' : 'ส่งขออนุมัติ (Submit)'}
+                text={submitting ? t('requisitions.buttons.submitting') : t('requisitions.buttons.submit')}
                 type="success"
                 stylingMode="contained"
                 onClick={() => setConfirmSubmit(true)}
@@ -375,25 +376,24 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         dragEnabled={false}
         hideOnOutsideClick
         showTitle
-        title="ยืนยันการส่งขออนุมัติ"
+        title={t('requisitions.modals.submitTitle')}
         width={420}
         height="auto"
         data-testid="pr-submit-confirm"
       >
         <div className="p-2 space-y-4">
           <p className="text-sm text-gray-700">
-            ยืนยันส่งใบขอซื้อ {prNumber ? <b>{prNumber}</b> : 'นี้'} เข้าสู่ขั้นตอนอนุมัติ?
-            หลังส่งแล้วจะไม่สามารถแก้ไขร่างได้จนกว่าจะมีผลการอนุมัติ
+            {prNumber ? <b>{prNumber}</b> : null} {t('requisitions.modals.submitMessage')}
           </p>
           <div className="flex justify-end gap-2">
             <Button
-              text="ยกเลิก"
+              text={t('requisitions.buttons.cancel')}
               stylingMode="text"
               onClick={() => setConfirmSubmit(false)}
               disabled={submitting}
             />
             <Button
-              text={submitting ? 'กำลังส่ง...' : 'ยืนยันส่งขออนุมัติ'}
+              text={submitting ? t('requisitions.buttons.submitting') : t('requisitions.buttons.submit')}
               type="success"
               stylingMode="contained"
               onClick={() => {

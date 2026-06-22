@@ -17,6 +17,7 @@ import DataGrid, {
   Item,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
+import { useTranslations } from 'next-intl';
 import { ItemSearchDialog, type Item as InventoryItem } from '@/components/ui/item-search-dialog';
 import type { PRLineInput } from '@/types/purchase-requisition';
 
@@ -32,6 +33,7 @@ interface PRLineGridProps {
 }
 
 export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGridProps) {
+  const t = useTranslations('purchasing');
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [itemSearchOpen, setItemSearchOpen] = useState(false);
   // Units gathered from the items the user has picked (primary + secondary),
@@ -162,7 +164,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           <Item name="addRowButton" showText="always" />
           <Item location="after">
             <Button
-              text="เลือกจากคลังสินค้า"
+              text={t('requisitions.form.selectFromInventory')}
               icon="search"
               stylingMode="outlined"
               onClick={() => setItemSearchOpen(true)}
@@ -173,33 +175,33 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
         <Column
           dataField="itemCode"
-          caption="รหัสสินค้า"
+          caption={t('requisitions.form.columns.itemCode')}
           width={120}
           data-testid="col-item-code"
         />
         <Column
           dataField="description"
-          caption="รายละเอียด"
+          caption={t('requisitions.form.columns.description')}
           minWidth={200}
-          validationRules={[{ type: 'required', message: 'กรุณากรอกรายละเอียด' }]}
+          validationRules={[{ type: 'required', message: t('requisitions.form.validation.descriptionRequired') }]}
           data-testid="col-description"
         />
         <Column
           dataField="quantity"
-          caption="จำนวน"
+          caption={t('requisitions.form.columns.quantity')}
           dataType="number"
           width={80}
           validationRules={[
-            { type: 'required', message: 'กรุณากรอกจำนวน' },
-            { type: 'range', min: 0.01, message: 'จำนวนต้องมากกว่า 0' },
+            { type: 'required', message: t('requisitions.form.validation.quantityRequired') },
+            { type: 'range', min: 0.01, message: t('requisitions.form.validation.quantityPositive') },
           ]}
           data-testid="col-quantity"
         />
         <Column
           dataField="unitOfMeasure"
-          caption="หน่วยนับ"
+          caption={t('requisitions.form.columns.unit')}
           width={110}
-          validationRules={[{ type: 'required', message: 'กรุณาระบุหน่วยนับ' }]}
+          validationRules={[{ type: 'required', message: t('requisitions.form.validation.unitRequired') }]}
           data-testid="col-uom"
         >
           {/* Dropdown sourced from the selected items' configured units +
@@ -208,14 +210,14 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         </Column>
         <Column
           dataField="estimatedUnitPrice"
-          caption="ราคาต่อหน่วย"
+          caption={t('requisitions.form.columns.unitPrice')}
           dataType="number"
           width={120}
           format={{ type: 'fixedPoint', precision: 2 }}
           data-testid="col-unit-price"
         />
         <Column
-          caption="จำนวนเงิน"
+          caption={t('requisitions.form.columns.amount')}
           width={120}
           calculateCellValue={calculateAmount}
           format={{ type: 'fixedPoint', precision: 2 }}
@@ -224,7 +226,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         />
         <Column
           dataField="notes"
-          caption="หมายเหตุ"
+          caption={t('requisitions.form.columns.notes')}
           width={150}
           data-testid="col-notes"
         />
@@ -234,7 +236,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
             column="Amount"
             summaryType="sum"
             valueFormat={{ type: 'fixedPoint', precision: 2 }}
-            displayFormat="รวม: {0}"
+            displayFormat={t('requisitions.form.totalLabel')}
           />
         </Summary>
       </DataGrid>
@@ -245,7 +247,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         onSelect={handleSelectFromInventory}
         multiSelect
         onSelectMultiple={handleSelectMultiple}
-        title="เลือกสินค้าจากคลัง (เลือกได้หลายรายการ)"
+        title={t('requisitions.form.selectFromInventoryMulti')}
         showPrice="cost"
         excludeIds={lines.filter(l => l.itemId).map(l => l.itemId!)}
         allowCreate
