@@ -258,6 +258,61 @@
     "description": "Create and manage purchase requisitions with approval workflow",
     "newPageTitle": "Create New Purchase Requisition",
     "detailTitle": "Purchase Requisition",
+    "detail": {
+      "backToList": "← Back to requisitions",
+      "draftSubtitle": "Edit and submit for approval",
+      "statusLabel": "Status: {status}",
+      "printPr": "Print PR",
+      "deletePr": "Delete PR",
+      "cancelPr": "Cancel PR",
+      "approve": "Approve",
+      "reject": "Reject",
+      "convertToPo": "Convert to Purchase Order",
+      "workflowTitle": "Workflow Status",
+      "steps": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "pendingApproval": "Pending Approval",
+        "approved": "Approved"
+      },
+      "convertModal": {
+        "title": "Convert to Purchase Order",
+        "selectVendor": "Select Vendor",
+        "selectVendorPlaceholder": "Select vendor...",
+        "cancel": "Cancel",
+        "convert": "Convert",
+        "converting": "Converting..."
+      },
+      "approvalModal": {
+        "approveTitle": "Approve Requisition",
+        "rejectTitle": "Reject Requisition",
+        "commentLabel": "Comments (optional)",
+        "reasonLabel": "Reason for rejection",
+        "commentPlaceholder": "Add a comment...",
+        "reasonPlaceholder": "Enter reason for rejection...",
+        "cancel": "Cancel",
+        "approve": "Approve",
+        "reject": "Reject",
+        "processing": "Processing..."
+      },
+      "cancelModal": {
+        "title": "Cancel Requisition",
+        "confirm": "Do you want to cancel requisition {prNumber}?",
+        "reasonLabel": "Reason for cancellation",
+        "reasonPlaceholder": "Specify reason for cancellation...",
+        "close": "Close",
+        "confirmCancel": "Confirm Cancel",
+        "cancelling": "Cancelling..."
+      },
+      "deleteModal": {
+        "title": "Delete Requisition",
+        "confirmPrefix": "Do you want to delete requisition",
+        "confirmSuffix": "? This action cannot be undone.",
+        "close": "Close",
+        "confirmDelete": "Confirm Delete",
+        "deleting": "Deleting..."
+      }
+    },
     "status": {
       "all": "All",
       "draft": "Draft",

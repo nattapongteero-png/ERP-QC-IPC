@@ -175,6 +175,47 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
+  // Preserve scroll position across card drill-downs. When the operator opens a
+  // card (cleaning / SOP / weighing / …) and returns after saving, the page
+  // (re)mounts and Next.js scrolls to top. We stash the current scroll offset
+  // under a per-WO sessionStorage key on the way out and restore it on mount so
+  // the operator lands back on the same phase row they were working in.
+  const scrollKey = `wo-exec-scroll:${workOrderId}`;
+
+  const saveScrollPosition = () => {
+    try {
+      sessionStorage.setItem(scrollKey, String(window.scrollY));
+    } catch {
+      /* sessionStorage unavailable (private mode / SSR) — non-fatal */
+    }
+  };
+
+  useEffect(() => {
+    let saved: number | null = null;
+    try {
+      const raw = sessionStorage.getItem(scrollKey);
+      saved = raw == null ? null : Number(raw);
+    } catch {
+      saved = null;
+    }
+    if (saved != null && !Number.isNaN(saved) && saved > 0) {
+      // Defer until after the cards paint so the document has its full height,
+      // otherwise the browser clamps the scroll to a short page. Two RAFs are
+      // enough for the phase sections to lay out.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          window.scrollTo(0, saved!);
+          try {
+            sessionStorage.removeItem(scrollKey);
+          } catch {
+            /* non-fatal */
+          }
+        }),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollKey]);
+
   // Per-phase Line Clearance gate. Restricted to *-cleaning cards only
   // (pre-cleaning, production-cleaning, post-cleaning, packaging-cleaning).
   // Each phase's clearance is recorded independently — backend keys by phase
@@ -210,6 +251,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
 
   const openLineClearance = (sectionId: string) => {
     const phase = sectionToPhase(sectionId);
+    saveScrollPosition();
     router.push(`/production/line-clearance?workOrderId=${workOrderId}&phase=${phase}`);
   };
 
@@ -1058,7 +1100,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                   return <div key={section.id}>{cardContent}</div>;
                 }
                 return (
-                  <Link key={section.id} href={section.href}>
+                  <Link key={section.id} href={section.href} onClick={saveScrollPosition}>
                     {cardContent}
                   </Link>
                 );

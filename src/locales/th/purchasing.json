@@ -258,6 +258,61 @@
     "description": "สร้างและจัดการใบขอซื้อพร้อมระบบอนุมัติ",
     "newPageTitle": "สร้างใบขอซื้อใหม่",
     "detailTitle": "Purchase Requisition",
+    "detail": {
+      "backToList": "← กลับไปรายการใบขอซื้อ",
+      "draftSubtitle": "แก้ไขและส่งเพื่อขออนุมัติ",
+      "statusLabel": "สถานะ: {status}",
+      "printPr": "พิมพ์ใบ PR",
+      "deletePr": "ลบใบ PR",
+      "cancelPr": "ยกเลิกใบ PR",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "convertToPo": "แปลงเป็นใบสั่งซื้อ",
+      "workflowTitle": "สถานะการดำเนินงาน",
+      "steps": {
+        "draft": "ร่าง",
+        "submitted": "ส่งแล้ว",
+        "pendingApproval": "รออนุมัติ",
+        "approved": "อนุมัติ"
+      },
+      "convertModal": {
+        "title": "แปลงเป็นใบสั่งซื้อ",
+        "selectVendor": "เลือกผู้ขาย",
+        "selectVendorPlaceholder": "เลือกผู้ขาย...",
+        "cancel": "ยกเลิก",
+        "convert": "แปลง",
+        "converting": "กำลังแปลง..."
+      },
+      "approvalModal": {
+        "approveTitle": "อนุมัติใบขอซื้อ",
+        "rejectTitle": "ปฏิเสธใบขอซื้อ",
+        "commentLabel": "ความคิดเห็น (ไม่บังคับ)",
+        "reasonLabel": "เหตุผลในการปฏิเสธ",
+        "commentPlaceholder": "เพิ่มความคิดเห็น...",
+        "reasonPlaceholder": "กรอกเหตุผลในการปฏิเสธ...",
+        "cancel": "ยกเลิก",
+        "approve": "อนุมัติ",
+        "reject": "ปฏิเสธ",
+        "processing": "กำลังดำเนินการ..."
+      },
+      "cancelModal": {
+        "title": "ยกเลิกใบขอซื้อ",
+        "confirm": "คุณต้องการยกเลิกใบขอซื้อ {prNumber} ใช่หรือไม่?",
+        "reasonLabel": "เหตุผลในการยกเลิก",
+        "reasonPlaceholder": "ระบุเหตุผลในการยกเลิก...",
+        "close": "ปิด",
+        "confirmCancel": "ยืนยันยกเลิก",
+        "cancelling": "กำลังยกเลิก..."
+      },
+      "deleteModal": {
+        "title": "ลบใบขอซื้อ",
+        "confirmPrefix": "คุณต้องการลบใบขอซื้อ",
+        "confirmSuffix": "ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้",
+        "close": "ปิด",
+        "confirmDelete": "ยืนยันลบ",
+        "deleting": "กำลังลบ..."
+      }
+    },
     "status": {
       "all": "ทั้งหมด",
       "draft": "ร่าง",

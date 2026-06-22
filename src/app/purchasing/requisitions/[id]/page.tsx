@@ -227,7 +227,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           className="mt-4 text-blue-600 hover:underline"
           onClick={() => router.push('/purchasing/requisitions')}
         >
-          ← กลับไปรายการใบขอซื้อ
+          {t('requisitions.detail.backToList')}
         </button>
       </div>
     );
@@ -251,7 +251,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 {pr?.prNumber || t('requisitions.detailTitle')}
               </h1>
               <p className="text-gray-600">
-                {pr?.status === 'draft' ? 'แก้ไขและส่งเพื่อขออนุมัติ' : `สถานะ: ${pr?.status}`}
+                {pr?.status === 'draft' ? t('requisitions.detail.draftSubtitle') : t('requisitions.detail.statusLabel', { status: pr?.status ?? '' })}
               </p>
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           {/* Action buttons based on status */}
           <div className="flex gap-2">
             <Button
-              text="พิมพ์ใบ PR"
+              text={t('requisitions.detail.printPr')}
               type="normal"
               stylingMode="outlined"
               icon="print"
@@ -268,7 +268,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
             />
             {pr?.status === 'draft' && (
               <Button
-                text="ลบใบ PR"
+                text={t('requisitions.detail.deletePr')}
                 type="danger"
                 stylingMode="outlined"
                 icon="trash"
@@ -278,7 +278,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
             )}
             {(pr?.status === 'draft' || pr?.status === 'submitted' || pr?.status === 'pending_approval') && (
               <Button
-                text="ยกเลิกใบ PR"
+                text={t('requisitions.detail.cancelPr')}
                 type="danger"
                 stylingMode="outlined"
                 icon="close"
@@ -289,7 +289,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
             {pr?.status === 'pending_approval' && (
               <>
                 <Button
-                  text="อนุมัติ"
+                  text={t('requisitions.detail.approve')}
                   type="success"
                   stylingMode="contained"
                   onClick={() => {
@@ -299,7 +299,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                   data-testid="approve-btn"
                 />
                 <Button
-                  text="ปฏิเสธ"
+                  text={t('requisitions.detail.reject')}
                   type="danger"
                   stylingMode="contained"
                   onClick={() => {
@@ -312,7 +312,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
             )}
             {pr?.status === 'approved' && (
               <Button
-                text="แปลงเป็นใบสั่งซื้อ"
+                text={t('requisitions.detail.convertToPo')}
                 type="default"
                 stylingMode="contained"
                 icon="export"
@@ -327,13 +327,13 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         {pr && (
           <div className="mb-4">
             <StatusStepper
-              title="สถานะการดำเนินงาน"
+              title={t('requisitions.detail.workflowTitle')}
               current={pr.status}
               steps={[
-                { key: 'draft', label: 'ร่าง' },
-                { key: 'submitted', label: 'ส่งแล้ว' },
-                { key: 'pending_approval', label: 'รออนุมัติ' },
-                { key: 'approved', label: 'อนุมัติ' },
+                { key: 'draft', label: t('requisitions.detail.steps.draft') },
+                { key: 'submitted', label: t('requisitions.detail.steps.submitted') },
+                { key: 'pending_approval', label: t('requisitions.detail.steps.pendingApproval') },
+                { key: 'approved', label: t('requisitions.detail.steps.approved') },
               ]}
             />
           </div>
@@ -351,7 +351,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         <Popup
           visible={showConvertModal}
           onHiding={() => setShowConvertModal(false)}
-          title="แปลงเป็นใบสั่งซื้อ"
+          title={t('requisitions.detail.convertModal.title')}
           width={400}
           height={250}
           showCloseButton={true}
@@ -359,7 +359,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           <div className="p-4">
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                เลือกผู้ขาย
+                {t('requisitions.detail.convertModal.selectVendor')}
               </label>
               <SelectBox
                 dataSource={vendors}
@@ -369,7 +369,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                   v ? (v.code ? `${v.code} - ${v.name}` : v.name ?? '') : ''
                 }
                 valueExpr="id"
-                placeholder="เลือกผู้ขาย..."
+                placeholder={t('requisitions.detail.convertModal.selectVendorPlaceholder')}
                 searchEnabled={true}
                 data-testid="vendor-select"
               />
@@ -377,12 +377,12 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
 
             <div className="flex gap-2 justify-end mt-6">
               <Button
-                text="ยกเลิก"
+                text={t('requisitions.detail.convertModal.cancel')}
                 type="normal"
                 onClick={() => setShowConvertModal(false)}
               />
               <Button
-                text={converting ? 'กำลังแปลง...' : 'แปลง'}
+                text={converting ? t('requisitions.detail.convertModal.converting') : t('requisitions.detail.convertModal.convert')}
                 type="success"
                 onClick={handleConvertToPO}
                 disabled={converting || !vendorId}
@@ -396,7 +396,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         <Popup
           visible={showApprovalModal}
           onHiding={() => setShowApprovalModal(false)}
-          title={approvalAction === 'approve' ? 'อนุมัติใบขอซื้อ' : 'ปฏิเสธใบขอซื้อ'}
+          title={approvalAction === 'approve' ? t('requisitions.detail.approvalModal.approveTitle') : t('requisitions.detail.approvalModal.rejectTitle')}
           width={400}
           height={300}
           showCloseButton={true}
@@ -404,25 +404,25 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           <div className="p-4">
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {approvalAction === 'approve' ? 'ความคิดเห็น (ไม่บังคับ)' : 'เหตุผลในการปฏิเสธ'}
+                {approvalAction === 'approve' ? t('requisitions.detail.approvalModal.commentLabel') : t('requisitions.detail.approvalModal.reasonLabel')}
               </label>
               <TextArea
                 value={approvalComments}
                 onValueChanged={(e) => setApprovalComments(e.value)}
                 height={100}
-                placeholder={approvalAction === 'approve' ? 'เพิ่มความคิดเห็น...' : 'กรอกเหตุผลในการปฏิเสธ...'}
+                placeholder={approvalAction === 'approve' ? t('requisitions.detail.approvalModal.commentPlaceholder') : t('requisitions.detail.approvalModal.reasonPlaceholder')}
                 data-testid="approval-comments"
               />
             </div>
 
             <div className="flex gap-2 justify-end mt-6">
               <Button
-                text="ยกเลิก"
+                text={t('requisitions.detail.approvalModal.cancel')}
                 type="normal"
                 onClick={() => setShowApprovalModal(false)}
               />
               <Button
-                text={processing ? 'กำลังดำเนินการ...' : (approvalAction === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ')}
+                text={processing ? t('requisitions.detail.approvalModal.processing') : (approvalAction === 'approve' ? t('requisitions.detail.approvalModal.approve') : t('requisitions.detail.approvalModal.reject'))}
                 type={approvalAction === 'approve' ? 'success' : 'danger'}
                 onClick={handleApprovalAction}
                 disabled={processing || (approvalAction === 'reject' && !approvalComments)}
@@ -436,7 +436,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         <Popup
           visible={showCancelModal}
           onHiding={() => setShowCancelModal(false)}
-          title="ยกเลิกใบขอซื้อ"
+          title={t('requisitions.detail.cancelModal.title')}
           width={400}
           height={300}
           showCloseButton={true}
@@ -444,28 +444,28 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           <div className="p-4">
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-3">
-                คุณต้องการยกเลิกใบขอซื้อ {pr?.prNumber} ใช่หรือไม่?
+                {t('requisitions.detail.cancelModal.confirm', { prNumber: pr?.prNumber ?? '' })}
               </p>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                เหตุผลในการยกเลิก
+                {t('requisitions.detail.cancelModal.reasonLabel')}
               </label>
               <TextArea
                 value={cancelReason}
                 onValueChanged={(e) => setCancelReason(e.value)}
                 height={100}
-                placeholder="ระบุเหตุผลในการยกเลิก..."
+                placeholder={t('requisitions.detail.cancelModal.reasonPlaceholder')}
                 data-testid="cancel-reason"
               />
             </div>
 
             <div className="flex gap-2 justify-end mt-6">
               <Button
-                text="ปิด"
+                text={t('requisitions.detail.cancelModal.close')}
                 type="normal"
                 onClick={() => setShowCancelModal(false)}
               />
               <Button
-                text={cancelling ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
+                text={cancelling ? t('requisitions.detail.cancelModal.cancelling') : t('requisitions.detail.cancelModal.confirmCancel')}
                 type="danger"
                 stylingMode="contained"
                 onClick={handleCancelPR}
@@ -480,24 +480,24 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         <Popup
           visible={showDeleteModal}
           onHiding={() => setShowDeleteModal(false)}
-          title="ลบใบขอซื้อ"
+          title={t('requisitions.detail.deleteModal.title')}
           width={400}
           height={220}
           showCloseButton={true}
         >
           <div className="p-4">
             <p className="text-sm text-gray-600 mb-4">
-              คุณต้องการลบใบขอซื้อ <strong>{pr?.prNumber}</strong> ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้
+              {t('requisitions.detail.deleteModal.confirmPrefix')} <strong>{pr?.prNumber}</strong>{t('requisitions.detail.deleteModal.confirmSuffix')}
             </p>
 
             <div className="flex gap-2 justify-end mt-6">
               <Button
-                text="ปิด"
+                text={t('requisitions.detail.deleteModal.close')}
                 type="normal"
                 onClick={() => setShowDeleteModal(false)}
               />
               <Button
-                text={deleting ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                text={deleting ? t('requisitions.detail.deleteModal.deleting') : t('requisitions.detail.deleteModal.confirmDelete')}
                 type="danger"
                 stylingMode="contained"
                 icon="trash"

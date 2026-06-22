@@ -213,7 +213,7 @@ function LineClearanceContent() {
             <DxButton
               text="กลับไปยังใบสั่งผลิต"
               icon="arrowleft"
-              onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}` : '/production/work-orders')}
+              onClick={() => router.push(selectedWorkOrderId ? `/production/work-orders/${selectedWorkOrderId}?tab=execution` : '/production/work-orders')}
               type="normal"
               stylingMode="outlined"
             />
