@@ -11,12 +11,21 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
-import { DxTabs, DxTabItem } from '@/components/ui/dx-tabs';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
-import { ClipboardCheck, AlertCircle, CheckCircle2, Users } from 'lucide-react';
+import {
+  ClipboardCheck,
+  AlertCircle,
+  CheckCircle2,
+  Users,
+  Info,
+  Footprints,
+  Boxes,
+  FileText,
+  type LucideIcon,
+} from 'lucide-react';
 import { formatNumber } from '@/lib/utils/number-format';
 
 interface WOAssignee {
@@ -279,13 +288,13 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  const tabs: DxTabItem[] = [
-    { text: 'ภาพรวม', icon: 'info' },
-    { text: 'การดำเนินการผลิต', icon: 'runner' },
-    { text: 'วัตถุดิบ', icon: 'box' },
-    { text: 'การทดสอบ QC', icon: 'check' },
-    { text: 'ความเบี่ยงเบน', icon: 'warning' },
-    { text: 'eBMR', icon: 'doc' },
+  const tabs: { text: string; Icon: LucideIcon }[] = [
+    { text: 'ภาพรวม', Icon: Info },
+    { text: 'การดำเนินการผลิต', Icon: Footprints },
+    { text: 'วัตถุดิบ', Icon: Boxes },
+    { text: 'การทดสอบ QC', Icon: CheckCircle2 },
+    { text: 'ความเบี่ยงเบน', Icon: AlertCircle },
+    { text: 'eBMR', Icon: FileText },
   ];
 
   useEffect(() => {
@@ -904,13 +913,35 @@ export default function WorkOrderDetailPage() {
           workOrderNumber={workOrder.woNumber}
         />
 
-        {/* Tabs */}
-        <div className="no-print">
-          <DxTabs
-            items={tabs}
-            selectedIndex={activeTabIndex}
-            onItemClick={(e) => setActiveTabIndex(e.itemIndex || 0)}
-          />
+        {/* Tabs — lightweight underline bar matching the dashboard's module-KPI
+            tabs (clean blue underline on the active tab, no DevExtreme box or
+            cross-fade). Plain buttons keep tab switching instant: the body is
+            still rendered via the activeTabIndex blocks below, so there's no
+            flicker or ghosting when moving between tabs. */}
+        <div className="no-print border-b border-gray-200 overflow-x-auto">
+          <div className="flex gap-1 min-w-max" role="tablist">
+            {tabs.map((tab, index) => {
+              const active = activeTabIndex === index;
+              return (
+                <button
+                  key={tab.text}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveTabIndex(index)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-150 focus:outline-none ${
+                    active
+                      ? 'border-emerald-500 text-emerald-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                  data-testid={`wo-tab-${index}`}
+                >
+                  <tab.Icon className="h-4 w-4" />
+                  <span>{tab.text}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tab Content */}
