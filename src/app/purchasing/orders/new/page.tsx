@@ -57,12 +57,12 @@ interface POLine {
   lineTotal: number;
 }
 
-// Step configuration
+// Step configuration — labels come from i18n at render time (key per step).
 const STEPS = [
-  { id: 1, label: 'เลือกผู้ขาย', labelEn: 'Select Vendor', icon: Building2 },
-  { id: 2, label: 'รายละเอียด', labelEn: 'Details', icon: Calendar },
-  { id: 3, label: 'รายการสินค้า', labelEn: 'Items', icon: Package },
-  { id: 4, label: 'ยืนยัน', labelEn: 'Confirm', icon: Check },
+  { id: 1, key: 'stepVendor', icon: Building2 },
+  { id: 2, key: 'stepDetails', icon: Calendar },
+  { id: 3, key: 'stepItems', icon: Package },
+  { id: 4, key: 'stepConfirm', icon: Check },
 ];
 
 const formatCurrency = (amount: number) => {
@@ -350,8 +350,8 @@ export default function NewPurchaseOrderPage() {
           <button
             type="button"
             onClick={() => handleEditLine(cellInfo.data)}
-            aria-label="แก้ไขรายการ"
-            title="แก้ไข"
+            aria-label={t('orders.form.wizard.editItem')}
+            title={t('orders.form.wizard.editItem')}
             className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
           >
             <Pencil className="h-4 w-4" />
@@ -359,8 +359,8 @@ export default function NewPurchaseOrderPage() {
           <button
             type="button"
             onClick={() => handleRemoveLine(cellInfo.data.itemId)}
-            aria-label="ลบรายการ"
-            title="ลบ"
+            aria-label={t('orders.form.wizard.deleteItem')}
+            title={t('orders.form.wizard.deleteItem')}
             className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
           >
             <Trash2 className="h-4 w-4" />
@@ -378,7 +378,7 @@ export default function NewPurchaseOrderPage() {
           description={t('orders.newDescription')}
           actions={
             <DxButton
-              text="ยกเลิก"
+              text={t('orders.form.wizard.cancel')}
               icon="close"
               type="normal"
               stylingMode="outlined"
@@ -433,9 +433,8 @@ export default function NewPurchaseOrderPage() {
                             !isComplete && !isCurrent && 'text-gray-500'
                           )}
                         >
-                          {step.label}
+                          {t(`orders.form.wizard.${step.key}`)}
                         </p>
-                        <p className="text-xs text-gray-400">{step.labelEn}</p>
                       </div>
                     </button>
                     {index < STEPS.length - 1 && (
@@ -467,15 +466,15 @@ export default function NewPurchaseOrderPage() {
                       <Building2 className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">เลือกผู้ขาย</h3>
-                      <p className="text-sm text-gray-500">Select a vendor for this purchase order</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{t('orders.form.wizard.selectVendorTitle')}</h3>
+                      <p className="text-sm text-gray-500">{t('orders.form.wizard.selectVendorSubtitle')}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ผู้ขาย <span className="text-red-500">*</span>
+                        {t('orders.form.wizard.vendor')} <span className="text-red-500">*</span>
                       </label>
                       <DxSelectBox
                         items={vendorOptions}
@@ -495,7 +494,7 @@ export default function NewPurchaseOrderPage() {
                           }));
                         }}
                         disabled={loadingVendors}
-                        placeholder="-- เลือกผู้ขาย --"
+                        placeholder={t('orders.form.wizard.selectVendorPlaceholder')}
                         searchEnabled
                         showClearButton
                       />
@@ -546,7 +545,7 @@ export default function NewPurchaseOrderPage() {
 
                   <div className="flex justify-end mt-6">
                     <DxButton
-                      text="ถัดไป"
+                      text={t('orders.form.wizard.next')}
                       icon="arrowright"
                       type="default"
                       onClick={() => setCurrentStep(2)}
@@ -566,8 +565,8 @@ export default function NewPurchaseOrderPage() {
                       <Calendar className="h-6 w-6 text-orange-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">รายละเอียดการสั่งซื้อ</h3>
-                      <p className="text-sm text-gray-500">Enter order details and delivery information</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{t('orders.form.wizard.orderDetailsTitle')}</h3>
+                      <p className="text-sm text-gray-500">{t('orders.form.wizard.orderDetailsSubtitle')}</p>
                     </div>
                   </div>
 
@@ -575,13 +574,13 @@ export default function NewPurchaseOrderPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          วันที่คาดว่าจะได้รับ <span className="text-red-500">*</span>
+                          {t('orders.form.wizard.expectedDate')} <span className="text-red-500">*</span>
                         </label>
                         <DxDateBox
                           value={formData.expectedDate}
                           onValueChange={(value) => setFormData({ ...formData, expectedDate: value || '' })}
                           min={toLocalDateStr(new Date())}
-                          placeholder="เลือกวันที่"
+                          placeholder={t('orders.form.wizard.selectDate')}
                         />
                         {errors.expectedDate && (
                           <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
@@ -592,7 +591,7 @@ export default function NewPurchaseOrderPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          เงื่อนไขการชำระเงิน
+                          {t('orders.form.wizard.paymentTerms')}
                         </label>
                         <DxSelectBox
                           items={[
@@ -606,7 +605,7 @@ export default function NewPurchaseOrderPage() {
                           ]}
                           value={formData.paymentTerms}
                           onValueChange={(value) => setFormData({ ...formData, paymentTerms: value })}
-                          placeholder="เลือกเงื่อนไข"
+                          placeholder={t('orders.form.wizard.selectPaymentTerms')}
                         />
                       </div>
                     </div>
@@ -614,7 +613,7 @@ export default function NewPurchaseOrderPage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-sm font-medium text-gray-700">
-                          ที่อยู่จัดส่ง
+                          {t('orders.form.wizard.shippingAddress')}
                         </label>
                         {/* Quick-fill from the selected vendor's saved address so
                             the operator doesn't retype an address already on file.
@@ -627,14 +626,14 @@ export default function NewPurchaseOrderPage() {
                               setFormData((prev) => ({ ...prev, shippingAddress: selectedVendor.address ?? '' }))
                             }
                           >
-                            ใช้ที่อยู่ผู้ขาย ({selectedVendor.name})
+                            {t('orders.form.wizard.useVendorAddress', { name: selectedVendor.name })}
                           </button>
                         )}
                       </div>
                       <DxTextArea
                         value={formData.shippingAddress}
                         onValueChange={(value) => setFormData({ ...formData, shippingAddress: value })}
-                        placeholder="ระบุที่อยู่สำหรับจัดส่งสินค้า… หรือกด 'ใช้ที่อยู่ผู้ขาย'"
+                        placeholder={t('orders.form.wizard.shippingAddressPlaceholder')}
                         height={80}
                       />
                     </div>
@@ -646,7 +645,7 @@ export default function NewPurchaseOrderPage() {
                       <DxTextArea
                         value={formData.notes}
                         onValueChange={(value) => setFormData({ ...formData, notes: value })}
-                        placeholder="หมายเหตุเพิ่มเติม..."
+                        placeholder={t('orders.form.wizard.notesPlaceholder')}
                         height={80}
                       />
                     </div>
@@ -654,14 +653,14 @@ export default function NewPurchaseOrderPage() {
 
                   <div className="flex justify-between mt-6">
                     <DxButton
-                      text="ย้อนกลับ"
+                      text={t('orders.form.wizard.back')}
                       icon="arrowleft"
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setCurrentStep(1)}
                     />
                     <DxButton
-                      text="ถัดไป"
+                      text={t('orders.form.wizard.next')}
                       icon="arrowright"
                       type="default"
                       onClick={() => setCurrentStep(3)}
@@ -683,11 +682,11 @@ export default function NewPurchaseOrderPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">รายการสินค้า</h3>
-                        <p className="text-sm text-gray-500">Add items to your purchase order</p>
+                        <p className="text-sm text-gray-500">{t('orders.form.wizard.itemsSubtitle')}</p>
                       </div>
                     </div>
                     <DxButton
-                      text="เพิ่มสินค้า"
+                      text={t('orders.form.wizard.addItem')}
                       icon="plus"
                       type="success"
                       onClick={() => setIsItemDialogOpen(true)}
@@ -708,11 +707,11 @@ export default function NewPurchaseOrderPage() {
                         keyExpr="itemId"
                         columns={lineColumns}
                         height={300}
-                        noDataText="ไม่มีรายการสินค้า"
+                        noDataText={t('orders.form.wizard.noItems')}
                       />
                       <div className="flex justify-between items-center pt-4 mt-4 border-t">
                         <div className="text-sm text-gray-500">
-                          {lines.length} รายการ ({totalItems.toLocaleString()} หน่วย)
+                          {t('orders.form.wizard.itemsCount', { count: lines.length, units: totalItems.toLocaleString() })}
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-gray-500">ยอดรวมทั้งหมด</p>
@@ -729,7 +728,7 @@ export default function NewPurchaseOrderPage() {
                         <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                           <ShoppingCart className="h-10 w-10 text-gray-400" />
                         </div>
-                        <p className="text-gray-600 font-medium">ยังไม่มีรายการสินค้า</p>
+                        <p className="text-gray-600 font-medium">{t('orders.form.wizard.noItemsTitle')}</p>
                         <p className="text-sm text-gray-400 mt-1">
                           กดปุ่ม &quot;เพิ่มสินค้า&quot; ด้านบน เพื่อค้นหาและเพิ่มสินค้า
                         </p>
@@ -739,14 +738,14 @@ export default function NewPurchaseOrderPage() {
 
                   <div className="flex justify-between mt-6">
                     <DxButton
-                      text="ย้อนกลับ"
+                      text={t('orders.form.wizard.back')}
                       icon="arrowleft"
                       type="normal"
                       stylingMode="outlined"
                       onClick={() => setCurrentStep(2)}
                     />
                     <DxButton
-                      text="ถัดไป"
+                      text={t('orders.form.wizard.next')}
                       icon="arrowright"
                       type="default"
                       onClick={() => setCurrentStep(4)}
@@ -766,8 +765,8 @@ export default function NewPurchaseOrderPage() {
                       <Check className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">ยืนยันการสร้างใบสั่งซื้อ</h3>
-                      <p className="text-sm text-gray-500">Review and confirm your purchase order</p>
+                      <h3 className="text-lg font-semibold text-gray-900">{t('orders.form.wizard.confirmTitle')}</h3>
+                      <p className="text-sm text-gray-500">{t('orders.form.wizard.confirmSubtitle')}</p>
                     </div>
                   </div>
 
@@ -783,23 +782,23 @@ export default function NewPurchaseOrderPage() {
                     <div className="p-4 bg-gray-50 rounded-xl">
                       <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
                         <Building2 className="h-4 w-4" />
-                        ข้อมูลผู้ขาย
+                        {t('orders.form.wizard.vendorInfo')}
                       </h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-xs text-gray-500">รหัสผู้ขาย</p>
+                          <p className="text-xs text-gray-500">{t('orders.form.wizard.vendorCode')}</p>
                           <p className="font-medium">{selectedVendor?.code}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">ชื่อผู้ขาย</p>
+                          <p className="text-xs text-gray-500">{t('orders.form.wizard.vendorName')}</p>
                           <p className="font-medium">{selectedVendor?.name}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">ผู้ติดต่อ</p>
+                          <p className="text-xs text-gray-500">{t('orders.form.wizard.contactPerson')}</p>
                           <p className="font-medium">{selectedVendor?.contactPerson || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">โทรศัพท์</p>
+                          <p className="text-xs text-gray-500">{t('orders.form.wizard.phone')}</p>
                           <p className="font-medium">{selectedVendor?.phone || '-'}</p>
                         </div>
                       </div>
@@ -822,7 +821,7 @@ export default function NewPurchaseOrderPage() {
                         </div>
                         {formData.shippingAddress && (
                           <div className="col-span-2">
-                            <p className="text-xs text-gray-500">ที่อยู่จัดส่ง</p>
+                            <p className="text-xs text-gray-500">{t('orders.form.wizard.shippingAddress')}</p>
                             <p className="font-medium">{formData.shippingAddress}</p>
                           </div>
                         )}
@@ -865,7 +864,7 @@ export default function NewPurchaseOrderPage() {
                       Here we only offer "ย้อนกลับ" to avoid a duplicate button. */}
                   <div className="flex justify-start mt-6">
                     <DxButton
-                      text="ย้อนกลับ"
+                      text={t('orders.form.wizard.back')}
                       icon="arrowleft"
                       type="normal"
                       stylingMode="outlined"
@@ -888,8 +887,8 @@ export default function NewPurchaseOrderPage() {
                       <Receipt className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">สรุปใบสั่งซื้อ</h3>
-                      <p className="text-sm text-blue-100">Purchase Order Summary</p>
+                      <h3 className="font-semibold">{t('orders.form.wizard.summaryTitle')}</h3>
+                      <p className="text-sm text-blue-100">{t('orders.form.wizard.summaryTitle')}</p>
                     </div>
                   </div>
                 </div>
@@ -941,7 +940,7 @@ export default function NewPurchaseOrderPage() {
                   {/* Total Amount — goods subtotal, extra charges, VAT, grand total */}
                   <div className="pt-2">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">ยอดรวมสินค้า</span>
+                      <span className="text-gray-600">{t('orders.form.wizard.subtotal')}</span>
                       <span className="font-medium">{formatCurrency(subtotalAmount)}</span>
                     </div>
 
@@ -952,7 +951,7 @@ export default function NewPurchaseOrderPage() {
                         onClick={() => setShowCharges(true)}
                         className="text-xs text-blue-600 hover:underline mb-2"
                       >
-                        + เพิ่มค่าใช้จ่ายอื่นๆ (ค่าขนส่ง ฯลฯ)
+                        {t('orders.form.wizard.addCharges')}
                       </button>
                     ) : (
                       <div className="space-y-2 mb-2">
@@ -968,7 +967,7 @@ export default function NewPurchaseOrderPage() {
                           />
                         </div>
                         <div className="flex justify-between items-center gap-2">
-                          <span className="text-gray-600 text-sm">ค่าใช้จ่ายอื่นๆ</span>
+                          <span className="text-gray-600 text-sm">{t('orders.form.wizard.otherCharges')}</span>
                           <DxNumberBox
                             value={otherCharges ?? undefined}
                             onValueChange={(v) => setOtherCharges(v == null ? null : v)}
@@ -983,18 +982,18 @@ export default function NewPurchaseOrderPage() {
 
                     {chargesAmount > 0 && (
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">รวมค่าใช้จ่าย</span>
+                        <span className="text-gray-600">{t('orders.form.wizard.totalCharges')}</span>
                         <span className="font-medium">{formatCurrency(chargesAmount)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">VAT 7%</span>
+                      <span className="text-gray-600">{t('orders.form.wizard.vat')}</span>
                       <span className="font-medium">{formatCurrency(vatAmount)}</span>
                     </div>
 
                     <div className="flex justify-between items-center pt-3 border-t border-dashed">
-                      <span className="font-semibold text-gray-900">ยอดรวมทั้งหมด (รวม VAT)</span>
+                      <span className="font-semibold text-gray-900">{t('orders.form.wizard.grandTotal')}</span>
                       <span className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</span>
                     </div>
                   </div>
@@ -1003,14 +1002,14 @@ export default function NewPurchaseOrderPage() {
                 {/* Actions */}
                 <div className="p-5 bg-gray-50 rounded-b-lg space-y-3">
                   <DxButton
-                    text={isSubmitting ? 'กำลังสร้าง...' : 'สร้างใบสั่งซื้อ'}
+                    text={isSubmitting ? t('orders.form.wizard.creating') : t('orders.form.wizard.createPO')}
                     type="success"
                     width="100%"
                     onClick={handleSubmit}
                     disabled={!formData.vendorId || !formData.expectedDate || lines.length === 0 || isSubmitting}
                   />
                   <DxButton
-                    text="ยกเลิก"
+                    text={t('orders.form.wizard.cancel')}
                     type="normal"
                     stylingMode="text"
                     width="100%"
@@ -1028,7 +1027,7 @@ export default function NewPurchaseOrderPage() {
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleSelectItem}
-        title="ค้นหาสินค้า"
+        title={t('orders.form.wizard.searchItem')}
         showPrice="cost"
         excludeIds={lines.map((l) => l.itemId)}
       />
@@ -1040,7 +1039,7 @@ export default function NewPurchaseOrderPage() {
       <DxPopup
         visible={isQuantityDialogOpen}
         onHiding={handleQuantityDialogHiding}
-        title={editingItemId != null ? 'แก้ไขรายการสินค้า' : 'เพิ่มรายการสินค้า'}
+        title={editingItemId != null ? t('orders.form.wizard.editItemTitle') : t('orders.form.wizard.addItemTitle')}
         width={500}
         height="auto"
         showCloseButton
@@ -1057,7 +1056,7 @@ export default function NewPurchaseOrderPage() {
                     <Badge variant="info">{selectedItem.code}</Badge>
                   </div>
                   <p className="font-medium text-gray-900 mt-1">{selectedItem.nameTh || selectedItem.nameEn}</p>
-                  <p className="text-sm text-gray-500">หน่วย: {selectedItem.primaryUnit || 'unit'}</p>
+                  <p className="text-sm text-gray-500">{t('orders.form.wizard.unitLabel', { unit: selectedItem.primaryUnit || 'unit' })}</p>
                 </div>
               </div>
 
@@ -1065,7 +1064,7 @@ export default function NewPurchaseOrderPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    จำนวน <span className="text-red-500">*</span>
+                    {t('orders.form.wizard.quantity')} <span className="text-red-500">*</span>
                   </label>
                   <DxNumberBox
                     value={itemQuantity ?? undefined}
@@ -1073,12 +1072,12 @@ export default function NewPurchaseOrderPage() {
                     min={1}
                     showSpinButtons
                     format="#,##0"
-                    placeholder="ระบุจำนวน"
+                    placeholder={t('orders.form.wizard.quantityPlaceholder')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ราคาต่อหน่วย (บาท) <span className="text-red-500">*</span>
+                    {t('orders.form.wizard.unitPrice')} <span className="text-red-500">*</span>
                   </label>
                   <DxNumberBox
                     value={itemUnitPrice ?? undefined}
@@ -1086,7 +1085,7 @@ export default function NewPurchaseOrderPage() {
                     min={0}
                     showSpinButtons
                     format="#,##0.00"
-                    placeholder="ระบุราคา"
+                    placeholder={t('orders.form.wizard.unitPricePlaceholder')}
                   />
                 </div>
               </div>
@@ -1094,7 +1093,7 @@ export default function NewPurchaseOrderPage() {
               {/* Line Total Preview */}
               {!!itemQuantity && itemQuantity > 0 && itemUnitPrice != null && itemUnitPrice >= 0 && (
                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600">ยอดรวมรายการนี้</span>
+                  <span className="text-gray-600">{t('orders.form.wizard.lineTotal')}</span>
                   <span className="text-xl font-bold text-blue-600">
                     {formatCurrency(itemQuantity * itemUnitPrice)}
                   </span>
@@ -1104,13 +1103,13 @@ export default function NewPurchaseOrderPage() {
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('orders.form.wizard.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={handleCancelAddItem}
                 />
                 <DxButton
-                  text={editingItemId != null ? 'บันทึก' : 'เพิ่มรายการ'}
+                  text={editingItemId != null ? t('orders.form.wizard.save') : t('orders.form.wizard.addToOrder')}
                   icon={editingItemId != null ? 'save' : 'plus'}
                   type="success"
                   onClick={handleAddItemToOrder}
