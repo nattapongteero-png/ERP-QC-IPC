@@ -80,14 +80,14 @@ export default function NewVendorPage() {
           actions={
             <div className="flex gap-2">
               <DxButton
-                text="Back"
+                text={t('vendors.form.back')}
                 icon="back"
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => router.push('/purchasing/vendors')}
               />
               <DxButton
-                text={isSaving ? 'Saving...' : 'Save Vendor'}
+                text={isSaving ? t('vendors.form.saving') : t('vendors.form.save')}
                 icon="save"
                 type="success"
                 onClick={handleSave}
@@ -99,65 +99,65 @@ export default function NewVendorPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Vendor Information</CardTitle>
+            <CardTitle>{t('vendors.form.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vendor Code <span className="text-red-500">*</span>
+                  {t('vendors.form.code')} <span className="text-red-500">*</span>
                 </label>
                 <DxTextBox
                   value={form.code}
                   onValueChange={(value) => setForm({ ...form, code: value })}
-                  placeholder="e.g., VND001"
+                  placeholder={t('vendors.form.codePlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vendor Name <span className="text-red-500">*</span>
+                  {t('vendors.form.name')} <span className="text-red-500">*</span>
                 </label>
                 <DxTextBox
                   value={form.name}
                   onValueChange={(value) => setForm({ ...form, name: value })}
-                  placeholder="e.g., ABC Supplies Co., Ltd."
+                  placeholder={t('vendors.form.namePlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Person
+                  {t('vendors.form.contactPerson')}
                 </label>
                 <DxTextBox
                   value={form.contactPerson}
                   onValueChange={(value) => setForm({ ...form, contactPerson: value })}
-                  placeholder="e.g., John Doe"
+                  placeholder={t('vendors.form.contactPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
+                  {t('vendors.form.phone')}
                 </label>
                 <DxTextBox
                   value={form.phone}
                   onValueChange={(value) => setForm({ ...form, phone: value })}
-                  placeholder="e.g., 02-xxx-xxxx"
+                  placeholder={t('vendors.form.phonePlaceholder')}
                   mode="tel"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {t('vendors.form.email')}
                 </label>
                 <DxTextBox
                   value={form.email}
                   onValueChange={(value) => setForm({ ...form, email: value })}
-                  placeholder="e.g., contact@vendor.com"
+                  placeholder={t('vendors.form.emailPlaceholder')}
                   mode="email"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax ID
+                  {t('vendors.form.taxId')}
                 </label>
                 <DxTextBox
                   value={form.taxId}
@@ -166,47 +166,47 @@ export default function NewVendorPage() {
                     setForm({ ...form, taxId: (value ?? '').replace(/\D/g, '').slice(0, 13) })
                   }
                   maxLength={13}
-                  placeholder="เลข 13 หลัก"
+                  placeholder={t('vendors.form.taxIdPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lead Time (days)
+                  {t('vendors.form.leadTime')}
                 </label>
                 <DxTextBox
                   value={form.leadTimeDays}
                   onValueChange={(value) => setForm({ ...form, leadTimeDays: value })}
-                  placeholder="e.g., 7"
+                  placeholder={t('vendors.form.leadTimePlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Terms
+                  {t('vendors.form.paymentTerms')}
                 </label>
                 <DxTextBox
                   value={form.paymentTerms}
                   onValueChange={(value) => setForm({ ...form, paymentTerms: value })}
-                  placeholder="e.g., Net 30"
+                  placeholder={t('vendors.form.paymentTermsPlaceholder')}
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
+                  {t('vendors.form.address')}
                 </label>
                 <DxTextBox
                   value={form.address}
                   onValueChange={(value) => setForm({ ...form, address: value })}
-                  placeholder="e.g., 123 Main Street, Bangkok 10110"
+                  placeholder={t('vendors.form.addressPlaceholder')}
                 />
               </div>
               <div className="md:col-span-2 flex gap-6 pt-2">
                 <DxCheckBox
-                  text="Approved Vendor (ผู้ขายที่ได้รับการอนุมัติ)"
+                  text={t('vendors.form.approvedVendor')}
                   value={form.isApproved}
                   onValueChange={(value) => setForm({ ...form, isApproved: value })}
                 />
                 <DxCheckBox
-                  text="VMI Vendor"
+                  text={t('vendors.form.vmiVendor')}
                   value={form.isVMI}
                   onValueChange={(value) => setForm({ ...form, isVMI: value })}
                 />
