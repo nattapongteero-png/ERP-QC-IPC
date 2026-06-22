@@ -12,6 +12,7 @@ import { TextBox } from 'devextreme-react/text-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
+import { Popup } from 'devextreme-react/popup';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { PRLineGrid } from './PRLineGrid';
@@ -36,6 +37,9 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Confirm dialog before submitting for approval (submit is irreversible —
+  // it locks the PR out of draft editing).
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
 
   // Form state
   const [priority, setPriority] = useState<PRPriority>(initialData?.priority || 'normal');
@@ -225,8 +229,25 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
 
   const isEditable = !initialData || initialData.status === 'draft';
 
+  // Submit is only meaningful once the PR is saved as a draft (it needs a PR id
+  // + at least one line). Hide it until then so the operator saves the draft
+  // first, matching the documented flow.
+  const isSavedDraft = currentPrId != null;
+  const canSubmit = isSavedDraft && lines.length > 0;
+
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {mode === 'edit' ? 'แก้ไขใบขอซื้อ (PR)' : 'สร้างใบขอซื้อ (PR)'}
+        </h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {mode === 'edit'
+            ? 'แก้ไขรายละเอียดใบขอซื้อแล้วบันทึกร่าง หรือส่งขออนุมัติ'
+            : 'กรอกรายละเอียด เพิ่มรายการสินค้า แล้วบันทึกร่างก่อนส่งขออนุมัติ'}
+        </p>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" data-testid="error-message">
           {error}
@@ -323,7 +344,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         {isEditable && (
           <>
             <Button
-              text={saving ? 'Saving...' : 'Save Draft'}
+              text={saving ? 'กำลังบันทึก...' : 'บันทึกร่าง (Save Draft)'}
               type="default"
               stylingMode="outlined"
               onClick={handleSave}
@@ -331,17 +352,60 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
               data-testid="save-btn"
             />
 
-            <Button
-              text={submitting ? 'Submitting...' : 'Submit for Approval'}
-              type="success"
-              stylingMode="contained"
-              onClick={handleSubmitForApproval}
-              disabled={saving || submitting || lines.length === 0}
-              data-testid="submit-btn"
-            />
+            {/* Submit appears only after the draft is saved (note: hide Submit
+                before Save Draft). Clicking it asks for confirmation first. */}
+            {canSubmit && (
+              <Button
+                text={submitting ? 'กำลังส่ง...' : 'ส่งขออนุมัติ (Submit)'}
+                type="success"
+                stylingMode="contained"
+                onClick={() => setConfirmSubmit(true)}
+                disabled={saving || submitting}
+                data-testid="submit-btn"
+              />
+            )}
           </>
         )}
       </div>
+
+      {/* Confirm-before-submit dialog */}
+      <Popup
+        visible={confirmSubmit}
+        onHiding={() => setConfirmSubmit(false)}
+        dragEnabled={false}
+        hideOnOutsideClick
+        showTitle
+        title="ยืนยันการส่งขออนุมัติ"
+        width={420}
+        height="auto"
+        data-testid="pr-submit-confirm"
+      >
+        <div className="p-2 space-y-4">
+          <p className="text-sm text-gray-700">
+            ยืนยันส่งใบขอซื้อ {prNumber ? <b>{prNumber}</b> : 'นี้'} เข้าสู่ขั้นตอนอนุมัติ?
+            หลังส่งแล้วจะไม่สามารถแก้ไขร่างได้จนกว่าจะมีผลการอนุมัติ
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              text="ยกเลิก"
+              stylingMode="text"
+              onClick={() => setConfirmSubmit(false)}
+              disabled={submitting}
+            />
+            <Button
+              text={submitting ? 'กำลังส่ง...' : 'ยืนยันส่งขออนุมัติ'}
+              type="success"
+              stylingMode="contained"
+              onClick={() => {
+                setConfirmSubmit(false);
+                void handleSubmitForApproval();
+              }}
+              disabled={submitting}
+              data-testid="pr-submit-confirm-btn"
+            />
+          </div>
+        </div>
+      </Popup>
     </div>
   );
 }

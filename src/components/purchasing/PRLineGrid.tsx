@@ -5,10 +5,11 @@
 
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import DataGrid, {
   Column,
   Editing,
+  Lookup,
   Paging,
   Summary,
   TotalItem,
@@ -18,6 +19,10 @@ import DataGrid, {
 import { Button } from 'devextreme-react/button';
 import { ItemSearchDialog, type Item as InventoryItem } from '@/components/ui/item-search-dialog';
 import type { PRLineInput } from '@/types/purchase-requisition';
+
+// Standard units always offered in the หน่วยนับ dropdown, merged with any unit
+// configured on the items the user has added (their primary/secondary units).
+const STANDARD_UNITS = ['EA', 'kg', 'g', 'mg', 'L', 'mL', 'box', 'bottle', 'pack', 'roll'];
 
 interface PRLineGridProps {
   lines: PRLineInput[];
@@ -29,8 +34,25 @@ interface PRLineGridProps {
 export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGridProps) {
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [itemSearchOpen, setItemSearchOpen] = useState(false);
+  // Units gathered from the items the user has picked (primary + secondary),
+  // so the หน่วยนับ dropdown reflects each item's configured units.
+  const [itemUnits, setItemUnits] = useState<string[]>([]);
+
+  // Dropdown options for หน่วยนับ: item-configured units + current line units +
+  // a standard fallback list, de-duplicated.
+  const unitOptions = useMemo(() => {
+    const set = new Set<string>();
+    itemUnits.forEach((u) => u && set.add(u));
+    lines.forEach((l) => l.unitOfMeasure && set.add(l.unitOfMeasure));
+    STANDARD_UNITS.forEach((u) => set.add(u));
+    return Array.from(set).map((u) => ({ value: u, label: u }));
+  }, [itemUnits, lines]);
 
   const handleSelectFromInventory = useCallback((item: InventoryItem) => {
+    const units = [item.primaryUnit, item.secondaryUnit].filter(
+      (u): u is string => !!u,
+    );
+    if (units.length) setItemUnits((prev) => Array.from(new Set([...prev, ...units])));
     const newLine: PRLineInput = {
       itemId: item.id,
       itemCode: item.code,
@@ -111,12 +133,16 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         onRowRemoved={handleRowRemoved}
         data-testid="pr-lines-grid"
       >
+        {/* Cell editing — each cell is directly editable on click (no need to
+            press an edit/pencil icon first). */}
         <Editing
-          mode="row"
+          mode="cell"
           allowAdding={editable}
           allowUpdating={editable}
           allowDeleting={editable}
           useIcons={true}
+          startEditAction="click"
+          selectTextOnEditStart={true}
         />
         <Paging defaultPageSize={10} />
 
@@ -160,10 +186,14 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         <Column
           dataField="unitOfMeasure"
           caption="หน่วยนับ"
-          width={80}
+          width={110}
           validationRules={[{ type: 'required', message: 'กรุณาระบุหน่วยนับ' }]}
           data-testid="col-uom"
-        />
+        >
+          {/* Dropdown sourced from the selected items' configured units +
+              standard units (acceptCustomValue lets the user type a new one). */}
+          <Lookup dataSource={unitOptions} valueExpr="value" displayExpr="label" allowClearing={false} />
+        </Column>
         <Column
           dataField="estimatedUnitPrice"
           caption="ราคาต่อหน่วย"
