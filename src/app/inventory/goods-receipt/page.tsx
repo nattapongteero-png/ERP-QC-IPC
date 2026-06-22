@@ -245,7 +245,12 @@ export default function GoodsReceiptListPage() {
         />
       </DxDataGrid>
 
-      {/* Cancel GRN popup */}
+      {/* Cancel GRN popup.
+          Uses contentRender (not plain children) so DevExtreme portals the body
+          INTO the popup's content area. Passing children directly made the form
+          leak out and render BELOW the grid while the popup itself showed empty
+          (DevExpress T1064246) — exactly the "empty popup + duplicate form under
+          the table" the user hit. */}
       <Popup
         visible={!!cancelTarget}
         onHiding={() => setCancelTarget(null)}
@@ -255,36 +260,39 @@ export default function GoodsReceiptListPage() {
         title={t('actions.cancelGrn')}
         width={460}
         height="auto"
-      >
-        {cancelTarget && (
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-gray-800">{cancelTarget.grnNumber}</p>
-            <p className="text-sm text-gray-600">{t('cancel.warning')}</p>
-            <div>
-              <label className="block text-sm font-medium mb-1">{t('cancel.reasonLabel')}</label>
-              <TextArea
-                value={cancelReason}
-                onValueChanged={(e) => setCancelReason(e.value ?? '')}
-                height={90}
-                placeholder={t('cancel.reasonPlaceholder')}
-              />
+        contentRender={() =>
+          cancelTarget ? (
+            <div className="space-y-4 p-2">
+              <p className="text-sm font-medium text-gray-800">{cancelTarget.grnNumber}</p>
+              <p className="text-sm text-gray-600">{t('cancel.warning')}</p>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('cancel.reasonLabel')}</label>
+                <TextArea
+                  value={cancelReason}
+                  onValueChanged={(e) => setCancelReason(e.value ?? '')}
+                  height={90}
+                  placeholder={t('cancel.reasonPlaceholder')}
+                />
+              </div>
+              {cancelMut.isError && (
+                <p className="text-sm text-red-600">{(cancelMut.error as Error)?.message}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setCancelTarget(null)} />
+                <Button
+                  text={t('actions.cancelGrn')}
+                  type="danger"
+                  stylingMode="contained"
+                  disabled={cancelReason.trim().length < 10 || cancelMut.isPending}
+                  onClick={() => cancelMut.mutate()}
+                />
+              </div>
             </div>
-            {cancelMut.isError && (
-              <p className="text-sm text-red-600">{(cancelMut.error as Error)?.message}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setCancelTarget(null)} />
-              <Button
-                text={t('actions.cancelGrn')}
-                type="danger"
-                stylingMode="contained"
-                disabled={cancelReason.trim().length < 10 || cancelMut.isPending}
-                onClick={() => cancelMut.mutate()}
-              />
-            </div>
-          </div>
-        )}
-      </Popup>
+          ) : (
+            <div />
+          )
+        }
+      />
     </div>
   );
 }
