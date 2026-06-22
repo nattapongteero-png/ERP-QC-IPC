@@ -12,7 +12,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
-import { TextArea } from 'devextreme-react/text-area';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs, ConfirmationDialog } from '@/components/shared';
 import { useToast } from '@/hooks/use-toast';
@@ -228,7 +227,15 @@ export default function InspectionHistoryPage() {
         />
       </DataGrid>
 
-      {/* View / edit popup */}
+      {/* View / edit popup.
+          The body is ALWAYS mounted (never swapped on the editMode toggle). Each
+          editable cell renders both the read-only <span> and the edit <input> at
+          once, toggling visibility with CSS `hidden` rather than mounting /
+          unmounting nodes. Adding or removing a DOM node inside the DevExtreme
+          popup overlay (managed outside React's tree) is what threw
+          insertBefore/removeChild (NotFoundError) → global error page. Keeping the
+          node set constant means React only flips classNames, so the overlay's
+          DOM never shifts under it. (Verified fix; matches water-quality.) */}
       <Popup
         visible={viewId != null}
         onHiding={closeView}
@@ -267,59 +274,53 @@ export default function InspectionHistoryPage() {
                           {r.label} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}
                         </td>
                         <td className="p-2">
-                          {/* Plain <input> (not DevExtreme NumberBox), always
-                              stable across view↔edit — swapping a span for a
-                              DevExtreme widget inside the popup-overlay <td>
-                              threw an insertBefore DOM error → error page. */}
-                          {editMode ? (
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.01"
-                              className="w-24 border rounded px-2 py-1 text-sm"
-                              value={draft.results[r.id]?.numericValue ?? ''}
-                              onChange={(e) =>
-                                setDraft((prev) => ({
-                                  ...prev,
-                                  results: {
-                                    ...prev.results,
-                                    [r.id]: {
-                                      numericValue: e.target.value === '' ? null : Number(e.target.value),
-                                      remarks: prev.results[r.id]?.remarks ?? '',
-                                    },
+                          {/* Both nodes always mounted; only the `hidden` class
+                              flips on editMode. Mounting/unmounting a node inside
+                              the DevExtreme popup overlay is what threw the
+                              insertBefore DOM error → error page. */}
+                          <span className={editMode ? 'hidden' : ''}>{r.numericValue ?? '—'}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            className={`w-24 border rounded px-2 py-1 text-sm ${editMode ? '' : 'hidden'}`}
+                            value={draft.results[r.id]?.numericValue ?? ''}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                results: {
+                                  ...prev.results,
+                                  [r.id]: {
+                                    numericValue: e.target.value === '' ? null : Number(e.target.value),
+                                    remarks: prev.results[r.id]?.remarks ?? '',
                                   },
-                                }))
-                              }
-                            />
-                          ) : (
-                            <span>{r.numericValue ?? '—'}</span>
-                          )}
+                                },
+                              }))
+                            }
+                          />
                         </td>
                         <td className="p-2 text-gray-500">
                           {r.specMinSnapshot ?? '-'} – {r.specMaxSnapshot ?? '-'}
                         </td>
                         <td className="p-2">{resultBadge(r.result)}</td>
                         <td className="p-2">
-                          {editMode ? (
-                            <input
-                              className="w-full border rounded px-2 py-1 text-sm"
-                              value={draft.results[r.id]?.remarks ?? ''}
-                              onChange={(e) =>
-                                setDraft((prev) => ({
-                                  ...prev,
-                                  results: {
-                                    ...prev.results,
-                                    [r.id]: {
-                                      numericValue: prev.results[r.id]?.numericValue ?? r.numericValue,
-                                      remarks: e.target.value,
-                                    },
+                          <span className={`text-gray-600 ${editMode ? 'hidden' : ''}`}>{r.remarks ?? '—'}</span>
+                          <input
+                            className={`w-full border rounded px-2 py-1 text-sm ${editMode ? '' : 'hidden'}`}
+                            value={draft.results[r.id]?.remarks ?? ''}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                results: {
+                                  ...prev.results,
+                                  [r.id]: {
+                                    numericValue: prev.results[r.id]?.numericValue ?? r.numericValue,
+                                    remarks: e.target.value,
                                   },
-                                }))
-                              }
-                            />
-                          ) : (
-                            <span className="text-gray-600">{r.remarks ?? '—'}</span>
-                          )}
+                                },
+                              }))
+                            }
+                          />
                         </td>
                       </tr>
                     ))}
@@ -329,43 +330,40 @@ export default function InspectionHistoryPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">หมายเหตุการตรวจ</label>
-                {editMode ? (
-                  <TextArea
-                    value={draft.notes}
-                    height={60}
-                    onValueChanged={(e) => setDraft((prev) => ({ ...prev, notes: String(e.value ?? '') }))}
-                  />
-                ) : (
-                  <div className="text-sm text-gray-700">{detail.notes ?? '—'}</div>
-                )}
+                {/* Both nodes always mounted; CSS toggle only. Plain <textarea>
+                    (not DevExtreme TextArea) for overlay-DOM stability. */}
+                <div className={`text-sm text-gray-700 ${editMode ? 'hidden' : ''}`}>{detail.notes ?? '—'}</div>
+                <textarea
+                  className={`w-full border rounded px-2 py-1 text-sm ${editMode ? '' : 'hidden'}`}
+                  rows={2}
+                  value={draft.notes}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                />
               </div>
 
-              {editMode && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs">
-                  ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log (ใคร/แก้อะไร/เมื่อไหร่) — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
-                </div>
-              )}
+              <div className={`bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs ${editMode ? '' : 'hidden'}`}>
+                ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log (ใคร/แก้อะไร/เมื่อไหร่) — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
+              </div>
 
+              {/* All four buttons always mounted; the inactive pair is hidden via
+                  CSS so the overlay's DOM never changes shape on editMode. */}
               <div className="flex justify-end gap-2 pt-2">
-                {!editMode ? (
-                  <>
-                    <Button text="ปิด" stylingMode="text" onClick={closeView} />
-                    <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
-                      <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
-                    <Button
-                      type="success"
-                      stylingMode="contained"
-                      text="บันทึกการแก้ไข"
-                      disabled={saveMut.isPending}
-                      onClick={() => saveMut.mutate()}
-                    />
-                  </>
-                )}
+                <div className={`flex gap-2 ${editMode ? 'hidden' : ''}`}>
+                  <Button text="ปิด" stylingMode="text" onClick={closeView} />
+                  <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
+                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
+                  </Button>
+                </div>
+                <div className={`flex gap-2 ${editMode ? '' : 'hidden'}`}>
+                  <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
+                  <Button
+                    type="success"
+                    stylingMode="contained"
+                    text="บันทึกการแก้ไข"
+                    disabled={saveMut.isPending}
+                    onClick={() => saveMut.mutate()}
+                  />
+                </div>
               </div>
             </>
           )}

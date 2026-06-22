@@ -373,7 +373,15 @@ export default function WaterQualityRecordsPage() {
         </div>
       </Popup>
 
-      {/* ===== View / edit ===== */}
+      {/* ===== View / edit =====
+          The body is ALWAYS mounted (never swapped on the editMode toggle). Each
+          measured value renders both the read-only <span> and the edit <input>
+          at once, toggling visibility with CSS `hidden` rather than mounting /
+          unmounting nodes. Adding or removing a DOM node inside the DevExtreme
+          popup overlay (which DevExtreme manages outside React's tree) is what
+          threw insertBefore/removeChild (NotFoundError) → global error page.
+          Keeping the node set constant means React only flips classNames, so the
+          overlay's DOM never shifts under it. */}
       <Popup
         visible={viewId != null}
         onHiding={closeView}
@@ -409,32 +417,28 @@ export default function WaterQualityRecordsPage() {
                       <tr key={r.id} className="border-t">
                         <td className="p-2">{r.parameter} {r.unit ? <span className="text-gray-400">({r.unit})</span> : null}</td>
                         <td className="p-2">
-                          {/* Plain <input> (not DevExtreme NumberBox) and always
-                              mounted — only its readOnly toggles. Swapping a
-                              <span> for a DevExtreme widget inside a <td> that
-                              the popup overlay manages threw an insertBefore DOM
-                              error → error page. A plain input keeps the DOM
-                              structure stable across the view↔edit toggle. */}
-                          {editMode ? (
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.001"
-                              className="w-28 border rounded px-2 py-1 text-sm"
-                              value={draft.results[r.id] ?? ''}
-                              onChange={(e) =>
-                                setDraft((prev) => ({
-                                  ...prev,
-                                  results: {
-                                    ...prev.results,
-                                    [r.id]: e.target.value === '' ? null : Number(e.target.value),
-                                  },
-                                }))
-                              }
-                            />
-                          ) : (
-                            <span>{r.numericValue ?? '—'}</span>
-                          )}
+                          {/* Both the read-only span and the edit input are
+                              ALWAYS mounted; only their `hidden` class flips on
+                              editMode. Mounting/unmounting a node inside the
+                              DevExtreme popup overlay is what threw the
+                              insertBefore DOM error → error page. */}
+                          <span className={editMode ? 'hidden' : ''}>{r.numericValue ?? '—'}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.001"
+                            className={`w-28 border rounded px-2 py-1 text-sm ${editMode ? '' : 'hidden'}`}
+                            value={draft.results[r.id] ?? ''}
+                            onChange={(e) =>
+                              setDraft((prev) => ({
+                                ...prev,
+                                results: {
+                                  ...prev.results,
+                                  [r.id]: e.target.value === '' ? null : Number(e.target.value),
+                                },
+                              }))
+                            }
+                          />
                         </td>
                         <td className="p-2 text-gray-500">{r.specMinSnapshot ?? '-'} – {r.specMaxSnapshot ?? '-'}</td>
                         <td className="p-2">{resultBadge(r.result)}</td>
@@ -446,40 +450,33 @@ export default function WaterQualityRecordsPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
-                {editMode ? (
-                  // Plain <textarea> (not DevExtreme TextArea) for the same
-                  // overlay-DOM-stability reason as the value inputs above.
-                  <textarea
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    rows={2}
-                    value={draft.notes}
-                    onChange={(e) => setDraft((prev) => ({ ...prev, notes: e.target.value }))}
-                  />
-                ) : (
-                  <div className="text-sm text-gray-700">{detail.notes ?? '—'}</div>
-                )}
+                {/* Both nodes always mounted; CSS toggle only (see value cell). */}
+                <div className={`text-sm text-gray-700 ${editMode ? 'hidden' : ''}`}>{detail.notes ?? '—'}</div>
+                <textarea
+                  className={`w-full border rounded px-2 py-1 text-sm ${editMode ? '' : 'hidden'}`}
+                  rows={2}
+                  value={draft.notes}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                />
               </div>
 
-              {editMode && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs">
-                  ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
-                </div>
-              )}
+              <div className={`bg-amber-50 border border-amber-200 text-amber-900 rounded p-2 text-xs ${editMode ? '' : 'hidden'}`}>
+                ⚠️ การแก้ไขผลตรวจที่เซ็นชื่อแล้วจะถูกบันทึกใน audit log — ผล "ผ่าน/ไม่ผ่าน" จะคำนวณใหม่ตามเกณฑ์เดิม
+              </div>
 
+              {/* All four buttons always mounted; the inactive pair is hidden via
+                  CSS so the overlay's DOM never changes shape on editMode. */}
               <div className="flex justify-end gap-2 pt-2">
-                {!editMode ? (
-                  <>
-                    <Button text="ปิด" stylingMode="text" onClick={closeView} />
-                    <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
-                      <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
-                    <Button type="success" stylingMode="contained" text="บันทึกการแก้ไข" disabled={saveMut.isPending} onClick={() => saveMut.mutate()} />
-                  </>
-                )}
+                <div className={`flex gap-2 ${editMode ? 'hidden' : ''}`}>
+                  <Button text="ปิด" stylingMode="text" onClick={closeView} />
+                  <Button type="default" stylingMode="contained" onClick={() => startEdit(detail)}>
+                    <span className="inline-flex items-center gap-1"><Pencil className="w-4 h-4" /> แก้ไข</span>
+                  </Button>
+                </div>
+                <div className={`flex gap-2 ${editMode ? '' : 'hidden'}`}>
+                  <Button text="ยกเลิก" stylingMode="text" onClick={() => setEditMode(false)} disabled={saveMut.isPending} />
+                  <Button type="success" stylingMode="contained" text="บันทึกการแก้ไข" disabled={saveMut.isPending} onClick={() => saveMut.mutate()} />
+                </div>
               </div>
             </>
           )}
