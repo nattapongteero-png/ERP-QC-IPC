@@ -370,6 +370,27 @@ function findParentForPath(pathname: string, navItems: NavItem[]): string | null
   return childMatch?.name ?? null;
 }
 
+// Persist the open groups + scroll position across the Sidebar remounts that
+// happen on every cross-module navigation (each module has its own layout.tsx
+// that renders MainLayout → Sidebar, so moving between modules unmounts and
+// remounts the rail). Without this the expanded group collapsed and the scroll
+// jumped back to the top on each navigation. sessionStorage keeps it stable for
+// the tab's lifetime.
+const EXPANDED_KEY = 'sidebar:expandedItems';
+const SCROLL_KEY = 'sidebar:scrollTop';
+
+function readExpanded(): string[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(EXPANDED_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
 export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const prevPathnameRef = useRef<string | null>(null);
@@ -384,11 +405,46 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
   // a "new" dependency every render and churn.
   const filteredNavigation = useMemo(() => getFilteredNavigation(user?.role), [user?.role]);
 
-  // Initialize expanded items with parent of current route
+  // Initialize expanded items from sessionStorage (survives remount) and fall
+  // back to the parent group of the current route on first ever load.
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    const persisted = readExpanded();
+    if (persisted) return persisted;
     const parentName = findParentForPath(pathname, filteredNavigation);
     return parentName ? [parentName] : [];
   });
+
+  // Mirror expanded groups into sessionStorage whenever they change.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(EXPANDED_KEY, JSON.stringify(expandedItems));
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, [expandedItems]);
+
+  // Restore the saved scroll position on mount, then keep it saved as the user
+  // scrolls. This makes the rail stay exactly where it was across navigations.
+  useEffect(() => {
+    const scroller = navScrollRef.current;
+    if (!scroller) return;
+    try {
+      const saved = window.sessionStorage.getItem(SCROLL_KEY);
+      if (saved) scroller.scrollTop = Number(saved) || 0;
+    } catch {
+      /* ignore */
+    }
+    const onScroll = () => {
+      try {
+        window.sessionStorage.setItem(SCROLL_KEY, String(scroller.scrollTop));
+      } catch {
+        /* ignore */
+      }
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Auto-expand the parent group ONLY when the route actually changes (i.e. the
   // user navigated to a new page). This must NOT depend on expandedItems —
@@ -523,11 +579,13 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                   <button
                     onClick={(e) => toggleExpand(item.name, e)}
                     data-active={isActive(item.href) ? 'true' : undefined}
+                    aria-expanded={isExpanded(item.name)}
                     className={cn(
                       'w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium',
                       'transition-all duration-200 ease-out',
                       'motion-reduce:transition-none',
                       'group',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900',
                       isActive(item.href)
                         ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
                         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
@@ -584,12 +642,14 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                           href={child.href}
                           onClick={handleLinkClick}
                           data-active={isChildActive(child.href) ? 'true' : undefined}
+                          aria-current={isChildActive(child.href) ? 'page' : undefined}
                           className={cn(
                             'flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-sm',
                             'transition-all duration-200 ease-out',
                             'motion-reduce:transition-none',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900',
                             isChildActive(child.href)
-                              ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                              ? 'bg-emerald-500/10 text-emerald-400 font-medium border-l-2 border-emerald-400 -ml-[2px] pl-[calc(0.5rem+2px)] md:pl-[calc(0.75rem+2px)]'
                               : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           )}
                         >
@@ -613,11 +673,13 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                   href={item.href}
                   onClick={handleLinkClick}
                   data-active={isActive(item.href) ? 'true' : undefined}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-sm font-medium',
                     'transition-all duration-200 ease-out',
                     'motion-reduce:transition-none',
                     'group',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900',
                     isActive(item.href)
                       ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/20'
                       : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'

@@ -6,15 +6,9 @@ import { Sidebar } from './sidebar';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useVmiAutoSync } from '@/hooks/use-vmi-auto-sync';
+import { useCachedSession, clearCachedSession } from '@/hooks/use-cached-session';
 import { CompactLanguageSwitcher } from '@/components/shared/language-switcher';
 import { NotificationBell } from '@/components/equipment-notifications/NotificationBell';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-}
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -22,28 +16,17 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Session is served from an in-memory cache so navigating between modules
+  // (which remounts MainLayout, because each module has its own layout.tsx)
+  // no longer re-fetches the session or flashes the loading spinner — the
+  // "feels like a reload" symptom the sidebar had.
+  const { user, isLoading, unauthenticated } = useCachedSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Redirect to login only once the session has resolved to "no user".
   useEffect(() => {
-    // Check session on mount
-    fetch('/api/auth/session')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data?.user) {
-          setUser(data.data.user);
-        } else {
-          router.push('/login');
-        }
-      })
-      .catch(() => {
-        router.push('/login');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [router]);
+    if (unauthenticated) router.push('/login');
+  }, [unauthenticated, router]);
 
   // Close sidebar when clicking outside on mobile/tablet
   useEffect(() => {
@@ -63,6 +46,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+      clearCachedSession();
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);

@@ -250,70 +250,80 @@ function StandardWeightFormInner({
         }
       />
 
-      {/* ── Identity (create-only fields) ── */}
-      {mode === 'create' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-emerald-600" />
-              ข้อมูลลูกตุ้ม
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.code.label')} *
-                </label>
-                <DxTextBox
-                  value={formData.code}
-                  onValueChange={(v) => set('code', v)}
-                  placeholder="เช่น SW-001"
-                  elementAttr={{ 'data-testid': 'sw-code' }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.accuracyClass.label')} *
-                </label>
-                <DxSelectBox
-                  dataSource={ACCURACY_CLASS_OPTIONS}
-                  displayExpr="label"
-                  valueExpr="value"
-                  value={formData.accuracyClass}
-                  onValueChanged={(e) => set('accuracyClass', e.value as AccuracyClass)}
-                  placeholder="เลือกชั้นความแม่นยำ"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.denominationValue.label')} *
-                </label>
-                <DxNumberBox
-                  value={formData.denominationValue}
-                  onValueChange={(v) => set('denominationValue', v ?? 0)}
-                  min={0}
-                  step={0.0001}
-                  format="#0.0000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.denominationUnit.label')} *
-                </label>
-                <DxSelectBox
-                  dataSource={UNIT_OPTIONS}
-                  displayExpr="label"
-                  valueExpr="value"
-                  value={formData.denominationUnit}
-                  onValueChanged={(e) => set('denominationUnit', e.value as DenominationUnit)}
-                  placeholder="เลือกหน่วย"
-                />
-              </div>
+      {/* ── Identity ──
+          Shown in BOTH modes. On create the fields are editable; on edit they
+          are read-only (the PUT route does not accept code / denomination /
+          accuracy class — they are immutable once the weight exists). Rendering
+          them read-only on edit means the user actually SEES which weight they
+          are editing instead of a form that looks empty like "add new". */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Scale className="h-5 w-5 text-emerald-600" />
+            ข้อมูลลูกตุ้ม
+            {mode === 'edit' && (
+              <span className="text-xs font-normal text-gray-400">(แก้ไขไม่ได้)</span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('form.code.label')} *
+              </label>
+              <DxTextBox
+                value={formData.code}
+                onValueChange={(v) => set('code', v)}
+                placeholder="เช่น SW-001"
+                readOnly={mode === 'edit'}
+                elementAttr={{ 'data-testid': 'sw-code' }}
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('form.accuracyClass.label')} *
+              </label>
+              <DxSelectBox
+                dataSource={ACCURACY_CLASS_OPTIONS}
+                displayExpr="label"
+                valueExpr="value"
+                value={formData.accuracyClass}
+                onValueChanged={(e) => set('accuracyClass', e.value as AccuracyClass)}
+                placeholder="เลือกชั้นความแม่นยำ"
+                readOnly={mode === 'edit'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('form.denominationValue.label')} *
+              </label>
+              <DxNumberBox
+                value={formData.denominationValue}
+                onValueChange={(v) => set('denominationValue', v ?? 0)}
+                min={0}
+                step={0.0001}
+                format="#0.0000"
+                readOnly={mode === 'edit'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('form.denominationUnit.label')} *
+              </label>
+              <DxSelectBox
+                dataSource={UNIT_OPTIONS}
+                displayExpr="label"
+                valueExpr="value"
+                value={formData.denominationUnit}
+                onValueChanged={(e) => set('denominationUnit', e.value as DenominationUnit)}
+                placeholder="เลือกหน่วย"
+                readOnly={mode === 'edit'}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Certificate ── */}
       <Card>
