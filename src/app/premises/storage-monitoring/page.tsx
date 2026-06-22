@@ -141,6 +141,13 @@ export default function StorageMonitoringPage() {
     };
   }, [logs]);
 
+  // Stable option list for the warehouse SelectBox — a fresh array each render
+  // can make DevExtreme drop the currently-selected display value.
+  const warehouseOptions = useMemo(
+    () => warehouses.map((w) => ({ id: w.id, name: `${w.code} — ${w.name}` })),
+    [warehouses],
+  );
+
   const openCreate = () => {
     setEditingId(null);
     setLogForm({ ...emptyForm });
@@ -431,13 +438,15 @@ export default function StorageMonitoringPage() {
           height="auto"
           showCloseButton
         >
-          <div className="space-y-3 p-2">
+          {/* key per record forces the DevExtreme editors to remount with the
+              correct initial value. Without it the SelectBox/DateBox kept the
+              value they had when the dialog first mounted (empty, from "บันทึกค่า")
+              and didn't re-sync on edit — so คลัง + วันเวลา showed blank even
+              though logForm held them. */}
+          <div key={editingId ?? 'new'} className="space-y-3 p-2">
             <DxSelectBox
               placeholder="เลือกคลัง *"
-              dataSource={warehouses.map((w) => ({
-                id: w.id,
-                name: `${w.code} — ${w.name}`,
-              }))}
+              dataSource={warehouseOptions}
               valueExpr="id"
               displayExpr="name"
               value={logForm.warehouseId}

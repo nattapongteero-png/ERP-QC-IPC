@@ -10,7 +10,7 @@
  * Master data (systems / sample points / specs) is managed on the separate
  * configuration page: /premises/environmental/water-quality/settings
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -82,6 +82,9 @@ export default function WaterQualityRecordsPage() {
   // ---- view / edit / delete ----
   const [viewId, setViewId] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
+  // When the user clicks "แก้ไข" in the table we open the same popup but want it
+  // to enter edit mode as soon as the record detail finishes loading.
+  const [wantEditOnLoad, setWantEditOnLoad] = useState(false);
   const [draft, setDraft] = useState<{ notes: string; results: Record<number, number | null> }>({ notes: '', results: {} });
   const [deleteTarget, setDeleteTarget] = useState<TestRow | null>(null);
 
@@ -176,6 +179,16 @@ export default function WaterQualityRecordsPage() {
     setEditMode(true);
   };
 
+  // When opened via the "แก้ไข" action, jump straight into edit mode once the
+  // record's detail (incl. its results) has loaded for this viewId.
+  useEffect(() => {
+    if (wantEditOnLoad && detail && detail.id === viewId) {
+      startEdit(detail);
+      setWantEditOnLoad(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantEditOnLoad, detail, viewId]);
+
   const saveMut = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/environmental/water-tests/${viewId}`, {
@@ -191,10 +204,18 @@ export default function WaterQualityRecordsPage() {
       return body;
     },
     onSuccess: () => {
+      // Close the popup BEFORE invalidating. Invalidating ['water-tests'] while
+      // the DevExtreme Popup is still mounted re-renders the underlying DataGrid
+      // under the open overlay; DevExtreme then hits a DOM node it no longer owns
+      // and throws an insertBefore/removeChild error that escapes to the global
+      // error boundary (the "เกิดข้อผิดพลาด" page). Unmounting the popup first
+      // lets React settle the overlay before the grid refreshes.
+      const editedId = viewId;
+      setEditMode(false);
+      setViewId(null);
       toast.success('แก้ไขผลตรวจแล้ว (บันทึกใน audit log)');
       qc.invalidateQueries({ queryKey: ['water-tests'] });
-      qc.invalidateQueries({ queryKey: ['water-test', viewId] });
-      setEditMode(false);
+      if (editedId != null) qc.invalidateQueries({ queryKey: ['water-test', editedId] });
     },
     onError: (e: Error) => toast.error('บันทึกไม่สำเร็จ', e.message),
   });
@@ -215,7 +236,7 @@ export default function WaterQualityRecordsPage() {
     onError: (e: Error) => toast.error('ลบไม่สำเร็จ', e.message),
   });
 
-  const closeView = () => { setViewId(null); setEditMode(false); };
+  const closeView = () => { setViewId(null); setEditMode(false); setWantEditOnLoad(false); };
 
   return (
     <div className="p-6 space-y-4">
@@ -278,10 +299,10 @@ export default function WaterQualityRecordsPage() {
             const row = c.data as TestRow;
             return (
               <div className="flex gap-1">
-                <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`wq-view-${row.id}`}>
+                <Button stylingMode="outlined" onClick={() => { setWantEditOnLoad(false); setEditMode(false); setViewId(row.id); }} data-testid={`wq-view-${row.id}`}>
                   <span className="inline-flex items-center gap-1 text-xs"><Eye className="w-3 h-3" /> ดู</span>
                 </Button>
-                <Button stylingMode="outlined" onClick={() => { setViewId(row.id); setEditMode(false); }} data-testid={`wq-edit-${row.id}`}>
+                <Button stylingMode="outlined" onClick={() => { setWantEditOnLoad(true); setEditMode(false); setViewId(row.id); }} data-testid={`wq-edit-${row.id}`}>
                   <span className="inline-flex items-center gap-1 text-xs"><Pencil className="w-3 h-3" /> แก้ไข</span>
                 </Button>
                 <Button stylingMode="text" type="danger" onClick={() => setDeleteTarget(row)} data-testid={`wq-delete-${row.id}`}>
