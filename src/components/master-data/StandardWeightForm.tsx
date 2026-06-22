@@ -65,6 +65,29 @@ const EMPTY_FORM: FormState = {
   notes: '',
 };
 
+/** Read-only labelled value, styled to match the form's input fields. */
+function ReadOnlyField({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string;
+  testId?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div
+        className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#F4FAF7] px-3 py-2 text-[#0F2E22] min-h-[40px] flex items-center"
+        data-testid={testId}
+      >
+        {value || '—'}
+      </div>
+    </div>
+  );
+}
+
 export function StandardWeightForm({ mode, id }: StandardWeightFormProps) {
   const { data: existingWeight, isLoading: isLoadingWeight } = useQuery<StandardWeight | undefined>({
     queryKey: ['standard-weight-single', id],
@@ -267,61 +290,88 @@ function StandardWeightFormInner({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.code.label')} *
-              </label>
-              <DxTextBox
-                value={formData.code}
-                onValueChange={(v) => set('code', v)}
-                placeholder="เช่น SW-001"
-                readOnly={mode === 'edit'}
-                elementAttr={{ 'data-testid': 'sw-code' }}
+          {mode === 'edit' ? (
+            // Edit mode — identity is immutable (the PUT route rejects these
+            // fields). Render as read-only text rather than disabled DevExtreme
+            // editors: a readOnly DxSelectBox shows its placeholder instead of
+            // the selected label, which made Class/หน่วย look empty.
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ReadOnlyField label={`${t('form.code.label')}`} value={formData.code} testId="sw-code" />
+              <ReadOnlyField
+                label={`${t('form.accuracyClass.label')}`}
+                value={
+                  ACCURACY_CLASS_OPTIONS.find((o) => o.value === formData.accuracyClass)?.label ??
+                  formData.accuracyClass
+                }
+              />
+              <ReadOnlyField
+                label={`${t('form.denominationValue.label')}`}
+                value={Number(formData.denominationValue).toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 4,
+                })}
+              />
+              <ReadOnlyField
+                label={`${t('form.denominationUnit.label')}`}
+                value={
+                  UNIT_OPTIONS.find((o) => o.value === formData.denominationUnit)?.label ??
+                  formData.denominationUnit
+                }
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.accuracyClass.label')} *
-              </label>
-              <DxSelectBox
-                dataSource={ACCURACY_CLASS_OPTIONS}
-                displayExpr="label"
-                valueExpr="value"
-                value={formData.accuracyClass}
-                onValueChanged={(e) => set('accuracyClass', e.value as AccuracyClass)}
-                placeholder="เลือกชั้นความแม่นยำ"
-                readOnly={mode === 'edit'}
-              />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('form.code.label')} *
+                </label>
+                <DxTextBox
+                  value={formData.code}
+                  onValueChange={(v) => set('code', v)}
+                  placeholder="เช่น SW-001"
+                  elementAttr={{ 'data-testid': 'sw-code' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('form.accuracyClass.label')} *
+                </label>
+                <DxSelectBox
+                  dataSource={ACCURACY_CLASS_OPTIONS}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={formData.accuracyClass}
+                  onValueChanged={(e) => set('accuracyClass', e.value as AccuracyClass)}
+                  placeholder="เลือกชั้นความแม่นยำ"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('form.denominationValue.label')} *
+                </label>
+                <DxNumberBox
+                  value={formData.denominationValue}
+                  onValueChange={(v) => set('denominationValue', v ?? 0)}
+                  min={0}
+                  step={0.0001}
+                  format="#0.0000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('form.denominationUnit.label')} *
+                </label>
+                <DxSelectBox
+                  dataSource={UNIT_OPTIONS}
+                  displayExpr="label"
+                  valueExpr="value"
+                  value={formData.denominationUnit}
+                  onValueChanged={(e) => set('denominationUnit', e.value as DenominationUnit)}
+                  placeholder="เลือกหน่วย"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.denominationValue.label')} *
-              </label>
-              <DxNumberBox
-                value={formData.denominationValue}
-                onValueChange={(v) => set('denominationValue', v ?? 0)}
-                min={0}
-                step={0.0001}
-                format="#0.0000"
-                readOnly={mode === 'edit'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('form.denominationUnit.label')} *
-              </label>
-              <DxSelectBox
-                dataSource={UNIT_OPTIONS}
-                displayExpr="label"
-                valueExpr="value"
-                value={formData.denominationUnit}
-                onValueChanged={(e) => set('denominationUnit', e.value as DenominationUnit)}
-                placeholder="เลือกหน่วย"
-                readOnly={mode === 'edit'}
-              />
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

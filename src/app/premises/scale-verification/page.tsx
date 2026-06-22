@@ -39,6 +39,24 @@ interface ScaleRow {
   lastWeightDenomination: string | null;
 }
 
+// Translate the known server-side scale-verification errors into clear Thai so
+// the operator understands what to fix instead of seeing a raw English message.
+function translateVerifyError(msg: string): string {
+  if (/exceeds 10/i.test(msg) || /wrong weight/i.test(msg)) {
+    return 'ค่าที่อ่านได้ต่างจากค่าลูกตุ้มมาตรฐานเกิน 10 เท่า — น่าจะเลือกลูกตุ้มผิดหรือกรอกค่าผิด กรุณาตรวจสอบลูกตุ้มและค่าที่อ่านได้';
+  }
+  if (/below minimum/i.test(msg)) {
+    return 'ลูกตุ้มมาตรฐานเบาเกินกว่าพิสัยขั้นต่ำของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่หนักขึ้น';
+  }
+  if (/above maximum/i.test(msg)) {
+    return 'ลูกตุ้มมาตรฐานหนักเกินกว่าพิสัยสูงสุดของเครื่องชั่งนี้ — กรุณาเลือกลูกตุ้มที่เบาลง';
+  }
+  if (/inactive/i.test(msg)) {
+    return 'ลูกตุ้มมาตรฐานนี้ถูกปิดใช้งาน — กรุณาเลือกลูกตุ้มอื่น';
+  }
+  return msg;
+}
+
 export default function ScaleVerificationPage() {
   const t = useTranslations('scaleVerification');
   const router = useRouter();
@@ -99,6 +117,19 @@ export default function ScaleVerificationPage() {
   const scales = data?.items ?? [];
   const activeCount = scales.filter((s) => s.status === 'active').length;
   const oosCount = scales.filter((s) => s.status === 'out_of_service').length;
+
+  // The selected standard weight (for the verify form) + a client-side check
+  // that mirrors the server's "extreme deviation" guard (reading > 10× the
+  // certified value ⇒ almost certainly the wrong weight was picked / a typo).
+  // Surfacing it inline, in Thai, BEFORE submit avoids the cryptic English
+  // server error and the repeated failed POSTs.
+  const selectedWeight = validWeights.find((w) => w.id === weightId) ?? null;
+  const extremeReading =
+    selectedWeight != null &&
+    reading > 0 &&
+    Number(selectedWeight.denominationValue) > 0 &&
+    (reading > Number(selectedWeight.denominationValue) * 10 ||
+      reading < Number(selectedWeight.denominationValue) / 10);
 
   const verifyMut = useMutation({
     mutationFn: async () => {
@@ -334,6 +365,23 @@ export default function ScaleVerificationPage() {
               min={0}
               showSpinButtons
             />
+            {selectedWeight && reading > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                ค่า cert ของลูกตุ้มที่เลือก: <b>{Number(selectedWeight.denominationValue)}</b>{' '}
+                {selectedWeight.denominationUnit}
+              </p>
+            )}
+            {extremeReading && (
+              <div className="mt-2 bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  ค่าที่อ่านได้ ({reading}) ต่างจากค่าลูกตุ้มมาตรฐาน (
+                  {Number(selectedWeight?.denominationValue)} {selectedWeight?.denominationUnit})
+                  เกิน 10 เท่า — น่าจะ<b>เลือกลูกตุ้มผิด</b>หรือกรอกค่าผิด
+                  กรุณาเลือกลูกตุ้มที่มีน้ำหนักใกล้เคียงพิสัยของเครื่องชั่งนี้ แล้วกรอกค่าที่อ่านได้จริง
+                </span>
+              </div>
+            )}
           </div>
 
           <div>
@@ -359,7 +407,7 @@ export default function ScaleVerificationPage() {
           {verifyMut.error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              {String((verifyMut.error as Error).message)}
+              {translateVerifyError(String((verifyMut.error as Error).message))}
             </div>
           )}
 
@@ -369,7 +417,7 @@ export default function ScaleVerificationPage() {
               type="success"
               stylingMode="contained"
               text={t('actions.verify')}
-              disabled={!weightId || !password.trim() || verifyMut.isPending}
+              disabled={!weightId || !password.trim() || verifyMut.isPending || extremeReading}
               onClick={() => verifyMut.mutate()}
             />
           </div>
