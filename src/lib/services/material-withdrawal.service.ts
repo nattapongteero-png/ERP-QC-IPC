@@ -30,10 +30,11 @@
  * Feature: 018-material-withdrawal-approval
  */
 
-import { and, asc, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
-import { executeDbOperation, getInsertId, isSqlite } from '../db/db-helper';
+import { executeDbOperation, getInsertId, getAffectedRows, isSqlite } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
+import { getLotsForPicking, issueMaterial } from './inventory.service';
 import {
   // SQLite tables we need
   sqliteMaterialWithdrawalRequests,
@@ -485,6 +486,18 @@ export async function getRequestById(
       .where(eq(tables.users.id, header.requestedByUserId))
       .limit(1);
 
+    // Warehouse releaser (set once status = 'released')
+    let releasedBy: { id: number; name: string } | null = null;
+    if (header.releasedByUserId != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const relRows: any[] = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(eq(tables.users.id, header.releasedByUserId))
+        .limit(1);
+      releasedBy = { id: Number(header.releasedByUserId), name: relRows[0]?.name ?? '' };
+    }
+
     // Enrich each line with the material's name/code and the on-hand qty across
     // lots, so the approver sees *what* the material is and *whether* there is
     // enough — instead of a bare id and a surprise "not enough" error on submit.
@@ -563,6 +576,8 @@ export async function getRequestById(
             signatureId: Number(approvalRows[0].signatureId),
           }
         : null,
+      releasedAt: header.releasedAt ? String(header.releasedAt) : null,
+      releasedBy,
     };
   });
 }
@@ -845,8 +860,9 @@ export async function approveRequest(
       .set({ status: 'approved', updatedAt: now })
       .where(eq(tables.requests.id, requestId));
 
-    // 8. Per-item: update approved qty and inventory + consumption + transactions
-    const inventoryTransactionIds: number[] = [];
+    // 8. Per-item: record approved qty + cumulative cap tracking.
+    //    NOTE: stock is NOT deducted here — the warehouse deducts it later at
+    //    the release step (see releaseRequest). Approve only AUTHORIZES.
     for (const it of itemRows) {
       const qtyApproved = approvedQtyByItemId.get(Number(it.id)) ?? 0;
 
@@ -889,43 +905,7 @@ export async function approveRequest(
           })
           .where(eq(tables.requestItems.id, Number(it.id)));
       }
-
-      // Post inventory transaction (negative qty = issue)
-      // Find a lot with sufficient stock — simple FIFO by id
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lots: any[] = await db
-        .select()
-        .from(tables.lots)
-        .where(eq(tables.lots.itemId, Number(it.materialId)))
-        .orderBy(asc(tables.lots.id));
-      let remaining = qtyApproved;
-      for (const lot of lots) {
-        if (remaining <= 0) break;
-        const available = toNumber(lot.quantity);
-        if (available <= 0) continue;
-        const take = Math.min(remaining, available);
-        const txInsert = await db.insert(tables.transactions).values({
-          lotId: Number(lot.id),
-          transactionType: 'issue',
-          quantity: isSqlite() ? -take : String(-take),
-          // unit is NOT NULL — take it from the lot (fall back to the request
-          // item's unit). Omitting it (and writing non-existent performedAt /
-          // notes columns) made the whole approve transaction roll back → 500.
-          unit: String(lot.unit ?? it.unit ?? ''),
-          referenceType: 'material_withdrawal_request',
-          referenceId: requestId,
-          performedBy: approverUserId,
-          reason: `Material withdrawal request #${requestId}`,
-          createdAt: now,
-        });
-        inventoryTransactionIds.push(getInsertId(txInsert));
-        // Decrement lot quantity
-        await db
-          .update(tables.lots)
-          .set({ quantity: isSqlite() ? (available - take) : String(available - take) })
-          .where(eq(tables.lots.id, Number(lot.id)));
-        remaining -= take;
-      }
+      // Stock deduction intentionally omitted — the warehouse deducts at release.
     }
 
     // 9. Insert approval row
@@ -967,7 +947,8 @@ export async function approveRequest(
         'Failed to reload approved request',
       );
     }
-    return { request: detail, inventoryTransactionIds, deviationId };
+    // No inventory transactions at approve — deduction happens at release.
+    return { request: detail, inventoryTransactionIds: [], deviationId };
   });
 }
 
@@ -1090,6 +1071,345 @@ export async function rejectRequest(
     }
     return { request: detail, deviationId };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Warehouse release — deducts stock (2nd step after supervisor approve)
+// ---------------------------------------------------------------------------
+
+interface ReleaseResult {
+  request: MaterialWithdrawalRequestDetail;
+  inventoryTransactionIds: number[];
+}
+
+/**
+ * Warehouse releases a supervisor-approved out-of-BOM withdrawal. THIS is where
+ * stock is physically deducted (FEFO via issueMaterial — same path as the BOM
+ * requisition release), giving proper inventory_transactions + audit + cost.
+ *
+ * Mirrors api/.../requisition (action=approve): orchestrated at the function
+ * level (not inside one executeDbOperation closure) because issueMaterial opens
+ * its own db handle. The trailing atomic status guard bounds concurrency.
+ */
+export async function releaseRequest(
+  requestId: number,
+  _input: import('@/types/material-withdrawal').ReleaseMaterialWithdrawalRequestInput,
+  releaserUserId: number,
+): Promise<ReleaseResult> {
+  const tables = getTables();
+
+  // 1. Load request + guard status === 'approved'
+  const reqRow = await executeDbOperation(async (db) => {
+    const rows = await db
+      .select()
+      .from(tables.requests)
+      .where(eq(tables.requests.id, requestId))
+      .limit(1);
+    return rows[0];
+  });
+  if (!reqRow) {
+    throw new MaterialWithdrawalError(
+      WITHDRAWAL_ERROR_CODES.REQUEST_NOT_APPROVED,
+      'Request not found',
+    );
+  }
+  if (reqRow.status !== 'approved') {
+    throw new MaterialWithdrawalError(
+      WITHDRAWAL_ERROR_CODES.REQUEST_NOT_APPROVED,
+      `Request status is ${reqRow.status} (expected 'approved')`,
+    );
+  }
+
+  // 2. Load items (quantityApproved = qty to release) + WO ref data
+  const { itemRows, woNumber, batchNumber } = await executeDbOperation(async (db) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: any[] = await db
+      .select()
+      .from(tables.requestItems)
+      .where(eq(tables.requestItems.requestId, requestId));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const woRows: any[] = await db
+      .select({ woNumber: tables.workOrders.woNumber, batchNumber: tables.workOrders.batchNumber })
+      .from(tables.workOrders)
+      .where(eq(tables.workOrders.id, Number(reqRow.workOrderId)))
+      .limit(1);
+    return {
+      itemRows: items,
+      woNumber: String(woRows[0]?.woNumber ?? `WO-${reqRow.workOrderId}`),
+      batchNumber: String(woRows[0]?.batchNumber ?? ''),
+    };
+  });
+
+  // 3. Re-check stock availability across RELEASED lots only (authoritative —
+  //    stock may have changed between approve and release).
+  await executeDbOperation(async (db) => {
+    const materialIds = itemRows.map((it) => Number(it.materialId));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lotRows: any[] = materialIds.length > 0
+      ? await db
+          .select({ itemId: tables.lots.itemId, quantity: tables.lots.quantity })
+          .from(tables.lots)
+          .where(and(inArray(tables.lots.itemId, materialIds), eq(tables.lots.status, 'released')))
+      : [];
+    const availableByItem = new Map<number, number>();
+    for (const lot of lotRows) {
+      availableByItem.set(
+        Number(lot.itemId),
+        (availableByItem.get(Number(lot.itemId)) ?? 0) + toNumber(lot.quantity),
+      );
+    }
+    for (const it of itemRows) {
+      const needed = toNumber(it.quantityApproved);
+      const available = availableByItem.get(Number(it.materialId)) ?? 0;
+      if (needed > available) {
+        throw new MaterialWithdrawalError(
+          WITHDRAWAL_ERROR_CODES.INSUFFICIENT_STOCK,
+          `Material ${it.materialId}: need ${needed} but only ${available} available in released lots`,
+          { materialId: Number(it.materialId), needed, available },
+        );
+      }
+    }
+  });
+
+  // 4. Deduct stock per item via FEFO (issueMaterial handles tx + audit + cost).
+  const inventoryTransactionIds: number[] = [];
+  for (const it of itemRows) {
+    const qty = toNumber(it.quantityApproved);
+    if (qty <= 0) continue;
+    const { allocated, remaining } = await getLotsForPicking(Number(it.materialId), qty);
+    if (allocated.length === 0 || remaining > 0) {
+      throw new MaterialWithdrawalError(
+        WITHDRAWAL_ERROR_CODES.INSUFFICIENT_STOCK,
+        `Material ${it.materialId}: could not allocate ${qty} from released lots`,
+        { materialId: Number(it.materialId), needed: qty, shortfall: remaining },
+      );
+    }
+    for (const alloc of allocated) {
+      const txId = await issueMaterial(
+        alloc.lotId,
+        alloc.quantity,
+        'material_withdrawal_request',
+        requestId,
+        woNumber,
+        releaserUserId,
+        `Out-of-BOM withdrawal release #${requestId}`,
+        { workOrderId: Number(reqRow.workOrderId), batchNumber },
+      );
+      inventoryTransactionIds.push(txId);
+    }
+  }
+
+  // 5. Atomic status guard — only flip if still 'approved' (concurrency).
+  const affected = await executeDbOperation(async (db) => {
+    const res = await db
+      .update(tables.requests)
+      .set({
+        status: 'released',
+        releasedByUserId: releaserUserId,
+        releasedAt: getNow(),
+        updatedAt: getNow(),
+      })
+      .where(and(eq(tables.requests.id, requestId), eq(tables.requests.status, 'approved')));
+    return getAffectedRows(res);
+  });
+  if (affected === 0) {
+    throw new MaterialWithdrawalError(
+      WITHDRAWAL_ERROR_CODES.REQUEST_NOT_APPROVED,
+      'Request was already released by another user',
+    );
+  }
+
+  const detail = await getRequestById(requestId, releaserUserId);
+  if (!detail) {
+    throw new MaterialWithdrawalError(
+      WITHDRAWAL_ERROR_CODES.REQUEST_NOT_APPROVED,
+      'Failed to reload released request',
+    );
+  }
+  return { request: detail, inventoryTransactionIds };
+}
+
+// ---------------------------------------------------------------------------
+// Approved-awaiting-release queue — feeds the warehouse requisitions page
+// ---------------------------------------------------------------------------
+
+export interface ApprovedWithdrawalForRelease {
+  requestId: number;
+  workOrderId: number;
+  woNumber: string;
+  batchNumber: string;
+  productName: string | null;
+  productCode: string | null;
+  reasonType: string;
+  requestedBy: string | null;
+  requestedAt: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  materials: {
+    itemId: number;
+    itemCode: string;
+    itemName: string;
+    quantityApproved: number;
+    unit: string;
+    releasedAvailable: number;
+  }[];
+}
+
+/**
+ * All supervisor-approved (status='approved') withdrawals still awaiting
+ * warehouse release, enriched with material meta + on-hand from released lots.
+ * Used by the merged /inventory/requisitions page (out-of-BOM tab).
+ */
+export async function getApprovedWithdrawalsForRelease(): Promise<ApprovedWithdrawalForRelease[]> {
+  // One-time legacy backfill before the warehouse queue is ever read, so
+  // pre-change 'approved' rows (already stock-deducted) never surface here.
+  await runLegacyBackfillOnce();
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reqs: any[] = await db
+      .select()
+      .from(tables.requests)
+      .where(eq(tables.requests.status, 'approved'))
+      .orderBy(tables.requests.id);
+    if (reqs.length === 0) return [];
+
+    const requestIds = reqs.map((r) => Number(r.id));
+    const workOrderIds = [...new Set(reqs.map((r) => Number(r.workOrderId)))];
+    const userIds = [
+      ...new Set(reqs.flatMap((r) => [Number(r.requestedByUserId)])),
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allItems: any[] = await db
+      .select()
+      .from(tables.requestItems)
+      .where(inArray(tables.requestItems.requestId, requestIds));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const approvals: any[] = await db
+      .select()
+      .from(tables.approvals)
+      .where(inArray(tables.approvals.requestId, requestIds));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wos: any[] = await db
+      .select({
+        id: tables.workOrders.id,
+        woNumber: tables.workOrders.woNumber,
+        batchNumber: tables.workOrders.batchNumber,
+        productName: tables.items.nameTh,
+        productCode: tables.items.code,
+      })
+      .from(tables.workOrders)
+      .leftJoin(tables.items, eq(tables.workOrders.productId, tables.items.id))
+      .where(inArray(tables.workOrders.id, workOrderIds));
+    const woById = new Map<number, any>(wos.map((w) => [Number(w.id), w]));
+
+    const approverIds = approvals.map((a) => Number(a.approverUserId));
+    const allUserIds = [...new Set([...userIds, ...approverIds])];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const users: any[] = allUserIds.length > 0
+      ? await db.select({ id: tables.users.id, name: tables.users.name }).from(tables.users).where(inArray(tables.users.id, allUserIds))
+      : [];
+    const userName = new Map<number, string>(users.map((u) => [Number(u.id), String(u.name ?? '')]));
+    const approvalByReq = new Map<number, any>(approvals.map((a) => [Number(a.requestId), a]));
+
+    // Material meta + released-lot on-hand
+    const materialIds = [...new Set(allItems.map((it) => Number(it.materialId)))];
+    const metaById = new Map<number, { code: string; name: string }>();
+    const releasedByItem = new Map<number, number>();
+    if (materialIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metaRows: any[] = await db
+        .select({ id: tables.items.id, code: tables.items.code, nameTh: tables.items.nameTh })
+        .from(tables.items)
+        .where(inArray(tables.items.id, materialIds));
+      for (const m of metaRows) metaById.set(Number(m.id), { code: String(m.code ?? ''), name: String(m.nameTh ?? '') });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lotRows: any[] = await db
+        .select({ itemId: tables.lots.itemId, quantity: tables.lots.quantity })
+        .from(tables.lots)
+        .where(and(inArray(tables.lots.itemId, materialIds), eq(tables.lots.status, 'released')));
+      for (const lot of lotRows) {
+        releasedByItem.set(Number(lot.itemId), (releasedByItem.get(Number(lot.itemId)) ?? 0) + toNumber(lot.quantity));
+      }
+    }
+
+    const itemsByReq = new Map<number, any[]>();
+    for (const it of allItems) {
+      const arr = itemsByReq.get(Number(it.requestId)) ?? [];
+      arr.push(it);
+      itemsByReq.set(Number(it.requestId), arr);
+    }
+
+    return reqs.map((r) => {
+      const wo = woById.get(Number(r.workOrderId));
+      const appr = approvalByReq.get(Number(r.id));
+      return {
+        requestId: Number(r.id),
+        workOrderId: Number(r.workOrderId),
+        woNumber: String(wo?.woNumber ?? `WO-${r.workOrderId}`),
+        batchNumber: String(wo?.batchNumber ?? ''),
+        productName: wo?.productName ?? null,
+        productCode: wo?.productCode ?? null,
+        reasonType: String(r.reasonType),
+        requestedBy: userName.get(Number(r.requestedByUserId)) ?? null,
+        requestedAt: r.requestedAt ? String(r.requestedAt) : null,
+        approvedBy: appr ? (userName.get(Number(appr.approverUserId)) ?? null) : null,
+        approvedAt: appr?.actionAt ? String(appr.actionAt) : null,
+        materials: (itemsByReq.get(Number(r.id)) ?? []).map((it) => {
+          const meta = metaById.get(Number(it.materialId));
+          return {
+            itemId: Number(it.materialId),
+            itemCode: meta?.code ?? '',
+            itemName: meta?.name ?? '',
+            quantityApproved: toNumber(it.quantityApproved),
+            unit: String(it.unit),
+            releasedAvailable: releasedByItem.get(Number(it.materialId)) ?? 0,
+          };
+        }),
+      };
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Back-compat: legacy 'approved' rows already deducted stock under old logic.
+// Promote them to 'released' once so they don't surface in the warehouse queue
+// (and never get double-deducted). Idempotent — safe to call repeatedly.
+//
+// IMPORTANT: this is a ONE-TIME deploy migration. At deploy time EVERY
+// 'approved' row is legacy (old approve deducted stock immediately). Once new
+// code is live, a fresh 'approved' row means "awaiting release" and must NOT be
+// promoted — so the backfill runs exactly once per process via the guard below,
+// and is gated on releasedAt IS NULL (new rows get releasedAt at release time).
+// Run at first read of the warehouse queue, before any release UI is reachable.
+// ---------------------------------------------------------------------------
+
+export async function backfillLegacyApprovedToReleased(): Promise<number> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const res = await db
+      .update(tables.requests)
+      .set({ status: 'released', releasedAt: sql`COALESCE(${tables.requests.releasedAt}, ${tables.requests.updatedAt})` })
+      .where(and(eq(tables.requests.status, 'approved'), sql`${tables.requests.releasedAt} IS NULL`));
+    return getAffectedRows(res);
+  });
+}
+
+// Single in-flight promise so concurrent callers await the same backfill
+// (rather than the second skipping past a not-yet-finished first run).
+let legacyBackfillPromise: Promise<void> | null = null;
+async function runLegacyBackfillOnce(): Promise<void> {
+  if (!legacyBackfillPromise) {
+    legacyBackfillPromise = backfillLegacyApprovedToReleased()
+      .then(() => undefined)
+      .catch((err) => {
+        // Non-fatal — log and allow a retry on the next call.
+        console.warn('[material-withdrawal] legacy backfill failed (non-fatal):', err);
+        legacyBackfillPromise = null;
+      });
+  }
+  await legacyBackfillPromise;
 }
 
 // ---------------------------------------------------------------------------

@@ -13,7 +13,7 @@ import { DataGrid, Column, FilterRow, HeaderFilter, Paging } from 'devextreme-re
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TextBox } from 'devextreme-react/text-box';
-import { Layers, CheckCircle2, Clock, XCircle, Ban } from 'lucide-react';
+import { Layers, CheckCircle2, Clock, XCircle, Ban, PackageCheck } from 'lucide-react';
 import { MaterialWithdrawalDetailDialog } from '@/components/production/material-withdrawal-detail-dialog';
 import type {
   MaterialWithdrawalRequestSummary,
@@ -25,6 +25,7 @@ const STATUS_OPTIONS: { value: WithdrawalStatus | ''; key: string }[] = [
   { value: '', key: 'all' },
   { value: 'pending', key: 'pending' },
   { value: 'approved', key: 'approved' },
+  { value: 'released', key: 'released' },
   { value: 'rejected', key: 'rejected' },
   { value: 'cancelled', key: 'cancelled' },
 ];
@@ -63,6 +64,7 @@ export default function MaterialWithdrawalListPage() {
       total: data?.total ?? items.length,
       pending: items.filter((i) => i.status === 'pending').length,
       approved: items.filter((i) => i.status === 'approved').length,
+      released: items.filter((i) => i.status === 'released').length,
       rejected: items.filter((i) => i.status === 'rejected').length,
     };
   }, [data]);
@@ -81,7 +83,7 @@ export default function MaterialWithdrawalListPage() {
       </header>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <KpiCard
           label={t('table.columns.id')}
           value={counts.total}
@@ -100,6 +102,13 @@ export default function MaterialWithdrawalListPage() {
           label={t('status.approved')}
           value={counts.approved}
           icon={CheckCircle2}
+          accent="border-l-blue-500"
+          iconCls="text-blue-500"
+        />
+        <KpiCard
+          label={t('status.released')}
+          value={counts.released}
+          icon={PackageCheck}
           accent="border-l-emerald-500"
           iconCls="text-emerald-500"
         />
@@ -206,7 +215,8 @@ function StatusBadge({ status }: { status: WithdrawalStatus }) {
   const t = useTranslations('material-withdrawal');
   const classes: Record<WithdrawalStatus, string> = {
     pending: 'bg-amber-100 text-amber-800',
-    approved: 'bg-emerald-100 text-emerald-800',
+    approved: 'bg-blue-100 text-blue-800',
+    released: 'bg-emerald-100 text-emerald-800',
     rejected: 'bg-red-100 text-red-800',
     cancelled: 'bg-gray-200 text-gray-700',
   };
@@ -214,6 +224,7 @@ function StatusBadge({ status }: { status: WithdrawalStatus }) {
     {
       pending: Clock,
       approved: CheckCircle2,
+      released: PackageCheck,
       rejected: XCircle,
       cancelled: Ban,
     } as const

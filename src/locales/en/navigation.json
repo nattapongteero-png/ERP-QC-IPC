@@ -28,7 +28,7 @@
     "returnsInbox": "Returns Inbox",
     "expiryAlerts": "Expiry Alerts",
     "goodsReceipt": "Goods Receipt (Warehouse)",
-    "requisitions": "Material Requisitions (BOM)"
+    "requisitions": "Material Requisitions"
   },
   "production": {
     "bom": "BOM/Recipes",

@@ -75,13 +75,15 @@
   },
   "status": {
     "pending": "รออนุมัติ",
-    "approved": "อนุมัติแล้ว",
+    "approved": "รอคลังจ่าย",
+    "released": "จ่ายของแล้ว",
     "rejected": "ปฏิเสธ",
     "cancelled": "ยกเลิก"
   },
   "buttons": {
     "request": "ขอเบิกวัตถุดิบเพิ่ม",
     "approve": "อนุมัติ",
+    "release": "ปล่อยของ",
     "reject": "ปฏิเสธ",
     "cancel": "ยกเลิกคำขอ",
     "viewDetail": "ดูรายละเอียด",
@@ -132,6 +134,7 @@
     "insufficientStock": "วัตถุดิบในคลังไม่เพียงพอ ณ เวลานี้",
     "invalidPassword": "รหัสผ่านไม่ถูกต้อง",
     "requestNotPending": "คำขอนี้ไม่ได้อยู่ในสถานะรออนุมัติแล้ว",
+    "requestNotApproved": "คำขอนี้ไม่ได้อยู่ในสถานะรอคลังจ่าย (อาจถูกจ่ายไปแล้ว)",
     "materialNotInBom": "วัตถุดิบนี้ไม่อยู่ใน BOM ของใบสั่งผลิตนี้",
     "phaseRequired": "กรุณาระบุ phase ของเครื่อง",
     "reasonDetailRequired": "กรุณาระบุรายละเอียดสาเหตุ",

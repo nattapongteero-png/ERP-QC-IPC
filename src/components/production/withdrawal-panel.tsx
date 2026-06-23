@@ -19,7 +19,7 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
-import { Plus, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { Plus, Clock, CheckCircle, XCircle, Ban, PackageCheck } from 'lucide-react';
 import { MaterialWithdrawalRequestDialog, type BomMaterialOption, type RoomOption } from './material-withdrawal-request-dialog';
 import { MaterialWithdrawalDetailDialog } from './material-withdrawal-detail-dialog';
 import { PhaseBlockBanner } from './phase-block-banner';
@@ -39,7 +39,8 @@ const HISTORY_STATUS: Record<
   { label: string; className: string; icon: React.ComponentType<{ className?: string }> }
 > = {
   pending: { label: 'รออนุมัติ', className: 'bg-amber-100 text-amber-800', icon: Clock },
-  approved: { label: 'อนุมัติ — จ่ายของแล้ว', className: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
+  approved: { label: 'อนุมัติ — รอคลังจ่าย', className: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  released: { label: 'จ่ายของแล้ว', className: 'bg-emerald-100 text-emerald-800', icon: PackageCheck },
   rejected: { label: 'ปฏิเสธ', className: 'bg-red-100 text-red-800', icon: XCircle },
   cancelled: { label: 'ยกเลิก', className: 'bg-gray-200 text-gray-700', icon: Ban },
 };
@@ -104,8 +105,8 @@ export function WithdrawalPanel({
   });
 
   // History of extra-withdrawal requests for this WO, so the eBMR shows what
-  // was requested, whether it was approved, and (since approval deducts stock
-  // immediately) that the material has been issued.
+  // was requested, whether it was approved (supervisor) and released by the
+  // warehouse — stock is deducted at the warehouse release step, not at approve.
   const { data: history } = useQuery<MaterialWithdrawalRequestSummary[]>({
     queryKey: ['wo-withdrawal-history', workOrderId],
     queryFn: async () => {
@@ -160,8 +161,8 @@ export function WithdrawalPanel({
         materialNameLookup={materialNameLookup}
       />
 
-      {/* History — what was requested for this WO and whether it was approved
-          (approval issues the material from stock immediately). */}
+      {/* History — what was requested for this WO, whether it was approved
+          (supervisor) and released by the warehouse (which issues the stock). */}
       {(history?.length ?? 0) > 0 && (
         <div className="space-y-1.5" data-testid="withdrawal-history">
           <div className="text-xs font-medium text-emerald-900/70">ประวัติการเบิกเพิ่ม</div>

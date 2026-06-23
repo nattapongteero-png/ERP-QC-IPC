@@ -75,13 +75,15 @@
   },
   "status": {
     "pending": "Pending",
-    "approved": "Approved",
+    "approved": "Awaiting Warehouse",
+    "released": "Released",
     "rejected": "Rejected",
     "cancelled": "Cancelled"
   },
   "buttons": {
     "request": "Request Extra Withdrawal",
     "approve": "Approve",
+    "release": "Release",
     "reject": "Reject",
     "cancel": "Cancel Request",
     "viewDetail": "View Detail",
@@ -132,6 +134,7 @@
     "insufficientStock": "Insufficient stock at this time",
     "invalidPassword": "Invalid password",
     "requestNotPending": "This request is no longer pending",
+    "requestNotApproved": "This request is not awaiting warehouse release (it may already be released)",
     "materialNotInBom": "Material not in this Work Order's BOM",
     "phaseRequired": "Machine phase is required",
     "reasonDetailRequired": "Reason detail is required",

@@ -129,7 +129,24 @@ vi.mock('@/lib/db/db-helper', () => ({
   isSqlite: () => true,
   executeDbOperation: (op: any) => op(mockDb),
   getInsertId: (r: any) => Number(r?.lastInsertRowid ?? 0),
+  getAffectedRows: (r: any) => Number(r?.changes ?? r?.rowsAffected ?? 1),
   getTableRef: (n: string) => (refs as any)[n] ?? makeTableRef(n),
+}));
+
+// Warehouse release reuses the inventory service for FEFO + deduction. Mock it
+// so unit tests stay at the withdrawal-service layer: allocate everything from
+// lot 1 and decrement memDb.lots so we can assert deduction happens at RELEASE.
+vi.mock('@/lib/services/inventory.service', () => ({
+  getLotsForPicking: vi.fn(async (_itemId: number, qty: number) => ({
+    allocated: [{ lotId: 1, quantity: qty }],
+    remaining: 0,
+  })),
+  issueMaterial: vi.fn(async (lotId: number, qty: number) => {
+    const lot = memDb.lots.find((l) => Number(l.id) === lotId) ?? memDb.lots[0];
+    if (lot) lot.quantity = Number(lot.quantity) - qty;
+    memDb.transactions.push({ id: memDb.transactions.length + 1, lotId, quantity: -qty, transactionType: 'issue' });
+    return memDb.transactions.length;
+  }),
 }));
 
 // We bypass real schema imports; the service references the table CONSTs
@@ -378,6 +395,7 @@ function seed() {
 import {
   createRequest,
   approveRequest,
+  releaseRequest,
   rejectRequest,
   cancelRequest,
   getPendingMaterialIdsForWorkOrder,
@@ -546,7 +564,9 @@ describe('material-withdrawal.service', () => {
       ).rejects.toMatchObject({ code: 'INSUFFICIENT_STOCK' });
     });
 
-    it('happy path: approve → deducts stock + records deviation + updates consumption', async () => {
+    it('happy path: approve AUTHORIZES only (no stock deduction yet) + deviation + consumption', async () => {
+      const stockBefore = Number(memDb.lots[0].quantity);
+      const txBefore = memDb.transactions.length;
       const created = await createRequest(
         {
           workOrderId: 100,
@@ -563,18 +583,85 @@ describe('material-withdrawal.service', () => {
         20,
       );
       expect(result.request.status).toBe('approved');
-      expect(result.inventoryTransactionIds.length).toBeGreaterThan(0);
+      // Stock NOT moved at approve — that happens at warehouse release.
+      expect(result.inventoryTransactionIds).toEqual([]);
+      expect(memDb.lots[0].quantity).toBe(stockBefore);
+      expect(memDb.transactions.length).toBe(txBefore);
+      // But authorization is recorded: deviation + cumulative cap + signature.
       expect(result.deviationId).toBeGreaterThan(0);
-
-      // Stock was decremented
-      expect(memDb.lots[0].quantity).toBe(45);
-      // Consumption cumulative bumped
       expect(memDb.workOrderMaterials[0].additionalQtyViaWithdrawalRequest).toBe(5);
-      // Deviation row carries the back-link
       expect(memDb.deviations[0].withdrawalRequestId).toBe(created.id);
-      // Signature row captured
       expect(memDb.signatures).toHaveLength(1);
       expect(memDb.signatures[0].action).toBe('approve');
+    });
+  });
+
+  describe('releaseRequest (warehouse 2nd step — deducts stock)', () => {
+    async function approvedRequest() {
+      const created = await createRequest(
+        {
+          workOrderId: 100,
+          items: [{ materialId: 50, quantityRequested: 5, unit: 'kg' }],
+          reasonType: 'machine_setup_loss',
+          machinePhase: 'auto-trim',
+          roomId: 1,
+        },
+        10,
+      );
+      await approveRequest(created.id, { password: 'correct-password' }, 20);
+      return created;
+    }
+
+    it('happy path: approved → released, deducts stock + posts issue txn', async () => {
+      memDb.lots[0].status = 'released';
+      const stockBefore = Number(memDb.lots[0].quantity);
+      const created = await approvedRequest();
+
+      const result = await releaseRequest(created.id, {}, 30);
+
+      expect(result.request.status).toBe('released');
+      expect(result.inventoryTransactionIds.length).toBeGreaterThan(0);
+      // Stock deducted by the approved qty (5).
+      expect(memDb.lots[0].quantity).toBe(stockBefore - 5);
+      // Release audit captured on the request row.
+      expect(memDb.requests[0].releasedByUserId).toBe(30);
+      expect(memDb.requests[0].releasedAt).toBeTruthy();
+    });
+
+    it('rejects releasing a request that is not approved', async () => {
+      const created = await createRequest(
+        {
+          workOrderId: 100,
+          items: [{ materialId: 50, quantityRequested: 5, unit: 'kg' }],
+          reasonType: 'machine_setup_loss',
+          machinePhase: 'auto-trim',
+          roomId: 1,
+        },
+        10,
+      );
+      // Still pending — not approved.
+      await expect(releaseRequest(created.id, {}, 30)).rejects.toMatchObject({
+        code: 'REQUEST_NOT_APPROVED',
+      });
+    });
+
+    it('rejects when stock fell short between approve and release', async () => {
+      memDb.lots[0].status = 'released';
+      const created = await approvedRequest();
+      // Stock dropped below the approved 5 after approve.
+      memDb.lots[0].quantity = 2;
+      await expect(releaseRequest(created.id, {}, 30)).rejects.toMatchObject({
+        code: 'INSUFFICIENT_STOCK',
+      });
+    });
+
+    it('does not double-deduct: approve leaves stock, release deducts exactly once', async () => {
+      memDb.lots[0].status = 'released';
+      const stockBefore = Number(memDb.lots[0].quantity);
+      const created = await approvedRequest();
+      expect(memDb.lots[0].quantity).toBe(stockBefore); // approve didn't move it
+      await releaseRequest(created.id, {}, 30);
+      expect(memDb.lots[0].quantity).toBe(stockBefore - 5); // released once
     });
   });
 

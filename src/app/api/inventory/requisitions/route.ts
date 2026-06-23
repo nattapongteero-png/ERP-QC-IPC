@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { eq, or, inArray, desc, and, sql } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { successResponse, serverErrorResponse, withAuth } from '@/lib/api-utils';
+import { getApprovedWithdrawalsForRelease } from '@/lib/services/material-withdrawal.service';
 
 interface WORequisitionRow {
   workOrderId: number;
@@ -165,8 +166,9 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Build final response
+      // Build BOM requisition rows (tagged source: 'bom')
       const result = workOrders.map((wo) => ({
+        source: 'bom' as const,
         workOrderId: wo.workOrderId,
         woNumber: wo.woNumber,
         batchNumber: wo.batchNumber,
@@ -182,7 +184,42 @@ export async function GET(request: NextRequest) {
         materials: materialsMap.get(wo.workOrderId as number) ?? [],
       }));
 
-      return successResponse(result);
+      // Merge approved-but-unreleased out-of-BOM withdrawals (tagged
+      // source: 'out_of_bom') — the warehouse releases these here too. Only
+      // relevant when viewing approved/all (these are awaiting warehouse action).
+      let outOfBomRows: unknown[] = [];
+      if (statusFilter === 'approved' || statusFilter === 'all') {
+        const approved = await getApprovedWithdrawalsForRelease();
+        outOfBomRows = approved.map((w) => ({
+          source: 'out_of_bom' as const,
+          requestId: w.requestId,
+          workOrderId: w.workOrderId,
+          woNumber: w.woNumber,
+          batchNumber: w.batchNumber,
+          productName: w.productName,
+          productCode: w.productCode,
+          reasonType: w.reasonType,
+          requisitionStatus: 'approved',
+          requestedBy: w.requestedBy,
+          requestedAt: w.requestedAt,
+          approvedBy: w.approvedBy,
+          approvedAt: w.approvedAt,
+          materials: w.materials.map((m) => ({
+            itemId: m.itemId,
+            itemCode: m.itemCode,
+            itemName: m.itemName,
+            plannedQuantity: m.quantityApproved,
+            actualQuantity: null,
+            unit: m.unit,
+            status: 'approved',
+            releasedAvailable: m.releasedAvailable,
+            // out-of-BOM raw issues are single-unit — no PU/SU weight tracking
+            weightTrackingEnabled: false,
+          })),
+        }));
+      }
+
+      return successResponse([...result, ...outOfBomRows]);
     } catch (error) {
       return serverErrorResponse(error);
     }

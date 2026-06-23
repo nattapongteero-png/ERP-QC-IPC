@@ -28,7 +28,7 @@
     "returnsInbox": "การคืนวัตถุดิบ",
     "expiryAlerts": "แจ้งเตือนหมดอายุ",
     "goodsReceipt": "ตรวจรับของ (คลัง)",
-    "requisitions": "ใบเบิกตาม BOM"
+    "requisitions": "ใบเบิกวัตถุดิบ"
   },
   "production": {
     "bom": "สูตร/BOM",

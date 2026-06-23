@@ -3,7 +3,8 @@
  *
  * Confirms the panel renders the WO's extra-withdrawal history (request id,
  * reason, status badge) and opens the detail dialog when a row is clicked.
- * Approval issues stock immediately, so an approved row reads "จ่ายของแล้ว".
+ * Stock is issued at the warehouse RELEASE step, so a released row reads
+ * "จ่ายของแล้ว" while an approved row reads "รอคลังจ่าย".
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -42,7 +43,7 @@ const HISTORY = [
     id: 7,
     workOrderId: 5,
     factoryCode: null,
-    status: 'approved',
+    status: 'released',
     reasonType: 'machine_setup_loss',
     requestedAt: '2026-06-02T03:00:00.000Z',
     requestedBy: { id: 2, name: 'Production Manager' },
@@ -57,6 +58,16 @@ const HISTORY = [
     requestedAt: '2026-06-02T04:00:00.000Z',
     requestedBy: { id: 2, name: 'Production Manager' },
     itemCount: 2,
+  },
+  {
+    id: 9,
+    workOrderId: 5,
+    factoryCode: null,
+    status: 'approved',
+    reasonType: 'parameter_adjustment',
+    requestedAt: '2026-06-02T05:00:00.000Z',
+    requestedBy: { id: 2, name: 'Production Manager' },
+    itemCount: 1,
   },
 ];
 
@@ -81,11 +92,14 @@ describe('WithdrawalPanel — history card', () => {
     await waitFor(() => {
       expect(screen.getByTestId('withdrawal-history')).toBeInTheDocument();
     });
-    // Approved row reads "จ่ายของแล้ว"; pending row reads "รออนุมัติ".
-    expect(screen.getByText(/อนุมัติ — จ่ายของแล้ว/)).toBeInTheDocument();
-    expect(screen.getByText(/รออนุมัติ/)).toBeInTheDocument();
+    // Released row reads "จ่ายของแล้ว"; approved (awaiting warehouse) reads
+    // "อนุมัติ — รอคลังจ่าย"; pending row reads "รออนุมัติ".
+    expect(screen.getByText(/จ่ายของแล้ว/)).toBeInTheDocument();
+    expect(screen.getByText(/อนุมัติ — รอคลังจ่าย/)).toBeInTheDocument();
+    expect(screen.getByText(/^รออนุมัติ$/)).toBeInTheDocument();
     expect(screen.getByTestId('withdrawal-history-7')).toBeInTheDocument();
     expect(screen.getByTestId('withdrawal-history-8')).toBeInTheDocument();
+    expect(screen.getByTestId('withdrawal-history-9')).toBeInTheDocument();
   });
 
   it('opens the detail dialog when a history row is clicked', async () => {

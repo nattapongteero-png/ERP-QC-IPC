@@ -4,7 +4,11 @@
  * See spec at: specs/018-material-withdrawal-approval/spec.md
  */
 
-export const WITHDRAWAL_STATUSES = ['pending', 'approved', 'rejected', 'cancelled'] as const;
+// Status flow: pending -> approved -> released | rejected | cancelled
+//   pending   = operator submitted, awaiting supervisor
+//   approved  = supervisor e-signed (authorization recorded) — NO stock movement yet, awaiting warehouse
+//   released  = warehouse released the goods — stock deducted (terminal success)
+export const WITHDRAWAL_STATUSES = ['pending', 'approved', 'released', 'rejected', 'cancelled'] as const;
 export type WithdrawalStatus = (typeof WITHDRAWAL_STATUSES)[number];
 
 export const WITHDRAWAL_REASON_TYPES = [
@@ -51,6 +55,11 @@ export interface ApproveMaterialWithdrawalRequestInput {
   approvedItems?: { itemId: number; quantityApproved: number }[];
   comment?: string;
   password: string;
+}
+
+/** Warehouse release of a supervisor-approved request — deducts stock. */
+export interface ReleaseMaterialWithdrawalRequestInput {
+  comment?: string;
 }
 
 export interface RejectMaterialWithdrawalRequestInput {
@@ -114,6 +123,9 @@ export interface MaterialWithdrawalRequestDetail extends MaterialWithdrawalReque
   items: MaterialWithdrawalRequestItem[];
   attachments: MaterialWithdrawalAttachment[];
   approval: MaterialWithdrawalApproval | null;
+  /** Warehouse release audit (set once status = 'released'). */
+  releasedAt?: string | null;
+  releasedBy?: { id: number; name: string } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +195,7 @@ export const WITHDRAWAL_ERROR_CODES = {
   DUPLICATE_SUBMISSION: 'DUPLICATE_SUBMISSION',
   EXCEEDS_HARD_CAP: 'EXCEEDS_HARD_CAP',
   REQUEST_NOT_PENDING: 'REQUEST_NOT_PENDING',
+  REQUEST_NOT_APPROVED: 'REQUEST_NOT_APPROVED',
   DUAL_CONTROL_VIOLATION: 'DUAL_CONTROL_VIOLATION',
   INVALID_PASSWORD: 'INVALID_PASSWORD',
   INSUFFICIENT_STOCK: 'INSUFFICIENT_STOCK',

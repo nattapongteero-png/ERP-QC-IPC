@@ -104,7 +104,7 @@ export type UpdateWithdrawalRulePayload = z.infer<typeof updateWithdrawalRuleSch
 export const withdrawalListFiltersSchema = z.object({
   workOrderId: z.coerce.number().int().positive().optional(),
   factoryCode: z.string().trim().max(40).nullable().optional(),
-  status: z.enum(['pending', 'approved', 'rejected', 'cancelled']).optional(),
+  status: z.enum(['pending', 'approved', 'released', 'rejected', 'cancelled']).optional(),
   reasonType: z.enum(WITHDRAWAL_REASON_TYPES).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
@@ -118,3 +118,13 @@ export const withdrawalListFiltersSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const withdrawalApprovalActionSchema = z.enum(WITHDRAWAL_APPROVAL_ACTIONS);
+
+// ---------------------------------------------------------------------------
+// Warehouse release (POST /requests/[id]/release) — no e-signature, confirm only
+// ---------------------------------------------------------------------------
+
+export const releaseWithdrawalRequestSchema = z.object({
+  comment: z.string().trim().max(1000).optional(),
+});
+
+export type ReleaseWithdrawalRequestPayload = z.infer<typeof releaseWithdrawalRequestSchema>;

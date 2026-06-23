@@ -107,7 +107,7 @@ const navigation: NavItem[] = [
       { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
       // Inbound → outbound → returns
       { name: 'Goods Receipt (Warehouse)', href: '/inventory/goods-receipt', icon: ClipboardCheck },
-      { name: 'Material Requisitions (BOM)', href: '/inventory/requisitions', icon: ClipboardList },
+      { name: 'Material Requisitions', href: '/inventory/requisitions', icon: ClipboardList },
       { name: 'Returns Inbox', href: '/inventory/returns', icon: Undo2 },
       // Records & monitoring
       { name: 'Transactions', href: '/inventory/transactions', icon: ArrowLeftRight },

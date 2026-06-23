@@ -49,7 +49,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Lots': 'inventory.lots',
   'Warehouses': 'inventory.warehouses',
   'Goods Receipt (Warehouse)': 'inventory.goodsReceipt',
-  'Material Requisitions (BOM)': 'inventory.requisitions',
+  'Material Requisitions': 'inventory.requisitions',
   'Transactions': 'inventory.transactions',
   'Returns Inbox': 'inventory.returnsInbox',
   'Expiry Alerts': 'inventory.expiryAlerts',

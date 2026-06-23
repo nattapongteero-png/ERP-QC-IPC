@@ -41,7 +41,7 @@ import {
 // ============================================
 
 // Material Withdrawal Requests — header
-// Status flow: pending -> approved | rejected | cancelled
+// Status flow: pending -> approved -> released | rejected | cancelled
 export const sqliteMaterialWithdrawalRequests = sqliteTable('material_withdrawal_requests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   workOrderId: integer('work_order_id')
@@ -53,7 +53,7 @@ export const sqliteMaterialWithdrawalRequests = sqliteTable('material_withdrawal
     .notNull()
     .references(() => sqliteUsers.id),
   requestedAt: text('requested_at').notNull().default('CURRENT_TIMESTAMP'),
-  // pending | approved | rejected | cancelled
+  // pending | approved | released | rejected | cancelled
   status: text('status').notNull().default('pending'),
   // machine_setup_loss | equipment_trial_run | parameter_adjustment | other
   reasonType: text('reason_type').notNull(),
@@ -65,6 +65,9 @@ export const sqliteMaterialWithdrawalRequests = sqliteTable('material_withdrawal
     .notNull()
     .references(() => sqliteProductionRooms.id),
   cancelledReason: text('cancelled_reason'),
+  // Warehouse release audit — set once the warehouse releases the goods (stock deducted)
+  releasedByUserId: integer('released_by_user_id').references(() => sqliteUsers.id),
+  releasedAt: text('released_at'),
   // Idempotency: hash of (workOrderId + items + reasonType) used to dedupe within 30s
   payloadHash: text('payload_hash'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -255,6 +258,9 @@ export const mysqlMaterialWithdrawalRequests = mysqlTable('material_withdrawal_r
     .notNull()
     .references(() => mysqlProductionRooms.id),
   cancelledReason: mysqlText('cancelled_reason'),
+  // Warehouse release audit — set once the warehouse releases the goods (stock deducted)
+  releasedByUserId: int('released_by_user_id').references(() => mysqlUsers.id),
+  releasedAt: datetime('released_at'),
   payloadHash: varchar('payload_hash', { length: 64 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),

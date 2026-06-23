@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
-import { CheckCircle, Clock, XCircle, Ban, FileText } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Ban, FileText, PackageCheck } from 'lucide-react';
 import type { MaterialWithdrawalRequestDetail, WithdrawalStatus } from '@/types/material-withdrawal';
 
 export interface MaterialWithdrawalDetailDialogProps {
@@ -27,7 +27,8 @@ export interface MaterialWithdrawalDetailDialogProps {
 
 const STATUS_BADGE: Record<WithdrawalStatus, { className: string; icon: React.ComponentType<{ className?: string }> }> = {
   pending: { className: 'bg-amber-100 text-amber-800', icon: Clock },
-  approved: { className: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
+  approved: { className: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  released: { className: 'bg-emerald-100 text-emerald-800', icon: PackageCheck },
   rejected: { className: 'bg-red-100 text-red-800', icon: XCircle },
   cancelled: { className: 'bg-gray-200 text-gray-800', icon: Ban },
 };
