@@ -116,7 +116,7 @@ export default function LoginPage() {
               <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">{t('form.welcomeSubtitle')}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+            <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4 md:space-y-5">
               {/* Email Field */}
               <div className="space-y-1.5 md:space-y-2">
                 <label className="text-sm font-medium text-gray-700">{t('form.email')}</label>
@@ -126,10 +126,14 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="email"
+                    name="herbal-login-email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('form.emailPlaceholder')}
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
                   />
                 </div>
@@ -144,10 +148,14 @@ export default function LoginPage() {
                   </div>
                   <input
                     type="password"
+                    name="herbal-login-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t('form.passwordPlaceholder')}
                     required
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-form-type="other"
                     className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
                   />
                 </div>
