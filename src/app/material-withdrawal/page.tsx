@@ -7,6 +7,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DataGrid, Column, FilterRow, HeaderFilter, Paging } from 'devextreme-react/data-grid';
@@ -15,6 +16,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { TextBox } from 'devextreme-react/text-box';
 import { Layers, CheckCircle2, Clock, XCircle, Ban, PackageCheck } from 'lucide-react';
 import { MaterialWithdrawalDetailDialog } from '@/components/production/material-withdrawal-detail-dialog';
+import { MaterialWithdrawalApprovalActions } from '@/components/production/material-withdrawal-approval-actions';
 import type {
   MaterialWithdrawalRequestSummary,
   WithdrawalStatus,
@@ -32,7 +34,13 @@ const STATUS_OPTIONS: { value: WithdrawalStatus | ''; key: string }[] = [
 
 export default function MaterialWithdrawalListPage() {
   const t = useTranslations('material-withdrawal');
-  const [statusFilter, setStatusFilter] = useState<WithdrawalStatus | ''>('');
+  const searchParams = useSearchParams();
+  // Allow deep-linking to a status view, e.g. /material-withdrawal?status=pending
+  // (the old /pending route redirects here pre-filtered to the approval queue).
+  const initialStatus = (searchParams.get('status') as WithdrawalStatus | null) ?? '';
+  const [statusFilter, setStatusFilter] = useState<WithdrawalStatus | ''>(
+    STATUS_OPTIONS.some((o) => o.value === initialStatus) ? initialStatus : '',
+  );
   const [searchText, setSearchText] = useState('');
   const [openId, setOpenId] = useState<number | null>(null);
 
@@ -179,6 +187,21 @@ export default function MaterialWithdrawalListPage() {
         visible={openId !== null}
         requestId={openId}
         onClose={() => setOpenId(null)}
+        actions={(detail) =>
+          detail.status === 'pending' ? (
+            <MaterialWithdrawalApprovalActions
+              request={detail}
+              onApproved={() => {
+                setOpenId(null);
+                refetch();
+              }}
+              onRejected={() => {
+                setOpenId(null);
+                refetch();
+              }}
+            />
+          ) : null
+        }
       />
     </div>
   );
