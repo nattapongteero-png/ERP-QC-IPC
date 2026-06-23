@@ -62,6 +62,8 @@ interface RequisitionRow {
   /** Out-of-BOM withdrawal request id (present only when source = 'out_of_bom'). */
   requestId?: number;
   reasonType?: string;
+  /** Real out-of-BOM state: 'approved' = awaiting release, 'released' = issued. */
+  workflowStatus?: 'approved' | 'released';
   workOrderId: number;
   woNumber: string;
   batchNumber: string;
@@ -74,6 +76,8 @@ interface RequisitionRow {
   requestedAt: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
+  releasedBy?: string | null;
+  releasedAt?: string | null;
   materials: MaterialRow[];
 }
 
@@ -204,6 +208,8 @@ export default function MaterialRequisitionsInboxPage() {
   const [loading, setLoading] = useState(true);
   const [sourceTab, setSourceTab] = useState<'bom' | 'out_of_bom'>('bom');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  // Out-of-BOM sub-filter: all | approved (รอจ่าย) | released (จ่ายแล้ว)
+  const [outStatusFilter, setOutStatusFilter] = useState<'all' | 'approved' | 'released'>('all');
   const [releasing, setReleasing] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState<string>(''); // YYYY-MM-DD
@@ -284,7 +290,12 @@ export default function MaterialRequisitionsInboxPage() {
 
     return rows.filter((r) => {
       if (r.source !== sourceTab) return false;
-      if (statusFilter !== 'all' && r.requisitionStatus !== statusFilter) return false;
+      // Out-of-BOM uses its own รอจ่าย/จ่ายแล้ว filter; BOM uses requisitionStatus.
+      if (sourceTab === 'out_of_bom') {
+        if (outStatusFilter !== 'all' && r.workflowStatus !== outStatusFilter) return false;
+      } else if (statusFilter !== 'all' && r.requisitionStatus !== statusFilter) {
+        return false;
+      }
       if (q) {
         const matchesSearch =
           r.woNumber.toLowerCase().includes(q) ||
@@ -304,11 +315,20 @@ export default function MaterialRequisitionsInboxPage() {
       }
       return true;
     });
-  }, [rows, sourceTab, statusFilter, search, dateFrom, dateTo, insufficientOnly]);
+  }, [rows, sourceTab, statusFilter, outStatusFilter, search, dateFrom, dateTo, insufficientOnly]);
 
   // Stats reflect the active source tab so the cards match what's listed.
+  // For out-of-BOM the cards mean awaiting-release vs released.
   const stats = useMemo(() => {
     const scoped = rows.filter((r) => r.source === sourceTab);
+    if (sourceTab === 'out_of_bom') {
+      const awaiting = scoped.filter((r) => r.workflowStatus === 'approved').length;
+      const released = scoped.filter((r) => r.workflowStatus === 'released').length;
+      const insufficient = scoped
+        .filter((r) => r.workflowStatus === 'approved')
+        .filter((r) => r.materials.some(isInsufficient)).length;
+      return { requested: awaiting, approved: released, insufficient };
+    }
     const requested = scoped.filter((r) => r.requisitionStatus === 'requested').length;
     const approved = scoped.filter((r) => r.requisitionStatus === 'approved').length;
     const insufficient = scoped.filter((r) => r.materials.some(isInsufficient)).length;
@@ -321,17 +341,23 @@ export default function MaterialRequisitionsInboxPage() {
     out_of_bom: rows.filter((r) => r.source === 'out_of_bom').length,
   }), [rows]);
 
-  // Options for the "pick a requisition" dropdown — limited to the current
-  // status view so a pick always returns a result. Lets the user choose a WO
-  // instead of typing a number.
+  // Options for the "pick a requisition" dropdown — scoped to the ACTIVE tab
+  // and its status filter, so picks always match what's listed (and the
+  // out-of-BOM tab never offers BOM work orders, and vice-versa).
   const woOptions = useMemo(() => {
     return rows
-      .filter((r) => statusFilter === 'all' || r.requisitionStatus === statusFilter)
+      .filter((r) => r.source === sourceTab)
+      .filter((r) => {
+        if (sourceTab === 'out_of_bom') {
+          return outStatusFilter === 'all' || r.workflowStatus === outStatusFilter;
+        }
+        return statusFilter === 'all' || r.requisitionStatus === statusFilter;
+      })
       .map((r) => ({
         value: r.woNumber,
         label: `${r.woNumber} — ${r.productName ?? r.productCode ?? ''}${r.batchNumber ? ` · ${r.batchNumber}` : ''}`,
       }));
-  }, [rows, statusFilter]);
+  }, [rows, sourceTab, statusFilter, outStatusFilter]);
 
   const toggle = (woId: number) =>
     setExpanded((prev) => {
@@ -419,7 +445,7 @@ export default function MaterialRequisitionsInboxPage() {
           ]).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => { setSourceTab(tab.key); setStatusFilter('all'); }}
+              onClick={() => { setSourceTab(tab.key); setStatusFilter('all'); setOutStatusFilter('all'); }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 sourceTab === tab.key
                   ? 'bg-emerald-600 text-white'
@@ -436,22 +462,53 @@ export default function MaterialRequisitionsInboxPage() {
           ))}
         </div>
 
+        {/* Out-of-BOM status filter — รอจ่าย / จ่ายแล้ว */}
+        {sourceTab === 'out_of_bom' && (
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'all' as const, label: 'ทั้งหมด' },
+              { key: 'approved' as const, label: 'รอคลังจ่าย' },
+              { key: 'released' as const, label: 'จ่ายของแล้ว' },
+            ]).map((pill) => (
+              <button
+                key={pill.key}
+                onClick={() => setOutStatusFilter(pill.key)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
+                  outStatusFilter === pill.key
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
-            label="รออนุมัติ"
+            label={sourceTab === 'out_of_bom' ? 'รอคลังจ่าย' : 'รออนุมัติ'}
             value={stats.requested}
             icon={Clock}
             iconColor="text-amber-500"
             accentColor="border-amber-500"
-            onClick={() => { setStatusFilter('requested'); setInsufficientOnly(false); }}
+            onClick={() => {
+              if (sourceTab === 'out_of_bom') setOutStatusFilter('approved');
+              else setStatusFilter('requested');
+              setInsufficientOnly(false);
+            }}
           />
           <StatCard
-            label="อนุมัติแล้ว"
+            label={sourceTab === 'out_of_bom' ? 'จ่ายของแล้ว' : 'อนุมัติแล้ว'}
             value={stats.approved}
             icon={CheckCircle2}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
-            onClick={() => { setStatusFilter('approved'); setInsufficientOnly(false); }}
+            onClick={() => {
+              if (sourceTab === 'out_of_bom') setOutStatusFilter('released');
+              else setStatusFilter('approved');
+              setInsufficientOnly(false);
+            }}
           />
           <StatCard
             label="วัตถุดิบไม่พอ"
@@ -459,7 +516,11 @@ export default function MaterialRequisitionsInboxPage() {
             icon={AlertTriangle}
             iconColor={stats.insufficient > 0 ? 'text-red-500' : 'text-gray-400'}
             accentColor={stats.insufficient > 0 ? 'border-red-500' : 'border-gray-300'}
-            onClick={() => { setStatusFilter('all'); setInsufficientOnly(true); }}
+            onClick={() => {
+              if (sourceTab === 'out_of_bom') setOutStatusFilter('approved');
+              else setStatusFilter('all');
+              setInsufficientOnly(true);
+            }}
           />
         </div>
 
@@ -639,19 +700,26 @@ export default function MaterialRequisitionsInboxPage() {
                         <div>{formatDateTh(req.requestedAt)}</div>
                       </div>
                       <div className="flex items-center gap-2 justify-start md:justify-end">
-                        {insufficient && (
+                        {insufficient && req.workflowStatus !== 'released' && (
                           <Badge variant="danger" dot>
                             <AlertTriangle className="h-3 w-3 mr-1" /> ไม่พอ
                           </Badge>
                         )}
-                        <Badge
-                          variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'}
-                          dot
-                        >
-                          {req.requisitionStatus === 'approved'
-                            ? 'อนุมัติแล้ว'
-                            : 'รออนุมัติ'}
-                        </Badge>
+                        {req.source === 'out_of_bom' ? (
+                          <Badge
+                            variant={req.workflowStatus === 'released' ? 'success' : 'warning'}
+                            dot
+                          >
+                            {req.workflowStatus === 'released' ? 'จ่ายของแล้ว' : 'รอคลังจ่าย'}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'}
+                            dot
+                          >
+                            {req.requisitionStatus === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -770,28 +838,35 @@ export default function MaterialRequisitionsInboxPage() {
                         </div>
                       )}
 
-                      {/* Out-of-BOM withdrawal — supervisor already approved;
-                          warehouse releases here (this is what deducts stock). */}
+                      {/* Out-of-BOM withdrawal — supervisor already approved.
+                          If awaiting release → show the release button (deducts
+                          stock). If already released → show who issued it. */}
                       {req.source === 'out_of_bom' && (
                         <div className="flex flex-col items-end mt-4 gap-2">
                           <div className="text-xs text-gray-500">
                             อนุมัติโดยหัวหน้าผลิต {req.approvedBy ?? '—'} · {formatDateTh(req.approvedAt)}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <DxButton
-                              text={releasing.has(req.requestId!) ? 'กำลังปล่อยของ...' : 'ปล่อยของ (ตัดสต็อก)'}
-                              icon="box"
-                              type="success"
-                              stylingMode="contained"
-                              disabled={releasing.has(req.requestId!) || insufficient}
-                              onClick={() => release(req.requestId!)}
-                            />
-                            {insufficient && (
-                              <span className="text-xs text-red-600">
-                                วัตถุดิบไม่พอ — ไม่สามารถปล่อยของได้
-                              </span>
-                            )}
-                          </div>
+                          {req.workflowStatus === 'released' ? (
+                            <div className="text-xs text-emerald-700 font-medium">
+                              จ่ายของแล้วโดย {req.releasedBy ?? '—'} · {formatDateTh(req.releasedAt)}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <DxButton
+                                text={releasing.has(req.requestId!) ? 'กำลังปล่อยของ...' : 'ปล่อยของ (ตัดสต็อก)'}
+                                icon="box"
+                                type="success"
+                                stylingMode="contained"
+                                disabled={releasing.has(req.requestId!) || insufficient}
+                                onClick={() => release(req.requestId!)}
+                              />
+                              {insufficient && (
+                                <span className="text-xs text-red-600">
+                                  วัตถุดิบไม่พอ — ไม่สามารถปล่อยของได้
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

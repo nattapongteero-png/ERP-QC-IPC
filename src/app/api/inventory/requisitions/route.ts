@@ -184,40 +184,45 @@ export async function GET(request: NextRequest) {
         materials: materialsMap.get(wo.workOrderId as number) ?? [],
       }));
 
-      // Merge approved-but-unreleased out-of-BOM withdrawals (tagged
-      // source: 'out_of_bom') — the warehouse releases these here too. Only
-      // relevant when viewing approved/all (these are awaiting warehouse action).
-      let outOfBomRows: unknown[] = [];
-      if (statusFilter === 'approved' || statusFilter === 'all') {
-        const approved = await getApprovedWithdrawalsForRelease();
-        outOfBomRows = approved.map((w) => ({
-          source: 'out_of_bom' as const,
-          requestId: w.requestId,
-          workOrderId: w.workOrderId,
-          woNumber: w.woNumber,
-          batchNumber: w.batchNumber,
-          productName: w.productName,
-          productCode: w.productCode,
-          reasonType: w.reasonType,
-          requisitionStatus: 'approved',
-          requestedBy: w.requestedBy,
-          requestedAt: w.requestedAt,
-          approvedBy: w.approvedBy,
-          approvedAt: w.approvedAt,
-          materials: w.materials.map((m) => ({
-            itemId: m.itemId,
-            itemCode: m.itemCode,
-            itemName: m.itemName,
-            plannedQuantity: m.quantityApproved,
-            actualQuantity: null,
-            unit: m.unit,
-            status: 'approved',
-            releasedAvailable: m.releasedAvailable,
-            // out-of-BOM raw issues are single-unit — no PU/SU weight tracking
-            weightTrackingEnabled: false,
-          })),
-        }));
-      }
+      // Merge out-of-BOM withdrawals (tagged source: 'out_of_bom') — both those
+      // awaiting warehouse release AND those already released (kept in the
+      // register for history). The page's own status filter narrows further.
+      // `workflowStatus` carries the real withdrawal state ('approved' = awaiting
+      // release, 'released' = issued) since BOM rows reuse requisitionStatus for
+      // a different meaning ('requested'/'approved').
+      const withdrawals = await getApprovedWithdrawalsForRelease();
+      const outOfBomRows = withdrawals.map((w) => ({
+        source: 'out_of_bom' as const,
+        requestId: w.requestId,
+        workflowStatus: w.status, // 'approved' | 'released'
+        workOrderId: w.workOrderId,
+        woNumber: w.woNumber,
+        batchNumber: w.batchNumber,
+        productName: w.productName,
+        productCode: w.productCode,
+        reasonType: w.reasonType,
+        // Keep requisitionStatus='approved' so existing BOM-oriented filters
+        // don't hide these; the page uses workflowStatus for the real state.
+        requisitionStatus: 'approved',
+        requestedBy: w.requestedBy,
+        requestedAt: w.requestedAt,
+        approvedBy: w.approvedBy,
+        approvedAt: w.approvedAt,
+        releasedBy: w.releasedBy,
+        releasedAt: w.releasedAt,
+        materials: w.materials.map((m) => ({
+          itemId: m.itemId,
+          itemCode: m.itemCode,
+          itemName: m.itemName,
+          plannedQuantity: m.quantityApproved,
+          actualQuantity: null,
+          unit: m.unit,
+          status: w.status,
+          releasedAvailable: m.releasedAvailable,
+          // out-of-BOM raw issues are single-unit — no PU/SU weight tracking
+          weightTrackingEnabled: false,
+        })),
+      }));
 
       return successResponse([...result, ...outOfBomRows]);
     } catch (error) {

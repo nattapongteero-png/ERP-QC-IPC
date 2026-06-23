@@ -1235,6 +1235,8 @@ export async function releaseRequest(
 
 export interface ApprovedWithdrawalForRelease {
   requestId: number;
+  /** 'approved' = awaiting warehouse release; 'released' = already issued. */
+  status: 'approved' | 'released';
   workOrderId: number;
   woNumber: string;
   batchNumber: string;
@@ -1245,6 +1247,8 @@ export interface ApprovedWithdrawalForRelease {
   requestedAt: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
+  releasedBy: string | null;
+  releasedAt: string | null;
   materials: {
     itemId: number;
     itemCode: string;
@@ -1256,13 +1260,14 @@ export interface ApprovedWithdrawalForRelease {
 }
 
 /**
- * All supervisor-approved (status='approved') withdrawals still awaiting
- * warehouse release, enriched with material meta + on-hand from released lots.
+ * Out-of-BOM withdrawals for the warehouse register — both those awaiting
+ * release (status='approved') AND those already released (status='released',
+ * kept for history). Enriched with material meta + on-hand from released lots.
  * Used by the merged /inventory/requisitions page (out-of-BOM tab).
  */
 export async function getApprovedWithdrawalsForRelease(): Promise<ApprovedWithdrawalForRelease[]> {
   // One-time legacy backfill before the warehouse queue is ever read, so
-  // pre-change 'approved' rows (already stock-deducted) never surface here.
+  // pre-change 'approved' rows (already stock-deducted) surface as 'released'.
   await runLegacyBackfillOnce();
   return executeDbOperation(async (db) => {
     const tables = getTables();
@@ -1270,14 +1275,20 @@ export async function getApprovedWithdrawalsForRelease(): Promise<ApprovedWithdr
     const reqs: any[] = await db
       .select()
       .from(tables.requests)
-      .where(eq(tables.requests.status, 'approved'))
-      .orderBy(tables.requests.id);
+      .where(inArray(tables.requests.status, ['approved', 'released']))
+      .orderBy(desc(tables.requests.id));
     if (reqs.length === 0) return [];
 
     const requestIds = reqs.map((r) => Number(r.id));
     const workOrderIds = [...new Set(reqs.map((r) => Number(r.workOrderId)))];
     const userIds = [
-      ...new Set(reqs.flatMap((r) => [Number(r.requestedByUserId)])),
+      ...new Set(
+        reqs.flatMap((r) =>
+          [Number(r.requestedByUserId), r.releasedByUserId != null ? Number(r.releasedByUserId) : null].filter(
+            (v): v is number => v != null,
+          ),
+        ),
+      ),
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1346,6 +1357,7 @@ export async function getApprovedWithdrawalsForRelease(): Promise<ApprovedWithdr
       const appr = approvalByReq.get(Number(r.id));
       return {
         requestId: Number(r.id),
+        status: (r.status === 'released' ? 'released' : 'approved') as 'approved' | 'released',
         workOrderId: Number(r.workOrderId),
         woNumber: String(wo?.woNumber ?? `WO-${r.workOrderId}`),
         batchNumber: String(wo?.batchNumber ?? ''),
@@ -1356,6 +1368,8 @@ export async function getApprovedWithdrawalsForRelease(): Promise<ApprovedWithdr
         requestedAt: r.requestedAt ? String(r.requestedAt) : null,
         approvedBy: appr ? (userName.get(Number(appr.approverUserId)) ?? null) : null,
         approvedAt: appr?.actionAt ? String(appr.actionAt) : null,
+        releasedBy: r.releasedByUserId != null ? (userName.get(Number(r.releasedByUserId)) ?? null) : null,
+        releasedAt: r.releasedAt ? String(r.releasedAt) : null,
         materials: (itemsByReq.get(Number(r.id)) ?? []).map((it) => {
           const meta = metaById.get(Number(it.materialId));
           return {
