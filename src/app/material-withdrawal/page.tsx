@@ -179,8 +179,27 @@ export default function MaterialWithdrawalListPage() {
         <FilterRow visible={false} />
         <HeaderFilter visible={false} />
         <Paging pageSize={20} />
-        <Column dataField="id" caption={t('table.columns.id')} width={100} />
-        <Column dataField="workOrderId" caption={t('table.columns.workOrder')} width={130} />
+        <Column dataField="id" caption={t('table.columns.id')} width={90} />
+        <Column
+          dataField="workOrderNumber"
+          caption={t('table.columns.workOrder')}
+          minWidth={200}
+          cellRender={(c) => {
+            const row = c.data as MaterialWithdrawalRequestSummary;
+            return (
+              <div className="leading-tight">
+                <div className="font-medium text-gray-900">
+                  {row.workOrderNumber ?? `WO-${row.workOrderId}`}
+                </div>
+                {(row.productName || row.productCode) && (
+                  <div className="text-xs text-gray-500">
+                    {row.productCode ? `${row.productCode} · ` : ''}{row.productName ?? ''}
+                  </div>
+                )}
+              </div>
+            );
+          }}
+        />
         <Column dataField="status" caption={t('table.columns.status')} width={130}
           cellRender={(c) => <StatusBadge status={c.value as WithdrawalStatus} />}
         />

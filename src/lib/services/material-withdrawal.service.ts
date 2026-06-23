@@ -642,19 +642,50 @@ export async function listRequests(
     const userById = new Map<number, string>();
     for (const u of userRows) userById.set(Number(u.id), String(u.name ?? ''));
 
-    const items: MaterialWithdrawalRequestSummary[] = rows.map((r) => ({
-      id: Number(r.id),
-      workOrderId: Number(r.workOrderId),
-      factoryCode: r.factoryCode ?? null,
-      status: r.status as WithdrawalStatus,
-      reasonType: r.reasonType,
-      requestedAt: String(r.requestedAt),
-      requestedBy: {
-        id: Number(r.requestedByUserId),
-        name: userById.get(Number(r.requestedByUserId)) ?? '',
-      },
-      itemCount: itemCounts.get(Number(r.id)) ?? 0,
-    }));
+    // Work-order number + product name/code, so the list shows a real WO
+    // reference (e.g. WO2606106047 — capsule) instead of a bare id.
+    const woIds = Array.from(new Set(rows.map((r) => Number(r.workOrderId))));
+    const woById = new Map<number, { woNumber: string; productName: string | null; productCode: string | null }>();
+    if (woIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const woRows: any[] = await db
+        .select({
+          id: tables.workOrders.id,
+          woNumber: tables.workOrders.woNumber,
+          productName: tables.items.nameTh,
+          productCode: tables.items.code,
+        })
+        .from(tables.workOrders)
+        .leftJoin(tables.items, eq(tables.workOrders.productId, tables.items.id))
+        .where(inArray(tables.workOrders.id, woIds));
+      for (const w of woRows) {
+        woById.set(Number(w.id), {
+          woNumber: String(w.woNumber ?? ''),
+          productName: w.productName ?? null,
+          productCode: w.productCode ?? null,
+        });
+      }
+    }
+
+    const items: MaterialWithdrawalRequestSummary[] = rows.map((r) => {
+      const wo = woById.get(Number(r.workOrderId));
+      return {
+        id: Number(r.id),
+        workOrderId: Number(r.workOrderId),
+        workOrderNumber: wo?.woNumber || `WO-${r.workOrderId}`,
+        productName: wo?.productName ?? null,
+        productCode: wo?.productCode ?? null,
+        factoryCode: r.factoryCode ?? null,
+        status: r.status as WithdrawalStatus,
+        reasonType: r.reasonType,
+        requestedAt: String(r.requestedAt),
+        requestedBy: {
+          id: Number(r.requestedByUserId),
+          name: userById.get(Number(r.requestedByUserId)) ?? '',
+        },
+        itemCount: itemCounts.get(Number(r.id)) ?? 0,
+      };
+    });
 
     return { items, total, page, pageSize };
   });

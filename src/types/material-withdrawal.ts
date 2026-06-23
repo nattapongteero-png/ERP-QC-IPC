@@ -75,6 +75,8 @@ export interface MaterialWithdrawalRequestSummary {
   id: number;
   workOrderId: number;
   workOrderNumber?: string;
+  productName?: string | null;
+  productCode?: string | null;
   factoryCode: string | null;
   status: WithdrawalStatus;
   reasonType: WithdrawalReasonType;
