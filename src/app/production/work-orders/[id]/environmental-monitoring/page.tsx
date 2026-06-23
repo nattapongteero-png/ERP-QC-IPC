@@ -439,7 +439,7 @@ export default function EnvironmentalMonitoringPage() {
                   <span className="text-xs text-gray-400">-</span>
                 );
               }} />
-              <DxColumn dataField="recordedDate" caption="วันที่" width={100} />
+              <DxColumn dataField="recordedDate" caption="วันที่" minWidth={110} width={110} />
               <DxColumn dataField="recordedTime" caption="เวลา" width={80} />
               <DxColumn dataField="temperature" caption="อุณหภูมิ (°C)" minWidth={100} cellRender={(cell) => (
                 <span className={`font-medium ${
