@@ -75,10 +75,10 @@ interface ExecutionSummary {
   workOrderStatus?: string;
   materialWeighing: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
-  preProductionEnvironmental: { total: number; recorded: number; normal: number };
+  preProductionEnvironmental: { total: number; recorded: number; normal: number; hasRoomMapping?: boolean };
   productionCleaning?: { total: number; completed: number; verified: number };
   sopExecution: { total: number; completed: number; verified: number };
-  productionEnvironmental: { total: number; recorded: number; normal: number };
+  productionEnvironmental: { total: number; recorded: number; normal: number; hasRoomMapping?: boolean };
   productionOutput: { recorded: boolean; actualQuantity: number | null; yieldPercent: number | null };
   bulkOutput?: { recorded: boolean; quantity: number | null; recordedAt: string | null };
   finishedOutput?: { recorded: boolean; quantity: number | null; recordedAt: string | null };
@@ -87,7 +87,7 @@ interface ExecutionSummary {
   packagingCleaning?: { total: number; completed: number; verified: number };
   packagingWeight: { total: number; passed: number };
   packagingIntegrity: { total: number; passed: number };
-  packagingEnvironmental: { total: number; recorded: number; normal: number };
+  packagingEnvironmental: { total: number; recorded: number; normal: number; hasRoomMapping?: boolean };
   finishedInspection: { status: 'pending' | 'in_progress' | 'passed' | 'failed' };
   ipc: { total: number; completed: number; approved: number };
   // Per-phase breakdowns — drive dynamic SOP/IPC cards on the dashboard.
@@ -892,11 +892,22 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     return { locked: false, reason: '' };
   };
 
+  // Environmental cards are configured by BOM room mapping (not by log count),
+  // so show them whenever the phase has a room — even before the first IoT
+  // reading arrives — so the operator sees the "waiting for IoT" state instead
+  // of the card silently disappearing.
+  const envHasRoomByCardId: Record<string, boolean | undefined> = {
+    'pre-production-environmental': currentSummary.preProductionEnvironmental?.hasRoomMapping,
+    'production-environmental': currentSummary.productionEnvironmental?.hasRoomMapping,
+    'packaging-environmental': currentSummary.packagingEnvironmental?.hasRoomMapping,
+  };
+
   // Hide BOM-derived cards with total=0 so the dashboard only surfaces work
   // that's actually configured. Process-step cards (always-on whitelist)
   // remain visible regardless of count.
   const visibleSections = executionSections.filter((section) => {
     if (alwaysShowCardIds.has(section.id)) return true;
+    if (section.id in envHasRoomByCardId) return envHasRoomByCardId[section.id] === true;
     const status = section.getStatus(currentSummary);
     return status.total > 0;
   });

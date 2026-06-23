@@ -105,11 +105,35 @@ export async function GET(
         if (s.verifiedAt) sopByPhase[p].verified += 1;
       }
 
+      // Which phases have a BOM room mapping — drives whether the environmental
+      // monitoring card shows at all. Environmental logging is keyed off
+      // bom_rooms (IoT routes readings by room→phase), so a phase with no room
+      // configured can never receive readings and its card should stay hidden.
+      // Conversely a phase WITH a room must show the card even before any
+      // reading arrives, so the operator can see the "waiting for IoT" state.
+      const envPhasesWithRoom = await executeDbOperation(async (db) => {
+        const woRef = getTableRef('workOrders');
+        const bomRoomsRef = getTableRef('BOMRooms');
+        const woRows = await db
+          .select({ bomId: woRef.bomId })
+          .from(woRef)
+          .where(eq(woRef.id, workOrderId))
+          .limit(1);
+        const bomId = woRows[0]?.bomId;
+        if (!bomId) return new Set<string>();
+        const roomRows = await db
+          .select({ phase: bomRoomsRef.phase })
+          .from(bomRoomsRef)
+          .where(eq(bomRoomsRef.bomId, Number(bomId)));
+        return new Set<string>(roomRows.map((r: any) => String(r.phase)));
+      });
+
       // Calculate pre-production environmental status
       const preProductionEnvironmental = {
         total: preProductionEnvLogs.length > 0 ? preProductionEnvLogs.length : 0,
         recorded: preProductionEnvLogs.length,
         normal: preProductionEnvLogs.filter((l: any) => l.isNormal).length,
+        hasRoomMapping: envPhasesWithRoom.has('pre_production'),
       };
 
       // Calculate production environmental status
@@ -117,6 +141,7 @@ export async function GET(
         total: productionEnvLogs.length > 0 ? productionEnvLogs.length : 0,
         recorded: productionEnvLogs.length,
         normal: productionEnvLogs.filter((l: any) => l.isNormal).length,
+        hasRoomMapping: envPhasesWithRoom.has('production'),
       };
 
       const postProductionCleaningStatus = {
@@ -156,6 +181,7 @@ export async function GET(
         total: packagingEnvLogs.length > 0 ? packagingEnvLogs.length : 0,
         recorded: packagingEnvLogs.length,
         normal: packagingEnvLogs.filter((l: any) => l.isNormal).length,
+        hasRoomMapping: envPhasesWithRoom.has('packaging'),
       };
 
       // Calculate finished inspection status
