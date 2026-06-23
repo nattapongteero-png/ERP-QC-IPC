@@ -87,7 +87,7 @@
   "workCenters": {
     "page": {
       "title": "Work Centers",
-      "description": "Configure production work centers with labor and overhead rates"
+      "description": "Set labor and overhead rates for each production work center"
     },
     "stats": {
       "total": "Total",
