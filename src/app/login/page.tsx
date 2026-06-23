@@ -226,6 +226,11 @@ export default function LoginPage() {
           <p className="text-center text-xs md:text-sm text-gray-400 mt-6 md:mt-8">
             {t('footer.copyright')}
           </p>
+          {/* App version + build date — frozen at build time (see next.config.ts) */}
+          <p className="text-center text-[11px] text-gray-300 mt-1">
+            v{process.env.NEXT_PUBLIC_APP_VERSION}
+            {process.env.NEXT_PUBLIC_BUILD_DATE ? ` · ${process.env.NEXT_PUBLIC_BUILD_DATE}` : ''}
+          </p>
         </div>
       </div>
     </div>

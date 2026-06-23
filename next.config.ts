@@ -1,10 +1,21 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
+import { version as pkgVersion } from './package.json';
 
 const withNextIntl = createNextIntlPlugin('./src/lib/i18n/request.ts');
 
+// App version + build date, frozen into the bundle at build time so the login
+// footer can show which build UAT/prod is running (e.g. "v0.1.0 · 2026-06-23").
+// Build date is the day the image was compiled (local date, YYYY-MM-DD).
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
+
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkgVersion,
+    NEXT_PUBLIC_BUILD_DATE: BUILD_DATE,
+  },
   // Instrumentation is enabled by default in Next.js 15+
   // The src/instrumentation.ts file runs on server startup for schema sync
 
