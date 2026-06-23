@@ -629,7 +629,8 @@ export default function GrnDetailPage() {
         width={640}
         height="auto"
       >
-        <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+        <div className="flex flex-col max-h-[78vh]">
+          <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
           {/* QC sample quantity — how much QC physically draws into the QC
               warehouse for testing. The warehouse counts the remaining total
               and releases it into RM/FG later. */}
@@ -704,40 +705,44 @@ export default function GrnDetailPage() {
               />
             </div>
           ))}
-
-          <div className="border-t pt-3 mt-3">
-            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
-            <input
-              type="password"
-              name="esign-password"
-              autoComplete="new-password"
-              data-lpignore="true"
-              value={sigPassword}
-              onChange={(e) => setSigPassword(e.target.value)}
-              className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-              placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
-            />
           </div>
 
-          {signChecklistMut.error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              {String((signChecklistMut.error as Error).message)}
+          {/* Sticky footer — password + sign action stay visible without scrolling */}
+          <div className="border-t bg-white p-4 space-y-3 flex-shrink-0">
+            <div>
+              <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+              <input
+                type="password"
+                name="esign-password"
+                autoComplete="new-password"
+                data-lpignore="true"
+                value={sigPassword}
+                onChange={(e) => setSigPassword(e.target.value)}
+                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
+              />
             </div>
-          )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setChecklistOpen(false)} />
-            <Button
-              type="success"
-              stylingMode="contained"
-              text={t('actions.signChecklist')}
-              disabled={
-                signChecklistMut.isPending ||
-                !(Number(checklistSampleQty) > 0)
-              }
-              onClick={() => signChecklistMut.mutate()}
-            />
+            {signChecklistMut.error && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {String((signChecklistMut.error as Error).message)}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button text={t('actions.cancel')} stylingMode="text" onClick={() => setChecklistOpen(false)} />
+              <Button
+                type="success"
+                stylingMode="contained"
+                text={t('actions.signChecklist')}
+                disabled={
+                  signChecklistMut.isPending ||
+                  !(Number(checklistSampleQty) > 0)
+                }
+                onClick={() => signChecklistMut.mutate()}
+              />
+            </div>
           </div>
         </div>
       </Popup>
