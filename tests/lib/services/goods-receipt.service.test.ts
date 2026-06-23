@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { GRN_LINE_TRANSITIONS, GoodsReceiptError, GOODS_RECEIPT_ERROR_CODES } from '@/types/goods-receipt';
+import { deriveWorkflowStatus } from '@/lib/services/goods-receipt.service';
 
 describe('GRN line state machine', () => {
   it('allows created → checklist_done', () => {
@@ -53,6 +54,47 @@ describe('GRN line state machine', () => {
 
   it('forbids qc_pending → released_to_stock (must go through qc_approved)', () => {
     expect(GRN_LINE_TRANSITIONS.qc_pending).not.toContain('released_to_stock');
+  });
+});
+
+describe('deriveWorkflowStatus (register roll-up)', () => {
+  it('any line still created → pending_checklist', () => {
+    expect(deriveWorkflowStatus('in_progress', { created: 1, qc_approved: 2 })).toBe('pending_checklist');
+  });
+
+  it('checklist done / awaiting QC → pending_qc', () => {
+    expect(deriveWorkflowStatus('in_progress', { checklist_done: 1 })).toBe('pending_qc');
+    expect(deriveWorkflowStatus('in_progress', { qc_pending: 2 })).toBe('pending_qc');
+  });
+
+  it('QC approved, awaiting QA → pending_qa', () => {
+    expect(deriveWorkflowStatus('in_progress', { qc_approved: 3 })).toBe('pending_qa');
+  });
+
+  it('all lines released → released', () => {
+    expect(deriveWorkflowStatus('released', { released_to_stock: 4 })).toBe('released');
+  });
+
+  it('sits at the LEAST-advanced open line', () => {
+    // one line still in checklist while another is already released
+    expect(deriveWorkflowStatus('in_progress', { qc_pending: 1, released_to_stock: 1 })).toBe('pending_qc');
+  });
+
+  it('cancelled header wins outright', () => {
+    expect(deriveWorkflowStatus('cancelled', { released_to_stock: 2 })).toBe('cancelled');
+  });
+
+  it('rejected with nothing released → rejected', () => {
+    expect(deriveWorkflowStatus('in_progress', { rejected: 1 })).toBe('rejected');
+  });
+
+  it('partial release alongside rejected → still released (not all rejected)', () => {
+    expect(deriveWorkflowStatus('partially_released', { rejected: 1, released_to_stock: 1 })).toBe('released');
+  });
+
+  it('no lines yet falls back to header', () => {
+    expect(deriveWorkflowStatus('in_progress', {})).toBe('pending_checklist');
+    expect(deriveWorkflowStatus('released', {})).toBe('released');
   });
 });
 

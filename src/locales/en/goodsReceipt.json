@@ -51,6 +51,15 @@
       "released_to_stock": "Released to Stock",
       "rejected": "Rejected",
       "cancelled": "Cancelled"
+    },
+    "workflow": {
+      "all": "All",
+      "pending_checklist": "Pending Checklist",
+      "pending_qc": "Pending QC",
+      "pending_qa": "Pending QA",
+      "released": "Released",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
     }
   },
   "form": {

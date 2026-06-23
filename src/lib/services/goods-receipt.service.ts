@@ -15,6 +15,7 @@ import {
   type GoodsReceiptLine,
   type GrnLineStatus,
   type GrnStatus,
+  type GrnWorkflowStatus,
   type UpdateGrnLineInput,
 } from '@/types/goods-receipt';
 import { generateGrnNumber } from './goods-receipt-numbering.service';
@@ -381,6 +382,7 @@ export async function getGrnById(
 
 export interface ListGrnsFilter {
   status?: GrnStatus;
+  workflowStatus?: GrnWorkflowStatus;
   sourceType?: 'po' | 'wo';
   vendorId?: number;
   dateFrom?: string;
@@ -389,8 +391,32 @@ export interface ListGrnsFilter {
   pageSize?: number;
 }
 
+/**
+ * Roll a GRN's per-line statuses up into one register-friendly workflow status.
+ * Rule: the GRN sits at the stage of its LEAST-advanced still-open line, so it
+ * only reads "ผ่านแล้ว" once every line is released. Terminal header states
+ * (cancelled / rejected) win outright.
+ */
+export function deriveWorkflowStatus(
+  headerStatus: string,
+  stage: Record<string, number>,
+): GrnWorkflowStatus {
+  if (headerStatus === 'cancelled') return 'cancelled';
+  const open = (s: string) => (stage[s] ?? 0) > 0;
+  // Least-advanced open line dictates the stage.
+  if (open('created')) return 'pending_checklist';
+  if (open('checklist_done') || open('qc_pending')) return 'pending_qc';
+  if (open('qc_approved')) return 'pending_qa';
+  // No open earlier-stage lines left. If anything was rejected and nothing is
+  // still released, surface the rejection; otherwise it's fully released.
+  if (open('rejected') && !open('released_to_stock')) return 'rejected';
+  if (open('released_to_stock')) return 'released';
+  // No lines yet (shouldn't normally happen) — fall back to header mapping.
+  return headerStatus === 'released' ? 'released' : 'pending_checklist';
+}
+
 export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
-  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null; woNumber: string | null; canCancel: boolean }>;
+  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null; woNumber: string | null; workflowStatus: GrnWorkflowStatus; canCancel: boolean }>;
   total: number;
   page: number;
   pageSize: number;
@@ -441,19 +467,27 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
     const grnIds = rows.map((r: any) => Number(r.id));
     const counts: Record<number, number> = {};
     const advancedCounts: Record<number, number> = {};
+    // Per-GRN tally of lines at each workflow stage, used to derive a
+    // register-friendly roll-up status (รอ Checklist / รอ QC / รอ QA / ผ่านแล้ว).
+    const stageCounts: Record<number, Record<string, number>> = {};
     if (grnIds.length > 0) {
       const cntRows = await db
         .select({
           grnId: t.lines.grnId,
+          status: t.lines.status,
           c: sql<number>`COUNT(*)`,
-          advanced: sql<number>`SUM(CASE WHEN ${t.lines.status} <> 'created' THEN 1 ELSE 0 END)`,
         })
         .from(t.lines)
         .where(inArray(t.lines.grnId, grnIds))
-        .groupBy(t.lines.grnId);
+        .groupBy(t.lines.grnId, t.lines.status);
       for (const c of cntRows) {
-        counts[Number(c.grnId)] = Number(c.c);
-        advancedCounts[Number(c.grnId)] = Number(c.advanced ?? 0);
+        const gid = Number(c.grnId);
+        const n = Number(c.c);
+        counts[gid] = (counts[gid] ?? 0) + n;
+        if (String(c.status) !== 'created') {
+          advancedCounts[gid] = (advancedCounts[gid] ?? 0) + n;
+        }
+        (stageCounts[gid] ??= {})[String(c.status)] = n;
       }
     }
 
@@ -465,25 +499,35 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
     const total = Number(totalRows[0]?.c ?? 0);
 
     const CANCELLABLE_HEADER = ['in_progress'];
+    let items = rows.map((r: any) => {
+      const id = Number(r.id);
+      const lineCount = counts[id] ?? 0;
+      const advanced = advancedCounts[id] ?? 0;
+      // Mirror the backend cancelGrn() guard: header still in progress,
+      // has lines, and none advanced past 'created'. (Creator + 24h are
+      // also enforced server-side; this just hides the obviously-invalid case.)
+      const canCancel =
+        CANCELLABLE_HEADER.includes(String(r.status)) && lineCount > 0 && advanced === 0;
+      return {
+        ...normalizeGrn(r),
+        vendorName: r.vendorName ?? null,
+        woNumber: r.woNumber ?? null,
+        lineCount,
+        workflowStatus: deriveWorkflowStatus(String(r.status), stageCounts[id] ?? {}),
+        canCancel,
+      };
+    });
+
+    // Optional client-side filter by derived workflow status (KPI card / pill
+    // bar drill-down). Done in-memory because workflowStatus is computed, not a
+    // column — the dataset per page is small (≤200 rows).
+    if (filter.workflowStatus) {
+      items = items.filter((it: { workflowStatus: GrnWorkflowStatus }) => it.workflowStatus === filter.workflowStatus);
+    }
+
     return {
-      items: rows.map((r: any) => {
-        const id = Number(r.id);
-        const lineCount = counts[id] ?? 0;
-        const advanced = advancedCounts[id] ?? 0;
-        // Mirror the backend cancelGrn() guard: header still in progress,
-        // has lines, and none advanced past 'created'. (Creator + 24h are
-        // also enforced server-side; this just hides the obviously-invalid case.)
-        const canCancel =
-          CANCELLABLE_HEADER.includes(String(r.status)) && lineCount > 0 && advanced === 0;
-        return {
-          ...normalizeGrn(r),
-          vendorName: r.vendorName ?? null,
-          woNumber: r.woNumber ?? null,
-          lineCount,
-          canCancel,
-        };
-      }),
-      total,
+      items,
+      total: filter.workflowStatus ? items.length : total,
       page,
       pageSize,
     };

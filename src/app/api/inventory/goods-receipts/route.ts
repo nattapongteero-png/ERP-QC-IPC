@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const result = await listGrns({
     status: (sp.get('status') as any) ?? undefined,
+    workflowStatus: (sp.get('workflowStatus') as any) ?? undefined,
     sourceType: (sp.get('sourceType') as any) ?? undefined,
     vendorId: sp.get('vendorId') ? Number(sp.get('vendorId')) : undefined,
     dateFrom: sp.get('dateFrom') ?? undefined,

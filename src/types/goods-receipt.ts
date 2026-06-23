@@ -29,6 +29,29 @@ export type GrnLineStatus =
   | 'rejected'
   | 'cancelled';
 
+/**
+ * Derived workflow status for a whole GRN — a register-friendly roll-up of the
+ * per-line statuses so the list can show "รอ Checklist / รอ QC / รอ QA / ผ่านแล้ว"
+ * instead of only the coarse header status. Computed by stage of the LEAST
+ * advanced still-open line (a GRN is only "released" once every line is).
+ */
+export type GrnWorkflowStatus =
+  | 'pending_checklist' // some line still 'created' — รอ Checklist
+  | 'pending_qc'        // checklist done / sample drawn, awaiting QC result — รอ QC
+  | 'pending_qa'        // QC approved, awaiting QA release decision — รอ QA
+  | 'released'          // all lines released to stock — ผ่านแล้ว
+  | 'rejected'          // QC/QA rejected
+  | 'cancelled';        // GRN cancelled
+
+export const GRN_WORKFLOW_STATUSES: GrnWorkflowStatus[] = [
+  'pending_checklist',
+  'pending_qc',
+  'pending_qa',
+  'released',
+  'rejected',
+  'cancelled',
+];
+
 export const GRN_LINE_STATUSES: GrnLineStatus[] = [
   'created',
   'checklist_done',

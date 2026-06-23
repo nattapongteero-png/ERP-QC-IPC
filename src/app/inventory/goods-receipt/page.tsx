@@ -20,7 +20,7 @@ import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
-import type { IncomingDashboardCounts } from '@/types/goods-receipt';
+import type { IncomingDashboardCounts, GrnWorkflowStatus } from '@/types/goods-receipt';
 
 interface GrnListItem {
   id: number;
@@ -32,8 +32,21 @@ interface GrnListItem {
   vendorName: string | null;
   woNumber: string | null;
   lineCount: number;
+  workflowStatus: GrnWorkflowStatus;
   canCancel: boolean;
 }
+
+type WorkflowFilter = GrnWorkflowStatus | 'all';
+
+// Pill / column colours per derived workflow status.
+const WORKFLOW_BADGE: Record<GrnWorkflowStatus, string> = {
+  pending_checklist: 'bg-amber-100 text-amber-800',
+  pending_qc: 'bg-blue-100 text-blue-800',
+  pending_qa: 'bg-violet-100 text-violet-800',
+  released: 'bg-emerald-100 text-emerald-800',
+  rejected: 'bg-rose-100 text-rose-800',
+  cancelled: 'bg-gray-200 text-gray-600',
+};
 
 export default function GoodsReceiptListPage() {
   const t = useTranslations('goodsReceipt');
@@ -51,10 +64,15 @@ export default function GoodsReceiptListPage() {
 
   const qc = useQueryClient();
 
+  // Active workflow-status filter — driven by the KPI cards + pill bar.
+  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>('all');
+
   const { data, refetch } = useQuery<{ items: GrnListItem[]; total: number }>({
-    queryKey: ['grn-list'],
+    queryKey: ['grn-list', workflowFilter],
     queryFn: async () => {
-      const res = await fetch('/api/inventory/goods-receipts?pageSize=100');
+      const qs = new URLSearchParams({ pageSize: '100' });
+      if (workflowFilter !== 'all') qs.set('workflowStatus', workflowFilter);
+      const res = await fetch(`/api/inventory/goods-receipts?${qs}`);
       if (!res.ok) throw new Error('Failed');
       return res.json();
     },
@@ -88,13 +106,24 @@ export default function GoodsReceiptListPage() {
 
   // White card + left accent bar + coloured icon (matches the shared StatCard
   // style used system-wide). `accent` = left bar colour, `iconCls` = icon tint.
-  const tiles = [
+  // KPI cards. `filter` links a card to a workflow-status drill-down; cards
+  // without one (aging is computed from inventory lots, not GRN workflow) stay
+  // non-interactive.
+  const tiles: Array<{
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+    accent: string;
+    iconCls: string;
+    filter?: WorkflowFilter;
+  }> = [
     {
       label: t('tiles.pendingChecklist'),
       value: counts?.pendingChecklistCount ?? 0,
       icon: <Hourglass className="w-5 h-5" />,
       accent: 'border-l-amber-500',
       iconCls: 'text-amber-500',
+      filter: 'pending_checklist',
     },
     {
       label: t('tiles.pendingQa'),
@@ -102,6 +131,7 @@ export default function GoodsReceiptListPage() {
       icon: <FlaskConical className="w-5 h-5" />,
       accent: 'border-l-blue-500',
       iconCls: 'text-blue-500',
+      filter: 'pending_qa',
     },
     {
       label: t('tiles.releasedToday'),
@@ -109,6 +139,7 @@ export default function GoodsReceiptListPage() {
       icon: <CheckCircle2 className="w-5 h-5" />,
       accent: 'border-l-emerald-500',
       iconCls: 'text-emerald-500',
+      filter: 'released',
     },
     {
       label: t('tiles.quarantineAging'),
@@ -117,6 +148,15 @@ export default function GoodsReceiptListPage() {
       accent: 'border-l-rose-500',
       iconCls: 'text-rose-500',
     },
+  ];
+
+  // Pill bar — quick toggles across the GRN workflow stages.
+  const pills: Array<{ key: WorkflowFilter; label: string }> = [
+    { key: 'all', label: t('status.workflow.all') },
+    { key: 'pending_checklist', label: t('status.workflow.pending_checklist') },
+    { key: 'pending_qc', label: t('status.workflow.pending_qc') },
+    { key: 'pending_qa', label: t('status.workflow.pending_qa') },
+    { key: 'released', label: t('status.workflow.released') },
   ];
 
   return (
@@ -146,20 +186,51 @@ export default function GoodsReceiptListPage() {
         </div>
       </header>
 
-      {/* Tiles */}
+      {/* Tiles — clickable cards drill the list down to that workflow stage */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {tiles.map((tile) => (
-          <div
-            key={tile.label}
-            className={`bg-white border border-gray-200 border-l-4 ${tile.accent} rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)]`}
-          >
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{tile.label}</div>
-              <div className="text-3xl font-bold mt-1 text-gray-900">{tile.value}</div>
-            </div>
-            <div className={tile.iconCls}>{tile.icon}</div>
-          </div>
-        ))}
+        {tiles.map((tile) => {
+          const clickable = !!tile.filter;
+          const isActive = clickable && workflowFilter === tile.filter;
+          return (
+            <button
+              key={tile.label}
+              type="button"
+              disabled={!clickable}
+              onClick={() => clickable && setWorkflowFilter(isActive ? 'all' : tile.filter!)}
+              aria-pressed={isActive}
+              className={`text-left bg-white border border-gray-200 border-l-4 ${tile.accent} rounded-[14px] p-4 flex items-center justify-between shadow-[0_6px_20px_rgba(6,78,59,0.06)] transition ${
+                clickable ? 'cursor-pointer hover:shadow-[0_8px_24px_rgba(6,78,59,0.12)]' : 'cursor-default'
+              } ${isActive ? 'ring-2 ring-emerald-500 ring-offset-1' : ''}`}
+            >
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{tile.label}</div>
+                <div className="text-3xl font-bold mt-1 text-gray-900">{tile.value}</div>
+              </div>
+              <div className={tile.iconCls}>{tile.icon}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Workflow-status pill bar */}
+      <div className="flex flex-wrap gap-2">
+        {pills.map((pill) => {
+          const active = workflowFilter === pill.key;
+          return (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => setWorkflowFilter(pill.key)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
+                active
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+              }`}
+            >
+              {pill.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* List */}
@@ -210,14 +281,17 @@ export default function GoodsReceiptListPage() {
         <DxColumn dataField="receivedDate" caption={t('table.columns.receivedDate')} width={140} dataType="date" />
         <DxColumn dataField="lineCount" caption={t('table.columns.lineCount')} width={100} />
         <DxColumn
-          dataField="status"
+          dataField="workflowStatus"
           caption={t('table.columns.status')}
           width={150}
-          cellRender={(c) => (
-            <span className="inline-flex px-2 py-1 rounded text-xs font-medium bg-gray-100">
-              {t(`status.header.${c.value as string}`)}
-            </span>
-          )}
+          cellRender={(c) => {
+            const v = c.value as GrnWorkflowStatus;
+            return (
+              <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${WORKFLOW_BADGE[v] ?? 'bg-gray-100'}`}>
+                {t(`status.workflow.${v}`)}
+              </span>
+            );
+          }}
         />
         <DxColumn
           caption=""

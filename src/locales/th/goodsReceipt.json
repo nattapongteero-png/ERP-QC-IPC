@@ -51,6 +51,15 @@
       "released_to_stock": "ปล่อยเข้าสต็อก",
       "rejected": "ปฏิเสธ",
       "cancelled": "ยกเลิก"
+    },
+    "workflow": {
+      "all": "ทั้งหมด",
+      "pending_checklist": "รอ Checklist",
+      "pending_qc": "รอ QC ตรวจ",
+      "pending_qa": "รอ QA อนุมัติ",
+      "released": "ผ่านแล้ว",
+      "rejected": "ปฏิเสธ",
+      "cancelled": "ยกเลิก"
     }
   },
   "form": {
