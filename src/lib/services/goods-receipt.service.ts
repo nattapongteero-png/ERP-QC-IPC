@@ -390,7 +390,7 @@ export interface ListGrnsFilter {
 }
 
 export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
-  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null; canCancel: boolean }>;
+  items: Array<GoodsReceipt & { lineCount: number; vendorName: string | null; woNumber: string | null; canCancel: boolean }>;
   total: number;
   page: number;
   pageSize: number;
@@ -425,9 +425,11 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
         createdAt: t.grns.createdAt,
         updatedAt: t.grns.updatedAt,
         vendorName: t.vendors.name,
+        woNumber: t.wo.woNumber,
       })
       .from(t.grns)
       .leftJoin(t.vendors, eq(t.grns.vendorId, t.vendors.id))
+      .leftJoin(t.wo, eq(t.grns.woId, t.wo.id))
       .where(whereExpr)
       .orderBy(desc(t.grns.id))
       .limit(pageSize)
@@ -476,6 +478,7 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
         return {
           ...normalizeGrn(r),
           vendorName: r.vendorName ?? null,
+          woNumber: r.woNumber ?? null,
           lineCount,
           canCancel,
         };

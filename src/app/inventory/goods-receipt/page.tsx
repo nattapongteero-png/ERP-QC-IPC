@@ -30,6 +30,7 @@ interface GrnListItem {
   receivedDate: string;
   vendorId: number | null;
   vendorName: string | null;
+  woNumber: string | null;
   lineCount: number;
   canCancel: boolean;
 }
@@ -201,7 +202,9 @@ export default function GoodsReceiptListPage() {
           dataField="vendorName"
           caption={t('table.columns.vendor')}
           calculateCellValue={(row: GrnListItem) =>
-            row.sourceType === 'po' ? row.vendorName ?? '-' : 'WO'
+            row.sourceType === 'po'
+              ? row.vendorName ?? '-'
+              : row.woNumber ?? t('sourceTypeShort.wo')
           }
         />
         <DxColumn dataField="receivedDate" caption={t('table.columns.receivedDate')} width={140} dataType="date" />
