@@ -150,6 +150,14 @@ export default function MaterialWithdrawalListPage() {
             placeholder="ค้นหา..."
             mode="search"
             width="100%"
+            // Stop the browser from offering email/password autofill on this
+            // free-text register search (it mistook it for a login field).
+            inputAttr={{
+              autoComplete: 'off',
+              name: 'withdrawal-search',
+              'data-lpignore': 'true',
+              'data-form-type': 'other',
+            }}
           />
         </div>
       </div>
