@@ -12,6 +12,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // Chrome/Edge ignore autocomplete="off" on email/password fields and still
+  // pop their saved-credential dropdown. Rendering the fields readOnly on load
+  // and clearing readOnly only on first focus reliably suppresses that dropdown
+  // (the browser won't autofill a read-only field) while staying fully usable.
+  const [fieldsLocked, setFieldsLocked] = useState(true);
+  const unlockFields = () => setFieldsLocked(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +135,8 @@ export default function LoginPage() {
                     name="herbal-login-email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onFocus={unlockFields}
+                    readOnly={fieldsLocked}
                     placeholder={t('form.emailPlaceholder')}
                     required
                     autoComplete="off"
@@ -151,6 +159,8 @@ export default function LoginPage() {
                     name="herbal-login-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={unlockFields}
+                    readOnly={fieldsLocked}
                     placeholder={t('form.passwordPlaceholder')}
                     required
                     autoComplete="new-password"
