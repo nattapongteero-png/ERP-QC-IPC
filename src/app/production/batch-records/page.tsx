@@ -56,10 +56,12 @@ import type { BatchRecordsDashboard } from '@/app/api/production/batch-records/d
 
 // Status config: style-only. Labels come from translations at render time
 // via t(`batchRecords.status.${key}`) so locale switches update them.
+// Distinct colour per status so the register reads at a glance (previously
+// pending=grey, in_progress=emerald, completed=green all looked alike/green).
 const statusConfig = {
-  pending: { color: 'bg-gray-100 text-gray-700', borderColor: 'border-gray-400' },
-  in_progress: { color: 'bg-emerald-100 text-emerald-800', borderColor: 'border-emerald-500' },
-  completed: { color: 'bg-green-100 text-green-800', borderColor: 'border-green-500' },
+  pending: { color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-500' },
+  in_progress: { color: 'bg-blue-100 text-blue-800', borderColor: 'border-blue-500' },
+  completed: { color: 'bg-emerald-100 text-emerald-800', borderColor: 'border-emerald-500' },
   deviation: { color: 'bg-red-100 text-red-800', borderColor: 'border-red-500' },
 } as const;
 
@@ -569,7 +571,7 @@ export default function BatchRecordsDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.inProgress')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-blue-100 text-blue-800">
                   {inProgressTabCount}
                 </span>
               </TabsTrigger>
@@ -578,7 +580,7 @@ export default function BatchRecordsDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap flex-shrink-0 snap-start min-h-[36px]"
               >
                 <span>{t('batchRecords.tabs.pending')}</span>
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold bg-amber-100 text-amber-800">
                   {pendingTabCount}
                 </span>
               </TabsTrigger>
