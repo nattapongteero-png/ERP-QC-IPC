@@ -568,7 +568,7 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
             "preserve" the view by shifting scrollTop, which makes the whole rail
             visibly jump. Disabling scroll-anchoring on the scroll container keeps
             the rail exactly where the user left it. */}
-        <nav ref={navScrollRef} style={{ overflowAnchor: 'none' }} className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-16 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <nav ref={navScrollRef} style={{ overflowAnchor: 'none' }} className="absolute inset-0 overflow-y-auto pt-4 md:pt-6 pb-28 px-2 md:px-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <div className="space-y-1">
           {filteredNavigation.map((item) => (
             <div key={item.name}>
