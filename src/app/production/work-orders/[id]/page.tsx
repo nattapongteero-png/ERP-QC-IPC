@@ -56,6 +56,7 @@ import { computeIPCStats, computePercentDeviation } from '@/lib/utils/ipc-statis
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
 import { EbmrPrintPreviewOverlay } from '@/components/production/ebmr-print-preview-overlay';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 import { SectionErrorBoundary } from '@/components/shared/SectionErrorBoundary';
 import { StatusStepper } from '@/components/shared';
 
@@ -233,6 +234,7 @@ export default function WorkOrderDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const translateError = useErrorTranslator();
   const t = useTranslations('production');
 
   // Use translation for page title
@@ -2560,7 +2562,7 @@ export default function WorkOrderDetailPage() {
                           );
                           const json = await res.json();
                           if (!res.ok) {
-                            toast.error(t('workOrderDetail.toast.approveFailed'), json?.error);
+                            toast.error(t('workOrderDetail.toast.approveFailed'), translateError(json?.error));
                           } else {
                             toast.success(t('workOrderDetail.toast.qaSigned'), t('workOrderDetail.toast.ebmrLocked'));
                             await fetchWorkOrderDetail();

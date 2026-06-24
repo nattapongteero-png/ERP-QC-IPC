@@ -6,6 +6,7 @@ import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { Shield, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 
 export interface ElectronicSignatureDialogProps {
   visible: boolean;
@@ -52,6 +53,7 @@ export function ElectronicSignatureDialog({
   onCancel,
   isLoading: externalLoading = false,
 }: ElectronicSignatureDialogProps) {
+  const translateError = useErrorTranslator();
   const [password, setPassword] = useState('');
   const [meaning, setMeaning] = useState(defaultMeaning);
   const [error, setError] = useState<string | null>(null);
@@ -84,14 +86,15 @@ export function ElectronicSignatureDialog({
           handleClose();
         }, 1500);
       } else {
-        setError(result.error || 'ลงนามไม่สำเร็จ กรุณาตรวจสอบรหัสผ่านแล้วลองใหม่อีกครั้ง');
+        // Translate the API's English error to the active locale for display.
+        setError(translateError(result.error));
       }
     } catch (err) {
       setError('เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
     }
-  }, [password, meaning, customMeaning, onSign]);
+  }, [password, meaning, customMeaning, onSign, translateError]);
 
   const handleClose = useCallback(() => {
     setPassword('');

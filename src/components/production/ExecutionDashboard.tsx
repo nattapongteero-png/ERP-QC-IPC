@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 import {
   ClipboardCheck,
   Thermometer,
@@ -161,6 +162,7 @@ interface ExecutionDashboardProps {
 
 export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const toast = useToast();
+  const translateError = useErrorTranslator();
   const t = useTranslations('production');
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -335,7 +337,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       toast.success('ส่งใบเบิกวัตถุดิบสำเร็จ');
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 

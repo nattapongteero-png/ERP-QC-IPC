@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 import { ClipboardList, CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react';
 import {
   type WorkOrderLite,
@@ -66,6 +67,7 @@ const resultBadge = (t: TFunc, r: string) => {
 
 export default function QcInspectionsPage() {
   const toast = useToast();
+  const translateError = useErrorTranslator();
   const t = useTranslations('quality');
   const [rows, setRows] = useState<InspectionRow[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrderLite[]>([]);
@@ -152,7 +154,7 @@ export default function QcInspectionsPage() {
     });
     const json = await res.json();
     if (!res.ok) {
-      toast.error(t('qcInspections.toast.saveFailed'), json?.error);
+      toast.error(t('qcInspections.toast.saveFailed'), translateError(json?.error));
       return;
     }
     toast.success(t('qcInspections.toast.created', { inspectionNumber: json.data.inspectionNumber }));
@@ -182,7 +184,7 @@ export default function QcInspectionsPage() {
     });
     if (!res.ok) {
       const j = await res.json();
-      toast.error(t('qcInspections.toast.updateFailed'), j?.error);
+      toast.error(t('qcInspections.toast.updateFailed'), translateError(j?.error));
       return;
     }
     toast.success(t('qcInspections.toast.updated'));

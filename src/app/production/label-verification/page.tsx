@@ -10,6 +10,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Tag, ArrowLeft, AlertCircle, Loader2, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 
 interface WorkOrder {
   id: number;
@@ -48,6 +49,7 @@ function LabelVerificationContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const translateError = useErrorTranslator();
   const t = useTranslations('production');
 
   const workOrderIdParam = searchParams.get('workOrderId');
@@ -121,7 +123,7 @@ function LabelVerificationContent() {
       refetchLabels();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 
@@ -157,7 +159,7 @@ function LabelVerificationContent() {
       refetchLabels();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 
@@ -181,7 +183,7 @@ function LabelVerificationContent() {
       refetchLabels();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 

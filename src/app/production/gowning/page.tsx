@@ -10,6 +10,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { Shirt, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 
 interface WorkOrder {
   id: number;
@@ -39,6 +40,7 @@ function GowningContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const translateError = useErrorTranslator();
   const t = useTranslations('production');
 
   const workOrderIdParam = searchParams.get('workOrderId');
@@ -84,7 +86,7 @@ function GowningContent() {
       queryClient.invalidateQueries({ queryKey: ['gowning', selectedWorkOrderId] });
       refetch();
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(translateError(error.message)),
   });
 
   const verifyMutation = useMutation({
@@ -103,7 +105,7 @@ function GowningContent() {
       queryClient.invalidateQueries({ queryKey: ['gowning', selectedWorkOrderId] });
       refetch();
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(translateError(error.message)),
   });
 
   const handlePerform = useCallback(

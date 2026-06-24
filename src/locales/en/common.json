@@ -68,6 +68,22 @@
     "timeout": "Request timed out",
     "conflict": "Data conflict. Please review and try again."
   },
+  "apiErrors": {
+    "invalidPassword": "Invalid password. Please re-enter your password to sign.",
+    "notFound": "The requested item was not found.",
+    "required": "Please fill in all required fields.",
+    "alreadyProcessed": "This request has already been processed.",
+    "alreadyExists": "This item already exists.",
+    "permissionDenied": "You don't have permission to perform this action.",
+    "notPending": "This item is not pending approval.",
+    "verifierSameAsPerformer": "The verifier must be different from the performer.",
+    "signFailed": "Signing failed. Please check your password and try again.",
+    "tempHumidityRequired": "At least one of temperature or humidity must be provided.",
+    "invalidThaiCid": "Invalid Thai national ID.",
+    "thaiCidExists": "This Thai national ID is already registered.",
+    "insufficientStock": "Insufficient stock.",
+    "validationFailed": "Validation failed. Please check your input."
+  },
   "confirmation": {
     "deleteTitle": "Confirm Delete",
     "deleteMessage": "Are you sure you want to delete this item? This action cannot be undone.",

@@ -10,6 +10,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { ClipboardCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorTranslator } from '@/lib/i18n/use-error-translator';
 
 interface WorkOrder {
   id: number;
@@ -51,6 +52,7 @@ function LineClearanceContent() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const t = useTranslations('production');
+  const translateError = useErrorTranslator();
 
   const workOrderIdParam = searchParams.get('workOrderId');
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<number | null>(
@@ -116,7 +118,7 @@ function LineClearanceContent() {
       refetchClearance();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 
@@ -151,7 +153,7 @@ function LineClearanceContent() {
       refetchClearance();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(translateError(error.message));
     },
   });
 
