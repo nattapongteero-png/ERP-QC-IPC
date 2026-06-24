@@ -208,6 +208,11 @@ function getPriorityLevel(priority: number): 'high' | 'medium' | 'low' {
   return 'low';
 }
 
+// Numeric priority stored in DB → mapped to the 3 user-facing levels.
+// Each level uses the midpoint of its range so it always classifies back
+// to the same band (high 1-3 → 2, medium 4-6 → 5, low 7-10 → 8).
+const PRIORITY_LEVEL_VALUE = { high: 2, medium: 5, low: 8 } as const;
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
@@ -835,9 +840,9 @@ export default function WorkOrdersPage() {
               {priorityChartData.map((d) => {
                 const pct = priorityChartTotal > 0 ? Math.round((d.count / priorityChartTotal) * 100) : 0;
                 const meta: Record<string, { label: string; hint: string; bar: string; text: string }> = {
-                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'ลำดับ 1–3', bar: 'bg-red-500', text: 'text-red-600' },
-                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'ลำดับ 4–6', bar: 'bg-amber-500', text: 'text-amber-600' },
-                  'Low (7+)': { label: 'ต่ำ', hint: 'ลำดับ 7+', bar: 'bg-emerald-500', text: 'text-emerald-600' },
+                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'ต้องทำก่อน', bar: 'bg-red-500', text: 'text-red-600' },
+                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'ตามแผนปกติ', bar: 'bg-amber-500', text: 'text-amber-600' },
+                  'Low (7+)': { label: 'ต่ำ', hint: 'ทำเมื่อพร้อม', bar: 'bg-emerald-500', text: 'text-emerald-600' },
                 };
                 const m = meta[d.priority] || { label: d.priority, hint: '', bar: 'bg-gray-400', text: 'text-gray-600' };
                 return (
@@ -1168,9 +1173,15 @@ export default function WorkOrdersPage() {
                 {t('workOrders.form.priority.label')}
               </label>
               <SelectBox
-                value={editForm.priority}
+                value={PRIORITY_LEVEL_VALUE[getPriorityLevel(editForm.priority)]}
                 onValueChanged={(e) => setEditForm(prev => ({ ...prev, priority: e.value }))}
-                items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+                valueExpr="value"
+                displayExpr="text"
+                items={[
+                  { value: PRIORITY_LEVEL_VALUE.high, text: t('workOrders.priority.high') },
+                  { value: PRIORITY_LEVEL_VALUE.medium, text: t('workOrders.priority.normal') },
+                  { value: PRIORITY_LEVEL_VALUE.low, text: t('workOrders.priority.low') },
+                ]}
               />
             </div>
           </div>

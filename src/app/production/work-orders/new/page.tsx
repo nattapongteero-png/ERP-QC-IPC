@@ -48,12 +48,13 @@ interface BOMExplosion {
   };
 }
 
+// 3 user-facing levels (no raw numbers). Values are the midpoints of each
+// priority band so they classify consistently on the work-order register
+// card: High 1-3 → 2, Medium 4-6 → 5, Low 7-10 → 8.
 const priorityOptions = [
-  { value: '1', label: 'วิกฤต (1)' },
-  { value: '3', label: 'สูง (3)' },
-  { value: '5', label: 'ปานกลาง (5)' },
-  { value: '7', label: 'ต่ำ (7)' },
-  { value: '10', label: 'ต่ำมาก (10)' },
+  { value: '2', label: 'สูง (High)' },
+  { value: '5', label: 'ปานกลาง (Medium)' },
+  { value: '8', label: 'ต่ำ (Low)' },
 ];
 
 const ROLE_OPTIONS = [
