@@ -55,6 +55,7 @@ import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-s
 import { computeIPCStats, computePercentDeviation } from '@/lib/utils/ipc-statistics';
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
+import { EbmrPrintPreviewOverlay } from '@/components/production/ebmr-print-preview-overlay';
 import { SectionErrorBoundary } from '@/components/shared/SectionErrorBoundary';
 import { StatusStepper } from '@/components/shared';
 
@@ -246,6 +247,9 @@ export default function WorkOrderDetailPage() {
   const initialTabIndex = tabNameToIndex[searchParams.get('tab') || ''] ?? 0;
   const [activeTabIndex, setActiveTabIndex] = useState(initialTabIndex);
   const [assignees, setAssignees] = useState<WOAssignee[]>([]);
+  // In-app eBMR print preview (A4 WYSIWYG overlay) so users can review the
+  // document before printing without relying on the browser's print preview.
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   // Add Material Dialog State
   const [itemSearchDialogOpen, setItemSearchDialogOpen] = useState(false);
@@ -1704,6 +1708,15 @@ export default function WorkOrderDetailPage() {
                 onClick={() => handleStatusChange(nextStatus)}
               />
             )}
+            {activeTabIndex === 5 && (
+              <DxButton
+                text={t('workOrderDetail.header.previewEbmr')}
+                icon="eyeopen"
+                type="normal"
+                stylingMode="outlined"
+                onClick={() => setShowPrintPreview(true)}
+              />
+            )}
             <DxButton
               text={t('workOrderDetail.header.printEbmr')}
               icon="print"
@@ -2567,6 +2580,15 @@ export default function WorkOrderDetailPage() {
             </div>
         </div>
         </SectionErrorBoundary>
+
+        {/* In-app A4 print preview overlay — renders #ebmr-content (the same
+            DOM that prints) as A4 pages on a gray backdrop, with zoom + print
+            controls. Toggled by the ebmr-preview-active body class (see
+            globals.css). Lets users WYSIWYG-review before printing without the
+            browser's confusing print-preview pager. */}
+        {showPrintPreview && (
+          <EbmrPrintPreviewOverlay onClose={() => setShowPrintPreview(false)} />
+        )}
 
       {/* Item Search Dialog */}
       <ItemSearchDialog

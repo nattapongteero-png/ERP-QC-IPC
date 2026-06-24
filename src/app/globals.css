@@ -919,6 +919,106 @@ a:not([class]):hover {
 }
 
 /* =========================================================
+   eBMR In-App Print Preview (on-screen A4 WYSIWYG)
+   ---------------------------------------------------------
+   When the preview overlay is open it sets `.ebmr-preview-active`
+   on <body>. We then present #ebmr-content (the exact DOM that
+   prints) as a white A4 sheet on a gray backdrop, mirroring the
+   @media print document look so users see what they'll get.
+   Scoped entirely under .ebmr-preview-active → never affects the
+   normal screen view.
+   ========================================================= */
+body.ebmr-preview-active #ebmr-content {
+  /* Pull the eBMR content (which may be on a hidden tab) into view,
+     centered as an A4-width sheet floating above the gray overlay. */
+  display: block !important;
+  position: fixed;
+  top: 56px;                 /* below the overlay toolbar */
+  left: 50%;
+  transform: translateX(-50%) scale(var(--ebmr-preview-zoom, 1));
+  transform-origin: top center;
+  z-index: 1001;
+  width: 210mm;              /* A4 width */
+  min-height: 297mm;         /* at least one A4 page tall */
+  max-height: none;
+  overflow: visible;
+  background: #fff !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  padding: 12mm 10mm 14mm 10mm;  /* same visual margin as print body padding */
+  margin: 0 0 40px 0;
+  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  color: #111827;
+}
+
+/* Show the print-only document header inside the preview */
+body.ebmr-preview-active #ebmr-content .print-only {
+  display: block !important;
+}
+/* Hide screen-only chrome inside the eBMR while previewing */
+body.ebmr-preview-active #ebmr-content .no-print {
+  display: none !important;
+}
+
+/* Flatten cards to document style (same intent as the print rules) */
+body.ebmr-preview-active #ebmr-content [data-slot="card"],
+body.ebmr-preview-active #ebmr-content [data-slot="card-header"],
+body.ebmr-preview-active #ebmr-content [data-slot="card-content"] {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+body.ebmr-preview-active #ebmr-content > * {
+  margin-bottom: 12pt !important;
+}
+body.ebmr-preview-active #ebmr-content [data-slot="card-title"],
+body.ebmr-preview-active #ebmr-content h2,
+body.ebmr-preview-active #ebmr-content h3 {
+  font-size: 12pt !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  margin: 0 0 4pt 0 !important;
+  padding: 4pt 0 2pt 0 !important;
+  border-bottom: 1.5px solid #111827 !important;
+  background: transparent !important;
+}
+
+/* Document-style table grid (box-shadow inset method, same as print) */
+body.ebmr-preview-active #ebmr-content table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+  box-shadow:
+    inset 0 1.5px 0 0 #000,
+    inset 1.5px 0 0 0 #000,
+    inset -1.5px 0 0 0 #000,
+    inset 0 -1.5px 0 0 #000 !important;
+}
+body.ebmr-preview-active #ebmr-content table td,
+body.ebmr-preview-active #ebmr-content table th {
+  border: none !important;
+  box-shadow: inset -1px 0 0 0 #000, inset 0 -1px 0 0 #000 !important;
+}
+body.ebmr-preview-active #ebmr-content table thead tr:not(.ebmr-print-title-row) th {
+  background-color: #e5e7eb !important;
+}
+body.ebmr-preview-active #ebmr-content table tbody tr:nth-child(even) td {
+  background-color: #f8fafc !important;
+}
+/* Reveal the print-only section title rows inside tables */
+body.ebmr-preview-active #ebmr-content .ebmr-print-title-row {
+  display: table-row !important;
+}
+body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
+  background-color: #d1d5db !important;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px;
+}
+
+/* =========================================================
    DevExtreme DataGrid — Column Header + Badge Cell Fixes
    ---------------------------------------------------------
    DevExtreme's default CSS truncates every header caption and
