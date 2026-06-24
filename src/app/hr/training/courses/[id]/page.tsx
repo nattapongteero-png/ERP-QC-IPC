@@ -62,7 +62,7 @@ export default function CourseDetailPage({ params }: Props) {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-blue-600" />
-            <h3 className="font-semibold text-lg">เอกสาร GMP/SOP ที่เชื่อมโยง</h3>
+            <h3 className="font-semibold text-lg">{t('training.courses.linkedDocs.title')}</h3>
             {linkedDocs && linkedDocs.length > 0 && (
               <Badge variant="secondary" size="sm">{linkedDocs.length}</Badge>
             )}
@@ -109,8 +109,8 @@ export default function CourseDetailPage({ params }: Props) {
           ) : (
             <div className="text-center py-8 text-gray-400">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>ไม่มีเอกสาร GMP/SOP ที่เชื่อมโยงกับหลักสูตรนี้</p>
-              <p className="text-sm mt-1">สามารถเชื่อมโยงได้จากหน้าจัดการเอกสาร GMP</p>
+              <p>{t('training.courses.linkedDocs.empty')}</p>
+              <p className="text-sm mt-1">{t('training.courses.linkedDocs.emptyHint')}</p>
             </div>
           )}
         </CardContent>

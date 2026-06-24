@@ -831,7 +831,7 @@ export default function WorkOrdersPage() {
                 {t('workOrders.charts.byPriority')}
               </h3>
               <p className="text-xs text-[#4B7163] mt-0.5">
-                งานที่ยังดำเนินการอยู่ ({priorityChartTotal} ใบ) แบ่งตามระดับความเร่งด่วน
+                {t('workOrders.charts.byPrioritySubtitle', { count: priorityChartTotal })}
               </p>
             </div>
           </div>
@@ -840,9 +840,9 @@ export default function WorkOrdersPage() {
               {priorityChartData.map((d) => {
                 const pct = priorityChartTotal > 0 ? Math.round((d.count / priorityChartTotal) * 100) : 0;
                 const meta: Record<string, { label: string; hint: string; bar: string; text: string }> = {
-                  'High (1-3)': { label: 'เร่งด่วนสูง', hint: 'ต้องทำก่อน', bar: 'bg-red-500', text: 'text-red-600' },
-                  'Medium (4-6)': { label: 'ปานกลาง', hint: 'ตามแผนปกติ', bar: 'bg-amber-500', text: 'text-amber-600' },
-                  'Low (7+)': { label: 'ต่ำ', hint: 'ทำเมื่อพร้อม', bar: 'bg-emerald-500', text: 'text-emerald-600' },
+                  'High (1-3)': { label: t('workOrders.charts.priorityHighLabel'), hint: t('workOrders.charts.priorityHighHint'), bar: 'bg-red-500', text: 'text-red-600' },
+                  'Medium (4-6)': { label: t('workOrders.charts.priorityMediumLabel'), hint: t('workOrders.charts.priorityMediumHint'), bar: 'bg-amber-500', text: 'text-amber-600' },
+                  'Low (7+)': { label: t('workOrders.charts.priorityLowLabel'), hint: t('workOrders.charts.priorityLowHint'), bar: 'bg-emerald-500', text: 'text-emerald-600' },
                 };
                 const m = meta[d.priority] || { label: d.priority, hint: '', bar: 'bg-gray-400', text: 'text-gray-600' };
                 return (
@@ -1015,7 +1015,7 @@ export default function WorkOrdersPage() {
             showInfo={true}
             showNavigationButtons={true}
             displayMode="full"
-            infoText="หน้า {0} จาก {1} (รวม {2} รายการ)"
+            infoText={t.raw('workOrders.grid.pagerInfo') as string}
           />
           <FilterRow visible={false} />
           <SearchPanel visible={true} placeholder={t('workOrders.grid.searchPlaceholder')} width={250} />
@@ -1082,7 +1082,7 @@ export default function WorkOrdersPage() {
           />
           <Column
             dataField="createdAt"
-            caption="วันที่สร้าง"
+            caption={t('workOrders.grid.columns.createdAt')}
             width={130}
             dataType="date"
             sortOrder="desc"
@@ -1213,7 +1213,7 @@ export default function WorkOrdersPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              วันที่ส่งมอบ
+              {t('workOrders.form.deliveryDate.label')}
             </label>
             <DateBox
               value={editForm.deliveryDate}
@@ -1224,8 +1224,8 @@ export default function WorkOrdersPage() {
               disabled={!editForm.plannedStartDate || !editForm.plannedEndDate}
               placeholder={
                 !editForm.plannedStartDate || !editForm.plannedEndDate
-                  ? 'กรุณาระบุวันเริ่มต้นและวันสิ้นสุดก่อน'
-                  : 'เลือกวันส่งมอบ'
+                  ? t('workOrders.form.deliveryDate.placeholderNeedDates')
+                  : t('workOrders.form.deliveryDate.placeholder')
               }
             />
           </div>
@@ -1245,7 +1245,7 @@ export default function WorkOrdersPage() {
             <div className="flex items-center justify-between mb-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <Users className="h-4 w-4 text-emerald-600" />
-                เจ้าหน้าที่ผู้ปฏิบัติงาน
+                {t('workOrders.assignees.title')}
                 {editAssignees.length > 0 && (
                   <span className="text-xs text-gray-500 font-normal">({editAssignees.length})</span>
                 )}
@@ -1256,11 +1256,11 @@ export default function WorkOrdersPage() {
                 disabled={loadingEmployees}
                 className="text-xs px-2.5 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
               >
-                + เพิ่ม
+                {t('workOrders.assignees.add')}
               </button>
             </div>
             {editAssignees.length === 0 ? (
-              <p className="text-xs text-gray-500 italic py-2">ยังไม่มีการมอบหมายเจ้าหน้าที่ — กดปุ่ม &ldquo;+ เพิ่ม&rdquo; เพื่อระบุทีม</p>
+              <p className="text-xs text-gray-500 italic py-2">{t('workOrders.assignees.empty')}</p>
             ) : (
               <div className="space-y-2 max-h-56 overflow-y-auto">
                 {editAssignees.map((a, idx) => {
@@ -1277,7 +1277,7 @@ export default function WorkOrdersPage() {
                           valueExpr="id"
                           value={a.employeeId}
                           onValueChanged={(ev) => handleEditEmployeeChange(idx, ev.value as number | null)}
-                          placeholder={loadingEmployees ? 'กำลังโหลด...' : 'เลือกเจ้าหน้าที่'}
+                          placeholder={loadingEmployees ? t('workOrders.assignees.loading') : t('workOrders.assignees.selectEmployee')}
                           disabled={loadingEmployees}
                           searchEnabled
                           stylingMode="outlined"
@@ -1301,7 +1301,7 @@ export default function WorkOrdersPage() {
                           type="button"
                           onClick={() => removeEditAssignee(idx)}
                           className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition"
-                          title="ลบ"
+                          title={t('workOrders.assignees.remove')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1347,7 +1347,7 @@ export default function WorkOrdersPage() {
                 {selectedWO.productName}
                 {selectedWO.batchNumber && (
                   <span className="ml-2 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
-                    รุ่นการผลิต: {selectedWO.batchNumber}
+                    {t('workOrders.deleteDialog.batchLabel')} {selectedWO.batchNumber}
                   </span>
                 )}
               </p>
@@ -1487,7 +1487,7 @@ function WorkOrderMobileList({
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Eye className="h-4 w-4" />
-                <span>ดู</span>
+                <span>{t('workOrders.grid.viewShort')}</span>
               </button>
               <button
                 type="button"
@@ -1495,7 +1495,7 @@ function WorkOrderMobileList({
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors min-h-[44px]"
               >
                 <Pencil className="h-4 w-4" />
-                <span>แก้ไข</span>
+                <span>{t('workOrders.grid.editShort')}</span>
               </button>
               <button
                 type="button"
@@ -1503,7 +1503,7 @@ function WorkOrderMobileList({
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 active:bg-red-100 transition-colors min-h-[44px]"
               >
                 <Trash2 className="h-4 w-4" />
-                <span>ลบ</span>
+                <span>{t('workOrders.grid.deleteShort')}</span>
               </button>
             </div>
           </div>

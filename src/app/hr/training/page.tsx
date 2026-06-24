@@ -352,19 +352,19 @@ export default function TrainingDashboardPage() {
         icon={GraduationCap}
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
-        breadcrumbs={[{ label: 'HR', href: '/hr' }, { label: 'การอบรม' }]}
+        breadcrumbs={[{ label: 'HR', href: '/hr' }, { label: t('training.breadcrumb') }]}
         actions={
           <div className="flex items-center gap-2">
             <DxButton
               icon="refresh"
               onClick={handleRefresh}
-              hint="รีเฟรชข้อมูล"
+              hint={t('common.refreshHint')}
             />
             <DxButton
               icon="filter"
               onClick={() => setShowFilters(!showFilters)}
               type={showFilters ? 'default' : 'normal'}
-              hint="ตัวกรอง"
+              hint={t('common.filter')}
             />
           </div>
         }
@@ -373,7 +373,7 @@ export default function TrainingDashboardPage() {
       {/* KPI Stats Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          label="หลักสูตรทั้งหมด"
+          label={t('training.stats.totalCourses')}
           value={analytics.totalCourses}
           icon={BookOpen}
           iconColor="text-blue-600"
@@ -382,7 +382,7 @@ export default function TrainingDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="หลักสูตรบังคับ"
+          label={t('training.stats.mandatoryCourses')}
           value={analytics.mandatoryCourses}
           icon={Award}
           iconColor="text-red-600"
@@ -390,7 +390,7 @@ export default function TrainingDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="รอบอบรมทั้งหมด"
+          label={t('training.stats.totalSessions')}
           value={analytics.totalSessions}
           icon={Calendar}
           iconColor="text-emerald-600"
@@ -399,7 +399,7 @@ export default function TrainingDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="กำลังดำเนินการ"
+          label={t('training.stats.inProgress')}
           value={analytics.scheduledSessions + analytics.inProgressSessions}
           icon={Clock}
           iconColor="text-amber-600"
@@ -407,7 +407,7 @@ export default function TrainingDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="เสร็จสิ้นแล้ว"
+          label={t('training.stats.completed')}
           value={analytics.completedSessions}
           icon={CheckCircle2}
           iconColor="text-green-600"
@@ -415,14 +415,14 @@ export default function TrainingDashboardPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใน 7 วันข้างหน้า"
+          label={t('training.stats.upcoming')}
           value={analytics.upcomingSessions}
           icon={TrendingUp}
           iconColor="text-violet-600"
           accentColor="border-violet-500"
           trend={
             analytics.upcomingSessions > 0
-              ? { direction: 'up', value: `${analytics.upcomingSessions} รอบ` }
+              ? { direction: 'up', value: t('training.stats.sessionsTrend', { 0: analytics.upcomingSessions }) }
               : undefined
           }
           isLoading={isLoading}
@@ -440,10 +440,10 @@ export default function TrainingDashboardPage() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-              จัดการหลักสูตร
+              {t('training.quickAccess.manageCourses')}
             </h3>
             <p className="text-sm text-gray-500">
-              {analytics.totalCourses} หลักสูตร ({analytics.activeCourses} ใช้งาน)
+              {t('training.quickAccess.coursesSummary', { 0: analytics.totalCourses, 1: analytics.activeCourses })}
             </p>
           </div>
           <ArrowUpRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
@@ -458,10 +458,10 @@ export default function TrainingDashboardPage() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
-              จัดการรอบอบรม
+              {t('training.quickAccess.manageSessions')}
             </h3>
             <p className="text-sm text-gray-500">
-              {analytics.inProgressSessions} กำลังดำเนินการ, {analytics.scheduledSessions} รอ
+              {t('training.quickAccess.sessionsSummary', { 0: analytics.inProgressSessions, 1: analytics.scheduledSessions })}
             </p>
           </div>
           <ArrowUpRight className="h-5 w-5 text-gray-400 group-hover:text-emerald-600 transition-colors" />
@@ -476,9 +476,9 @@ export default function TrainingDashboardPage() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 group-hover:text-violet-600 transition-colors">
-              Competency Matrix
+              {t('training.quickAccess.matrix')}
             </h3>
-            <p className="text-sm text-gray-500">ตารางทักษะและความสามารถ</p>
+            <p className="text-sm text-gray-500">{t('training.quickAccess.matrixDesc')}</p>
           </div>
           <ArrowUpRight className="h-5 w-5 text-gray-400 group-hover:text-violet-600 transition-colors" />
         </Link>
@@ -487,7 +487,7 @@ export default function TrainingDashboardPage() {
       {/* View Mode Switcher and Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 mr-2">มุมมอง:</span>
+          <span className="text-sm text-gray-500 mr-2">{t('common.viewMode')}</span>
           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
@@ -496,7 +496,7 @@ export default function TrainingDashboardPage() {
                   ? 'bg-amber-100 text-amber-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองตาราง (รอบอบรม)"
+              title={t('training.viewMode.grid')}
             >
               <List className="h-5 w-5" />
             </button>
@@ -507,7 +507,7 @@ export default function TrainingDashboardPage() {
                   ? 'bg-amber-100 text-amber-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองการ์ด (หลักสูตร)"
+              title={t('training.viewMode.cards')}
             >
               <Grid3X3 className="h-5 w-5" />
             </button>
@@ -518,7 +518,7 @@ export default function TrainingDashboardPage() {
                   ? 'bg-amber-100 text-amber-600'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              title="มุมมองวิเคราะห์"
+              title={t('training.viewMode.analytics')}
             >
               <PieChartIcon className="h-5 w-5" />
             </button>
@@ -528,7 +528,7 @@ export default function TrainingDashboardPage() {
         <div className="flex items-center gap-2">
           {viewMode === 'grid' && (
             <DxButton
-              text="เพิ่มรอบอบรม"
+              text={t('training.addSession')}
               icon="add"
               type="default"
               stylingMode="contained"
@@ -537,7 +537,7 @@ export default function TrainingDashboardPage() {
           )}
           {viewMode === 'cards' && (
             <DxButton
-              text="เพิ่มหลักสูตร"
+              text={t('training.addCourse')}
               icon="add"
               type="default"
               stylingMode="contained"
@@ -553,24 +553,24 @@ export default function TrainingDashboardPage() {
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-700 flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              ตัวกรองข้อมูล
+              {t('common.dataFilters')}
             </h3>
             <button
               onClick={clearFilters}
               className="text-sm text-amber-600 hover:text-amber-700"
             >
-              ล้างตัวกรอง
+              {t('training.filters.clear')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm text-gray-500 mb-1">ค้นหา</label>
+              <label className="block text-sm text-gray-500 mb-1">{t('training.filters.search')}</label>
               <TextBox
                 value={searchText}
                 onValueChanged={(e) => setSearchText(e.value || '')}
-                placeholder="ชื่อหลักสูตร, รหัส..."
+                placeholder={t('training.filters.searchPlaceholder')}
                 showClearButton
                 mode="search"
               />
@@ -579,14 +579,14 @@ export default function TrainingDashboardPage() {
             {/* Status filter (for sessions view) */}
             {viewMode === 'grid' && (
               <div>
-                <label className="block text-sm text-gray-500 mb-1">สถานะรอบอบรม</label>
+                <label className="block text-sm text-gray-500 mb-1">{t('training.filters.sessionStatus')}</label>
                 <SelectBox
                   dataSource={statusOptions}
                   value={statusFilter}
                   onValueChanged={(e) => setStatusFilter(e.value)}
                   displayExpr="text"
                   valueExpr="value"
-                  placeholder="ทุกสถานะ"
+                  placeholder={t('training.filters.allStatus')}
                   showClearButton
                 />
               </div>
@@ -595,14 +595,14 @@ export default function TrainingDashboardPage() {
             {/* Category filter (for cards view) */}
             {viewMode === 'cards' && (
               <div>
-                <label className="block text-sm text-gray-500 mb-1">หมวดหมู่</label>
+                <label className="block text-sm text-gray-500 mb-1">{t('training.filters.category')}</label>
                 <SelectBox
                   dataSource={categoryOptions}
                   value={categoryFilter}
                   onValueChanged={(e) => setCategoryFilter(e.value)}
                   displayExpr="text"
                   valueExpr="value"
-                  placeholder="ทุกหมวดหมู่"
+                  placeholder={t('training.filters.allCategories')}
                   showClearButton
                 />
               </div>
@@ -612,7 +612,7 @@ export default function TrainingDashboardPage() {
             {viewMode === 'cards' && (
               <div className="flex items-end gap-4">
                 <CheckBox
-                  text="แสดงเฉพาะหลักสูตรบังคับ"
+                  text={t('training.filters.mandatoryOnly')}
                   value={mandatoryFilter === true}
                   onValueChanged={(e) =>
                     setMandatoryFilter(e.value ? true : null)
@@ -638,7 +638,7 @@ export default function TrainingDashboardPage() {
             onRowClick={handleSessionRowClick}
             hoverStateEnabled
           >
-            <SearchPanel visible placeholder="ค้นหารอบอบรม..." />
+            <SearchPanel visible placeholder={t('training.sessionSearch')} />
             <Grouping autoExpandAll={false} />
             <GroupPanel visible />
             <StateStoring
@@ -664,19 +664,19 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="courseCode"
-              caption="รหัสหลักสูตร"
+              caption={t('training.columns.courseCode')}
               width={120}
               allowGrouping
             />
             <Column
               dataField="courseName"
-              caption="ชื่อหลักสูตร"
+              caption={t('training.columns.courseName')}
               minWidth={200}
               allowGrouping
             />
             <Column
               dataField="sessionDate"
-              caption="วันที่อบรม"
+              caption={t('training.columns.sessionDate')}
               width={130}
               dataType="date"
               format="dd/MM/yyyy"
@@ -684,7 +684,7 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="startTime"
-              caption="เวลาเริ่ม"
+              caption={t('training.columns.startTime')}
               width={90}
               cellRender={({ value }) => (
                 <span>{formatTime(value)}</span>
@@ -692,7 +692,7 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="endTime"
-              caption="เวลาสิ้นสุด"
+              caption={t('training.columns.endTime')}
               width={90}
               cellRender={({ value }) => (
                 <span>{formatTime(value)}</span>
@@ -700,7 +700,7 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="location"
-              caption="สถานที่"
+              caption={t('training.columns.location')}
               width={150}
               cellRender={({ value }) => (
                 <span className="flex items-center gap-1">
@@ -711,7 +711,7 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="maxParticipants"
-              caption="จำนวนรับ"
+              caption={t('training.columns.capacity')}
               width={90}
               alignment="center"
               cellRender={({ value }) => (
@@ -723,7 +723,7 @@ export default function TrainingDashboardPage() {
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('training.columns.status')}
               width={130}
               allowGrouping
               cellRender={({ value }) => (
@@ -753,7 +753,7 @@ export default function TrainingDashboardPage() {
           {filteredCourses.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-500">
               <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>ไม่พบหลักสูตรที่ตรงกับเงื่อนไข</p>
+              <p>{t('training.noCourses')}</p>
             </div>
           ) : (
             filteredCourses.map((course) => (
@@ -780,7 +780,7 @@ export default function TrainingDashboardPage() {
                     <div className="flex flex-col items-end gap-1">
                       <MandatoryBadge isMandatory={course.isMandatory} />
                       <Badge variant={course.isActive ? 'success' : 'secondary'}>
-                        {course.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                        {course.isActive ? t('training.active') : t('training.inactive')}
                       </Badge>
                     </div>
                   </div>
@@ -802,13 +802,13 @@ export default function TrainingDashboardPage() {
                     {course.durationHours && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <Timer className="h-4 w-4 text-gray-400" />
-                        <span>{course.durationHours} ชั่วโมง</span>
+                        <span>{course.durationHours} {t('training.hours')}</span>
                       </div>
                     )}
                     {course.validityDays && (
                       <div className="flex items-center gap-2 text-gray-600">
                         <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>อายุ {course.validityDays} วัน</span>
+                        <span>{t('training.validDays', { 0: course.validityDays })}</span>
                       </div>
                     )}
                   </div>
@@ -835,7 +835,7 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-emerald-600" />
-                สถานะรอบอบรม
+                {t('training.analytics.sessionStatusTitle')}
               </h3>
               {analytics.sessionStatusDistribution.length > 0 ? (
                 <PieChart
@@ -864,13 +864,13 @@ export default function TrainingDashboardPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} รอบ`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('training.analytics.sessionSuffix')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูลรอบอบรม
+                  {t('training.noSessionData')}
                 </div>
               )}
             </div>
@@ -879,7 +879,7 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-blue-600" />
-                หมวดหมู่หลักสูตร
+                {t('training.analytics.courseCategoryTitle')}
               </h3>
               {analytics.categoryDistribution.length > 0 ? (
                 <PieChart
@@ -908,13 +908,13 @@ export default function TrainingDashboardPage() {
                     enabled
                     format="fixedPoint"
                     customizeTooltip={(pointInfo: { argumentText?: string; valueText?: string }) => ({
-                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} หลักสูตร`,
+                      text: `${pointInfo.argumentText}: ${pointInfo.valueText} ${t('training.analytics.courseSuffix')}`,
                     })}
                   />
                 </PieChart>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-gray-400">
-                  ไม่มีข้อมูลหมวดหมู่
+                  {t('training.noCategoryData')}
                 </div>
               )}
             </div>
@@ -926,29 +926,29 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-amber-600" />
-                สรุปรอบอบรม
+                {t('training.analytics.sessionsSummary')}
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">รอดำเนินการ</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.scheduled')}</span>
                   <span className="font-semibold text-gray-700">
                     {analytics.scheduledSessions}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">กำลังอบรม</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.inProgress')}</span>
                   <span className="font-semibold text-amber-600">
                     {analytics.inProgressSessions}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">เสร็จสิ้น</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.completed')}</span>
                   <span className="font-semibold text-green-600">
                     {analytics.completedSessions}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ยกเลิก</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.cancelled')}</span>
                   <span className="font-semibold text-red-600">
                     {analytics.cancelledSessions}
                   </span>
@@ -960,29 +960,29 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-blue-600" />
-                สรุปหลักสูตร
+                {t('training.analytics.coursesSummary')}
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ทั้งหมด</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.total')}</span>
                   <span className="font-semibold text-gray-700">
                     {analytics.totalCourses}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ใช้งาน</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.active')}</span>
                   <span className="font-semibold text-green-600">
                     {analytics.activeCourses}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">บังคับ</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.mandatory')}</span>
                   <span className="font-semibold text-red-600">
                     {analytics.mandatoryCourses}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">หมวดหมู่</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.summary.categories')}</span>
                   <span className="font-semibold text-gray-700">
                     {analytics.categoryDistribution.length}
                   </span>
@@ -994,17 +994,17 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-violet-600" />
-                เดือนนี้
+                {t('training.analytics.thisMonth')}
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">รอบอบรมทั้งหมด</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.thisMonthSessions')}</span>
                   <span className="font-semibold text-gray-700">
                     {analytics.thisMonthSessions}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">7 วันข้างหน้า</span>
+                  <span className="text-sm text-gray-600">{t('training.analytics.next7Days')}</span>
                   <span className="font-semibold text-violet-600">
                     {analytics.upcomingSessions}
                   </span>
@@ -1016,11 +1016,11 @@ export default function TrainingDashboardPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Plus className="h-4 w-4 text-emerald-600" />
-                ดำเนินการด่วน
+                {t('training.analytics.quickActions')}
               </h4>
               <div className="space-y-2">
                 <DxButton
-                  text="เพิ่มหลักสูตรใหม่"
+                  text={t('training.analytics.addCourse')}
                   icon="add"
                   type="default"
                   stylingMode="outlined"
@@ -1028,7 +1028,7 @@ export default function TrainingDashboardPage() {
                   onClick={() => router.push('/hr/training/courses/new')}
                 />
                 <DxButton
-                  text="เพิ่มรอบอบรม"
+                  text={t('training.analytics.addSession')}
                   icon="event"
                   type="default"
                   stylingMode="outlined"
@@ -1036,7 +1036,7 @@ export default function TrainingDashboardPage() {
                   onClick={() => router.push('/hr/training/sessions/new')}
                 />
                 <DxButton
-                  text="ดู Competency Matrix"
+                  text={t('training.analytics.viewMatrix')}
                   icon="smalliconslayout"
                   type="normal"
                   stylingMode="outlined"
@@ -1051,7 +1051,7 @@ export default function TrainingDashboardPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <LayoutGrid className="h-5 w-5 text-amber-600" />
-              จำนวนหลักสูตรตามหมวดหมู่
+              {t('training.analytics.coursesByCategory')}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {analytics.categoryDistribution.map((cat, index) => (

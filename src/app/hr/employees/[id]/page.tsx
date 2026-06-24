@@ -49,21 +49,21 @@ import type { EmployeeAssignmentWithDetails } from '@/lib/services/hr.service';
 
 const STATUS_CONFIG = {
   active: {
-    label: 'ใช้งาน',
+    labelKey: 'employees.status.active',
     icon: CheckCircle2,
     bgColor: 'bg-emerald-50',
     textColor: 'text-emerald-700',
     borderColor: 'border-emerald-200',
   },
   inactive: {
-    label: 'พักงาน',
+    labelKey: 'employees.status.inactive',
     icon: PauseCircle,
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-700',
     borderColor: 'border-amber-200',
   },
   terminated: {
-    label: 'พ้นสภาพ',
+    labelKey: 'employees.status.terminated',
     icon: XCircle,
     bgColor: 'bg-red-50',
     textColor: 'text-red-700',
@@ -71,10 +71,11 @@ const STATUS_CONFIG = {
   },
 };
 
-const GENDER_LABELS: Record<string, string> = {
-  male: 'ชาย',
-  female: 'หญิง',
-  other: 'อื่นๆ',
+// Gender label translation keys (under employees.profile.gender)
+const GENDER_KEYS: Record<string, string> = {
+  male: 'employees.profile.gender.male',
+  female: 'employees.profile.gender.female',
+  other: 'employees.profile.gender.other',
 };
 
 const BLOOD_TYPE_LABELS: Record<string, string> = {
@@ -90,31 +91,30 @@ const BLOOD_TYPE_LABELS: Record<string, string> = {
   'O-': 'O-',
   'AB+': 'AB+',
   'AB-': 'AB-',
-  unknown: 'ไม่ทราบ',
 };
 
-const MARITAL_STATUS_LABELS: Record<string, string> = {
-  single: 'โสด',
-  married: 'สมรส',
-  divorced: 'หย่าร้าง',
-  widowed: 'หม้าย',
+const MARITAL_STATUS_KEYS: Record<string, string> = {
+  single: 'employees.profile.maritalStatus.single',
+  married: 'employees.profile.maritalStatus.married',
+  divorced: 'employees.profile.maritalStatus.divorced',
+  widowed: 'employees.profile.maritalStatus.widowed',
 };
 
-const EDUCATION_LABELS: Record<string, string> = {
-  below_high_school: 'ต่ำกว่ามัธยมศึกษา',
-  high_school: 'มัธยมศึกษา',
-  vocational: 'ปวช.',
-  diploma: 'ปวส.',
-  bachelor: 'ปริญญาตรี',
-  master: 'ปริญญาโท',
-  doctorate: 'ปริญญาเอก',
+const EDUCATION_KEYS: Record<string, string> = {
+  below_high_school: 'employees.profile.education.below_high_school',
+  high_school: 'employees.profile.education.high_school',
+  vocational: 'employees.profile.education.vocational',
+  diploma: 'employees.profile.education.diploma',
+  bachelor: 'employees.profile.education.bachelor',
+  master: 'employees.profile.education.master',
+  doctorate: 'employees.profile.education.doctorate',
 };
 
-const MILITARY_STATUS_LABELS: Record<string, string> = {
-  exempted: 'ได้รับการยกเว้น',
-  completed: 'ผ่านการเกณฑ์ทหาร',
-  reserved: 'กองหนุน',
-  not_applicable: 'ไม่เกี่ยวข้อง',
+const MILITARY_STATUS_KEYS: Record<string, string> = {
+  exempted: 'employees.profile.military.exempted',
+  completed: 'employees.profile.military.completed',
+  reserved: 'employees.profile.military.reserved',
+  not_applicable: 'employees.profile.military.not_applicable',
 };
 
 async function fetchEmployeeProfile(id: string): Promise<EmployeeProfile> {
@@ -156,16 +156,16 @@ function getAvatarGradient(name: string): string {
   return gradients[hash % gradients.length];
 }
 
-function calculateTenure(hireDate: string): string {
+function calculateTenure(hireDate: string, t: (key: string, values?: Record<string, string | number>) => string): string {
   const start = new Date(hireDate);
   const now = new Date();
   const years = Math.floor((now.getTime() - start.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   const months = Math.floor(((now.getTime() - start.getTime()) % (365.25 * 24 * 60 * 60 * 1000)) / (30.44 * 24 * 60 * 60 * 1000));
 
   if (years > 0) {
-    return `${years} ปี ${months} เดือน`;
+    return t('employees.profile.yearsMonths', { 0: years, 1: months });
   }
-  return `${months} เดือน`;
+  return t('employees.profile.months', { 0: months });
 }
 
 // Collapsible Section Component
@@ -256,11 +256,11 @@ export default function EmployeeProfilePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'employee', employeeId] });
       queryClient.invalidateQueries({ queryKey: ['hr', 'employees'] });
-      toast.success('สำเร็จ', 'อัปเดตสถานะพนักงานเรียบร้อย');
+      toast.success(t('employees.profile.toast.updateSuccessTitle'), t('employees.profile.toast.updateSuccessMessage'));
       setShowActions(false);
     },
     onError: () => {
-      toast.error('เกิดข้อผิดพลาด', 'ไม่สามารถอัปเดตสถานะพนักงานได้');
+      toast.error(t('employees.profile.toast.updateErrorTitle'), t('employees.profile.toast.updateErrorMessage'));
     },
   });
 
@@ -358,7 +358,7 @@ export default function EmployeeProfilePage() {
             onClick={handleBack}
             className="w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
           >
-            กลับหน้ารายการ
+            {t('employees.profile.backToList')}
           </button>
         </div>
       </div>
@@ -436,7 +436,7 @@ export default function EmployeeProfilePage() {
                     <span>{profile.employeeCode}</span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}>
                       <StatusIcon className="h-3 w-3" />
-                      {statusConfig.label}
+                      {t(statusConfig.labelKey)}
                     </span>
                   </div>
                 </div>
@@ -448,7 +448,7 @@ export default function EmployeeProfilePage() {
                 className="hidden sm:flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Edit3 className="h-4 w-4" />
-                แก้ไข
+                {t('employees.profile.edit')}
               </button>
               <button
                 onClick={handleEdit}
@@ -474,7 +474,7 @@ export default function EmployeeProfilePage() {
                           disabled={statusMutation.isPending}
                         >
                           <PauseCircle className="h-4 w-4" />
-                          พักงาน
+                          {t('employees.profile.suspend')}
                         </button>
                       )}
                       {profile.status === 'inactive' && (
@@ -484,7 +484,7 @@ export default function EmployeeProfilePage() {
                           disabled={statusMutation.isPending}
                         >
                           <CheckCircle2 className="h-4 w-4" />
-                          เปิดใช้งาน
+                          {t('employees.profile.activate')}
                         </button>
                       )}
                       <button
@@ -493,7 +493,7 @@ export default function EmployeeProfilePage() {
                         disabled={statusMutation.isPending}
                       >
                         <XCircle className="h-4 w-4" />
-                        พ้นสภาพ
+                        {t('employees.profile.terminate')}
                       </button>
                     </div>
                   </>
@@ -515,7 +515,7 @@ export default function EmployeeProfilePage() {
                 <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <User className="h-5 w-5 text-blue-500" />
-                    ข้อมูลพนักงาน
+                    {t('employees.profile.sections.employeeInfo')}
                   </h3>
                 </div>
                 <div className="p-6">
@@ -547,12 +547,12 @@ export default function EmployeeProfilePage() {
                       <div className="flex items-center gap-3 mt-3">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.textColor} border ${statusConfig.borderColor}`}>
                           <StatusIcon className="h-4 w-4" />
-                          {statusConfig.label}
+                          {t(statusConfig.labelKey)}
                         </span>
                         {profile.hireDate && (
                           <span className="text-sm text-gray-500 flex items-center gap-1.5">
                             <Clock className="h-4 w-4" />
-                            อายุงาน {calculateTenure(profile.hireDate)}
+                            {t('employees.profile.tenurePrefix')} {calculateTenure(profile.hireDate, t)}
                           </span>
                         )}
                       </div>
@@ -564,7 +564,7 @@ export default function EmployeeProfilePage() {
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center gap-2 text-gray-500 mb-2">
                         <Hash className="h-4 w-4" />
-                        <span className="text-xs font-medium">รหัสพนักงาน</span>
+                        <span className="text-xs font-medium">{t('employees.profile.fields.employeeCode')}</span>
                       </div>
                       <p className="font-semibold text-gray-900">{profile.employeeCode}</p>
                     </div>
@@ -573,7 +573,7 @@ export default function EmployeeProfilePage() {
                       <div className="bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center gap-2 text-gray-500 mb-2">
                           <Briefcase className="h-4 w-4" />
-                          <span className="text-xs font-medium">ตำแหน่ง</span>
+                          <span className="text-xs font-medium">{t('employees.profile.fields.position')}</span>
                         </div>
                         <p className="font-semibold text-gray-900 truncate">{profile.position.title}</p>
                         <p className="text-xs text-gray-500 truncate">{profile.position.code}</p>
@@ -584,7 +584,7 @@ export default function EmployeeProfilePage() {
                       <div className="bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center gap-2 text-gray-500 mb-2">
                           <Building2 className="h-4 w-4" />
-                          <span className="text-xs font-medium">หน่วยงาน</span>
+                          <span className="text-xs font-medium">{t('employees.profile.fields.orgUnit')}</span>
                         </div>
                         <p className="font-semibold text-gray-900 truncate">{profile.orgUnit.name}</p>
                         <p className="text-xs text-gray-500 truncate">{profile.orgUnit.code}</p>
@@ -594,7 +594,7 @@ export default function EmployeeProfilePage() {
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center gap-2 text-gray-500 mb-2">
                         <Calendar className="h-4 w-4" />
-                        <span className="text-xs font-medium">เริ่มงาน</span>
+                        <span className="text-xs font-medium">{t('employees.profile.fields.startWork')}</span>
                       </div>
                       <p className="font-semibold text-gray-900">{formatDate(profile.hireDate)}</p>
                     </div>
@@ -603,7 +603,7 @@ export default function EmployeeProfilePage() {
                       <div className="bg-red-50 rounded-xl p-4 col-span-2 lg:col-span-1">
                         <div className="flex items-center gap-2 text-red-500 mb-2">
                           <XCircle className="h-4 w-4" />
-                          <span className="text-xs font-medium">พ้นสภาพ</span>
+                          <span className="text-xs font-medium">{t('employees.profile.fields.terminated')}</span>
                         </div>
                         <p className="font-semibold text-red-700">{formatDate(profile.terminationDate)}</p>
                       </div>
@@ -615,57 +615,57 @@ export default function EmployeeProfilePage() {
               {/* Personal Identification */}
               {hasPersonalInfo && (
                 <ProfileSection
-                  title="ข้อมูลส่วนบุคคล"
+                  title={t('employees.profile.sections.personalInfo')}
                   icon={CreditCard}
                   iconColor="text-purple-500"
                 >
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {profile.thaiCid && (
                       <InfoItem
-                        label="เลขบัตรประชาชน"
+                        label={t('employees.profile.fields.thaiCid')}
                         value={formatThaiCid(profile.thaiCid)}
                         icon={CreditCard}
                       />
                     )}
                     {profile.dateOfBirth && (
                       <InfoItem
-                        label="วันเกิด"
+                        label={t('employees.profile.fields.dateOfBirth')}
                         value={formatDate(profile.dateOfBirth)}
                         icon={Calendar}
                       />
                     )}
                     {profile.gender && (
                       <InfoItem
-                        label="เพศ"
-                        value={GENDER_LABELS[profile.gender] || profile.gender}
+                        label={t('employees.profile.fields.gender')}
+                        value={GENDER_KEYS[profile.gender] ? t(GENDER_KEYS[profile.gender]) : profile.gender}
                         icon={User}
                       />
                     )}
                     {profile.bloodType && (
                       <InfoItem
-                        label="กรุ๊ปเลือด"
+                        label={t('employees.profile.fields.bloodType')}
                         value={BLOOD_TYPE_LABELS[profile.bloodType] || profile.bloodType}
                         icon={Droplet}
                       />
                     )}
                     {profile.religion && (
                       <InfoItem
-                        label="ศาสนา"
+                        label={t('employees.profile.fields.religion')}
                         value={profile.religion}
                         icon={Heart}
                       />
                     )}
                     {profile.maritalStatus && (
                       <InfoItem
-                        label="สถานะสมรส"
-                        value={MARITAL_STATUS_LABELS[profile.maritalStatus] || profile.maritalStatus}
+                        label={t('employees.profile.fields.maritalStatus')}
+                        value={MARITAL_STATUS_KEYS[profile.maritalStatus] ? t(MARITAL_STATUS_KEYS[profile.maritalStatus]) : profile.maritalStatus}
                         icon={Users}
                       />
                     )}
                     {profile.nationalityCode && (
                       <InfoItem
-                        label="สัญชาติ"
-                        value={profile.nationalityCode === 'TH' ? 'ไทย' : profile.nationalityCode}
+                        label={t('employees.profile.fields.nationality')}
+                        value={profile.nationalityCode === 'TH' ? t('employees.profile.thaiNationality') : profile.nationalityCode}
                         icon={Globe}
                       />
                     )}
@@ -676,7 +676,7 @@ export default function EmployeeProfilePage() {
               {/* Government IDs */}
               {hasGovernmentIds && (
                 <ProfileSection
-                  title="ข้อมูลราชการ"
+                  title={t('employees.profile.sections.governmentInfo')}
                   icon={FileText}
                   iconColor="text-orange-500"
                   defaultOpen={false}
@@ -684,22 +684,22 @@ export default function EmployeeProfilePage() {
                   <div className="grid grid-cols-2 gap-4">
                     {profile.ssoNumber && (
                       <InfoItem
-                        label="เลขประกันสังคม"
+                        label={t('employees.profile.fields.ssoNumber')}
                         value={profile.ssoNumber}
                         icon={Shield}
                       />
                     )}
                     {profile.taxId && (
                       <InfoItem
-                        label="เลขประจำตัวผู้เสียภาษี"
+                        label={t('employees.profile.fields.taxId')}
                         value={profile.taxId}
                         icon={FileText}
                       />
                     )}
                     {profile.militaryStatus && (
                       <InfoItem
-                        label="สถานะทหาร"
-                        value={MILITARY_STATUS_LABELS[profile.militaryStatus] || profile.militaryStatus}
+                        label={t('employees.profile.fields.militaryStatus')}
+                        value={MILITARY_STATUS_KEYS[profile.militaryStatus] ? t(MILITARY_STATUS_KEYS[profile.militaryStatus]) : profile.militaryStatus}
                         icon={Shield}
                       />
                     )}
@@ -710,7 +710,7 @@ export default function EmployeeProfilePage() {
               {/* Address Information */}
               {hasAddress && (
                 <ProfileSection
-                  title="ที่อยู่"
+                  title={t('employees.profile.sections.address')}
                   icon={MapPin}
                   iconColor="text-teal-500"
                   defaultOpen={false}
@@ -720,7 +720,7 @@ export default function EmployeeProfilePage() {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-teal-500" />
-                          ที่อยู่ปัจจุบัน
+                          {t('employees.profile.address.current')}
                         </h4>
                         <p className="text-gray-900">{currentAddress}</p>
                       </div>
@@ -729,13 +729,13 @@ export default function EmployeeProfilePage() {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-teal-500" />
-                          ที่อยู่ตามทะเบียนบ้าน
+                          {t('employees.profile.address.permanent')}
                         </h4>
                         <p className="text-gray-900">{permanentAddress}</p>
                       </div>
                     )}
                     {profile.useSameAddress && (
-                      <p className="text-sm text-gray-500 italic">ที่อยู่ตามทะเบียนบ้านเหมือนที่อยู่ปัจจุบัน</p>
+                      <p className="text-sm text-gray-500 italic">{t('employees.profile.address.sameAsCurrent')}</p>
                     )}
                   </div>
                 </ProfileSection>
@@ -744,7 +744,7 @@ export default function EmployeeProfilePage() {
               {/* Education */}
               {hasEducation && (
                 <ProfileSection
-                  title="การศึกษา"
+                  title={t('employees.profile.sections.education')}
                   icon={GraduationCap}
                   iconColor="text-indigo-500"
                   defaultOpen={false}
@@ -752,20 +752,20 @@ export default function EmployeeProfilePage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {profile.educationLevel && (
                       <InfoItem
-                        label="ระดับการศึกษา"
-                        value={EDUCATION_LABELS[profile.educationLevel] || profile.educationLevel}
+                        label={t('employees.profile.fields.educationLevel')}
+                        value={EDUCATION_KEYS[profile.educationLevel] ? t(EDUCATION_KEYS[profile.educationLevel]) : profile.educationLevel}
                         icon={GraduationCap}
                       />
                     )}
                     {profile.educationField && (
                       <InfoItem
-                        label="สาขา"
+                        label={t('employees.profile.fields.educationField')}
                         value={profile.educationField}
                       />
                     )}
                     {profile.educationInstitution && (
                       <InfoItem
-                        label="สถาบัน"
+                        label={t('employees.profile.fields.educationInstitution')}
                         value={profile.educationInstitution}
                       />
                     )}
@@ -776,7 +776,7 @@ export default function EmployeeProfilePage() {
               {/* Medical Notes */}
               {profile.medicalNotes && (
                 <ProfileSection
-                  title="ข้อมูลสุขภาพ"
+                  title={t('employees.profile.sections.health')}
                   icon={HeartPulse}
                   iconColor="text-red-500"
                   defaultOpen={false}
@@ -795,7 +795,7 @@ export default function EmployeeProfilePage() {
                 >
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <History className="h-5 w-5 text-indigo-500" />
-                    ประวัติการดำรงตำแหน่ง
+                    {t('employees.profile.sections.assignmentHistory')}
                     {assignments.length > 0 && (
                       <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
                         {assignments.length}
@@ -814,7 +814,7 @@ export default function EmployeeProfilePage() {
                     {assignments.length === 0 ? (
                       <div className="text-center py-8 text-gray-400">
                         <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">ไม่มีประวัติการดำรงตำแหน่ง</p>
+                        <p className="text-sm">{t('employees.profile.noAssignmentHistory')}</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -846,18 +846,18 @@ export default function EmployeeProfilePage() {
                                   )}
                                 </div>
                                 {assignment.isPrimary && !assignment.effectiveTo && (
-                                  <Badge variant="success" className="text-xs flex-shrink-0">ปัจจุบัน</Badge>
+                                  <Badge variant="success" className="text-xs flex-shrink-0">{t('employees.profile.current')}</Badge>
                                 )}
                               </div>
                               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3.5 w-3.5" />
-                                  เริ่ม: {formatDate(assignment.effectiveFrom)}
+                                  {t('employees.profile.assignmentStart')} {formatDate(assignment.effectiveFrom)}
                                 </span>
                                 {assignment.effectiveTo && (
                                   <span className="flex items-center gap-1">
                                     <Calendar className="h-3.5 w-3.5" />
-                                    สิ้นสุด: {formatDate(assignment.effectiveTo)}
+                                    {t('employees.profile.assignmentEnd')} {formatDate(assignment.effectiveTo)}
                                   </span>
                                 )}
                               </div>
@@ -883,7 +883,7 @@ export default function EmployeeProfilePage() {
                 <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <Phone className="h-5 w-5 text-emerald-500" />
-                    ข้อมูลติดต่อ
+                    {t('employees.profile.sections.contactInfo')}
                   </h3>
                 </div>
                 <div className="p-4 space-y-3">
@@ -896,7 +896,7 @@ export default function EmployeeProfilePage() {
                         <Mail className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">อีเมล</p>
+                        <p className="text-xs text-gray-500">{t('employees.profile.fields.email')}</p>
                         <p className="font-medium text-gray-900 group-hover:text-blue-600 truncate text-sm">
                           {profile.email}
                         </p>
@@ -913,7 +913,7 @@ export default function EmployeeProfilePage() {
                         <Phone className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">เบอร์โทร</p>
+                        <p className="text-xs text-gray-500">{t('employees.profile.fields.phone')}</p>
                         <p className="font-medium text-gray-900 group-hover:text-emerald-600 text-sm">
                           {profile.phone}
                         </p>
@@ -924,7 +924,7 @@ export default function EmployeeProfilePage() {
                   {!profile.email && !profile.phone && (
                     <div className="text-center py-6 text-gray-400">
                       <Phone className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">ไม่มีข้อมูลติดต่อ</p>
+                      <p className="text-sm">{t('employees.profile.noContactInfo')}</p>
                     </div>
                   )}
                 </div>
@@ -936,7 +936,7 @@ export default function EmployeeProfilePage() {
                   <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-red-500" />
-                      ติดต่อฉุกเฉิน
+                      {t('employees.profile.sections.emergencyContact')}
                     </h3>
                   </div>
                   <div className="p-4">
@@ -967,26 +967,26 @@ export default function EmployeeProfilePage() {
                   <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       <Landmark className="h-5 w-5 text-green-600" />
-                      ข้อมูลธนาคาร
+                      {t('employees.profile.sections.bankingInfo')}
                     </h3>
                   </div>
                   <div className="p-4">
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100 space-y-2">
                       {profile.bankName && (
                         <div>
-                          <p className="text-xs text-gray-500">ธนาคาร</p>
+                          <p className="text-xs text-gray-500">{t('employees.profile.fields.bank')}</p>
                           <p className="font-medium text-gray-900">{profile.bankName}</p>
                         </div>
                       )}
                       {profile.bankBranch && (
                         <div>
-                          <p className="text-xs text-gray-500">สาขา</p>
+                          <p className="text-xs text-gray-500">{t('employees.profile.fields.branch')}</p>
                           <p className="font-medium text-gray-900">{profile.bankBranch}</p>
                         </div>
                       )}
                       {profile.bankAccountNumber && (
                         <div>
-                          <p className="text-xs text-gray-500">เลขบัญชี</p>
+                          <p className="text-xs text-gray-500">{t('employees.profile.fields.accountNumber')}</p>
                           <p className="font-medium text-gray-900 font-mono">
                             {formatBankAccount(profile.bankAccountNumber)}
                           </p>
@@ -994,7 +994,7 @@ export default function EmployeeProfilePage() {
                       )}
                       {profile.bankAccountName && (
                         <div>
-                          <p className="text-xs text-gray-500">ชื่อบัญชี</p>
+                          <p className="text-xs text-gray-500">{t('employees.profile.fields.accountName')}</p>
                           <p className="font-medium text-gray-900">{profile.bankAccountName}</p>
                         </div>
                       )}
@@ -1009,7 +1009,7 @@ export default function EmployeeProfilePage() {
                   <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       <Shield className="h-5 w-5 text-amber-500" />
-                      สิทธิ์การอนุมัติ
+                      {t('employees.profile.sections.authorizations')}
                       <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
                         {profile.authorizations.length}
                       </span>
@@ -1045,14 +1045,14 @@ export default function EmployeeProfilePage() {
                   <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       <Shield className="h-5 w-5 text-gray-400" />
-                      จัดการสถานะ
+                      {t('employees.profile.manageStatus')}
                     </h3>
                   </div>
                   <div className="p-4 space-y-3">
                     {profile.status === 'active' && (
                       <DxButton
                         icon="pause"
-                        text="พักงาน"
+                        text={t('employees.profile.suspend')}
                         type="default"
                         stylingMode="outlined"
                         width="100%"
@@ -1063,7 +1063,7 @@ export default function EmployeeProfilePage() {
                     {profile.status === 'inactive' && (
                       <DxButton
                         icon="check"
-                        text="เปิดใช้งาน"
+                        text={t('employees.profile.activate')}
                         type="success"
                         stylingMode="contained"
                         width="100%"
@@ -1073,7 +1073,7 @@ export default function EmployeeProfilePage() {
                     )}
                     <DxButton
                       icon="remove"
-                      text="พ้นสภาพ"
+                      text={t('employees.profile.terminate')}
                       type="danger"
                       stylingMode="outlined"
                       width="100%"
@@ -1088,25 +1088,25 @@ export default function EmployeeProfilePage() {
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-5">
                 <h4 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                   <Award className="h-5 w-5" />
-                  สรุปข้อมูล
+                  {t('employees.profile.sections.summary')}
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-blue-700">อายุงาน</span>
+                    <span className="text-blue-700">{t('employees.profile.summary.tenure')}</span>
                     <span className="font-semibold text-blue-900">
-                      {profile.hireDate ? calculateTenure(profile.hireDate) : '-'}
+                      {profile.hireDate ? calculateTenure(profile.hireDate, t) : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-blue-700">สิทธิ์อนุมัติ</span>
+                    <span className="text-blue-700">{t('employees.profile.summary.authorizations')}</span>
                     <span className="font-semibold text-blue-900">
-                      {profile.authorizations?.length || 0} รายการ
+                      {t('employees.profile.summary.items', { 0: profile.authorizations?.length || 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-blue-700">ประวัติตำแหน่ง</span>
+                    <span className="text-blue-700">{t('employees.profile.summary.positionHistory')}</span>
                     <span className="font-semibold text-blue-900">
-                      {assignments.length} รายการ
+                      {t('employees.profile.summary.items', { 0: assignments.length })}
                     </span>
                   </div>
                 </div>

@@ -157,10 +157,10 @@ export default function RolesPage() {
     mutationFn: activateRoleById,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'roles'] });
-      toast.success('เปิดใช้งานบทบาทสำเร็จ');
+      toast.success(t('roles.toast.activateSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'ไม่สามารถเปิดใช้งานบทบาทได้');
+      toast.error(error.message || t('roles.toast.activateError'));
     },
   });
 
@@ -269,7 +269,7 @@ export default function RolesPage() {
                   handleActivate(role);
                 }}
                 className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                title="เปิดใช้งาน"
+                title={t('roles.actionsHint.activate')}
                 data-testid={`role-activate-${role.id}`}
               >
                 <CheckCircle className="h-4 w-4" />

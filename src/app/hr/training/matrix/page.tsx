@@ -18,11 +18,11 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { Grid3X3, CheckCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import type { CompetencyMatrix, TrainingCourse, TrainingRecordStatus, OrgUnit } from '@/types/hr';
 
-const STATUS_CONFIG: Record<TrainingRecordStatus, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
-  valid: { label: 'ผ่าน', color: 'text-green-700', bgColor: 'bg-green-100', icon: CheckCircle },
-  expiring_soon: { label: 'ใกล้หมดอายุ', color: 'text-yellow-700', bgColor: 'bg-yellow-100', icon: AlertTriangle },
-  expired: { label: 'หมดอายุ', color: 'text-red-700', bgColor: 'bg-red-100', icon: XCircle },
-  not_taken: { label: 'ยังไม่อบรม', color: 'text-gray-500', bgColor: 'bg-gray-100', icon: Clock },
+const STATUS_CONFIG: Record<TrainingRecordStatus, { labelKey: string; color: string; bgColor: string; icon: React.ElementType }> = {
+  valid: { labelKey: 'training.matrix.status.valid', color: 'text-green-700', bgColor: 'bg-green-100', icon: CheckCircle },
+  expiring_soon: { labelKey: 'training.matrix.status.expiringSoon', color: 'text-yellow-700', bgColor: 'bg-yellow-100', icon: AlertTriangle },
+  expired: { labelKey: 'training.matrix.status.expired', color: 'text-red-700', bgColor: 'bg-red-100', icon: XCircle },
+  not_taken: { labelKey: 'training.matrix.status.notTaken', color: 'text-gray-500', bgColor: 'bg-gray-100', icon: Clock },
 };
 
 async function fetchCompetencyMatrix(): Promise<CompetencyMatrix[]> {
@@ -168,15 +168,15 @@ export default function CompetencyMatrixPage() {
         iconColor="text-purple-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'การอบรม', href: '/hr/training' },
-          { label: 'Competency Matrix' },
+          { label: t('training.breadcrumb'), href: '/hr/training' },
+          { label: t('training.matrix.breadcrumb') },
         ]}
       />
 
       {/* Stats using StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
-          label="ผ่านการอบรม"
+          label={t('training.matrix.stats.passed')}
           value={stats.valid}
           icon={CheckCircle}
           iconColor="text-green-500"
@@ -184,7 +184,7 @@ export default function CompetencyMatrixPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ใกล้หมดอายุ"
+          label={t('training.matrix.stats.expiringSoon')}
           value={stats.expiringSoon}
           icon={AlertTriangle}
           iconColor="text-yellow-500"
@@ -192,7 +192,7 @@ export default function CompetencyMatrixPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="หมดอายุ"
+          label={t('training.matrix.stats.expired')}
           value={stats.expired}
           icon={XCircle}
           iconColor="text-red-500"
@@ -200,7 +200,7 @@ export default function CompetencyMatrixPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ยังไม่อบรม"
+          label={t('training.matrix.stats.notTaken')}
           value={stats.notTaken}
           icon={Clock}
           iconColor="text-gray-500"
@@ -213,15 +213,15 @@ export default function CompetencyMatrixPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-sm text-gray-600 whitespace-nowrap">หน่วยงาน:</span>
+            <span className="text-sm text-gray-600 whitespace-nowrap">{t('training.matrix.department')}</span>
             <SelectBox
-              dataSource={[{ id: null, name: 'ทั้งหมด' }, ...orgUnits]}
+              dataSource={[{ id: null, name: t('training.matrix.all') }, ...orgUnits]}
               valueExpr="id"
               displayExpr="name"
               value={selectedOrgUnit}
               onValueChanged={(e) => setSelectedOrgUnit(e.value)}
               width="100%"
-              placeholder="เลือกหน่วยงาน..."
+              placeholder={t('training.matrix.selectDepartment')}
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer min-h-[40px]">
@@ -231,12 +231,12 @@ export default function CompetencyMatrixPage() {
               onChange={(e) => setShowMandatoryOnly(e.target.checked)}
               className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 w-5 h-5"
             />
-            <span className="text-sm text-gray-600">แสดงเฉพาะหลักสูตรบังคับ</span>
+            <span className="text-sm text-gray-600">{t('training.matrix.mandatoryOnly')}</span>
           </label>
 
           {/* Legend - Hide on mobile */}
           <div className="hidden md:flex items-center gap-4 ml-auto">
-            <span className="text-sm text-gray-500">สถานะ:</span>
+            <span className="text-sm text-gray-500">{t('training.matrix.statusLabel')}</span>
             {Object.entries(STATUS_CONFIG).map(([key, config]) => {
               const Icon = config.icon;
               return (
@@ -244,11 +244,11 @@ export default function CompetencyMatrixPage() {
                   <div className={'p-1 rounded ' + config.bgColor}>
                     <Icon className={'h-3 w-3 ' + config.color} />
                   </div>
-                  <span className="text-xs text-gray-600">{config.label}</span>
+                  <span className="text-xs text-gray-600">{t(config.labelKey)}</span>
                 </div>
               );
             })}
-            <span className="text-xs text-red-500">* = บังคับ</span>
+            <span className="text-xs text-red-500">{t('training.matrix.mandatoryLegend')}</span>
           </div>
         </div>
 
@@ -261,11 +261,11 @@ export default function CompetencyMatrixPage() {
                 <div className={'p-1 rounded ' + config.bgColor}>
                   <Icon className={'h-3 w-3 ' + config.color} />
                 </div>
-                <span className="text-xs text-gray-600">{config.label}</span>
+                <span className="text-xs text-gray-600">{t(config.labelKey)}</span>
               </div>
             );
           })}
-          <span className="text-xs text-red-500">* = บังคับ</span>
+          <span className="text-xs text-red-500">{t('training.matrix.mandatoryLegend')}</span>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ export default function CompetencyMatrixPage() {
 
           <Column
             dataField="employeeName"
-            caption="พนักงาน"
+            caption={t('training.matrix.employeeColumn')}
             width={200}
             fixed
             fixedPosition="left"
@@ -307,7 +307,7 @@ export default function CompetencyMatrixPage() {
                 <div className="text-center">
                   <div className="font-medium text-xs">{course.code}</div>
                   {course.isMandatory && (
-                    <Badge variant="danger" className="text-[10px] px-1 py-0">บังคับ</Badge>
+                    <Badge variant="danger" className="text-[10px] px-1 py-0">{t('training.matrix.mandatoryBadge')}</Badge>
                   )}
                 </div>
               )}

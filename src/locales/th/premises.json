@@ -319,7 +319,9 @@
         "parameterLabel": "พารามิเตอร์ *",
         "unitLabel": "หน่วย",
         "minLabel": "ค่าต่ำสุด",
-        "maxLabel": "ค่าสูงสุด"
+        "maxLabel": "ค่าสูงสุด",
+        "parameterSelectPlaceholder": "— เลือกพารามิเตอร์ —",
+        "parameterNamePlaceholder": "ชื่อพารามิเตอร์"
       },
       "delete": {
         "title": "ปิดการใช้งาน",
@@ -517,7 +519,8 @@
       "itemFail": "ไม่ผ่าน (เกินเกณฑ์)",
       "itemNoSpec": "ไม่ระบุเกณฑ์",
       "inspectTitle": "{action}: {name}",
-      "passwordLabel": "รหัสผ่าน"
+      "passwordLabel": "รหัสผ่าน",
+      "newRecordBanner": "บันทึกการตรวจ <b>ครั้งใหม่</b> — กรอกค่าที่วัดได้ ณ วันนี้ (ค่าครั้งก่อนดูได้ที่ “ประวัติผลตรวจ”)"
     },
     "inspectionsHistory": {
       "breadcrumb": "ประวัติผลตรวจ",
@@ -669,7 +672,12 @@
       "readingUnit": "(หน่วย: {unit})",
       "placeWeightHint": "วางลูกตุ้ม {code} บนเครื่องชั่ง แล้วกรอกค่าที่เครื่องแสดง — ควรอยู่ประมาณ {value} {unit} (ค่า cert)",
       "extremeReadingWarning": "ค่าที่อ่านได้ ({reading}) ต่างจากค่าลูกตุ้มมาตรฐาน ({value} {unit}) เกิน 10 เท่า — น่าจะเลือกลูกตุ้มผิดหรือกรอกค่าผิด กรุณาเลือกลูกตุ้มที่มีน้ำหนักใกล้เคียงพิสัยของเครื่องชั่งนี้ แล้วกรอกค่าที่อ่านได้จริง",
-      "passwordPlaceholder": "ลงนามด้วย password"
+      "passwordPlaceholder": "ลงนามด้วย password",
+      "colCalibrationCert": "ใบรับรองสอบเทียบ",
+      "certNotSpecified": "ยังไม่ระบุ cert",
+      "certExpired": "หมดอายุแล้ว {date}",
+      "certExpires": "หมดอายุ {date}",
+      "certDaysLeft": "(อีก {days} วัน)"
     },
     "history": {
       "scaleLabel": "เครื่องชั่ง #{scaleId}",

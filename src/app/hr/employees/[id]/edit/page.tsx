@@ -35,7 +35,7 @@ export default function EditEmployeePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
+          <p className="text-gray-500">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -54,7 +54,7 @@ export default function EditEmployeePage() {
             href="/hr/employees"
             className="block w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors text-center"
           >
-            กลับหน้ารายการ
+            {t('employees.profile.backToList')}
           </Link>
         </div>
       </div>

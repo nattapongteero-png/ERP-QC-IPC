@@ -250,12 +250,12 @@ export default function ScaleVerificationPage() {
         <DxColumn dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
         <DxColumn dataField="scaleName" caption={t('table.columns.scaleName')} />
         <DxColumn
-          caption="ใบรับรองสอบเทียบ"
+          caption={tp('scaleVerification.index.colCalibrationCert')}
           width={170}
           cellRender={(c) => {
             const row = c.data as ScaleRow;
             if (!row.calibrationCertNumber) {
-              return <span className="text-xs text-amber-600">ยังไม่ระบุ cert</span>;
+              return <span className="text-xs text-amber-600">{tp('scaleVerification.index.certNotSpecified')}</span>;
             }
             // Warn when the scale's own calibration cert is expired / near expiry.
             const exp = row.calibrationExpiryDate ? new Date(row.calibrationExpiryDate) : null;
@@ -265,14 +265,20 @@ export default function ScaleVerificationPage() {
                 : days < 0 ? 'text-rose-700 font-medium'
                 : days <= 30 ? 'text-amber-700'
                 : 'text-gray-700';
+            const expiryText = row.calibrationExpiryDate
+              ? new Date(row.calibrationExpiryDate).toLocaleDateString('th-TH')
+              : '';
             return (
               <div className="text-xs leading-tight">
                 <div className="font-mono text-gray-800">{row.calibrationCertNumber}</div>
                 {row.calibrationExpiryDate && (
                   <div className={tone}>
-                    {days != null && days < 0 ? 'หมดอายุแล้ว ' : 'หมดอายุ '}
-                    {new Date(row.calibrationExpiryDate).toLocaleDateString('th-TH')}
-                    {days != null && days >= 0 && days <= 30 ? ` (อีก ${days} วัน)` : ''}
+                    {days != null && days < 0
+                      ? tp('scaleVerification.index.certExpired', { date: expiryText })
+                      : tp('scaleVerification.index.certExpires', { date: expiryText })}
+                    {days != null && days >= 0 && days <= 30
+                      ? ' ' + tp('scaleVerification.index.certDaysLeft', { days })
+                      : ''}
                   </div>
                 )}
               </div>

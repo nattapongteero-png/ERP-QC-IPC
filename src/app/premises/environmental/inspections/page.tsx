@@ -384,8 +384,9 @@ export default function InspectionsPage() {
           {/* Clarify this is a NEW measurement each time, so a blank form is
               expected (previous readings live in "ประวัติผลตรวจ"). */}
           <div className="bg-sky-50 border border-sky-200 rounded p-2.5 text-xs text-sky-900">
-            บันทึกการตรวจ <span className="font-semibold">ครั้งใหม่</span> — กรอกค่าที่วัดได้ ณ วันนี้
-            (ค่าครั้งก่อนดูได้ที่ &quot;ประวัติผลตรวจ&quot;)
+            {tp.rich('environmental.inspections.newRecordBanner', {
+              b: (chunks) => <span className="font-semibold">{chunks}</span>,
+            })}
           </div>
           {(activeTemplate?.items ?? []).map((item: InspectionTemplateItem) => {
             // Live pass/fail as the operator types — compare the entered value

@@ -32,7 +32,14 @@
       "averageYield": "ผลผลิตเฉลี่ย",
       "cancelled": "ยกเลิก",
       "noData": "ไม่มีข้อมูล",
-      "noActiveOrders": "ไม่มีใบสั่งที่กำลังดำเนินการ"
+      "noActiveOrders": "ไม่มีใบสั่งที่กำลังดำเนินการ",
+      "byPrioritySubtitle": "งานที่ยังดำเนินการอยู่ ({count} ใบ) แบ่งตามระดับความเร่งด่วน",
+      "priorityHighLabel": "เร่งด่วนสูง",
+      "priorityHighHint": "ต้องทำก่อน",
+      "priorityMediumLabel": "ปานกลาง",
+      "priorityMediumHint": "ตามแผนปกติ",
+      "priorityLowLabel": "ต่ำ",
+      "priorityLowHint": "ทำเมื่อพร้อม"
     },
     "grid": {
       "columns": {
@@ -42,12 +49,17 @@
         "priority": "ความสำคัญ",
         "schedule": "กำหนดการ",
         "yield": "ผลผลิต",
-        "status": "สถานะ"
+        "status": "สถานะ",
+        "createdAt": "วันที่สร้าง"
       },
       "orders": "{count} รายการ",
       "searchPlaceholder": "ค้นหาใบสั่งผลิต...",
       "noOrders": "ไม่มีใบสั่งผลิต",
-      "noOrdersDescription": "ยังไม่มีรายการตามเงื่อนไขที่เลือก"
+      "noOrdersDescription": "ยังไม่มีรายการตามเงื่อนไขที่เลือก",
+      "pagerInfo": "หน้า {0} จาก {1} (รวม {2} รายการ)",
+      "viewShort": "ดู",
+      "editShort": "แก้ไข",
+      "deleteShort": "ลบ"
     },
     "actions": {
       "refresh": "รีเฟรช",
@@ -124,7 +136,23 @@
       },
       "batchNumber": {
         "label": "เลขที่แบตช์"
+      },
+      "deliveryDate": {
+        "label": "วันที่ส่งมอบ",
+        "placeholderNeedDates": "กรุณาระบุวันเริ่มต้นและวันสิ้นสุดก่อน",
+        "placeholder": "เลือกวันส่งมอบ"
       }
+    },
+    "assignees": {
+      "title": "เจ้าหน้าที่ผู้ปฏิบัติงาน",
+      "add": "+ เพิ่ม",
+      "empty": "ยังไม่มีการมอบหมายเจ้าหน้าที่ — กดปุ่ม “+ เพิ่ม” เพื่อระบุทีม",
+      "loading": "กำลังโหลด...",
+      "selectEmployee": "เลือกเจ้าหน้าที่",
+      "remove": "ลบ"
+    },
+    "deleteDialog": {
+      "batchLabel": "รุ่นการผลิต:"
     },
     "status": {
       "draft": "แบบร่าง",

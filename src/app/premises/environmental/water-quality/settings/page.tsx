@@ -472,7 +472,7 @@ export default function WaterQualitySettingsPage() {
                   });
                 }}
               >
-                <option value="" disabled>— เลือกพารามิเตอร์ —</option>
+                <option value="" disabled>{t('waterQuality.settings.specPopup.parameterSelectPlaceholder')}</option>
                 {WATER_PARAM_PRESETS.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
                 ))}
@@ -483,7 +483,7 @@ export default function WaterQualitySettingsPage() {
                   className="w-full border rounded px-3 py-2 mt-2"
                   value={specForm.parameter}
                   onChange={(e) => setSpecForm({ ...specForm, parameter: e.target.value })}
-                  placeholder="ชื่อพารามิเตอร์"
+                  placeholder={t('waterQuality.settings.specPopup.parameterNamePlaceholder')}
                   autoComplete="off"
                   data-lpignore="true"
                   data-form-type="other"

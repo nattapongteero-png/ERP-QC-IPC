@@ -158,6 +158,107 @@
       "inactive": "On leave",
       "terminated": "Terminated"
     },
+    "profile": {
+      "backToList": "Back to list",
+      "edit": "Edit",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "terminate": "Terminate",
+      "manageStatus": "Manage Status",
+      "tenurePrefix": "Tenure",
+      "yearsMonths": "{0} years {1} months",
+      "months": "{0} months",
+      "toast": {
+        "updateSuccessTitle": "Success",
+        "updateSuccessMessage": "Employee status updated successfully",
+        "updateErrorTitle": "Error",
+        "updateErrorMessage": "Unable to update employee status"
+      },
+      "sections": {
+        "employeeInfo": "Employee Information",
+        "personalInfo": "Personal Information",
+        "governmentInfo": "Government Information",
+        "address": "Address",
+        "education": "Education",
+        "health": "Health Information",
+        "assignmentHistory": "Assignment History",
+        "contactInfo": "Contact Information",
+        "emergencyContact": "Emergency Contact",
+        "bankingInfo": "Banking Information",
+        "authorizations": "Approval Authorizations",
+        "summary": "Summary"
+      },
+      "fields": {
+        "employeeCode": "Employee Code",
+        "position": "Position",
+        "orgUnit": "Department",
+        "startWork": "Start Date",
+        "terminated": "Terminated",
+        "thaiCid": "National ID",
+        "dateOfBirth": "Date of Birth",
+        "gender": "Gender",
+        "bloodType": "Blood Type",
+        "religion": "Religion",
+        "maritalStatus": "Marital Status",
+        "nationality": "Nationality",
+        "ssoNumber": "Social Security No.",
+        "taxId": "Tax ID",
+        "militaryStatus": "Military Status",
+        "educationLevel": "Education Level",
+        "educationField": "Field of Study",
+        "educationInstitution": "Institution",
+        "email": "Email",
+        "phone": "Phone",
+        "bank": "Bank",
+        "branch": "Branch",
+        "accountNumber": "Account Number",
+        "accountName": "Account Name"
+      },
+      "address": {
+        "current": "Current Address",
+        "permanent": "Registered Address",
+        "sameAsCurrent": "Registered address is the same as current address"
+      },
+      "summary": {
+        "tenure": "Tenure",
+        "authorizations": "Authorizations",
+        "positionHistory": "Position History",
+        "items": "{0} items"
+      },
+      "thaiNationality": "Thai",
+      "noAssignmentHistory": "No assignment history",
+      "current": "Current",
+      "assignmentStart": "Start:",
+      "assignmentEnd": "End:",
+      "noContactInfo": "No contact information",
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "bloodTypeUnknown": "Unknown",
+      "maritalStatus": {
+        "single": "Single",
+        "married": "Married",
+        "divorced": "Divorced",
+        "widowed": "Widowed"
+      },
+      "education": {
+        "below_high_school": "Below High School",
+        "high_school": "High School",
+        "vocational": "Vocational Certificate",
+        "diploma": "Diploma",
+        "bachelor": "Bachelor's Degree",
+        "master": "Master's Degree",
+        "doctorate": "Doctorate"
+      },
+      "military": {
+        "exempted": "Exempted",
+        "completed": "Completed",
+        "reserved": "Reserved",
+        "not_applicable": "Not Applicable"
+      }
+    },
     "stats": {
       "total": "Total employees",
       "active": "Active",
@@ -512,12 +613,15 @@
     },
     "toast": {
       "deactivateSuccess": "Role deactivated successfully",
-      "deactivateError": "Failed to deactivate role"
+      "deactivateError": "Failed to deactivate role",
+      "activateSuccess": "Role activated successfully",
+      "activateError": "Failed to activate role"
     },
     "actionsHint": {
       "view": "View details",
       "edit": "Edit",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "activate": "Activate"
     },
     "actions": {
       "addRole": "Add Role",
@@ -1180,6 +1284,39 @@
     "sessions": {
       "title": "Training Sessions",
       "description": "Manage training sessions",
+      "breadcrumb": "Sessions",
+      "addNew": "Schedule Session",
+      "stats": {
+        "scheduled": "Scheduled",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "totalParticipants": "Total Participants"
+      },
+      "status": {
+        "scheduled": "Scheduled",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "columns": {
+        "date": "Date",
+        "course": "Course",
+        "code": "Code",
+        "time": "Time",
+        "location": "Location",
+        "instructor": "Instructor",
+        "participants": "Participants",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "search": "Search...",
+      "completeHint": "Complete",
+      "cancelHint": "Cancel",
+      "toast": {
+        "completed": "Training marked as completed",
+        "cancelled": "Training cancelled",
+        "updateError": "Unable to update status"
+      },
       "actions": {
         "addSession": "Add Session"
       }
@@ -1188,10 +1325,67 @@
       "title": "Courses",
       "description": "Manage training courses",
       "invalidId": "Invalid course ID",
+      "breadcrumb": "Courses",
+      "addNew": "Add Course",
+      "mandatory": "Mandatory",
+      "optional": "Optional",
+      "noExpiry": "No expiry",
+      "yearsMonths": "{0} years {1}",
+      "monthsSuffix": "{0} months",
+      "daysSuffix": "{0} days",
+      "hoursSuffix": "{0} hrs",
+      "active": "Active",
+      "inactive": "Inactive",
+      "stats": {
+        "totalCourses": "Total Courses",
+        "mandatoryCourses": "Mandatory Courses",
+        "withExpiry": "With Expiry"
+      },
+      "columns": {
+        "code": "Code",
+        "name": "Course Name",
+        "nameEn": "English Name",
+        "category": "Category",
+        "type": "Type",
+        "validity": "Validity",
+        "duration": "Duration",
+        "status": "Status"
+      },
+      "search": "Search...",
+      "linkedDocs": {
+        "title": "Linked GMP/SOP Documents",
+        "empty": "No GMP/SOP documents linked to this course",
+        "emptyHint": "You can link documents from the GMP document management page"
+      },
       "actions": {
         "addCourse": "Add Course",
         "viewCourse": "View Course"
       }
+    },
+    "matrix": {
+      "title": "Training Matrix",
+      "description": "View employee training matrix",
+      "breadcrumb": "Competency Matrix",
+      "status": {
+        "valid": "Valid",
+        "expiringSoon": "Expiring Soon",
+        "expired": "Expired",
+        "notTaken": "Not Taken"
+      },
+      "stats": {
+        "passed": "Trained",
+        "expiringSoon": "Expiring Soon",
+        "expired": "Expired",
+        "notTaken": "Not Taken"
+      },
+      "department": "Department:",
+      "all": "All",
+      "selectDepartment": "Select department...",
+      "mandatoryOnly": "Show mandatory courses only",
+      "statusLabel": "Status:",
+      "mandatoryLegend": "* = Mandatory",
+      "employeeColumn": "Employee",
+      "mandatoryBadge": "Mandatory"
     }
   },
   "attendance": {

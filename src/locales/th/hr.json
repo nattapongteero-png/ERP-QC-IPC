@@ -158,6 +158,107 @@
       "inactive": "พักงาน",
       "terminated": "พ้นสภาพ"
     },
+    "profile": {
+      "backToList": "กลับหน้ารายการ",
+      "edit": "แก้ไข",
+      "suspend": "พักงาน",
+      "activate": "เปิดใช้งาน",
+      "terminate": "พ้นสภาพ",
+      "manageStatus": "จัดการสถานะ",
+      "tenurePrefix": "อายุงาน",
+      "yearsMonths": "{0} ปี {1} เดือน",
+      "months": "{0} เดือน",
+      "toast": {
+        "updateSuccessTitle": "สำเร็จ",
+        "updateSuccessMessage": "อัปเดตสถานะพนักงานเรียบร้อย",
+        "updateErrorTitle": "เกิดข้อผิดพลาด",
+        "updateErrorMessage": "ไม่สามารถอัปเดตสถานะพนักงานได้"
+      },
+      "sections": {
+        "employeeInfo": "ข้อมูลพนักงาน",
+        "personalInfo": "ข้อมูลส่วนบุคคล",
+        "governmentInfo": "ข้อมูลราชการ",
+        "address": "ที่อยู่",
+        "education": "การศึกษา",
+        "health": "ข้อมูลสุขภาพ",
+        "assignmentHistory": "ประวัติการดำรงตำแหน่ง",
+        "contactInfo": "ข้อมูลติดต่อ",
+        "emergencyContact": "ติดต่อฉุกเฉิน",
+        "bankingInfo": "ข้อมูลธนาคาร",
+        "authorizations": "สิทธิ์การอนุมัติ",
+        "summary": "สรุปข้อมูล"
+      },
+      "fields": {
+        "employeeCode": "รหัสพนักงาน",
+        "position": "ตำแหน่ง",
+        "orgUnit": "หน่วยงาน",
+        "startWork": "เริ่มงาน",
+        "terminated": "พ้นสภาพ",
+        "thaiCid": "เลขบัตรประชาชน",
+        "dateOfBirth": "วันเกิด",
+        "gender": "เพศ",
+        "bloodType": "กรุ๊ปเลือด",
+        "religion": "ศาสนา",
+        "maritalStatus": "สถานะสมรส",
+        "nationality": "สัญชาติ",
+        "ssoNumber": "เลขประกันสังคม",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "militaryStatus": "สถานะทหาร",
+        "educationLevel": "ระดับการศึกษา",
+        "educationField": "สาขา",
+        "educationInstitution": "สถาบัน",
+        "email": "อีเมล",
+        "phone": "เบอร์โทร",
+        "bank": "ธนาคาร",
+        "branch": "สาขา",
+        "accountNumber": "เลขบัญชี",
+        "accountName": "ชื่อบัญชี"
+      },
+      "address": {
+        "current": "ที่อยู่ปัจจุบัน",
+        "permanent": "ที่อยู่ตามทะเบียนบ้าน",
+        "sameAsCurrent": "ที่อยู่ตามทะเบียนบ้านเหมือนที่อยู่ปัจจุบัน"
+      },
+      "summary": {
+        "tenure": "อายุงาน",
+        "authorizations": "สิทธิ์อนุมัติ",
+        "positionHistory": "ประวัติตำแหน่ง",
+        "items": "{0} รายการ"
+      },
+      "thaiNationality": "ไทย",
+      "noAssignmentHistory": "ไม่มีประวัติการดำรงตำแหน่ง",
+      "current": "ปัจจุบัน",
+      "assignmentStart": "เริ่ม:",
+      "assignmentEnd": "สิ้นสุด:",
+      "noContactInfo": "ไม่มีข้อมูลติดต่อ",
+      "gender": {
+        "male": "ชาย",
+        "female": "หญิง",
+        "other": "อื่นๆ"
+      },
+      "bloodTypeUnknown": "ไม่ทราบ",
+      "maritalStatus": {
+        "single": "โสด",
+        "married": "สมรส",
+        "divorced": "หย่าร้าง",
+        "widowed": "หม้าย"
+      },
+      "education": {
+        "below_high_school": "ต่ำกว่ามัธยมศึกษา",
+        "high_school": "มัธยมศึกษา",
+        "vocational": "ปวช.",
+        "diploma": "ปวส.",
+        "bachelor": "ปริญญาตรี",
+        "master": "ปริญญาโท",
+        "doctorate": "ปริญญาเอก"
+      },
+      "military": {
+        "exempted": "ได้รับการยกเว้น",
+        "completed": "ผ่านการเกณฑ์ทหาร",
+        "reserved": "กองหนุน",
+        "not_applicable": "ไม่เกี่ยวข้อง"
+      }
+    },
     "stats": {
       "total": "พนักงานทั้งหมด",
       "active": "ใช้งาน",
@@ -512,12 +613,15 @@
     },
     "toast": {
       "deactivateSuccess": "ปิดใช้งานบทบาทสำเร็จ",
-      "deactivateError": "ไม่สามารถปิดใช้งานบทบาทได้"
+      "deactivateError": "ไม่สามารถปิดใช้งานบทบาทได้",
+      "activateSuccess": "เปิดใช้งานบทบาทสำเร็จ",
+      "activateError": "ไม่สามารถเปิดใช้งานบทบาทได้"
     },
     "actionsHint": {
       "view": "ดูรายละเอียด",
       "edit": "แก้ไข",
-      "deactivate": "ปิดใช้งาน"
+      "deactivate": "ปิดใช้งาน",
+      "activate": "เปิดใช้งาน"
     },
     "actions": {
       "addRole": "เพิ่มบทบาท",
@@ -1180,6 +1284,39 @@
     "sessions": {
       "title": "รอบการอบรม",
       "description": "จัดการรอบการอบรม",
+      "breadcrumb": "รอบอบรม",
+      "addNew": "จัดอบรมใหม่",
+      "stats": {
+        "scheduled": "กำหนดการ",
+        "inProgress": "กำลังดำเนินการ",
+        "completed": "เสร็จสิ้น",
+        "totalParticipants": "ผู้เข้าร่วมทั้งหมด"
+      },
+      "status": {
+        "scheduled": "กำหนดการ",
+        "inProgress": "กำลังดำเนินการ",
+        "completed": "เสร็จสิ้น",
+        "cancelled": "ยกเลิก"
+      },
+      "columns": {
+        "date": "วันที่",
+        "course": "หลักสูตร",
+        "code": "รหัส",
+        "time": "เวลา",
+        "location": "สถานที่",
+        "instructor": "วิทยากร",
+        "participants": "ผู้เข้าร่วม",
+        "status": "สถานะ",
+        "actions": "การดำเนินการ"
+      },
+      "search": "ค้นหา...",
+      "completeHint": "เสร็จสิ้น",
+      "cancelHint": "ยกเลิก",
+      "toast": {
+        "completed": "บันทึกการอบรมเสร็จสิ้น",
+        "cancelled": "ยกเลิกการอบรมแล้ว",
+        "updateError": "ไม่สามารถอัปเดตสถานะได้"
+      },
       "actions": {
         "addSession": "เพิ่มรอบการอบรม"
       }
@@ -1188,10 +1325,67 @@
       "title": "หลักสูตร",
       "description": "จัดการหลักสูตรการอบรม",
       "invalidId": "รหัสหลักสูตรไม่ถูกต้อง",
+      "breadcrumb": "หลักสูตร",
+      "addNew": "เพิ่มหลักสูตร",
+      "mandatory": "บังคับ",
+      "optional": "ไม่บังคับ",
+      "noExpiry": "ไม่มีหมดอายุ",
+      "yearsMonths": "{0} ปี {1}",
+      "monthsSuffix": "{0} เดือน",
+      "daysSuffix": "{0} วัน",
+      "hoursSuffix": "{0} ชม.",
+      "active": "ใช้งาน",
+      "inactive": "ปิดใช้งาน",
+      "stats": {
+        "totalCourses": "หลักสูตรทั้งหมด",
+        "mandatoryCourses": "หลักสูตรบังคับ",
+        "withExpiry": "มีวันหมดอายุ"
+      },
+      "columns": {
+        "code": "รหัส",
+        "name": "ชื่อหลักสูตร",
+        "nameEn": "ชื่อภาษาอังกฤษ",
+        "category": "หมวดหมู่",
+        "type": "ประเภท",
+        "validity": "อายุการรับรอง",
+        "duration": "ระยะเวลา",
+        "status": "สถานะ"
+      },
+      "search": "ค้นหา...",
+      "linkedDocs": {
+        "title": "เอกสาร GMP/SOP ที่เชื่อมโยง",
+        "empty": "ไม่มีเอกสาร GMP/SOP ที่เชื่อมโยงกับหลักสูตรนี้",
+        "emptyHint": "สามารถเชื่อมโยงได้จากหน้าจัดการเอกสาร GMP"
+      },
       "actions": {
         "addCourse": "เพิ่มหลักสูตร",
         "viewCourse": "ดูหลักสูตร"
       }
+    },
+    "matrix": {
+      "title": "ตารางการฝึกอบรม",
+      "description": "ดูตารางการฝึกอบรมของพนักงาน",
+      "breadcrumb": "Competency Matrix",
+      "status": {
+        "valid": "ผ่าน",
+        "expiringSoon": "ใกล้หมดอายุ",
+        "expired": "หมดอายุ",
+        "notTaken": "ยังไม่อบรม"
+      },
+      "stats": {
+        "passed": "ผ่านการอบรม",
+        "expiringSoon": "ใกล้หมดอายุ",
+        "expired": "หมดอายุ",
+        "notTaken": "ยังไม่อบรม"
+      },
+      "department": "หน่วยงาน:",
+      "all": "ทั้งหมด",
+      "selectDepartment": "เลือกหน่วยงาน...",
+      "mandatoryOnly": "แสดงเฉพาะหลักสูตรบังคับ",
+      "statusLabel": "สถานะ:",
+      "mandatoryLegend": "* = บังคับ",
+      "employeeColumn": "พนักงาน",
+      "mandatoryBadge": "บังคับ"
     }
   },
   "attendance": {

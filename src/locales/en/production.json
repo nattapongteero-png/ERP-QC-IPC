@@ -32,7 +32,14 @@
       "averageYield": "Average Yield",
       "cancelled": "Cancelled",
       "noData": "No data",
-      "noActiveOrders": "No active orders"
+      "noActiveOrders": "No active orders",
+      "byPrioritySubtitle": "Active orders ({count} orders) broken down by urgency",
+      "priorityHighLabel": "High priority",
+      "priorityHighHint": "Do first",
+      "priorityMediumLabel": "Medium",
+      "priorityMediumHint": "On normal schedule",
+      "priorityLowLabel": "Low",
+      "priorityLowHint": "When available"
     },
     "grid": {
       "columns": {
@@ -42,12 +49,17 @@
         "priority": "Priority",
         "schedule": "Schedule",
         "yield": "Yield",
-        "status": "Status"
+        "status": "Status",
+        "createdAt": "Created Date"
       },
       "orders": "{count} orders",
       "searchPlaceholder": "Search work orders...",
       "noOrders": "No work orders",
-      "noOrdersDescription": "No items match the selected criteria yet"
+      "noOrdersDescription": "No items match the selected criteria yet",
+      "pagerInfo": "Page {0} of {1} ({2} items total)",
+      "viewShort": "View",
+      "editShort": "Edit",
+      "deleteShort": "Delete"
     },
     "actions": {
       "refresh": "Refresh",
@@ -124,7 +136,23 @@
       },
       "batchNumber": {
         "label": "Batch Number"
+      },
+      "deliveryDate": {
+        "label": "Delivery Date",
+        "placeholderNeedDates": "Please specify start and end dates first",
+        "placeholder": "Select delivery date"
       }
+    },
+    "assignees": {
+      "title": "Assigned Personnel",
+      "add": "+ Add",
+      "empty": "No personnel assigned yet — press “+ Add” to specify the team",
+      "loading": "Loading...",
+      "selectEmployee": "Select personnel",
+      "remove": "Remove"
+    },
+    "deleteDialog": {
+      "batchLabel": "Batch:"
     },
     "status": {
       "draft": "Draft",

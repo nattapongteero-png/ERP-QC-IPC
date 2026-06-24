@@ -29,11 +29,11 @@ interface SessionWithDetails extends TrainingSession {
   participantCount?: number;
 }
 
-const STATUS_CONFIG: Record<TrainingSessionStatus, { label: string; variant: 'secondary' | 'info' | 'success' | 'danger'; icon: React.ElementType }> = {
-  scheduled: { label: 'กำหนดการ', variant: 'info', icon: CalendarDays },
-  in_progress: { label: 'กำลังดำเนินการ', variant: 'secondary', icon: PlayCircle },
-  completed: { label: 'เสร็จสิ้น', variant: 'success', icon: CheckCircle },
-  cancelled: { label: 'ยกเลิก', variant: 'danger', icon: XCircle },
+const STATUS_CONFIG: Record<TrainingSessionStatus, { labelKey: string; variant: 'secondary' | 'info' | 'success' | 'danger'; icon: React.ElementType }> = {
+  scheduled: { labelKey: 'training.sessions.status.scheduled', variant: 'info', icon: CalendarDays },
+  in_progress: { labelKey: 'training.sessions.status.inProgress', variant: 'secondary', icon: PlayCircle },
+  completed: { labelKey: 'training.sessions.status.completed', variant: 'success', icon: CheckCircle },
+  cancelled: { labelKey: 'training.sessions.status.cancelled', variant: 'danger', icon: XCircle },
 };
 
 async function fetchSessions(): Promise<SessionWithDetails[]> {
@@ -72,10 +72,10 @@ export default function TrainingSessionsPage() {
       updateSessionStatus(id, action),
     onSuccess: (_, { action }) => {
       queryClient.invalidateQueries({ queryKey: ['hr', 'training', 'sessions'] });
-      toast.success(action === 'complete' ? 'บันทึกการอบรมเสร็จสิ้น' : 'ยกเลิกการอบรมแล้ว');
+      toast.success(action === 'complete' ? t('training.sessions.toast.completed') : t('training.sessions.toast.cancelled'));
     },
     onError: () => {
-      toast.error('ไม่สามารถอัปเดตสถานะได้');
+      toast.error(t('training.sessions.toast.updateError'));
     },
   });
 
@@ -93,7 +93,7 @@ export default function TrainingSessionsPage() {
     return (
       <Badge variant={config.variant} className="text-xs">
         <Icon className="h-3 w-3 mr-1" />
-        {config.label}
+        {t(config.labelKey)}
       </Badge>
     );
   };
@@ -106,14 +106,14 @@ export default function TrainingSessionsPage() {
       <div className="flex gap-1">
         <DxButton
           icon="check"
-          hint="เสร็จสิ้น"
+          hint={t('training.sessions.completeHint')}
           type="success"
           stylingMode="text"
           onClick={() => statusMutation.mutate({ id: session.id, action: 'complete' })}
         />
         <DxButton
           icon="close"
-          hint="ยกเลิก"
+          hint={t('training.sessions.cancelHint')}
           type="danger"
           stylingMode="text"
           onClick={() => statusMutation.mutate({ id: session.id, action: 'cancel' })}
@@ -139,12 +139,12 @@ export default function TrainingSessionsPage() {
         iconColor="text-green-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'การอบรม', href: '/hr/training' },
-          { label: 'รอบอบรม' },
+          { label: t('training.breadcrumb'), href: '/hr/training' },
+          { label: t('training.sessions.breadcrumb') },
         ]}
         actions={
           <DxButton
-            text="จัดอบรมใหม่"
+            text={t('training.sessions.addNew')}
             icon="add"
             type="default"
             stylingMode="contained"
@@ -156,7 +156,7 @@ export default function TrainingSessionsPage() {
       {/* Stats using StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
-          label="กำหนดการ"
+          label={t('training.sessions.stats.scheduled')}
           value={sessions.filter((s) => s.status === 'scheduled').length}
           icon={CalendarDays}
           iconColor="text-blue-500"
@@ -164,7 +164,7 @@ export default function TrainingSessionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="กำลังดำเนินการ"
+          label={t('training.sessions.stats.inProgress')}
           value={sessions.filter((s) => s.status === 'in_progress').length}
           icon={PlayCircle}
           iconColor="text-yellow-500"
@@ -172,7 +172,7 @@ export default function TrainingSessionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="เสร็จสิ้น"
+          label={t('training.sessions.stats.completed')}
           value={sessions.filter((s) => s.status === 'completed').length}
           icon={CheckCircle}
           iconColor="text-green-500"
@@ -180,7 +180,7 @@ export default function TrainingSessionsPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="ผู้เข้าร่วมทั้งหมด"
+          label={t('training.sessions.stats.totalParticipants')}
           value={sessions.reduce((acc, s) => acc + (s.participantCount || 0), 0)}
           icon={Users}
           iconColor="text-gray-500"
@@ -203,7 +203,7 @@ export default function TrainingSessionsPage() {
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={200} />
+          <SearchPanel visible placeholder={t('training.sessions.search')} width={200} />
           <Scrolling mode="standard" />
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
@@ -214,38 +214,38 @@ export default function TrainingSessionsPage() {
 
           <Column
             dataField="sessionDate"
-            caption="วันที่"
+            caption={t('training.sessions.columns.date')}
             width={120}
             calculateCellValue={(rowData) => formatDate(rowData.sessionDate)}
             hidingPriority={0}
           />
-          <Column dataField="courseName" caption="หลักสูตร" minWidth={180} hidingPriority={1} />
-          <Column dataField="courseCode" caption="รหัส" width={100} hidingPriority={5} />
+          <Column dataField="courseName" caption={t('training.sessions.columns.course')} minWidth={180} hidingPriority={1} />
+          <Column dataField="courseCode" caption={t('training.sessions.columns.code')} width={100} hidingPriority={5} />
           <Column
-            caption="เวลา"
+            caption={t('training.sessions.columns.time')}
             width={120}
             calculateCellValue={formatTimeRange}
             hidingPriority={4}
           />
-          <Column dataField="location" caption="สถานที่" width={150} hidingPriority={3} />
-          <Column dataField="instructorName" caption="วิทยากร" width={150} hidingPriority={6} />
+          <Column dataField="location" caption={t('training.sessions.columns.location')} width={150} hidingPriority={3} />
+          <Column dataField="instructorName" caption={t('training.sessions.columns.instructor')} width={150} hidingPriority={6} />
           <Column
             dataField="participantCount"
-            caption="ผู้เข้าร่วม"
+            caption={t('training.sessions.columns.participants')}
             width={100}
             alignment="center"
             hidingPriority={7}
           />
           <Column
             dataField="status"
-            caption="สถานะ"
+            caption={t('training.sessions.columns.status')}
             width={130}
             cellRender={renderStatusCell}
             alignment="center"
             hidingPriority={2}
           />
           <Column
-            caption="การดำเนินการ"
+            caption={t('training.sessions.columns.actions')}
             width={100}
             cellRender={renderActionsCell}
             alignment="center"

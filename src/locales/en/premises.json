@@ -319,7 +319,9 @@
         "parameterLabel": "Parameter *",
         "unitLabel": "Unit",
         "minLabel": "Minimum value",
-        "maxLabel": "Maximum value"
+        "maxLabel": "Maximum value",
+        "parameterSelectPlaceholder": "— Select parameter —",
+        "parameterNamePlaceholder": "Parameter name"
       },
       "delete": {
         "title": "Deactivate",
@@ -517,7 +519,8 @@
       "itemFail": "Fail (out of spec)",
       "itemNoSpec": "No criteria",
       "inspectTitle": "{action}: {name}",
-      "passwordLabel": "Password"
+      "passwordLabel": "Password",
+      "newRecordBanner": "Record a <b>new</b> inspection — enter the values measured today (previous readings are available under “Inspection History”)"
     },
     "inspectionsHistory": {
       "breadcrumb": "Inspection History",
@@ -669,7 +672,12 @@
       "readingUnit": "(unit: {unit})",
       "placeWeightHint": "Place weight {code} on the scale, then enter the displayed value — it should be approximately {value} {unit} (cert value)",
       "extremeReadingWarning": "The reading ({reading}) differs from the certified standard weight ({value} {unit}) by more than 10× — the wrong weight was likely chosen or the value mistyped. Please choose a weight close to this scale's range, then enter the actual reading.",
-      "passwordPlaceholder": "Sign with password"
+      "passwordPlaceholder": "Sign with password",
+      "colCalibrationCert": "Calibration Certificate",
+      "certNotSpecified": "Cert not specified",
+      "certExpired": "Expired {date}",
+      "certExpires": "Expires {date}",
+      "certDaysLeft": "({days} days left)"
     },
     "history": {
       "scaleLabel": "Scale #{scaleId}",

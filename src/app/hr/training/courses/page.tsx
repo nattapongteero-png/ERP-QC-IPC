@@ -54,16 +54,16 @@ export default function TrainingCoursesPage() {
     return cellData.value ? (
       <Badge variant="danger" className="text-xs">
         <CheckCircle className="h-3 w-3 mr-1" />
-        บังคับ
+        {t('training.courses.mandatory')}
       </Badge>
     ) : (
-      <Badge variant="secondary" className="text-xs">ไม่บังคับ</Badge>
+      <Badge variant="secondary" className="text-xs">{t('training.courses.optional')}</Badge>
     );
   };
 
   const renderValidityCell = (cellData: { value: number | null }) => {
     if (!cellData.value) {
-      return <span className="text-gray-400">ไม่มีหมดอายุ</span>;
+      return <span className="text-gray-400">{t('training.courses.noExpiry')}</span>;
     }
     const years = Math.floor(cellData.value / 365);
     const months = Math.floor((cellData.value % 365) / 30);
@@ -71,26 +71,26 @@ export default function TrainingCoursesPage() {
       return (
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3 text-blue-500" />
-          {years} ปี {months > 0 ? `${months} เดือน` : ''}
+          {t('training.courses.yearsMonths', { 0: years, 1: months > 0 ? t('training.courses.monthsSuffix', { 0: months }) : '' })}
         </span>
       );
     }
     return (
       <span className="flex items-center gap-1">
         <Clock className="h-3 w-3 text-blue-500" />
-        {cellData.value} วัน
+        {t('training.courses.daysSuffix', { 0: cellData.value })}
       </span>
     );
   };
 
   const renderDurationCell = (cellData: { value: number | null }) => {
     if (!cellData.value) return <span className="text-gray-400">-</span>;
-    return <span>{cellData.value} ชม.</span>;
+    return <span>{t('training.courses.hoursSuffix', { 0: cellData.value })}</span>;
   };
 
   const renderActiveCell = (cellData: { value: boolean }) => (
     <Badge variant={cellData.value ? 'success' : 'secondary'} className="text-xs">
-      {cellData.value ? 'ใช้งาน' : 'ปิดใช้งาน'}
+      {cellData.value ? t('training.courses.active') : t('training.courses.inactive')}
     </Badge>
   );
 
@@ -105,12 +105,12 @@ export default function TrainingCoursesPage() {
         iconColor="text-blue-600"
         breadcrumbs={[
           { label: 'HR', href: '/hr' },
-          { label: 'การอบรม', href: '/hr/training' },
-          { label: 'หลักสูตร' },
+          { label: t('training.breadcrumb'), href: '/hr/training' },
+          { label: t('training.courses.breadcrumb') },
         ]}
         actions={
           <DxButton
-            text="เพิ่มหลักสูตร"
+            text={t('training.courses.addNew')}
             icon="plus"
             type="default"
             onClick={() => router.push('/hr/training/courses/new')}
@@ -122,7 +122,7 @@ export default function TrainingCoursesPage() {
       {/* Stats using StatCard */}
       <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="hr-courses-stats">
         <StatCard
-          label="หลักสูตรทั้งหมด"
+          label={t('training.courses.stats.totalCourses')}
           value={courseList.length}
           icon={BookOpen}
           iconColor="text-blue-500"
@@ -130,7 +130,7 @@ export default function TrainingCoursesPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="หลักสูตรบังคับ"
+          label={t('training.courses.stats.mandatoryCourses')}
           value={courseList.filter((c) => c.isMandatory).length}
           icon={Target}
           iconColor="text-red-500"
@@ -138,7 +138,7 @@ export default function TrainingCoursesPage() {
           isLoading={isLoading}
         />
         <StatCard
-          label="มีวันหมดอายุ"
+          label={t('training.courses.stats.withExpiry')}
           value={courseList.filter((c) => c.validityDays).length}
           icon={Clock}
           iconColor="text-green-500"
@@ -164,7 +164,7 @@ export default function TrainingCoursesPage() {
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
         >
-          <SearchPanel visible placeholder="ค้นหา..." width={200} />
+          <SearchPanel visible placeholder={t('training.courses.search')} width={200} />
           <Scrolling mode="standard" />
           <Paging defaultPageSize={20} />
           <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
@@ -173,13 +173,13 @@ export default function TrainingCoursesPage() {
             <Item name="searchPanel" />
           </Toolbar>
 
-          <Column dataField="code" caption="รหัส" width={100} hidingPriority={1} />
-          <Column dataField="name" caption="ชื่อหลักสูตร" minWidth={180} hidingPriority={0} />
-          <Column dataField="nameEn" caption="ชื่อภาษาอังกฤษ" width={180} hidingPriority={5} />
-          <Column dataField="category" caption="หมวดหมู่" width={120} hidingPriority={3} />
+          <Column dataField="code" caption={t('training.courses.columns.code')} width={100} hidingPriority={1} />
+          <Column dataField="name" caption={t('training.courses.columns.name')} minWidth={180} hidingPriority={0} />
+          <Column dataField="nameEn" caption={t('training.courses.columns.nameEn')} width={180} hidingPriority={5} />
+          <Column dataField="category" caption={t('training.courses.columns.category')} width={120} hidingPriority={3} />
           <Column
             dataField="isMandatory"
-            caption="ประเภท"
+            caption={t('training.courses.columns.type')}
             width={100}
             cellRender={renderMandatoryCell}
             alignment="center"
@@ -187,14 +187,14 @@ export default function TrainingCoursesPage() {
           />
           <Column
             dataField="validityDays"
-            caption="อายุการรับรอง"
+            caption={t('training.courses.columns.validity')}
             width={140}
             cellRender={renderValidityCell}
             hidingPriority={4}
           />
           <Column
             dataField="durationHours"
-            caption="ระยะเวลา"
+            caption={t('training.courses.columns.duration')}
             width={90}
             cellRender={renderDurationCell}
             alignment="center"
@@ -202,7 +202,7 @@ export default function TrainingCoursesPage() {
           />
           <Column
             dataField="isActive"
-            caption="สถานะ"
+            caption={t('training.courses.columns.status')}
             width={90}
             cellRender={renderActiveCell}
             alignment="center"
