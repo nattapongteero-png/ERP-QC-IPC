@@ -187,6 +187,7 @@ interface WorkOrderDetail {
     assignees: any[];
     healthChecks: any[];
     gowning: any[];
+    finishedPhotos: { id: number; fileName: string; mimeType: string }[];
     // eBMR Approval Signatures (Produced By / Verified By QC / Approved By QA)
     signatures?: {
       producedBy: { userId: number; name: string; signedAt: string; source: string } | null;
@@ -826,6 +827,7 @@ export default function WorkOrderDetailPage() {
     assignees: asArr(ebmrRaw?.assignees),
     healthChecks: asArr(ebmrRaw?.healthChecks),
     gowning: asArr(ebmrRaw?.gowning),
+    finishedPhotos: asArr(ebmrRaw?.finishedPhotos),
   };
 
   // ════════ Section 7 phase grouping (eBMR Production Records) ════════
@@ -1585,6 +1587,40 @@ export default function WorkOrderDetailPage() {
     );
   };
 
+  const renderFinishedPhotosCard = (photos: typeof ebmr.finishedPhotos) => {
+    if (!photos || photos.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.finishedPhotos')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {photos.map((p) => (
+              <a
+                key={p.id}
+                href={`/api/attachments/${p.id}/download?inline=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block border rounded-lg overflow-hidden bg-gray-50"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/attachments/${p.id}/download?inline=1`}
+                  alt={p.fileName}
+                  className="w-full h-32 object-cover"
+                />
+                <div className="p-1 text-[10px] text-gray-600 truncate text-center">
+                  {p.fileName}
+                </div>
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Build per-phase datasets, then render a heading + its cards for each phase
   // that has any data. Records without an explicit phase are hardcoded.
   const renderPhaseGroups = () => {
@@ -1598,6 +1634,7 @@ export default function WorkOrderDetailPage() {
       weighing: phase === 'pre_production' ? ebmr.materialWeighing : [],
       materials: phase === 'pre_production' ? ebmr.materials : [],
       qc: phase === 'inspection' ? ebmr.qcTests : [],
+      photos: phase === 'inspection' ? ebmr.finishedPhotos : [],
     });
 
     return PHASE_ORDER.map((phase) => {
@@ -1605,7 +1642,7 @@ export default function WorkOrderDetailPage() {
       const hasData =
         d.operations.length > 0 || d.batchRecords.length > 0 || d.weighing.length > 0 ||
         d.materials.length > 0 || d.cleaning.length > 0 || d.env.length > 0 ||
-        d.sop.length > 0 || d.ipc.length > 0 || d.qc.length > 0;
+        d.sop.length > 0 || d.ipc.length > 0 || d.qc.length > 0 || d.photos.length > 0;
       if (!hasData) return null;
       return (
         <div key={phase} className="ebmr-phase-group space-y-6">
@@ -1621,6 +1658,7 @@ export default function WorkOrderDetailPage() {
           {renderSopCard(d.sop)}
           {renderIpcCard(d.ipc)}
           {renderQcCard(d.qc)}
+          {renderFinishedPhotosCard(d.photos)}
         </div>
       );
     });

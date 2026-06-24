@@ -10,6 +10,7 @@ import {
   getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
 import { getGowningForWorkOrder } from '@/lib/services/wo-gowning.service';
+import { getAttachments } from '@/lib/services/attachment-service';
 import { inArray } from 'drizzle-orm';
 
 export async function GET(
@@ -602,6 +603,17 @@ export async function GET(
       const gowningRecord = await getGowningForWorkOrder(woId).catch(() => null);
       const gowning = gowningRecord ? [gowningRecord] : [];
 
+      // (7) Finished-product photos (box / blister / bottle / label) — captured
+      //     at the finished-inspection step, keyed by work-order id. Metadata
+      //     only (no file bytes) so the eBMR renders thumbnails via /api/attachments/:id.
+      let finishedPhotos: Array<{ id: number; fileName: string; mimeType: string }> = [];
+      try {
+        const rows = await getAttachments('wo_finished_product', woId);
+        finishedPhotos = (rows || [])
+          .filter((r) => String(r.mimeType || '').startsWith('image/'))
+          .map((r) => ({ id: r.id, fileName: r.fileName, mimeType: r.mimeType }));
+      } catch { finishedPhotos = []; }
+
       // ─── eBMR Approval Signatures ────────────────────────────────────
       // 3 signatures pulled from different workflow events:
       //   1. Produced By  ← work_orders.completed_by + completed_at
@@ -807,6 +819,8 @@ export async function GET(
         assignees,
         healthChecks,
         gowning,
+        // Finished-product photos (section 7 inspection phase)
+        finishedPhotos,
         // eBMR Approval Signatures (Produced By / Verified By QC / Approved By QA)
         signatures,
       };

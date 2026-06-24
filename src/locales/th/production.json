@@ -871,6 +871,7 @@
       "matNetUsed": "ใช้จริง",
       "matVariance": "ส่วนต่าง",
       "qcSummary": "สรุปการควบคุมคุณภาพ",
+      "finishedPhotos": "รูปถ่ายสินค้าสำเร็จรูป",
       "qcCode": "รหัส",
       "qcTestName": "ชื่อการทดสอบ",
       "qcType": "ประเภท",

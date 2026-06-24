@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
+import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
@@ -428,6 +429,32 @@ export default function FinishedInspectionPage() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Finished-product photos — supports multiple views:
+              box packaging / pills in blister / product in bottle / bottle label.
+              Locked (view-only) once the WO is completed. */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="mb-2">
+                <h4 className="flex items-center gap-2 font-medium text-gray-800">
+                  <Package className="h-5 w-5" />
+                  รูปถ่ายสินค้าสำเร็จรูป
+                </h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  ถ่ายได้หลายรูป เช่น กล่องบรรจุ · ยาในแผง · สินค้าในขวด · ฉลากติดขวด
+                </p>
+              </div>
+              <AttachmentPanel
+                moduleName="wo_finished_product"
+                entityId={workOrderId}
+                defaultCategory="photo"
+                imagesOnly
+                title="รูปถ่ายสินค้าสำเร็จรูป"
+                readOnly={workOrder.status === 'completed'}
+                testIdBase="finished-product-photos"
+              />
             </CardContent>
           </Card>
 

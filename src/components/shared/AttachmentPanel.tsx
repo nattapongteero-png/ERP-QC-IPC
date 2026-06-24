@@ -181,7 +181,7 @@ export function AttachmentPanel({
                 data-testid={`${testIdBase}-item-${it.id}`}
               >
                 <a
-                  href={`/api/attachments/${it.id}`}
+                  href={`/api/attachments/${it.id}/download?inline=1`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-blue-700 hover:underline truncate"

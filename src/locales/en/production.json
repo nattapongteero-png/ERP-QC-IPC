@@ -861,6 +861,7 @@
       "matNetUsed": "Net Used",
       "matVariance": "Variance",
       "qcSummary": "Quality Control Summary",
+      "finishedPhotos": "Finished Product Photos",
       "qcCode": "Code",
       "qcTestName": "Test Name",
       "qcType": "Type",

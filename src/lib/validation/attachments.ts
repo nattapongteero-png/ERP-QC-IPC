@@ -86,6 +86,8 @@ export const VALID_MODULES = [
   // Audit Q3 — photos of actual labels and packaging at packaging step
   'wo_packaging_integrity',
   'wo_packaging_weight',
+  // Finished-product photos captured at finished inspection (box, blister, bottle, label)
+  'wo_finished_product',
   // Audit Q4 — analytical report / COA attached to a QC test record
   'quality_test',
   // Audit Q5 — QC-side inspection forms separate from production BOM
