@@ -1309,7 +1309,7 @@ export default function LotsPage() {
                     <div className="flex flex-col gap-1 w-full sm:min-w-[200px] sm:flex-1 sm:max-w-[260px]">
                       <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                         <Package className="h-3 w-3" />
-                        ค้นหา Lot / รหัสสินค้า
+                        {t('lots.filters.searchLabel')}
                       </label>
                       <DxTextBox
                         placeholder={t('lots.searchPlaceholder')}
@@ -1326,10 +1326,10 @@ export default function LotsPage() {
                     <div className="flex flex-col gap-1 w-full sm:w-[200px]">
                       <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                         <Warehouse className="h-3 w-3" />
-                        คลังสินค้า
+                        {t('lots.filters.warehouse')}
                       </label>
                       <DxSelectBox
-                        items={[{ value: '', label: 'ทั้งหมด' }, ...warehouses.map(w => ({ value: w.id, label: w.name }))]}
+                        items={[{ value: '', label: t('lots.filters.allWarehouses') }, ...warehouses.map(w => ({ value: w.id, label: w.name }))]}
                         value={warehouseFilter}
                         onValueChange={(v) => setWarehouseFilter(v || '')}
                         height={36}
@@ -1340,15 +1340,15 @@ export default function LotsPage() {
                     <div className="flex flex-col gap-1 w-full sm:w-auto">
                       <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                         <CalendarClock className="h-3 w-3" />
-                        วันหมดอายุระหว่าง
+                        {t('lots.filters.expiryRange')}
                       </label>
                       <div className="flex items-center gap-1.5">
                         <div className="flex-1 sm:w-[140px]">
-                          <DxDateBox value={expiryFrom} onValueChange={(v) => setExpiryFrom(v || '')} placeholder="ตั้งแต่" height={36} />
+                          <DxDateBox value={expiryFrom} onValueChange={(v) => setExpiryFrom(v || '')} placeholder={t("lots.filters.from")} height={36} />
                         </div>
                         <span className="text-gray-400 text-sm flex-shrink-0">→</span>
                         <div className="flex-1 sm:w-[140px]">
-                          <DxDateBox value={expiryTo} onValueChange={(v) => setExpiryTo(v || '')} placeholder="ถึง" height={36} />
+                          <DxDateBox value={expiryTo} onValueChange={(v) => setExpiryTo(v || '')} placeholder={t("lots.filters.to")} height={36} />
                         </div>
                       </div>
                     </div>
@@ -1360,14 +1360,14 @@ export default function LotsPage() {
                     {hasActiveFilters && (
                       <div className="flex items-center gap-2 pb-1">
                         <span className="text-xs text-gray-500">
-                          <span className="font-semibold text-gray-700">{activeFilterCount}</span> ตัวกรองใช้งาน
+                          <span className="font-semibold text-gray-700">{activeFilterCount}</span> {t('lots.filters.activeCount')}
                         </span>
                         <button
                           onClick={clearAll}
                           className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors"
                         >
                           <RefreshCcw className="h-3 w-3" />
-                          ล้างทั้งหมด
+                          {t('lots.filters.clearAll')}
                         </button>
                       </div>
                     )}
@@ -1378,13 +1378,13 @@ export default function LotsPage() {
                 <div className="px-4 pb-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
-                      ตัวกรองด่วน
+                      {t('lots.filters.quickFilters')}
                     </span>
                     {([
-                      { key: 'near_expiry' as QuickFilter, label: 'ใกล้หมดอายุ ≤30 วัน', color: 'text-amber-700 bg-amber-50 border-amber-300 ring-amber-400/30', icon: <CalendarClock className="h-3.5 w-3.5" /> },
-                      { key: 'expired' as QuickFilter, label: 'หมดอายุแล้ว', color: 'text-red-700 bg-red-50 border-red-300 ring-red-400/30', icon: <XCircle className="h-3.5 w-3.5" /> },
-                      { key: 'raw_material' as QuickFilter, label: 'วัตถุดิบ', color: 'text-emerald-700 bg-emerald-50 border-emerald-300 ring-emerald-400/30', icon: <Package className="h-3.5 w-3.5" /> },
-                      { key: 'finished_goods' as QuickFilter, label: 'สินค้าสำเร็จรูป', color: 'text-purple-700 bg-purple-50 border-purple-300 ring-purple-400/30', icon: <Boxes className="h-3.5 w-3.5" /> },
+                      { key: 'near_expiry' as QuickFilter, label: t('lots.filters.nearExpiry'), color: 'text-amber-700 bg-amber-50 border-amber-300 ring-amber-400/30', icon: <CalendarClock className="h-3.5 w-3.5" /> },
+                      { key: 'expired' as QuickFilter, label: t('lots.filters.expired'), color: 'text-red-700 bg-red-50 border-red-300 ring-red-400/30', icon: <XCircle className="h-3.5 w-3.5" /> },
+                      { key: 'raw_material' as QuickFilter, label: t('lots.filters.rawMaterial'), color: 'text-emerald-700 bg-emerald-50 border-emerald-300 ring-emerald-400/30', icon: <Package className="h-3.5 w-3.5" /> },
+                      { key: 'finished_goods' as QuickFilter, label: t('lots.filters.finishedGoods'), color: 'text-purple-700 bg-purple-50 border-purple-300 ring-purple-400/30', icon: <Boxes className="h-3.5 w-3.5" /> },
                     ]).map((tag) => {
                       const isActive = quickFilter === tag.key;
                       return (
