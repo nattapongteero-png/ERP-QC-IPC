@@ -876,6 +876,16 @@
       "qcType": "ประเภท",
       "qcValue": "ค่า",
       "qcSpecRange": "ช่วงข้อกำหนด",
+      "qcTarget": "เป้าหมาย",
+      "qcEvery": "ตรวจทุก",
+      "qcSpecConfigured": "ตามข้อกำหนด",
+      "qcSpecType": {
+        "tare": "ชั่งภาชนะเปล่า",
+        "custom_multi_field": "บันทึกหลายค่า",
+        "multi_point": "วัดหลายจุด",
+        "visual": "ตรวจพินิจ",
+        "numeric": "ค่าตัวเลข"
+      },
       "qcResult": "ผลลัพธ์",
       "qcTestedAt": "ทดสอบเมื่อ",
       "sopExecution": "บันทึกการปฏิบัติตาม SOP",

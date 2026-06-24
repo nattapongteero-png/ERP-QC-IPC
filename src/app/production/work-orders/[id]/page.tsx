@@ -520,6 +520,35 @@ export default function WorkOrderDetailPage() {
     return known.includes(status) ? t(`workOrderDetail.status.${status}`) : status;
   };
 
+  // QC/IPC spec column sometimes carries a raw JSON config blob instead of a
+  // simple range — extract a readable acceptance range/target from it so the
+  // eBMR table shows "0.096–0.110 g" instead of a giant {"type":...} string.
+  const formatQcSpec = (raw: unknown): string => {
+    if (raw == null || raw === '') return '-';
+    const s = String(raw).trim();
+    if (!s.startsWith('{') && !s.startsWith('[')) return s; // already human-readable
+    try {
+      const cfg = JSON.parse(s) as Record<string, any>;
+      const unit = cfg.unit || cfg.referenceUnit || '';
+      const min = cfg.acceptanceMin ?? cfg.specMin ?? cfg.min;
+      const max = cfg.acceptanceMax ?? cfg.specMax ?? cfg.max;
+      if (min != null && max != null) return `${min}–${max} ${unit}`.trim();
+      if (cfg.perPointTarget != null) {
+        const tol = cfg.perPointTolerance != null ? ` ±${cfg.perPointTolerance}%` : '';
+        return `${t('workOrderDetail.ebmr.qcTarget')} ${cfg.perPointTarget}${unit ? ' ' + unit : ''}${tol}`.trim();
+      }
+      if (cfg.quantity?.every != null) {
+        return `${t('workOrderDetail.ebmr.qcEvery')} ${cfg.quantity.every}`;
+      }
+      if (cfg.referenceLabel) return String(cfg.referenceLabel);
+      if (cfg.label) return String(cfg.label);
+      if (cfg.type) return t(`workOrderDetail.ebmr.qcSpecType.${String(cfg.type)}` as Parameters<typeof t>[0]);
+      return t('workOrderDetail.ebmr.qcSpecConfigured');
+    } catch {
+      return t('workOrderDetail.ebmr.qcSpecConfigured');
+    }
+  };
+
   // eBMR batch-record step status → label (reuses batchRecords.status keys)
   const getStepStatusLabel = (status: string): string => {
     const known = ['pending', 'in_progress', 'completed', 'deviation'];
@@ -1841,7 +1870,7 @@ export default function WorkOrderDetailPage() {
                       const specRange =
                         test.specMinValue != null && test.specMaxValue != null
                           ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`.trim()
-                          : test.specSpecification || '-';
+                          : formatQcSpec(test.specSpecification);
                       return (
                         <tr key={index}>
                           <td className="border p-2 text-gray-900">{test.testCode}</td>
@@ -2302,7 +2331,7 @@ export default function WorkOrderDetailPage() {
                                     <td className="border p-2 text-gray-900">
                                       {test.specMinValue != null && test.specMaxValue != null
                                         ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`
-                                        : test.specSpecification || '-'}
+                                        : formatQcSpec(test.specSpecification)}
                                     </td>
                                     <td className="border p-2 text-right text-gray-900 font-medium">
                                       {test.numericResult ?? test.result ?? '-'}{' '}

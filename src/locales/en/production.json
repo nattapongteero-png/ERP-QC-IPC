@@ -866,6 +866,16 @@
       "qcType": "Type",
       "qcValue": "Value",
       "qcSpecRange": "Spec Range",
+      "qcTarget": "Target",
+      "qcEvery": "Every",
+      "qcSpecConfigured": "As specified",
+      "qcSpecType": {
+        "tare": "Tare weighing",
+        "custom_multi_field": "Multi-field record",
+        "multi_point": "Multi-point",
+        "visual": "Visual",
+        "numeric": "Numeric"
+      },
       "qcResult": "Result",
       "qcTestedAt": "Tested At",
       "sopExecution": "SOP Execution Record",
