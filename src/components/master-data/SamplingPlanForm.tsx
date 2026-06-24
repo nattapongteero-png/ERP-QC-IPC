@@ -70,9 +70,9 @@ const FREQ_OPTIONS = [
 ];
 
 const LEVEL_OPTIONS = [
-  { id: 'I', name: 'Level I (reduced)' },
-  { id: 'II', name: 'Level II (normal)' },
-  { id: 'III', name: 'Level III (tightened)' },
+  { id: 'I', name: 'Level I — ตรวจน้อย (สุ่มจำนวนน้อย ใช้เมื่อคุณภาพนิ่ง)' },
+  { id: 'II', name: 'Level II — ปกติ (ค่าเริ่มต้นทั่วไป)' },
+  { id: 'III', name: 'Level III — ตรวจเข้ม (สุ่มจำนวนมาก ใช้เมื่อพบปัญหาบ่อย)' },
 ];
 
 const DEFAULT_FORM: FormData = {

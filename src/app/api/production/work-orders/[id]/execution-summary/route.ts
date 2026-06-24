@@ -15,6 +15,7 @@ import {
   getWOFinishedInspection,
   getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
+import { getGowningForWorkOrder } from '@/lib/services/wo-gowning.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq, inArray } from 'drizzle-orm';
 
@@ -70,6 +71,16 @@ export async function GET(
         total: materials.length,
         completed: materials.filter((m: any) => m.weighedAt).length,
         verified: materials.filter((m: any) => m.verifiedAt).length,
+      };
+
+      // Gowning (attire/PPE check) — one record per WO. Surface its status so
+      // the dashboard card reflects performed/verified instead of staying at
+      // "0/1 pending" forever after it's been recorded.
+      const gowningRecord = await getGowningForWorkOrder(workOrderId).catch(() => null);
+      const gowning = {
+        total: 1,
+        completed: gowningRecord && gowningRecord.status !== 'pending' ? 1 : 0,
+        verified: gowningRecord?.status === 'verified' ? 1 : 0,
       };
 
       // Cleaning data comes from getCleaningRequirements which returns the
@@ -329,6 +340,7 @@ export async function GET(
         workOrderStatus: woData?.status || 'planned',
         materialRequisition,
         materialWeighing,
+        gowning,
         preProductionCleaning: preProductionCleaningStatus,
         preProductionEnvironmental,
         productionCleaning: productionCleaningStatus,

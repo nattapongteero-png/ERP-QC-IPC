@@ -78,9 +78,9 @@ interface TimepointRow {
 }
 
 const studyTypes: Array<{ value: StabilityStudyType; label: string }> = [
-  { value: 'long_term', label: 'Long Term' },
-  { value: 'accelerated', label: 'Accelerated' },
-  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'long_term', label: 'Long Term — ระยะยาว (เก็บตามสภาวะจริง เพื่อกำหนดอายุยา)' },
+  { value: 'accelerated', label: 'Accelerated — เร่งสภาวะ (อุณหภูมิ/ความชื้นสูง เพื่อดูแนวโน้มเสื่อมเร็ว)' },
+  { value: 'intermediate', label: 'Intermediate — ระดับกลาง (ใช้เมื่อแบบเร่งมีปัญหา)' },
 ];
 
 const commonConditions = [
