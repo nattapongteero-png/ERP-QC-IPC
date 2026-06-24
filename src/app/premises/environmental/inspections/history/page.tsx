@@ -86,18 +86,18 @@ export default function InspectionHistoryPage() {
       return res.json();
     },
   });
-  // When opened from a specific row's "view/edit" button, the URL carries
-  // ?targetId=&templateId= — filter the history to just that target so the user
-  // sees only that room's records (not every room mixed together).
+  // Optional location filter via ?targetType=&targetId= (deep link). Both are
+  // required together because targetId alone is NOT unique — ids run separately
+  // per targetType (a room and a storage_area can both have id=1), so we match
+  // the (targetType, targetId) pair to avoid mixing different locations.
   const filterTargetId = searchParams.get('targetId');
-  const filterTemplateId = searchParams.get('templateId');
+  const filterTargetType = searchParams.get('targetType');
   const allRecords = data?.items ?? [];
-  const records = allRecords.filter((r) => {
-    if (filterTargetId && String(r.targetId) !== filterTargetId) return false;
-    return true;
-  });
-  const filteredTargetName =
-    filterTargetId ? allRecords.find((r) => String(r.targetId) === filterTargetId)?.targetName : null;
+  const isFiltering = !!filterTargetId && !!filterTargetType;
+  const records = allRecords.filter((r) =>
+    !isFiltering ? true : String(r.targetId) === filterTargetId && r.targetType === filterTargetType,
+  );
+  const filteredTargetName = isFiltering ? records[0]?.targetName ?? null : null;
 
   const { data: detail } = useQuery<RecordDetail>({
     queryKey: ['env-inspection-record', viewId],
@@ -191,9 +191,9 @@ export default function InspectionHistoryPage() {
         <Button icon="refresh" text={t('environmental.common.refresh')} onClick={() => refetch()} />
       </div>
 
-      {/* Active room filter (came from a row's view/edit) — show what's filtered
-          and let the user clear it to see all rooms again. */}
-      {filterTargetId && (
+      {/* Active location filter (deep link) — show what's filtered and let the
+          user clear it to see all locations again. */}
+      {isFiltering && (
         <div className="flex items-center justify-between gap-2 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 text-sm text-sky-900">
           <span>
             {t('environmental.inspectionsHistory.filteredBy')}:{' '}

@@ -267,11 +267,12 @@ export default function StorageMonitoringPage() {
     {
       dataField: 'warehouseCode',
       caption: t('storageMonitoring.columns.warehouse'),
-      width: 220,
+      minWidth: 260,
       cellRender: (c: any) => {
         const d = c.data as LogRow;
         return (
-          <span>
+          // Keep the warehouse on a single line (no wrap) so rows stay even.
+          <span className="whitespace-nowrap" title={`${d.warehouseCode}${d.warehouseName ? ` — ${d.warehouseName}` : ''}`}>
             <span className="font-medium">{d.warehouseCode}</span>
             {d.warehouseName ? (
               <span className="text-gray-500"> — {d.warehouseName}</span>

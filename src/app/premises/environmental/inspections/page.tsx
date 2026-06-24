@@ -299,8 +299,9 @@ export default function InspectionsPage() {
           cellRender={(c) => {
             const row = c.data as ScheduleRow;
             return (
-              // Uniform action buttons — same height/padding/font so the column
-              // looks tidy whether or not the "view/edit" button is present.
+              // Only the "Inspect" action — viewing/editing past records lives on
+              // the "ประวัติผลตรวจ" page (header button), so a per-row history link
+              // here would be redundant.
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -317,17 +318,6 @@ export default function InspectionsPage() {
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" /> {t('actions.inspect')}
                 </button>
-                {/* Edit/view an already-recorded result — lives on the history
-                    page (per-item edit + delete, audit-logged). Linked here so
-                    the operator doesn't have to hunt for it. */}
-                {row.lastDone && (
-                  <Link
-                    href={`/premises/environmental/inspections/history?targetId=${row.targetId}&templateId=${row.templateId}`}
-                    className="inline-flex items-center gap-1 h-8 px-3 text-xs font-medium border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 transition-colors whitespace-nowrap"
-                  >
-                    <History className="w-3.5 h-3.5" /> {tp('environmental.inspectionsHistory.viewAction')}/{tp('environmental.common.edit')}
-                  </Link>
-                )}
               </div>
             );
           }}

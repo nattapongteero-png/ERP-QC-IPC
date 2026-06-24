@@ -802,16 +802,40 @@ export async function getTrend(
 // ============================================
 
 function parseItemsJson(raw: unknown): InspectionTemplateItem[] {
-  if (Array.isArray(raw)) return raw as InspectionTemplateItem[];
-  if (typeof raw === 'string') {
+  let arr: unknown[] = [];
+  if (Array.isArray(raw)) {
+    arr = raw;
+  } else if (typeof raw === 'string') {
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      arr = Array.isArray(parsed) ? parsed : [];
     } catch {
-      return [];
+      arr = [];
     }
   }
-  return [];
+  // Guarantee every item has a stable id + a non-empty parameter. Templates
+  // created via Excel import or older versions may have stored items WITHOUT
+  // these fields, which made the inspect form send templateItemId=undefined
+  // and the API reject with "Invalid body". Backfill by index here so every
+  // read of a template yields valid, recordable items.
+  return arr.map((it, idx) => {
+    const item = (it ?? {}) as Partial<InspectionTemplateItem> & Record<string, unknown>;
+    const label = String(item.label ?? '').trim();
+    return {
+      id: typeof item.id === 'number' && item.id > 0 ? item.id : idx + 1,
+      label,
+      parameter:
+        (typeof item.parameter === 'string' && item.parameter.trim()) ||
+        label.toLowerCase().replace(/\s+/g, '_') ||
+        `item_${idx + 1}`,
+      unit: (item.unit as string | null) ?? null,
+      specMin: (item.specMin as number | null) ?? null,
+      specMax: (item.specMax as number | null) ?? null,
+      specText: (item.specText as string | null) ?? null,
+      isMandatory: item.isMandatory !== false,
+      sortOrder: typeof item.sortOrder === 'number' ? item.sortOrder : idx + 1,
+    };
+  });
 }
 
 function normalizeTemplate(row: any): InspectionTemplate {

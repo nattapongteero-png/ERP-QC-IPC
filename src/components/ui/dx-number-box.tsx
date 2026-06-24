@@ -51,6 +51,8 @@ export interface DxNumberBoxProps {
   validationGroup?: string;
   /** Mode */
   mode?: 'number' | 'text';
+  /** Extra input attributes (merged with the anti-autofill defaults) */
+  inputAttr?: Record<string, unknown>;
 }
 
 /**
@@ -112,8 +114,19 @@ export function DxNumberBox({
   name,
   validationGroup,
   mode = 'number',
+  inputAttr,
 }: DxNumberBoxProps) {
   const hasValidation = required || min !== undefined || max !== undefined;
+
+  // Suppress browser autofill (email/username suggestions popping over numeric
+  // fields, especially in dialogs that also contain a password input) by default.
+  const mergedInputAttr = {
+    autoComplete: 'off',
+    'data-lpignore': 'true',
+    'data-form-type': 'other',
+    name: name ?? 'num-field',
+    ...inputAttr,
+  };
 
   const handleValueChanged = (e: NumberBoxTypes.ValueChangedEvent) => {
     if (onValueChange) {
@@ -145,6 +158,7 @@ export function DxNumberBox({
       className={className}
       name={name}
       mode={mode}
+      inputAttr={mergedInputAttr}
     >
       {hasValidation && (
         <Validator validationGroup={validationGroup}>
