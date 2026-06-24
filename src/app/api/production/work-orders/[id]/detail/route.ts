@@ -9,6 +9,8 @@ import {
   getWOMaterials,
   getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
+import { getGowningForWorkOrder } from '@/lib/services/wo-gowning.service';
+import { inArray } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -513,6 +515,93 @@ export async function GET(
         getWOIPCTests(woId).catch(() => []),
       ]);
 
+      // ─── eBMR GMP sections: BOM formula, personnel roster, health, gowning ──
+
+      // (2) Formula / BOM lines — the recipe materials. Reuses bom_lines + items.
+      let bomLines: Array<Record<string, unknown>> = [];
+      if (workOrder.bomId) {
+        try {
+          const bomLinesT = getTableRef('bOMLines');
+          const itemsT2 = getTableRef('items');
+          bomLines = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                sequence: bomLinesT.sequence,
+                itemCode: itemsT2.code,
+                itemName: itemsT2.nameTh,
+                quantity: bomLinesT.quantity,
+                unit: bomLinesT.unit,
+                percentageInFormula: bomLinesT.percentageInFormula,
+                isOptional: bomLinesT.isOptional,
+              })
+              .from(bomLinesT)
+              .leftJoin(itemsT2, eq(bomLinesT.itemId, itemsT2.id))
+              .where(eq(bomLinesT.bomId, workOrder.bomId as number))
+              .orderBy(asc(bomLinesT.sequence));
+          });
+        } catch { bomLines = []; }
+      }
+
+      // (4) Personnel & verifiers roster — copy of the assignees route select.
+      let assignees: Array<Record<string, unknown>> = [];
+      try {
+        const assigneesTable = getTableRef('workOrderAssignees');
+        const employeesTable = getTableRef('HREmployees');
+        const positionsTable = getTableRef('HRPositions');
+        assignees = await executeDbOperation(async (db) => {
+          return db
+            .select({
+              id: assigneesTable.id,
+              employeeId: assigneesTable.employeeId,
+              employeeCode: employeesTable.employeeCode,
+              firstName: employeesTable.firstName,
+              lastName: employeesTable.lastName,
+              positionTitle: positionsTable.title,
+              role: assigneesTable.role,
+            })
+            .from(assigneesTable)
+            .leftJoin(employeesTable, eq(assigneesTable.employeeId, employeesTable.id))
+            .leftJoin(positionsTable, eq(assigneesTable.positionId, positionsTable.id))
+            .where(eq(assigneesTable.workOrderId, woId));
+        });
+      } catch { assignees = []; }
+
+      // (5) Staff health/readiness — latest fitness per assignee BEFORE WO start.
+      //     ONE query (inArray) ordered by date desc, reduced to latest-per-employee
+      //     in JS (no N+1). Sensitive columns (medicalDetails/examinerNotes) excluded.
+      let healthChecks: Array<Record<string, unknown>> = [];
+      const employeeIds = [...new Set(assignees.map((a) => Number(a.employeeId)).filter(Boolean))];
+      if (employeeIds.length > 0) {
+        try {
+          const healthT = getTableRef('HRHealthRecords');
+          const cutoff = String(workOrder.actualStartDate ?? new Date().toISOString());
+          const rows = await executeDbOperation(async (db) => {
+            return db
+              .select({
+                employeeId: healthT.employeeId,
+                examinationDate: healthT.examinationDate,
+                fitnessStatus: healthT.fitnessStatus,
+                restrictions: healthT.restrictions,
+                nextExamDue: healthT.nextExamDue,
+              })
+              .from(healthT)
+              .where(inArray(healthT.employeeId, employeeIds))
+              .orderBy(asc(healthT.examinationDate));
+          });
+          // Keep the latest record at or before WO start, per employee.
+          const latest = new Map<number, Record<string, unknown>>();
+          for (const r of rows as Array<Record<string, unknown>>) {
+            if (String(r.examinationDate) > cutoff) continue;
+            latest.set(Number(r.employeeId), r); // asc order → last write wins = latest
+          }
+          healthChecks = [...latest.values()];
+        } catch { healthChecks = []; }
+      }
+
+      // (6) Gowning record (per-batch).
+      const gowningRecord = await getGowningForWorkOrder(woId).catch(() => null);
+      const gowning = gowningRecord ? [gowningRecord] : [];
+
       // ─── eBMR Approval Signatures ────────────────────────────────────
       // 3 signatures pulled from different workflow events:
       //   1. Produced By  ← work_orders.completed_by + completed_at
@@ -710,6 +799,14 @@ export async function GET(
         environmentalLogs: envLogsAll,
         materialWeighing: materialWeighingData,
         ipcTests: Array.isArray(ipcTestsData) ? ipcTestsData : [],
+        // eBMR GMP structure (sections 2,4,5,6) — empty arrays for old WOs
+        bomCode: workOrder.bomCode ?? null,
+        bomName: workOrder.bomName ?? null,
+        bomVersion: workOrder.bomVersion ?? null,
+        bomLines,
+        assignees,
+        healthChecks,
+        gowning,
         // eBMR Approval Signatures (Produced By / Verified By QC / Approved By QA)
         signatures,
       };

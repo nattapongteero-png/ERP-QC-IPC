@@ -32,6 +32,7 @@ import {
   Lock,
   Boxes,
   XCircle,
+  Shirt,
 } from 'lucide-react';
 
 // Line Clearance badge appearance by status: verified=green, performed
@@ -74,6 +75,7 @@ function lineClearanceBadgeStyle(status: string | null): {
 interface ExecutionSummary {
   workOrderStatus?: string;
   materialWeighing: { total: number; completed: number; verified: number };
+  gowning?: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
   preProductionEnvironmental: { total: number; recorded: number; normal: number; hasRoomMapping?: boolean };
   productionCleaning?: { total: number; completed: number; verified: number };
@@ -404,6 +406,24 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
           : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
       }),
     },
+    {
+      id: 'gowning',
+      title: t('execution.cards.gowning.title'),
+      icon: <Shirt className="h-5 w-5" />,
+      href: `/production/gowning?workOrderId=${workOrderId}`,
+      phase: 'pre_production',
+      description: t('execution.cards.gowning.description'),
+      getStatus: (s) => {
+        const g = s.gowning ?? { total: 1, completed: 0, verified: 0 };
+        return {
+          completed: g.completed ?? 0,
+          verified: g.verified ?? 0,
+          total: g.total ?? 1,
+          status: (g.verified ?? 0) > 0 ? 'verified'
+            : (g.completed ?? 0) > 0 ? 'in_progress' : 'pending',
+        };
+      },
+    },
     // SOP cards are generated per-phase from sopByPhase below.
     {
       id: 'production-cleaning',
@@ -605,6 +625,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const alwaysShowCardIds = new Set([
     'material-requisition',
     'material-weighing',
+    'gowning',
     'bulk-product-yield',
     'finished-inspection',
     'production-output',

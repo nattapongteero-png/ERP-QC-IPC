@@ -179,6 +179,14 @@ interface WorkOrderDetail {
     environmentalLogs: any[];
     materialWeighing: any[];
     ipcTests: any[];
+    // eBMR GMP structure — formula / personnel / health / gowning
+    bomCode?: string | null;
+    bomName?: string | null;
+    bomVersion?: string | null;
+    bomLines: any[];
+    assignees: any[];
+    healthChecks: any[];
+    gowning: any[];
     // eBMR Approval Signatures (Produced By / Verified By QC / Approved By QA)
     signatures?: {
       producedBy: { userId: number; name: string; signedAt: string; source: string } | null;
@@ -785,6 +793,10 @@ export default function WorkOrderDetailPage() {
     environmentalLogs: asArr(ebmrRaw?.environmentalLogs),
     materialWeighing: asArr(ebmrRaw?.materialWeighing),
     ipcTests: asArr(ebmrRaw?.ipcTests),
+    bomLines: asArr(ebmrRaw?.bomLines),
+    assignees: asArr(ebmrRaw?.assignees),
+    healthChecks: asArr(ebmrRaw?.healthChecks),
+    gowning: asArr(ebmrRaw?.gowning),
   };
 
   return (
@@ -1315,6 +1327,192 @@ export default function WorkOrderDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* ════════ eBMR GMP Sections 2–6 (Formula / Requisition / Personnel / Health / Gowning) ════════ */}
+
+            {/* (2) สูตรที่ใช้ในการผลิต — Formula / BOM */}
+            <Card className="ebmr-section-with-table" data-has-table="true">
+              <CardHeader>
+                <CardTitle>
+                  {t('workOrderDetail.ebmr.formula')}
+                  {ebmr.bomCode && (
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      {ebmr.bomCode}{ebmr.bomVersion ? ` v${ebmr.bomVersion}` : ''}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ebmr.bomLines.length > 0 ? (
+                  <table className="w-full border-collapse border text-xs">
+                    <thead>
+                      <tr className="ebmr-print-title-row"><th colSpan={5}>{t('workOrderDetail.ebmr.formula')}</th></tr>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.formulaSeq')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.formulaItem')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.formulaQty')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.formulaUnit')}</th>
+                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.formulaPercent')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.bomLines.map((line: any, i: number) => (
+                        <tr key={i}>
+                          <td className="border p-2 text-gray-900">{line.sequence ?? i + 1}</td>
+                          <td className="border p-2 text-gray-900">
+                            {line.itemCode ? `${line.itemCode} — ` : ''}{line.itemName || '-'}
+                            {line.isOptional ? <span className="text-xs text-gray-400 ml-1">({t('workOrderDetail.ebmr.formulaOptional')})</span> : null}
+                          </td>
+                          <td className="border p-2 text-right text-gray-900">{line.quantity ?? '-'}</td>
+                          <td className="border p-2 text-gray-900">{line.unit || '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{line.percentageInFormula != null ? `${line.percentageInFormula}%` : '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-gray-400">{t('workOrderDetail.ebmr.noData')}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* (4) รายชื่อพนักงานและผู้ตรวจสอบ — Personnel roster */}
+            <Card className="ebmr-section-with-table" data-has-table="true">
+              <CardHeader>
+                <CardTitle>{t('workOrderDetail.ebmr.personnel')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ebmr.assignees.length > 0 ? (
+                  <table className="w-full border-collapse border text-xs">
+                    <thead>
+                      <tr className="ebmr-print-title-row"><th colSpan={4}>{t('workOrderDetail.ebmr.personnel')}</th></tr>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.personnelCode')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.personnelName')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.personnelPosition')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.personnelRole')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.assignees.map((a: any, i: number) => (
+                        <tr key={i}>
+                          <td className="border p-2 text-gray-900">{a.employeeCode || '-'}</td>
+                          <td className="border p-2 text-gray-900">{[a.firstName, a.lastName].filter(Boolean).join(' ') || '-'}</td>
+                          <td className="border p-2 text-gray-900">{a.positionTitle || '-'}</td>
+                          <td className="border p-2 text-gray-900">
+                            {(() => { try { return t(`workOrderDetail.roles.${a.role}` as Parameters<typeof t>[0]); } catch { return a.role; } })()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-gray-400">{t('workOrderDetail.ebmr.noData')}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* (5) การตรวจสุขภาพและความพร้อมของพนักงาน — Staff health check */}
+            <Card className="ebmr-section-with-table" data-has-table="true">
+              <CardHeader>
+                <CardTitle>{t('workOrderDetail.ebmr.health')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ebmr.assignees.length > 0 ? (
+                  <table className="w-full border-collapse border text-xs">
+                    <thead>
+                      <tr className="ebmr-print-title-row"><th colSpan={5}>{t('workOrderDetail.ebmr.health')}</th></tr>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.personnelName')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.healthExamDate')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.healthFitness')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.healthRestrictions')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.healthNextDue')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.assignees.map((a: any, i: number) => {
+                        const hc = ebmr.healthChecks.find((h: any) => Number(h.employeeId) === Number(a.employeeId));
+                        const fit = hc?.fitnessStatus;
+                        const fitCls = fit === 'fit' ? 'bg-green-100 text-green-700'
+                          : fit === 'restricted' ? 'bg-amber-100 text-amber-700'
+                          : fit === 'unfit' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500';
+                        return (
+                          <tr key={i}>
+                            <td className="border p-2 text-gray-900">{[a.firstName, a.lastName].filter(Boolean).join(' ') || '-'}</td>
+                            <td className="border p-2 text-gray-900">{hc?.examinationDate || t('workOrderDetail.ebmr.noData')}</td>
+                            <td className="border p-2 text-center">
+                              {fit ? (
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${fitCls}`}>
+                                  {(() => { try { return t(`workOrderDetail.ebmr.fitness.${fit}` as Parameters<typeof t>[0]); } catch { return fit; } })()}
+                                </span>
+                              ) : <span className="text-gray-400">{t('workOrderDetail.ebmr.noData')}</span>}
+                            </td>
+                            <td className="border p-2 text-gray-900">{hc?.restrictions || '-'}</td>
+                            <td className="border p-2 text-gray-900">{hc?.nextExamDue || '-'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-gray-400">{t('workOrderDetail.ebmr.noData')}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* (6) การตรวจสอบการแต่งกาย — Gowning verification */}
+            <Card className="ebmr-section-with-table" data-has-table="true">
+              <CardHeader>
+                <CardTitle>{t('workOrderDetail.ebmr.gowning')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ebmr.gowning.length > 0 ? (
+                  <table className="w-full border-collapse border text-xs">
+                    <thead>
+                      <tr className="ebmr-print-title-row"><th colSpan={9}>{t('workOrderDetail.ebmr.gowning')}</th></tr>
+                      <tr className="bg-gray-100">
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.gowningGownClean')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningGlovesOn')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningMaskOn')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningHairnetOn')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningShoeCoverOn')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningHandsSanitized')}</th>
+                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.gowningStatus')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.gowningPerformedBy')}</th>
+                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.gowningVerifiedBy')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ebmr.gowning.map((g: any, i: number) => {
+                        const yn = (v: boolean) => v ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-500 font-bold">✗</span>;
+                        return (
+                          <tr key={i}>
+                            <td className="border p-2 text-center">{yn(g.gownClean)}</td>
+                            <td className="border p-2 text-center">{yn(g.glovesOn)}</td>
+                            <td className="border p-2 text-center">{yn(g.maskOn)}</td>
+                            <td className="border p-2 text-center">{yn(g.hairnetOn)}</td>
+                            <td className="border p-2 text-center">{yn(g.shoeCoverOn)}</td>
+                            <td className="border p-2 text-center">{yn(g.handsSanitized)}</td>
+                            <td className="border p-2 text-center">
+                              <Badge variant={g.status === 'verified' ? 'primary' : g.status === 'rejected' ? 'danger' : 'default'}>
+                                {(() => { try { return t(`gowning.status.${g.status}` as Parameters<typeof t>[0]); } catch { return g.status; } })()}
+                              </Badge>
+                            </td>
+                            <td className="border p-2 text-gray-900">{g.performerName || '-'}{g.performedAt ? ` · ${new Date(g.performedAt).toLocaleString('th-TH')}` : ''}</td>
+                            <td className="border p-2 text-gray-900">{g.verifierName || '-'}{g.verifiedAt ? ` · ${new Date(g.verifiedAt).toLocaleString('th-TH')}` : ''}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-gray-400">{t('workOrderDetail.ebmr.noData')}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ════════ Section 7: การบันทึกการผลิต (run overview + execution records by phase) ════════ */}
 
             {/* Production Summary — audit gap #1: Bulk Yield + Loss breakdown */}
             <Card>
@@ -2035,6 +2233,12 @@ export default function WorkOrderDetailPage() {
                 production: t('workOrderDetail.ebmr.ipcPhaseProduction'),
                 post_production: t('workOrderDetail.ebmr.ipcPhasePostProduction'),
                 packaging: t('workOrderDetail.ebmr.ipcPhasePackaging'),
+                inspection: t('workOrderDetail.ebmr.ipcPhaseInspection'),
+              };
+              // Readable IPC status text (raw values are 'pass'/'fail'/'pending').
+              const ipcStatusLabel = (s: string): string => {
+                const key = String(s || 'pending').toLowerCase();
+                return t(`workOrderDetail.ebmr.ipcStatusValue.${key}` as Parameters<typeof t>[0]);
               };
               return (
                 <Card className="ebmr-section-with-table" data-has-table="true">
@@ -2130,7 +2334,7 @@ export default function WorkOrderDetailPage() {
                                               : 'default'
                                         }
                                       >
-                                        {test.status}
+                                        {ipcStatusLabel(test.status)}
                                       </Badge>
                                     </td>
                                     <td className="border p-2 text-gray-900 text-sm">

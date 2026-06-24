@@ -4706,6 +4706,56 @@ export const mysqlLineClearanceChecklists = mysqlTable('line_clearance_checklist
 });
 
 // ============================================
+// Gowning Verification (eBMR GMP — per-batch attire/PPE check before production)
+// One checklist per Work Order, modeled on line_clearance.
+// ============================================
+export const sqliteWoGowningRecords = sqliteTable('wo_gowning_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id, { onDelete: 'cascade' }),
+  // Gowning is a pre-production gate; column kept for parity/future per-phase use.
+  phase: text('phase').notNull().default('pre_production'),
+  // PPE / attire checklist items
+  gownClean: integer('gown_clean', { mode: 'boolean' }).default(false),
+  glovesOn: integer('gloves_on', { mode: 'boolean' }).default(false),
+  maskOn: integer('mask_on', { mode: 'boolean' }).default(false),
+  hairnetOn: integer('hairnet_on', { mode: 'boolean' }).default(false),
+  shoeCoverOn: integer('shoe_cover_on', { mode: 'boolean' }).default(false),
+  handsSanitized: integer('hands_sanitized', { mode: 'boolean' }).default(false),
+  performedBy: integer('performed_by').references(() => sqliteUsers.id),
+  performedAt: text('performed_at'),
+  performedSignatureId: integer('performed_signature_id').references(() => sqliteElectronicSignatures.id),
+  verifiedBy: integer('verified_by').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  verifiedSignatureId: integer('verified_signature_id').references(() => sqliteElectronicSignatures.id),
+  status: text('status').notNull().default('pending'), // pending | performed | verified | rejected
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const mysqlWoGowningRecords = mysqlTable('wo_gowning_records', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  phase: varchar('phase', { length: 30 }).notNull().default('pre_production'),
+  gownClean: mysqlBoolean('gown_clean').default(false),
+  glovesOn: mysqlBoolean('gloves_on').default(false),
+  maskOn: mysqlBoolean('mask_on').default(false),
+  hairnetOn: mysqlBoolean('hairnet_on').default(false),
+  shoeCoverOn: mysqlBoolean('shoe_cover_on').default(false),
+  handsSanitized: mysqlBoolean('hands_sanitized').default(false),
+  performedBy: int('performed_by').references(() => mysqlUsers.id),
+  performedAt: datetime('performed_at'),
+  performedSignatureId: int('performed_signature_id').references(() => mysqlElectronicSignatures.id),
+  verifiedBy: int('verified_by').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  verifiedSignatureId: int('verified_signature_id').references(() => mysqlElectronicSignatures.id),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// ============================================
 // Phase 2: Label Verifications
 // ============================================
 
@@ -7512,6 +7562,8 @@ export type ElectronicSignature = typeof sqliteElectronicSignatures.$inferSelect
 export type NewElectronicSignature = typeof sqliteElectronicSignatures.$inferInsert;
 export type LineClearanceChecklist = typeof sqliteLineClearanceChecklists.$inferSelect;
 export type NewLineClearanceChecklist = typeof sqliteLineClearanceChecklists.$inferInsert;
+export type WoGowningRecord = typeof sqliteWoGowningRecords.$inferSelect;
+export type NewWoGowningRecord = typeof sqliteWoGowningRecords.$inferInsert;
 export type LabelVerification = typeof sqliteLabelVerifications.$inferSelect;
 export type NewLabelVerification = typeof sqliteLabelVerifications.$inferInsert;
 export type StockAlertRule = typeof sqliteStockAlertRules.$inferSelect;
