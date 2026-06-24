@@ -446,13 +446,15 @@ export default function FinishedInspectionPage() {
                   ถ่ายได้หลายรูป เช่น กล่องบรรจุ · ยาในแผง · สินค้าในขวด · ฉลากติดขวด
                 </p>
               </div>
+              {/* Finished-product photos can always be attached — they're taken
+                  once the product IS finished, so locking them when the WO is
+                  'completed' hid the upload button exactly when it's needed. */}
               <AttachmentPanel
                 moduleName="wo_finished_product"
                 entityId={workOrderId}
                 defaultCategory="photo"
                 imagesOnly
                 title="รูปถ่ายสินค้าสำเร็จรูป"
-                readOnly={workOrder.status === 'completed'}
                 testIdBase="finished-product-photos"
               />
             </CardContent>
