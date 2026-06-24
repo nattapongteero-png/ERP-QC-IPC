@@ -206,13 +206,13 @@ export default function APPaymentsPage() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['ap-invoices'] });
-      notify(`บันทึกการจ่ายเงินสำเร็จ (Payment: ${result.payment.paymentNumber})`, 'success', 3000);
+      notify(t('accountsPayable.paymentsPage.toast.recordSuccess', { number: result.payment.paymentNumber }), 'success', 3000);
       setIsDialogOpen(false);
       setSelectedInvoice(null);
       resetForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถบันทึกการจ่ายเงินได้', 'error', 4000);
+      notify(error.message || t('accountsPayable.paymentsPage.toast.recordError'), 'error', 4000);
     },
   });
 
@@ -226,10 +226,10 @@ export default function APPaymentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      notify('ลบรายการชำระเงินสำเร็จ', 'success', 3000);
+      notify(t('accountsPayable.paymentsPage.toast.deleteSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถลบรายการชำระเงินได้', 'error', 4000);
+      notify(error.message || t('accountsPayable.paymentsPage.toast.deleteError'), 'error', 4000);
     },
   });
 
@@ -247,13 +247,13 @@ export default function APPaymentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      notify('แก้ไขรายการชำระเงินสำเร็จ', 'success', 3000);
+      notify(t('accountsPayable.paymentsPage.toast.updateSuccess'), 'success', 3000);
       setIsDialogOpen(false);
       setEditingPaymentId(null);
       resetForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถแก้ไขรายการชำระเงินได้', 'error', 4000);
+      notify(error.message || t('accountsPayable.paymentsPage.toast.updateError'), 'error', 4000);
     },
   });
 
@@ -261,8 +261,8 @@ export default function APPaymentsPage() {
   const handleDelete = useCallback(
     async (payment: Payment) => {
       const result = await confirm(
-        `คุณต้องการลบรายการชำระเงิน ${payment.paymentNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
-        'ยืนยันการลบ'
+        t('accountsPayable.paymentsPage.confirm.deleteMessage', { number: payment.paymentNumber }),
+        t('accountsPayable.paymentsPage.confirm.deleteTitle')
       );
       if (result) {
         deleteMutation.mutate(payment.id);
@@ -355,12 +355,12 @@ export default function APPaymentsPage() {
 
     // Create mode
     if (!formData.apInvoiceId || !formData.bankAccountId) {
-      notify('กรุณาเลือกใบแจ้งหนี้และบัญชีจ่าย', 'warning', 3000);
+      notify(t('accountsPayable.paymentsPage.toast.selectInvoiceAndAccount'), 'warning', 3000);
       return;
     }
 
     if (formData.amount <= 0) {
-      notify('จำนวนเงินต้องมากกว่า 0', 'warning', 3000);
+      notify(t('accountsPayable.paymentsPage.toast.amountMustBePositive'), 'warning', 3000);
       return;
     }
 
@@ -399,10 +399,10 @@ export default function APPaymentsPage() {
   // Payment method render
   const paymentMethodCellRender = useCallback((cellData: { value: string }) => {
     const methodLabels: Record<string, string> = {
-      cash: 'เงินสด',
-      check: 'เช็ค',
-      transfer: 'โอนเงิน',
-      other: 'อื่นๆ',
+      cash: t('accountsPayable.paymentsPage.methods.cash'),
+      check: t('accountsPayable.paymentsPage.methods.check'),
+      transfer: t('accountsPayable.paymentsPage.methods.transfer'),
+      other: t('accountsPayable.paymentsPage.methods.other'),
     };
     return <span>{methodLabels[cellData.value] || cellData.value}</span>;
   }, []);
@@ -444,13 +444,13 @@ export default function APPaymentsPage() {
         icon="credit-card"
         onBack={() => window.location.href = '/accounting/ap'}
         breadcrumbs={[
-          { label: 'เจ้าหนี้การค้า', href: '/accounting/ap' },
+          { label: t('accountsPayable.title'), href: '/accounting/ap' },
           { label: t('accountsPayable.payments.title') },
         ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['payments'] })}
         actions={
           <Button
-            text="บันทึกการชำระเงิน"
+            text={t('accountsPayable.paymentsPage.recordPayment')}
             icon="plus"
             type="success"
             onClick={handleOpenDialog}
@@ -462,30 +462,30 @@ export default function APPaymentsPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <AccountingKPICard
-            label="การชำระเงินทั้งหมด"
+            label={t('accountsPayable.paymentsPage.kpi.totalPayments')}
             value={stats.total.toLocaleString('th-TH')}
-            subtitle="รายการชำระเงินทั้งหมด"
+            subtitle={t('accountsPayable.paymentsPage.kpi.totalPaymentsSubtitle')}
             icon="file-text"
             variant="info"
           />
           <AccountingKPICard
-            label="ชำระแล้วเดือนนี้"
+            label={t('accountsPayable.paymentsPage.kpi.paidThisMonth')}
             value={`฿${stats.paidThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
-            subtitle="เดือนปัจจุบัน"
+            subtitle={t('accountsPayable.paymentsPage.kpi.paidThisMonthSubtitle')}
             icon="check-circle"
             variant="success"
           />
           <AccountingKPICard
-            label="รอดำเนินการ"
+            label={t('accountsPayable.paymentsPage.kpi.pending')}
             value={stats.pending.toLocaleString('th-TH')}
-            subtitle="รอการประมวลผล"
+            subtitle={t('accountsPayable.paymentsPage.kpi.pendingSubtitle')}
             icon="clock"
             variant="warning"
           />
           <AccountingKPICard
-            label="ยอดค้างชำระ"
+            label={t('accountsPayable.paymentsPage.kpi.outstanding')}
             value={`฿${stats.outstanding.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
-            subtitle="จากใบแจ้งหนี้ที่ยังไม่ชำระ"
+            subtitle={t('accountsPayable.paymentsPage.kpi.outstandingSubtitle')}
             icon="trending-up"
             variant="danger"
           />
@@ -496,27 +496,27 @@ export default function APPaymentsPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วิธีชำระเงิน
+                {t('accountsPayable.paymentsPage.filters.paymentMethod')}
               </label>
               <SelectBox
                 dataSource={[
-                  { value: '', label: 'ทั้งหมด' },
-                  { value: 'cash', label: 'เงินสด' },
-                  { value: 'check', label: 'เช็ค' },
-                  { value: 'transfer', label: 'โอนเงิน' },
-                  { value: 'other', label: 'อื่นๆ' },
+                  { value: '', label: t('accountsPayable.statusLabels.all') },
+                  { value: 'cash', label: t('accountsPayable.paymentsPage.methods.cash') },
+                  { value: 'check', label: t('accountsPayable.paymentsPage.methods.check') },
+                  { value: 'transfer', label: t('accountsPayable.paymentsPage.methods.transfer') },
+                  { value: 'other', label: t('accountsPayable.paymentsPage.methods.other') },
                 ]}
                 displayExpr="label"
                 valueExpr="value"
                 value={paymentMethodFilter}
                 onValueChanged={(e) => setPaymentMethodFilter(e.value)}
-                placeholder="กรองตามวิธีชำระ"
+                placeholder={t('accountsPayable.paymentsPage.filters.paymentMethodPlaceholder')}
                 width={200}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ตั้งแต่วันที่
+                {t('accountsPayable.paymentsPage.filters.dateFrom')}
               </label>
               <DateBox
                 value={dateFrom}
@@ -528,7 +528,7 @@ export default function APPaymentsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ถึงวันที่
+                {t('accountsPayable.paymentsPage.filters.dateTo')}
               </label>
               <DateBox
                 value={dateTo}
@@ -541,7 +541,7 @@ export default function APPaymentsPage() {
             {(dateFrom || dateTo) && (
               <div className="self-end">
                 <Button
-                  text="ล้างวันที่"
+                  text={t('accountsPayable.paymentsPage.filters.clearDate')}
                   icon="clear"
                   type="normal"
                   stylingMode="outlined"
@@ -573,7 +573,7 @@ export default function APPaymentsPage() {
               allowedPageSizes={[10, 20, 50]}
               showInfo={true}
             />
-            <SearchPanel visible={true} placeholder="ค้นหา..." />
+            <SearchPanel visible={true} placeholder={t('accountsPayable.invoicesPage.searchPlaceholder')} />
             <Sorting mode="multiple" />
 
             <Toolbar>
@@ -594,13 +594,13 @@ export default function APPaymentsPage() {
                 </span>
               )}
             />
-            <Column dataField="paymentNumber" caption="เลขที่การชำระ" width={150} />
-            <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
-            <Column dataField="vendorName" caption="ชื่อผู้ขาย" minWidth={180} />
-            <Column dataField="paymentDate" caption="วันที่ชำระ" dataType="date" width={120} />
+            <Column dataField="paymentNumber" caption={t('accountsPayable.payments.table.columns.paymentNumber')} width={150} />
+            <Column dataField="invoiceNumber" caption={t('accountsPayable.bills.table.columns.billNumber')} width={150} />
+            <Column dataField="vendorName" caption={t('accountsPayable.paymentsPage.columns.vendorName')} minWidth={180} />
+            <Column dataField="paymentDate" caption={t('accountsPayable.paymentsPage.columns.paymentDate')} dataType="date" width={120} />
             <Column
               dataField="amount"
-              caption="จำนวนเงิน"
+              caption={t('accountsPayable.payments.table.columns.amount')}
               dataType="number"
               width={120}
               alignment="right"
@@ -609,7 +609,7 @@ export default function APPaymentsPage() {
             </Column>
             <Column
               dataField="whtAmount"
-              caption="ภาษีหัก ณ ที่จ่าย"
+              caption={t('accountsPayable.paymentsPage.columns.whtAmount')}
               dataType="number"
               width={120}
               alignment="right"
@@ -618,19 +618,19 @@ export default function APPaymentsPage() {
             </Column>
             <Column
               dataField="paymentMethod"
-              caption="วิธีชำระเงิน"
+              caption={t('accountsPayable.payments.table.columns.paymentMethod')}
               width={130}
               cellRender={paymentMethodCellRender}
             />
-            <Column dataField="referenceNumber" caption="เลขที่อ้างอิง" width={150} />
+            <Column dataField="referenceNumber" caption={t('accountsPayable.paymentsPage.columns.referenceNumber')} width={150} />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('accountsPayable.bills.table.columns.status')}
               width={100}
               cellRender={statusCellRender}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('accountsPayable.invoicesPage.columns.actions')}
               width={120}
               allowFiltering={false}
               allowSorting={false}
@@ -641,14 +641,14 @@ export default function APPaymentsPage() {
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <Button
                       icon="edit"
-                      hint="แก้ไข"
+                      hint={t('accountsPayable.invoicesPage.actions.edit')}
                       stylingMode="text"
                       height={28}
                       onClick={() => handleEdit(payment)}
                     />
                     <Button
                       icon="trash"
-                      hint="ลบ"
+                      hint={t('accountsPayable.invoicesPage.actions.delete')}
                       stylingMode="text"
                       height={28}
                       onClick={() => handleDelete(payment)}
@@ -659,10 +659,10 @@ export default function APPaymentsPage() {
             />
 
             <Summary>
-              <TotalItem column="amount" summaryType="sum" displayFormat="รวม: {0}">
+              <TotalItem column="amount" summaryType="sum" displayFormat={`${t('accountsPayable.invoicesPage.summaryTotal')}: {0}`}>
                 <Format type="fixedPoint" precision={2} />
               </TotalItem>
-              <TotalItem column="whtAmount" summaryType="sum" displayFormat="ภาษีหัก ณ ที่จ่าย: {0}">
+              <TotalItem column="whtAmount" summaryType="sum" displayFormat={`${t('accountsPayable.paymentsPage.columns.whtAmount')}: {0}`}>
                 <Format type="fixedPoint" precision={2} />
               </TotalItem>
             </Summary>
@@ -673,7 +673,7 @@ export default function APPaymentsPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title={editingPaymentId ? 'แก้ไขรายการชำระเงิน' : 'บันทึกการชำระเงินผู้ขาย'}
+          title={editingPaymentId ? t('accountsPayable.paymentsPage.dialog.editTitle') : t('accountsPayable.paymentsPage.dialog.recordTitle')}
           width={600}
           height="auto"
           showCloseButton={true}
@@ -683,22 +683,22 @@ export default function APPaymentsPage() {
             {selectedInvoice && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>เลขที่ใบแจ้งหนี้:</div>
+                  <div>{t('accountsPayable.paymentsPage.info.invoiceNumber')}:</div>
                   <div className="font-semibold">{selectedInvoice.invoiceNumber}</div>
-                  <div>ยอดรวม:</div>
+                  <div>{t('accountsPayable.paymentsPage.info.total')}:</div>
                   <div className="font-semibold">
-                    {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                    {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsPayable.paymentsPage.info.baht')}
                   </div>
-                  <div>ชำระแล้ว:</div>
+                  <div>{t('accountsPayable.paymentsPage.info.paid')}:</div>
                   <div className="font-semibold">
-                    {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                    {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsPayable.paymentsPage.info.baht')}
                   </div>
-                  <div>ยอดค้างชำระ:</div>
+                  <div>{t('accountsPayable.paymentsPage.info.outstanding')}:</div>
                   <div className="font-bold text-orange-600">
                     {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', {
                       minimumFractionDigits: 2,
                     })}{' '}
-                    บาท
+                    {t('accountsPayable.paymentsPage.info.baht')}
                   </div>
                 </div>
               </div>
@@ -708,14 +708,14 @@ export default function APPaymentsPage() {
             {editingPayment && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-gray-600">เลขที่ใบแจ้งหนี้:</div>
+                  <div className="text-gray-600">{t('accountsPayable.paymentsPage.info.invoiceNumber')}:</div>
                   <div className="font-semibold">{editingPayment.invoiceNumber || '-'}</div>
-                  <div className="text-gray-600">ผู้ขาย:</div>
+                  <div className="text-gray-600">{t('accountsPayable.paymentsPage.info.vendor')}:</div>
                   <div className="font-semibold">{editingPayment.vendorName || '-'}</div>
-                  <div className="text-gray-600">จำนวนเงิน (บาท):</div>
-                  <div className="font-semibold">{Number(editingPayment.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</div>
-                  <div className="text-gray-600">ภาษีหัก ณ ที่จ่าย:</div>
-                  <div className="font-semibold">{Number(editingPayment.whtAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</div>
+                  <div className="text-gray-600">{t('accountsPayable.paymentsPage.info.amountBaht')}:</div>
+                  <div className="font-semibold">{Number(editingPayment.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsPayable.paymentsPage.info.baht')}</div>
+                  <div className="text-gray-600">{t('accountsPayable.paymentsPage.columns.whtAmount')}:</div>
+                  <div className="font-semibold">{Number(editingPayment.whtAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsPayable.paymentsPage.info.baht')}</div>
                 </div>
               </div>
             )}
@@ -725,38 +725,38 @@ export default function APPaymentsPage() {
                 <SimpleItem
                   dataField="apInvoiceId"
                   editorType="dxSelectBox"
-                  label={{ text: 'ใบแจ้งหนี้เจ้าหนี้' }}
+                  label={{ text: t('accountsPayable.paymentsPage.form.apInvoice') }}
                   editorOptions={{
                     dataSource: apInvoices,
                     displayExpr: (item: APInvoice) =>
-                      item ? `${item.invoiceNumber} - ${item.vendorName || 'ไม่ระบุ'} (ค้างชำระ: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
+                      item ? `${item.invoiceNumber} - ${item.vendorName || t('accountsPayable.paymentsPage.form.unspecified')} (${t('accountsPayable.paymentsPage.info.outstanding')}: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
                     valueExpr: 'id',
                     searchEnabled: true,
                     onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
                   }}
                 >
-                  <RequiredRule message="กรุณาเลือกใบแจ้งหนี้" />
+                  <RequiredRule message={t('accountsPayable.paymentsPage.form.apInvoiceRequired')} />
                 </SimpleItem>
               )}
               <GroupItem colCount={2}>
                 <SimpleItem
                   dataField="paymentDate"
                   editorType="dxDateBox"
-                  label={{ text: 'วันที่ชำระ' }}
+                  label={{ text: t('accountsPayable.paymentsPage.columns.paymentDate') }}
                   editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
                 >
-                  <RequiredRule message="กรุณาเลือกวันที่ชำระ" />
+                  <RequiredRule message={t('accountsPayable.paymentsPage.form.paymentDateRequired')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="paymentMethod"
                   editorType="dxSelectBox"
-                  label={{ text: 'วิธีชำระเงิน' }}
+                  label={{ text: t('accountsPayable.paymentsPage.filters.paymentMethod') }}
                   editorOptions={{
                     dataSource: [
-                      { value: 'transfer', label: 'โอนเงิน' },
-                      { value: 'cash', label: 'เงินสด' },
-                      { value: 'check', label: 'เช็ค' },
-                      { value: 'other', label: 'อื่นๆ' },
+                      { value: 'transfer', label: t('accountsPayable.paymentsPage.methods.transfer') },
+                      { value: 'cash', label: t('accountsPayable.paymentsPage.methods.cash') },
+                      { value: 'check', label: t('accountsPayable.paymentsPage.methods.check') },
+                      { value: 'other', label: t('accountsPayable.paymentsPage.methods.other') },
                     ],
                     displayExpr: 'label',
                     valueExpr: 'value',
@@ -766,7 +766,7 @@ export default function APPaymentsPage() {
               <SimpleItem
                 dataField="bankAccountId"
                 editorType="dxSelectBox"
-                label={{ text: 'บัญชีธนาคาร' }}
+                label={{ text: t('accountsPayable.paymentsPage.form.bankAccount') }}
                 editorOptions={{
                   dataSource: bankAccounts,
                   displayExpr: (item: GLAccount) => item ? `${item.code} - ${item.nameTh}` : '',
@@ -774,26 +774,26 @@ export default function APPaymentsPage() {
                   searchEnabled: true,
                 }}
               >
-                <RequiredRule message="กรุณาเลือกบัญชีธนาคาร" />
+                <RequiredRule message={t('accountsPayable.paymentsPage.form.bankAccountRequired')} />
               </SimpleItem>
               {!editingPaymentId && (
                 <GroupItem colCount={2}>
                   <SimpleItem
                     dataField="amount"
                     editorType="dxNumberBox"
-                    label={{ text: 'จำนวนเงิน (บาท)' }}
+                    label={{ text: t('accountsPayable.paymentsPage.info.amountBaht') }}
                     editorOptions={{
                       format: '#,##0.00',
                       min: 0.01,
                       max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
                     }}
                   >
-                    <RequiredRule message="กรุณากรอกจำนวนเงิน" />
+                    <RequiredRule message={t('accountsPayable.paymentsPage.form.amountRequired')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="whtRate"
                     editorType="dxNumberBox"
-                    label={{ text: 'อัตราภาษีหัก ณ ที่จ่าย (%)' }}
+                    label={{ text: t('accountsPayable.paymentsPage.form.whtRate') }}
                     editorOptions={{
                       format: '#,##0.00',
                       min: 0,
@@ -804,21 +804,21 @@ export default function APPaymentsPage() {
               )}
               <SimpleItem
                 dataField="referenceNumber"
-                label={{ text: 'เลขที่อ้างอิง' }}
-                editorOptions={{ placeholder: 'เลขที่เช็ค / เลขที่อ้างอิงการโอน' }}
+                label={{ text: t('accountsPayable.paymentsPage.columns.referenceNumber') }}
+                editorOptions={{ placeholder: t('accountsPayable.paymentsPage.form.referencePlaceholder') }}
               />
               <SimpleItem
                 dataField="description"
                 editorType="dxTextArea"
-                label={{ text: 'รายละเอียด' }}
+                label={{ text: t('accountsPayable.invoicesPage.form.description') }}
                 editorOptions={{ height: 60 }}
               />
             </Form>
 
             <div className="mt-6 flex justify-end gap-2">
-              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
+              <Button text={t('accountsPayable.invoicesPage.dialog.cancel')} type="normal" stylingMode="outlined" onClick={handleCloseDialog} />
               <Button
-                text={editingPaymentId ? 'บันทึกการแก้ไข' : 'บันทึกการชำระเงิน'}
+                text={editingPaymentId ? t('accountsPayable.invoicesPage.dialog.saveEdit') : t('accountsPayable.paymentsPage.recordPayment')}
                 type="success"
                 onClick={handleRecordPayment}
                 disabled={paymentMutation.isPending || updateMutation.isPending}

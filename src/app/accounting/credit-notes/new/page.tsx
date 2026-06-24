@@ -44,18 +44,17 @@ interface NoteLine {
   lineTotal: number;
 }
 
-const reasonCodes: { id: ReasonCode; text: string }[] = [
-  { id: 'return', text: 'คืนสินค้า' },
-  { id: 'price_adjustment', text: 'ปรับราคา' },
-  { id: 'quantity_adjustment', text: 'ปรับจำนวน' },
-  { id: 'defect', text: 'สินค้าชำรุด' },
-  { id: 'discount', text: 'ส่วนลดเพิ่มเติม' },
-  { id: 'other', text: 'อื่นๆ' },
-];
-
 function NewCreditNoteContent() {
   const t = useTranslations('accounting');
   const router = useRouter();
+  const reasonCodes: { id: ReasonCode; text: string }[] = [
+    { id: 'return', text: t('creditNotes.reasons.return') },
+    { id: 'price_adjustment', text: t('creditNotes.reasons.price_adjustment') },
+    { id: 'quantity_adjustment', text: t('creditNotes.reasons.quantity_adjustment') },
+    { id: 'defect', text: t('creditNotes.reasons.defect') },
+    { id: 'discount', text: t('creditNotes.reasons.discount') },
+    { id: 'other', text: t('creditNotes.reasons.other') },
+  ];
   const searchParams = useSearchParams();
   const noteType = (searchParams.get('type') || 'ar_credit') as NoteType;
 
@@ -129,12 +128,12 @@ function NewCreditNoteContent() {
 
   const handleSave = async () => {
     if (!invoiceId) {
-      notify('กรุณาเลือกใบแจ้งหนี้', 'error', 3000);
+      notify(t('creditNotes.toast.selectInvoice'), 'error', 3000);
       return;
     }
 
     if (lines.length === 0) {
-      notify('กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ', 'error', 3000);
+      notify(t('creditNotes.toast.atLeastOneLine'), 'error', 3000);
       return;
     }
 
@@ -163,14 +162,14 @@ function NewCreditNoteContent() {
       const data = await response.json();
 
       if (data.success) {
-        notify('สร้างใบลดหนี้สำเร็จ', 'success', 3000);
+        notify(t('creditNotes.toast.createSuccess'), 'success', 3000);
         router.push(`/accounting/credit-notes/${data.id}`);
       } else {
-        notify(data.error || 'ไม่สามารถสร้างใบลดหนี้ได้', 'error', 3000);
+        notify(data.error || t('creditNotes.toast.createFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error creating credit note:', error);
-      notify('ไม่สามารถสร้างใบลดหนี้ได้', 'error', 3000);
+      notify(t('creditNotes.toast.createFailed'), 'error', 3000);
     } finally {
       setSaving(false);
     }
@@ -189,23 +188,23 @@ function NewCreditNoteContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รหัสใบแจ้งหนี้{noteType.startsWith('ar_') ? 'ลูกค้า' : 'ผู้ขาย'} *
+                {noteType.startsWith('ar_') ? t('creditNotes.form.arInvoiceId') : t('creditNotes.form.apInvoiceId')} *
               </label>
               <NumberBox
                 value={invoiceId || undefined}
                 onValueChanged={(e) => setInvoiceId(e.value)}
-                placeholder="กรอกรหัสใบแจ้งหนี้"
+                placeholder={t('creditNotes.form.invoiceIdPlaceholder')}
                 width="100%"
               />
               {invoiceInfo && (
                 <div className="mt-1 text-sm text-gray-600">
-                  ใบแจ้งหนี้: {invoiceInfo.invoiceNumber} | คงเหลือ: {invoiceInfo.availableForCredit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  {t('creditNotes.form.invoiceInfo', { invoiceNumber: invoiceInfo.invoiceNumber, available: invoiceInfo.availableForCredit.toLocaleString('th-TH', { minimumFractionDigits: 2 }) })}
                 </div>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันที่ *
+                {t('creditNotes.form.date')} *
               </label>
               <DateBox
                 value={noteDate}
@@ -216,7 +215,7 @@ function NewCreditNoteContent() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                เหตุผล *
+                {t('creditNotes.form.reason')} *
               </label>
               <SelectBox
                 items={reasonCodes}
@@ -232,23 +231,23 @@ function NewCreditNoteContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รายละเอียดเหตุผล
+                {t('creditNotes.form.reasonDescription')}
               </label>
               <TextBox
                 value={reasonDescription}
                 onValueChanged={(e) => setReasonDescription(e.value || '')}
-                placeholder="กรอกคำอธิบายเหตุผล"
+                placeholder={t('creditNotes.form.reasonDescriptionPlaceholder')}
                 width="100%"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                หมายเหตุ
+                {t('creditNotes.form.notes')}
               </label>
               <TextArea
                 value={notes}
                 onValueChanged={(e) => setNotes(e.value || '')}
-                placeholder="หมายเหตุเพิ่มเติม"
+                placeholder={t('creditNotes.form.notesPlaceholder')}
                 width="100%"
                 height={60}
               />
@@ -257,15 +256,15 @@ function NewCreditNoteContent() {
 
           {/* Lines */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-3">รายการ</h3>
+            <h3 className="text-lg font-medium text-gray-800 mb-3">{t('creditNotes.form.lines')}</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">จำนวน</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">ราคาต่อหน่วย</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">รวมรายการ</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('creditNotes.columns.description')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('creditNotes.columns.quantity')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('creditNotes.columns.unitPrice')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('creditNotes.columns.lineTotal')}</th>
                     <th className="px-4 py-2 w-16"></th>
                   </tr>
                 </thead>
@@ -307,21 +306,21 @@ function NewCreditNoteContent() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-gray-50">
-                    <td colSpan={3} className="px-4 py-2 text-right font-medium">ยอดรวมย่อย:</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-medium">{t('creditNotes.form.subtotal')}:</td>
                     <td className="px-4 py-2 text-right font-medium">
                       {calculateTotal().toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-gray-50">
-                    <td colSpan={3} className="px-4 py-2 text-right font-medium">ภาษีมูลค่าเพิ่ม (7%):</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-medium">{t('creditNotes.form.vatFixed')}:</td>
                     <td className="px-4 py-2 text-right font-medium">
                       {(calculateTotal() * 0.07).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-gray-100">
-                    <td colSpan={3} className="px-4 py-2 text-right font-bold">รวมทั้งสิ้น:</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-bold">{t('creditNotes.form.grandTotal')}:</td>
                     <td className="px-4 py-2 text-right font-bold text-lg">
                       {(calculateTotal() * 1.07).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
@@ -335,12 +334,12 @@ function NewCreditNoteContent() {
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button
-              text="ยกเลิก"
+              text={t('creditNotes.actions.cancel')}
               stylingMode="outlined"
               onClick={() => router.push('/accounting/credit-notes')}
             />
             <Button
-              text="บันทึกใบร่าง"
+              text={t('creditNotes.actions.saveDraft')}
               type="default"
               stylingMode="contained"
               onClick={handleSave}

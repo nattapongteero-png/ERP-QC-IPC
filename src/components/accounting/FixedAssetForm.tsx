@@ -4,6 +4,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
@@ -72,11 +73,6 @@ async function deleteAsset(id: number): Promise<void> {
   }
 }
 
-const depreciationMethods = [
-  { value: 'straight_line', label: 'เส้นตรง' },
-  { value: 'declining_balance', label: 'ยอดลดลง' },
-];
-
 interface FormData {
   nameTh: string;
   nameEn: string;
@@ -93,8 +89,13 @@ interface FormData {
 }
 
 export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const queryClient = useQueryClient();
+  const depreciationMethods = [
+    { value: 'straight_line', label: t('fixedAssets.form.depreciationMethods.straightLine') },
+    { value: 'declining_balance', label: t('fixedAssets.form.depreciationMethods.decliningBalance') },
+  ];
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -146,7 +147,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
     mutationFn: (data: FixedAssetCreate) => createAsset(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
-      notify('Fixed asset created successfully', 'success', 3000);
+      notify(t('fixedAssets.form.toast.createSuccess'), 'success', 3000);
       router.push('/accounting/fixed-assets');
     },
     onError: (error: Error) => {
@@ -159,7 +160,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
       queryClient.invalidateQueries({ queryKey: ['fixed-asset', assetId] });
-      notify('Fixed asset updated successfully', 'success', 3000);
+      notify(t('fixedAssets.form.toast.updateSuccess'), 'success', 3000);
       router.push('/accounting/fixed-assets');
     },
     onError: (error: Error) => {
@@ -171,7 +172,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
     mutationFn: () => deleteAsset(assetId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
-      notify('Fixed asset deleted successfully', 'success', 3000);
+      notify(t('fixedAssets.toast.deleteSuccess'), 'success', 3000);
       router.push('/accounting/fixed-assets');
     },
     onError: (error: Error) => {
@@ -181,7 +182,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
 
   const handleSubmit = () => {
     if (!formData.nameTh || !formData.nameEn || !formData.categoryId || !formData.acquisitionDate || formData.acquisitionCost <= 0) {
-      notify('Please fill in required fields (Name TH, Name EN, Category, Acquisition Date, and Acquisition Cost > 0)', 'error', 3000);
+      notify(t('fixedAssets.form.validation.requiredFields'), 'error', 3000);
       return;
     }
 
@@ -218,7 +219,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
   if (mode === 'edit' && isLoadingAsset) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">กำลังโหลดสินทรัพย์...</p>
+        <p className="text-gray-500">{t('fixedAssets.form.loading')}</p>
       </div>
     );
   }
@@ -226,26 +227,26 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
   return (
     <div className="space-y-6">
       <ResponsivePageHeader
-        title={mode === 'create' ? 'เพิ่มทรัพย์สินถาวร' : 'แก้ไขทรัพย์สินถาวร'}
-        subtitle={mode === 'create' ? 'เพิ่มทรัพย์สินถาวรใหม่' : `แก้ไข: ${existingAsset?.assetCode || ''}`}
+        title={mode === 'create' ? t('fixedAssets.form.title.create') : t('fixedAssets.form.title.edit')}
+        subtitle={mode === 'create' ? t('fixedAssets.form.subtitle.create') : t('fixedAssets.form.subtitle.edit', { code: existingAsset?.assetCode || '' })}
         icon={Building}
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         breadcrumbs={[
-          { label: 'บัญชี', href: '/accounting' },
-          { label: 'สินทรัพย์ถาวร', href: '/accounting/fixed-assets' },
-          { label: mode === 'create' ? 'เพิ่มใหม่' : 'แก้ไข' },
+          { label: t('fixedAssets.breadcrumbAccounting'), href: '/accounting' },
+          { label: t('fixedAssets.title'), href: '/accounting/fixed-assets' },
+          { label: mode === 'create' ? t('fixedAssets.form.breadcrumbCreate') : t('fixedAssets.form.breadcrumbEdit') },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Button
-              text="ย้อนกลับ"
+              text={t('fixedAssets.form.back')}
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/accounting/fixed-assets')}
             />
             <Button
-              text={isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={isSubmitting ? t('fixedAssets.form.saving') : t('fixedAssets.form.save')}
               icon="save"
               type="success"
               onClick={handleSubmit}
@@ -261,19 +262,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('fixedAssets.deleteDialog.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบสินทรัพย์นี้? การกระทำนี้ไม่สามารถยกเลิกได้
+                  {t('fixedAssets.form.deleteConfirm.message')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('fixedAssets.deleteDialog.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
+                  text={deleteMutation.isPending ? t('fixedAssets.deleteDialog.deleting') : t('fixedAssets.deleteDialog.confirm')}
                   icon="trash"
                   type="danger"
                   onClick={() => deleteMutation.mutate()}
@@ -290,28 +291,28 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
+              <CardTitle>{t('fixedAssets.form.sections.basic')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ชื่อ (ภาษาไทย) <span className="text-red-500">*</span>
+                    {t('fixedAssets.form.fields.nameTh')} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.nameTh}
                     onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value || '' })}
-                    placeholder="ชื่อทรัพย์สิน"
+                    placeholder={t('fixedAssets.form.fields.nameThPlaceholder')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ชื่อ (ภาษาอังกฤษ) <span className="text-red-500">*</span>
+                    {t('fixedAssets.form.fields.nameEn')} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={formData.nameEn}
                     onValueChanged={(e) => setFormData({ ...formData, nameEn: e.value || '' })}
-                    placeholder="Asset Name"
+                    placeholder={t('fixedAssets.form.fields.nameEnPlaceholder')}
                   />
                 </div>
               </div>
@@ -319,7 +320,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    หมวดหมู่ <span className="text-red-500">*</span>
+                    {t('fixedAssets.form.fields.category')} <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     dataSource={categories}
@@ -327,18 +328,18 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                     valueExpr="id"
                     value={formData.categoryId}
                     onValueChanged={(e) => setFormData({ ...formData, categoryId: e.value })}
-                    placeholder="เลือกหมวดหมู่"
+                    placeholder={t('fixedAssets.form.fields.categoryPlaceholder')}
                     searchEnabled
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    สถานที่
+                    {t('fixedAssets.form.fields.location')}
                   </label>
                   <TextBox
                     value={formData.location}
                     onValueChanged={(e) => setFormData({ ...formData, location: e.value || '' })}
-                    placeholder="สถานที่"
+                    placeholder={t('fixedAssets.form.fields.location')}
                   />
                 </div>
               </div>
@@ -347,13 +348,13 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>การได้มาและค่าเสื่อมราคา</CardTitle>
+              <CardTitle>{t('fixedAssets.form.sections.acquisition')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่ได้มา <span className="text-red-500">*</span>
+                    {t('fixedAssets.form.fields.acquisitionDate')} <span className="text-red-500">*</span>
                   </label>
                   <DxDateBox
                     value={formData.acquisitionDate}
@@ -362,7 +363,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ต้นทุนการได้มา <span className="text-red-500">*</span>
+                    {t('fixedAssets.form.fields.acquisitionCost')} <span className="text-red-500">*</span>
                   </label>
                   <NumberBox
                     value={formData.acquisitionCost}
@@ -376,7 +377,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    มูลค่าซาก
+                    {t('fixedAssets.form.fields.salvageValue')}
                   </label>
                   <NumberBox
                     value={formData.salvageValue}
@@ -387,7 +388,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    อายุการใช้งาน (เดือน)
+                    {t('fixedAssets.form.fields.usefulLifeMonths')}
                   </label>
                   <NumberBox
                     value={formData.usefulLifeMonths}
@@ -401,7 +402,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วิธีคิดค่าเสื่อมราคา
+                    {t('fixedAssets.form.fields.depreciationMethod')}
                   </label>
                   <SelectBox
                     dataSource={depreciationMethods}
@@ -413,7 +414,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่เริ่มคิดค่าเสื่อมราคา
+                    {t('fixedAssets.form.fields.depreciationStartDate')}
                   </label>
                   <DxDateBox
                     value={formData.depreciationStartDate}
@@ -430,19 +431,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           {mode === 'edit' && existingAsset && (
             <Card>
               <CardHeader>
-                <CardTitle>รายละเอียดสินทรัพย์</CardTitle>
+                <CardTitle>{t('fixedAssets.form.detail.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500">รหัสสินทรัพย์</span>
+                  <span className="text-sm text-gray-500">{t('fixedAssets.form.detail.assetCode')}</span>
                   <p className="font-medium">{existingAsset.assetCode}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">สถานะ</span>
+                  <span className="text-sm text-gray-500">{t('fixedAssets.form.detail.status')}</span>
                   <p className="font-medium capitalize">{existingAsset.status}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">มูลค่าตามบัญชีสุทธิ</span>
+                  <span className="text-sm text-gray-500">{t('fixedAssets.form.detail.netBookValue')}</span>
                   <p className="font-medium">
                     {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
                       Number(existingAsset.netBookValue) || 0
@@ -450,7 +451,7 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">ค่าเสื่อมราคาสะสม</span>
+                  <span className="text-sm text-gray-500">{t('fixedAssets.form.detail.accumulatedDepreciation')}</span>
                   <p className="font-medium">
                     {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(
                       Number(existingAsset.accumulatedDepreciation) || 0
@@ -466,15 +467,15 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  ประวัติการตรวจสอบ
+                  {t('fixedAssets.form.audit.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับสินทรัพย์นี้
+                  {t('fixedAssets.form.audit.description')}
                 </p>
                 <Button
-                  text="ดูประวัติ"
+                  text={t('fixedAssets.form.audit.viewHistory')}
                   icon="clock"
                   stylingMode="outlined"
                   onClick={() => setAuditDialogOpen(true)}
@@ -487,14 +488,14 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           {mode === 'edit' && (
             <Card className="border-red-100">
               <CardHeader>
-                <CardTitle className="text-red-600">โซนอันตราย</CardTitle>
+                <CardTitle className="text-red-600">{t('fixedAssets.form.dangerZone.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  การลบสินทรัพย์นี้จะลบบันทึกที่เกี่ยวข้องทั้งหมด
+                  {t('fixedAssets.form.dangerZone.description')}
                 </p>
                 <Button
-                  text="ลบสินทรัพย์"
+                  text={t('fixedAssets.form.dangerZone.deleteButton')}
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -515,19 +516,19 @@ export function FixedAssetForm({ mode, assetId }: FixedAssetFormProps) {
           visible={auditDialogOpen}
           onClose={() => setAuditDialogOpen(false)}
           fieldLabels={{
-            nameTh: 'ชื่อ (ภาษาไทย)',
-            nameEn: 'ชื่อ (ภาษาอังกฤษ)',
-            categoryId: 'หมวดหมู่',
-            acquisitionDate: 'วันที่ได้มา',
-            acquisitionCost: 'ต้นทุนการได้มา',
-            salvageValue: 'มูลค่าซาก',
-            usefulLifeMonths: 'อายุการใช้งาน (เดือน)',
-            depreciationMethod: 'วิธีคิดค่าเสื่อมราคา',
-            depreciationStartDate: 'วันที่เริ่มคิดค่าเสื่อมราคา',
-            location: 'สถานที่',
-            departmentId: 'แผนก',
-            responsiblePersonId: 'ผู้รับผิดชอบ',
-            status: 'สถานะ',
+            nameTh: t('fixedAssets.form.fields.nameTh'),
+            nameEn: t('fixedAssets.form.fields.nameEn'),
+            categoryId: t('fixedAssets.form.fields.category'),
+            acquisitionDate: t('fixedAssets.form.fields.acquisitionDate'),
+            acquisitionCost: t('fixedAssets.form.fields.acquisitionCost'),
+            salvageValue: t('fixedAssets.form.fields.salvageValue'),
+            usefulLifeMonths: t('fixedAssets.form.fields.usefulLifeMonths'),
+            depreciationMethod: t('fixedAssets.form.fields.depreciationMethod'),
+            depreciationStartDate: t('fixedAssets.form.fields.depreciationStartDate'),
+            location: t('fixedAssets.form.fields.location'),
+            departmentId: t('fixedAssets.form.audit.fields.department'),
+            responsiblePersonId: t('fixedAssets.form.audit.fields.responsiblePerson'),
+            status: t('fixedAssets.form.detail.status'),
           }}
         />
       )}

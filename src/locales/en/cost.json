@@ -82,6 +82,63 @@
     },
     "errors": {
       "loadFailed": "Failed to load landed costs"
+    },
+    "form": {
+      "createTitle": "Add Landed Cost",
+      "editTitle": "Landed Cost: {number}",
+      "createSubtitle": "Allocate freight, duty, and other costs to a purchase receipt",
+      "allocate": "Allocate",
+      "post": "Post",
+      "cancel": "Cancel",
+      "create": "Create",
+      "save": "Save",
+      "delete": "Delete",
+      "status": "Status:",
+      "headerInfo": "Header Information",
+      "purchaseOrder": "Purchase Order",
+      "selectPo": "Select purchase order...",
+      "vendor": "Vendor",
+      "selectVendor": "Select vendor...",
+      "invoiceNumber": "Invoice Number",
+      "invoiceNumberPlaceholder": "Enter invoice number",
+      "invoiceDate": "Invoice Date",
+      "currency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "costLines": "Cost Lines",
+      "addLine": "Add Line",
+      "costType": "Cost Type",
+      "description": "Description",
+      "descriptionPlaceholder": "Description",
+      "amount": "Amount",
+      "allocationBasis": "Allocation Basis",
+      "totalAmount": "Total Amount: ",
+      "allocationTitle": "Allocation",
+      "columns": {
+        "itemCode": "Item Code",
+        "itemName": "Item Name",
+        "basisValue": "Basis Value",
+        "allocatedAmount": "Allocated Amount"
+      },
+      "deleteConfirm": {
+        "title": "Confirm Delete",
+        "message": "Are you sure you want to delete this landed cost? This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "costTypes": {
+        "freight": "Freight",
+        "duty": "Duty",
+        "insurance": "Insurance",
+        "handling": "Handling",
+        "inspection": "Inspection",
+        "other": "Other"
+      },
+      "allocationBases": {
+        "value": "By Value",
+        "quantity": "By Quantity",
+        "weight": "By Weight",
+        "volume": "By Volume"
+      }
     }
   },
   "workCenters": {
@@ -143,6 +200,38 @@
       "loadFailed": "Failed to load work centers",
       "loading": "Loading work centers...",
       "retry": "Retry"
+    },
+    "form": {
+      "loading": "Loading work center...",
+      "createTitle": "Add Work Center",
+      "editTitle": "Edit Work Center: {code}",
+      "subtitle": "Set labor and overhead rates for production cost calculation",
+      "basicInfo": "Basic Information",
+      "code": "Code",
+      "codePlaceholder": "e.g. WC-MIX-01",
+      "nameEn": "Name (English)",
+      "nameEnPlaceholder": "e.g. Mixing Station 1",
+      "nameTh": "Name (Thai)",
+      "nameThPlaceholder": "e.g. Mixing Station 1",
+      "orgUnit": "Org Unit",
+      "orgUnitPlaceholder": "Select org unit...",
+      "active": "Active",
+      "ratesTitle": "Rates per Hour (THB/hour)",
+      "laborRate": "Labor Rate",
+      "laborRateHint": "Direct labor cost per hour",
+      "overheadRate": "Overhead Rate",
+      "overheadRateHint": "Indirect cost (utilities, supervision, etc.)",
+      "machineRate": "Machine Rate",
+      "machineRateHint": "Equipment depreciation and maintenance",
+      "totalRate": "Total Rate per Hour:",
+      "baht": "THB",
+      "capacityTitle": "Capacity",
+      "capacityHours": "Working Hours per Day",
+      "capacityHint": "Available working hours per day (max 24)",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "create": "Create Work Center",
+      "save": "Save Changes"
     }
   },
   "reports": {
@@ -241,6 +330,79 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "executiveDashboard": {
+    "loading": "Loading dashboard...",
+    "loadError": "Failed to load dashboard data. Please try again.",
+    "periodInfo": "Showing data for:",
+    "comparedTo": "(compared to {label})",
+    "noData": "No data",
+    "vsPriorPeriod": "vs prior period",
+    "daysUnit": "days",
+    "financialHealth": {
+      "inventoryValue": "Inventory Value",
+      "cogsMTD": "COGS This Month",
+      "grossMargin": "Gross Margin",
+      "costVariance": "Cost Variance"
+    },
+    "material": {
+      "title": "Material Cost Analysis",
+      "purchasesMTD": "Purchases This Month",
+      "landedCostPercent": "Landed Cost %",
+      "avgCostChange": "Avg Cost Change",
+      "inventoryTurnover": "Inventory Turnover",
+      "daysInventory": "Days Inventory Outstanding",
+      "topCostIncreases": "Top Cost Increases",
+      "noCostIncreases": "No significant increases",
+      "purchasesBySupplier": "Purchases by Supplier",
+      "noPurchases": "No purchase data"
+    },
+    "production": {
+      "title": "Production Cost Analysis",
+      "wipValue": "WIP Value",
+      "productionCostMTD": "Production Cost This Month",
+      "laborEfficiency": "Labor Efficiency %",
+      "overheadAbsorption": "Overhead Absorption",
+      "avgUnitCost": "Avg Unit Cost",
+      "variance": "Variance",
+      "costBreakdown": "Cost Breakdown (This Month)",
+      "material": "Material",
+      "labor": "Labor",
+      "overhead": "Overhead",
+      "byWorkCenter": "By Work Center",
+      "noWorkCenterData": "No work center data"
+    },
+    "margin": {
+      "title": "Margin Analysis",
+      "revenueMTD": "Revenue This Month",
+      "grossProfitMTD": "Gross Profit This Month",
+      "marginByCategory": "Margin by Category",
+      "category": "Category",
+      "revenue": "Revenue",
+      "cogs": "COGS",
+      "marginPercent": "Margin %",
+      "noCategoryData": "No category data",
+      "marginErosion": "Margin Erosion",
+      "noMarginErosion": "No margin erosion",
+      "topMarginProducts": "Top Margin Products",
+      "noProductData": "No product data"
+    },
+    "alerts": {
+      "activeAlerts": "Active Alerts ({count})",
+      "critical": "Critical ({count})",
+      "warning": "Warning ({count})",
+      "noActiveAlerts": "No active alerts",
+      "trend6Month": "6-Month Trend",
+      "noTrendData": "No trend data",
+      "grossMarginLine": "Gross Margin %",
+      "avgUnitCostLine": "Avg Unit Cost",
+      "momComparison": "Month-over-Month Comparison",
+      "metric": "Metric",
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "change": "Change",
+      "noComparisonData": "No comparison data"
     }
   }
 }

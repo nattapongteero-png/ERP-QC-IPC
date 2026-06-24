@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -39,18 +40,19 @@ function formatCompactCurrency(amount: number): string {
 }
 
 export function RevenueExpensesTrend({ data, isLoading, className = '' }: RevenueExpensesTrendProps) {
+  const t = useTranslations('accounting');
   return (
     <Card className={className} data-testid="revenue-expenses-trend">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-emerald-500" />
-          Revenue vs Expenses Trend
+          {t('charts.revenueExpenses.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="h-[300px] flex items-center justify-center">
-            <div className="animate-pulse text-gray-400">Loading...</div>
+            <div className="animate-pulse text-gray-400">{t('charts.revenueExpenses.loading')}</div>
           </div>
         ) : (
           <div className="h-[300px]">
@@ -84,7 +86,7 @@ export function RevenueExpensesTrend({ data, isLoading, className = '' }: Revenu
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  name="Revenue"
+                  name={t('charts.revenueExpenses.series.revenue')}
                   stroke="#22c55e"
                   strokeWidth={2}
                   fill="url(#revenueGradient)"
@@ -92,7 +94,7 @@ export function RevenueExpensesTrend({ data, isLoading, className = '' }: Revenu
                 <Area
                   type="monotone"
                   dataKey="cogs"
-                  name="COGS"
+                  name={t('charts.revenueExpenses.series.cogs')}
                   stroke="#f97316"
                   strokeWidth={2}
                   fill="url(#cogsGradient)"
@@ -100,7 +102,7 @@ export function RevenueExpensesTrend({ data, isLoading, className = '' }: Revenu
                 <Area
                   type="monotone"
                   dataKey="operatingExpenses"
-                  name="Operating Expenses"
+                  name={t('charts.revenueExpenses.series.operatingExpenses')}
                   stroke="#3b82f6"
                   strokeWidth={2}
                   fill="url(#opexGradient)"

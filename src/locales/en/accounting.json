@@ -295,7 +295,95 @@
       "noResultsDescription": "Clear filters to see all entries"
     },
     "refresh": "Refresh",
-    "clearFilters": "Clear Filters"
+    "clearFilters": "Clear Filters",
+    "form": {
+      "header": {
+        "create": "Create Journal Entry",
+        "edit": "Entry: {entryNumber}"
+      },
+      "back": "Back",
+      "saveEdit": "Save Changes",
+      "loading": "Loading...",
+      "sections": {
+        "general": "General Information",
+        "lines": "Journal Lines"
+      },
+      "referenceNumber": "Reference Number",
+      "referenceNumberPlaceholder": "Reference document number",
+      "descriptionPlaceholder": "Entry description",
+      "costCenter": "Cost Center",
+      "addLine": "Add Line",
+      "deleteLine": "Delete",
+      "selectAccount": "Select account",
+      "noneOption": "- None -",
+      "balanced": "Debit and credit are balanced",
+      "differenceLabel": "Difference: {diff}",
+      "validationSummaryTitle": "Validation",
+      "summaryTitle": "Summary",
+      "totalDebit": "Total Debit",
+      "totalCredit": "Total Credit",
+      "difference": "Difference",
+      "auditHistory": "Change History",
+      "auditHistoryTitle": "Change History: {entryNumber}",
+      "entryInfo": {
+        "title": "Entry Information",
+        "number": "Number",
+        "postedAt": "Posted At",
+        "createdAt": "Created At",
+        "updatedAt": "Last Updated"
+      },
+      "tips": {
+        "title": "Tips",
+        "balanced": "Debit and credit must be equal",
+        "minLines": "At least 2 lines are required",
+        "postedReadOnly": "Posted entries cannot be edited",
+        "useReverse": "Use \"Reverse\" to cancel"
+      },
+      "dialogs": {
+        "postMessage": "Do you want to post this journal entry?",
+        "reverseMessage": "Do you want to reverse this entry?<br/>A reversing entry will be created automatically."
+      },
+      "lineError": {
+        "debitOrCredit": "Must be either debit or credit, not both",
+        "selectAccount": "Please select an account",
+        "enterAmount": "Please enter an amount"
+      },
+      "category": {
+        "asset": "Assets",
+        "liability": "Liabilities",
+        "equity": "Equity",
+        "revenue": "Revenue",
+        "expense": "Expenses"
+      },
+      "warning": {
+        "duplicateDebit": "Account \"{account}\" is used on the debit side {count} times",
+        "duplicateCredit": "Account \"{account}\" is used on the credit side {count} times",
+        "normalDebit": "Line {line}: Account \"{account}\" ({category}) is normally a debit, but was recorded as a credit - please review",
+        "normalCredit": "Line {line}: Account \"{account}\" ({category}) is normally a credit, but was recorded as a debit - please review"
+      },
+      "error": {
+        "expenseWithRevenue": "Expense (debit) should not be recorded together with revenue (credit) in the same entry - please review the entry",
+        "sameAccountBothSides": "Account \"{account}\" is used on both the debit and credit sides - please verify",
+        "bankBothSides": "Cash/bank account is used on both the debit and credit sides - please review"
+      },
+      "validation": {
+        "entryDateRequired": "Please specify the entry date",
+        "minTwoLines": "At least 2 valid lines are required",
+        "minOneDebit": "At least 1 debit line is required",
+        "minOneCredit": "At least 1 credit line is required",
+        "unbalancedDiff": "Out of balance (difference: {diff})",
+        "linesWithBoth": "{count} line(s) have both debit and credit",
+        "linesWithoutAccount": "{count} line(s) have no account specified",
+        "debitOrCreditNotBoth": "Each line must be either debit or credit, not both",
+        "accountRequiredForAmounts": "Please specify an account for every line with an amount",
+        "addAtLeastTwoLines": "Please add at least 2 lines (both debit and credit required)",
+        "debitCreditNotEqual": "Debit and credit are not equal (difference: {diff})"
+      },
+      "toast": {
+        "createSuccess": "Journal entry created successfully",
+        "updateSuccess": "Changes saved successfully"
+      }
+    }
   },
   "generalLedger": {
     "title": "General Ledger",
@@ -458,6 +546,269 @@
       "recordPayment": "Record Payment",
       "sendReminder": "Send Reminder",
       "viewAging": "View Aging Report"
+    },
+    "paymentMethods": {
+      "transfer": "Bank Transfer",
+      "cash": "Cash",
+      "check": "Cheque",
+      "other": "Other",
+      "bankTransfer": "Bank Transfer",
+      "cheque": "Cheque",
+      "creditCard": "Credit Card"
+    },
+    "invoicesPage": {
+      "addInvoice": "Add Invoice",
+      "searchPlaceholder": "Search...",
+      "summaryTotal": "Total: {0}",
+      "kpi": {
+        "total": "Total Invoices",
+        "pending": "Pending",
+        "pendingSubtitle": "Awaiting confirmation",
+        "outstanding": "Outstanding",
+        "paid": "Paid",
+        "paidSubtitle": "Completed"
+      },
+      "filters": {
+        "statusLabel": "Status",
+        "statusPlaceholder": "Filter by status",
+        "all": "All"
+      },
+      "statusLabels": {
+        "draft": "Draft",
+        "posted": "Posted",
+        "partial": "Partially Received",
+        "paid": "Paid"
+      },
+      "columns": {
+        "taxInvoiceNumber": "Tax Invoice No.",
+        "date": "Date",
+        "description": "Description",
+        "totalAmount": "Total Amount",
+        "paidAmount": "Received",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "confirm": "Confirm",
+        "receivePayment": "Receive Payment"
+      },
+      "dialog": {
+        "createTitle": "Create Sales Invoice",
+        "editTitle": "Edit Sales Invoice",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saveEdit": "Save Changes"
+      },
+      "form": {
+        "invoiceNumber": "Invoice Number",
+        "invoiceNumberRequired": "Please enter the invoice number",
+        "customer": "Customer",
+        "customerRequired": "Please select a customer",
+        "invoiceDate": "Invoice Date",
+        "dateRequired": "Please select a date",
+        "dueDate": "Due Date",
+        "dueDateRequired": "Please select a due date",
+        "description": "Description"
+      },
+      "lineItems": {
+        "title": "Line Items",
+        "addLine": "Add Line",
+        "description": "Description",
+        "revenueAccount": "Revenue Account",
+        "quantity": "Qty",
+        "unitPrice": "Unit Price",
+        "lineTotal": "Total",
+        "selectAccount": "Select account",
+        "subtotalBeforeVat": "Subtotal before VAT",
+        "grandTotal": "Grand Total"
+      },
+      "paymentDialog": {
+        "title": "Receive Payment - {invoiceNumber}",
+        "taxInvoiceNumber": "Tax Invoice No.",
+        "totalAmount": "Total Amount",
+        "received": "Received",
+        "outstanding": "Outstanding",
+        "baht": "THB",
+        "paymentDate": "Payment Date",
+        "bankAccount": "Receiving Account",
+        "bankAccountRequired": "Please select an account",
+        "paymentMethod": "Payment Method",
+        "referenceNumber": "Reference Number",
+        "referencePlaceholder": "Cheque No. / Ref. No.",
+        "amountBaht": "Amount (THB)",
+        "amountRequired": "Please enter an amount",
+        "note": "Note"
+      },
+      "confirmInvoice": {
+        "title": "Confirm Invoice",
+        "message": "Do you want to confirm invoice {invoiceNumber}?<br/><strong>Tax Invoice: {taxInvoiceNumber}</strong><br/>The system will automatically create the journal entry and Output VAT."
+      },
+      "confirmDelete": {
+        "title": "Confirm Deletion",
+        "message": "Do you want to delete invoice {invoiceNumber}?<br/>This action cannot be undone."
+      },
+      "toast": {
+        "createSuccess": "Invoice created successfully (Tax Invoice: {taxInvoiceNumber})",
+        "createError": "Failed to create invoice",
+        "confirmSuccess": "Invoice confirmed and journal entry posted",
+        "confirmError": "Failed to confirm invoice",
+        "paymentSuccess": "Payment received successfully (Receipt: {receiptNumber})",
+        "paymentError": "Failed to receive payment",
+        "deleteSuccess": "Invoice deleted successfully",
+        "deleteError": "Failed to delete invoice",
+        "updateSuccess": "Invoice updated successfully",
+        "updateError": "Failed to update invoice",
+        "loadError": "Failed to load invoice data",
+        "fillRequired": "Please complete all required fields",
+        "addAtLeastOneLine": "Please add at least one line item",
+        "selectPaymentAccount": "Please select a receiving account",
+        "amountMustBePositive": "Amount must be greater than 0"
+      }
+    },
+    "receiptsPage": {
+      "recordReceipt": "Record Receipt",
+      "export": "Export",
+      "methodFilter": {
+        "all": "All Methods"
+      },
+      "statusFilter": {
+        "all": "All Statuses",
+        "pending": "Pending",
+        "cleared": "Cleared",
+        "bounced": "Bounced Cheque",
+        "cancelled": "Cancelled"
+      },
+      "kpi": {
+        "totalReceipts": "Total Receipts",
+        "totalReceiptsSubtitle": "All",
+        "totalAmount": "Total Amount",
+        "totalAmountSubtitle": "Total received",
+        "cleared": "Cleared",
+        "clearedSubtitle": "Confirmed payments",
+        "pending": "Pending",
+        "pendingSubtitle": "Awaiting clearance"
+      },
+      "filters": {
+        "paymentMethod": "Payment Method",
+        "status": "Status",
+        "dateFrom": "From Date",
+        "dateTo": "To Date"
+      },
+      "grid": {
+        "title": "Receipt List",
+        "found": "{count} receipt(s) found",
+        "loading": "Loading receipts...",
+        "searchPlaceholder": "Search receipts..."
+      },
+      "columns": {
+        "method": "Method",
+        "reference": "Reference",
+        "bankAccount": "Bank Account",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "summary": {
+        "total": "Total: {0}",
+        "count": "{0} receipts"
+      },
+      "dialog": {
+        "createTitle": "Record Payment Receipt",
+        "editTitle": "Edit Receipt",
+        "cancel": "Cancel",
+        "save": "Save Receipt",
+        "saveEdit": "Save Changes"
+      },
+      "invoiceInfo": {
+        "invoiceNumber": "Invoice Number",
+        "customer": "Customer",
+        "totalAmount": "Total Amount",
+        "paidAmount": "Paid Amount",
+        "outstanding": "Outstanding"
+      },
+      "receiptInfo": {
+        "receiptNumber": "Receipt Number",
+        "amountThb": "Amount (THB)"
+      },
+      "form": {
+        "arInvoice": "Invoice (AR Invoice)",
+        "arInvoiceRequired": "Please select an invoice",
+        "unknownCustomer": "Unknown",
+        "outstandingShort": "Outstanding",
+        "paymentDate": "Payment Date",
+        "dateRequired": "Please select a date",
+        "paymentMethod": "Payment Method",
+        "bankAccount": "Receiving Account",
+        "bankAccountRequired": "Please select a receiving account",
+        "amountThb": "Amount (THB)",
+        "amountRequired": "Please enter an amount",
+        "referenceNumber": "Reference No.",
+        "referencePlaceholder": "Cheque No. / Ref.",
+        "description": "Description"
+      },
+      "toast": {
+        "recordSuccess": "Payment receipt recorded successfully ({receiptNumber})",
+        "recordError": "Failed to record payment receipt",
+        "deleteSuccess": "Receipt deleted successfully",
+        "deleteError": "Failed to delete receipt",
+        "updateSuccess": "Receipt updated successfully",
+        "updateError": "Failed to update receipt",
+        "exportSuccess": "Receipts exported successfully",
+        "selectInvoiceAndAccount": "Please select an invoice and a receiving account",
+        "amountMustBePositive": "Amount must be greater than 0"
+      },
+      "confirmDelete": {
+        "title": "Confirm Deletion",
+        "message": "Do you want to delete receipt {receiptNumber}?<br/>This action cannot be undone."
+      }
+    },
+    "agingPage": {
+      "toast": {
+        "exportSuccess": "AR aging report exported successfully"
+      },
+      "exportReport": "Export Report",
+      "asOfDate": "As of Date",
+      "generateReport": "Generate Report",
+      "distributionTitle": "Distribution by Aging",
+      "summaryTitle": "Aging Summary",
+      "loadingChart": "Loading chart...",
+      "amountLegend": "Amount",
+      "totalOutstanding": "Total Outstanding",
+      "summaryTotal": "Total: {0}",
+      "buckets": {
+        "current": "Not Yet Due",
+        "days1to30": "1-30 Days",
+        "days31to60": "31-60 Days",
+        "days61to90": "61-90 Days",
+        "over90": "Over 90 Days"
+      },
+      "kpi": {
+        "currentSubtitle": "Not yet due",
+        "days1to30Subtitle": "Slightly overdue",
+        "days31to60Subtitle": "Needs follow-up",
+        "days61to90Subtitle": "Needs attention",
+        "over90Subtitle": "Critical",
+        "totalReceivable": "Total Receivable",
+        "overduePercent": "Overdue {percent}%"
+      },
+      "criticalAlert": {
+        "title": "Critical Overdue Alert",
+        "message": "{amount} is more than 60 days overdue and should be collected immediately."
+      },
+      "columns": {
+        "customer": "Customer",
+        "total": "Total"
+      },
+      "grid": {
+        "title": "AR Aging by Customer",
+        "asOf": "As of {date}",
+        "loading": "Loading aging data...",
+        "searchPlaceholder": "Search customers..."
+      }
     }
   },
   "accountsPayable": {
@@ -558,6 +909,191 @@
       "recordBill": "Record Bill",
       "makePayment": "Make Payment",
       "viewAging": "View Aging Report"
+    },
+    "statusLabels": {
+      "status": "Status",
+      "all": "All",
+      "draft": "Draft",
+      "posted": "Posted",
+      "partial": "Partially Paid",
+      "paid": "Paid"
+    },
+    "invoicesPage": {
+      "addInvoice": "Add Bill",
+      "filterStatusPlaceholder": "Filter by status",
+      "searchPlaceholder": "Search...",
+      "summaryTotal": "Total",
+      "toast": {
+        "createSuccess": "Vendor bill created successfully",
+        "createError": "Unable to create vendor bill",
+        "approveSuccess": "Bill approved and journal entry posted",
+        "approveError": "Unable to approve bill",
+        "deleteSuccess": "Bill deleted successfully",
+        "deleteError": "Unable to delete bill",
+        "updateSuccess": "Bill updated successfully",
+        "updateError": "Unable to update bill",
+        "fillRequired": "Please complete all required fields",
+        "addAtLeastOneLine": "Please add at least one line item",
+        "loadError": "Unable to load bill details",
+        "paymentUnderDevelopment": "Payment function is under development"
+      },
+      "confirm": {
+        "approveMessage": "Do you want to approve bill {number}?<br/>The system will automatically create a journal entry.",
+        "approveTitle": "Confirm Approval",
+        "deleteMessage": "Do you want to delete bill {number}?<br/>This action cannot be undone.",
+        "deleteTitle": "Confirm Deletion"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "approve": "Approve",
+        "pay": "Pay"
+      },
+      "kpi": {
+        "totalItems": "Total Bills",
+        "pending": "Pending",
+        "pendingSubtitle": "Awaiting approval",
+        "outstanding": "Outstanding",
+        "paid": "Paid",
+        "paidSubtitle": "Completed"
+      },
+      "columns": {
+        "vendor": "Vendor",
+        "description": "Description",
+        "total": "Total Amount",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "addTitle": "Add Purchase Bill",
+        "editTitle": "Edit Purchase Bill",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saveEdit": "Save Changes"
+      },
+      "form": {
+        "invoiceNumber": "Bill Number",
+        "invoiceNumberRequired": "Please enter the bill number",
+        "vendor": "Vendor",
+        "vendorRequired": "Please select a vendor",
+        "invoiceDate": "Bill Date",
+        "invoiceDateRequired": "Please select a date",
+        "receivedDate": "Date Received",
+        "receivedDateRequired": "Please select the received date",
+        "dueDate": "Due Date",
+        "dueDateRequired": "Please select the due date",
+        "description": "Description"
+      },
+      "lineItems": {
+        "title": "Line Items",
+        "addLine": "Add Line",
+        "colDescription": "Description",
+        "colAccount": "Account",
+        "colQuantity": "Quantity",
+        "colUnitPrice": "Unit Price",
+        "colTotal": "Total",
+        "selectAccount": "Select account",
+        "beforeVat": "Amount before VAT",
+        "netTotal": "Net Total"
+      }
+    },
+    "paymentsPage": {
+      "recordPayment": "Record Payment",
+      "toast": {
+        "recordSuccess": "Payment recorded successfully (Payment: {number})",
+        "recordError": "Unable to record payment",
+        "deleteSuccess": "Payment deleted successfully",
+        "deleteError": "Unable to delete payment",
+        "updateSuccess": "Payment updated successfully",
+        "updateError": "Unable to update payment",
+        "selectInvoiceAndAccount": "Please select a bill and a payment account",
+        "amountMustBePositive": "Amount must be greater than 0"
+      },
+      "confirm": {
+        "deleteMessage": "Do you want to delete payment {number}?<br/>This action cannot be undone.",
+        "deleteTitle": "Confirm Deletion"
+      },
+      "methods": {
+        "cash": "Cash",
+        "check": "Check",
+        "transfer": "Bank Transfer",
+        "other": "Other"
+      },
+      "kpi": {
+        "totalPayments": "Total Payments",
+        "totalPaymentsSubtitle": "All payment records",
+        "paidThisMonth": "Paid This Month",
+        "paidThisMonthSubtitle": "Current month",
+        "pending": "Pending",
+        "pendingSubtitle": "Awaiting processing",
+        "outstanding": "Outstanding Balance",
+        "outstandingSubtitle": "From unpaid bills"
+      },
+      "filters": {
+        "paymentMethod": "Payment Method",
+        "paymentMethodPlaceholder": "Filter by payment method",
+        "dateFrom": "From Date",
+        "dateTo": "To Date",
+        "clearDate": "Clear Dates"
+      },
+      "columns": {
+        "vendorName": "Vendor Name",
+        "paymentDate": "Payment Date",
+        "whtAmount": "Withholding Tax",
+        "referenceNumber": "Reference Number"
+      },
+      "dialog": {
+        "editTitle": "Edit Payment",
+        "recordTitle": "Record Vendor Payment"
+      },
+      "info": {
+        "invoiceNumber": "Bill Number",
+        "total": "Total Amount",
+        "paid": "Paid",
+        "outstanding": "Outstanding Balance",
+        "baht": "THB",
+        "vendor": "Vendor",
+        "amountBaht": "Amount (THB)"
+      },
+      "form": {
+        "apInvoice": "Vendor Bill",
+        "apInvoiceRequired": "Please select a bill",
+        "unspecified": "Unspecified",
+        "paymentDateRequired": "Please select the payment date",
+        "bankAccount": "Bank Account",
+        "bankAccountRequired": "Please select a bank account",
+        "amountRequired": "Please enter the amount",
+        "whtRate": "Withholding Tax Rate (%)",
+        "referencePlaceholder": "Check number / transfer reference"
+      }
+    },
+    "agingPage": {
+      "asOfDate": "As of Date",
+      "generateReport": "Generate Report",
+      "distributionTitle": "Distribution by Aging",
+      "payableAmount": "Payable Amount",
+      "loadingReport": "Loading report...",
+      "errorPrefix": "Error",
+      "loadReportError": "Unable to load report",
+      "noReportTitle": "No report generated yet",
+      "noReportDescription": "Select an as-of date and click Generate Report to view the data",
+      "gridTitle": "Accounts Payable Aging by Vendor",
+      "asOfDateValue": "As of {date}",
+      "buckets": {
+        "current": "Not Yet Due",
+        "days1to30": "1-30 Days",
+        "days31to60": "31-60 Days",
+        "days61to90": "61-90 Days",
+        "over90": "Over 90 Days"
+      },
+      "kpi": {
+        "totalOutstanding": "Total Outstanding",
+        "allVendors": "All vendors",
+        "notOverdue": "Not overdue",
+        "overdue": "Overdue"
+      },
+      "columns": {
+        "vendorName": "Vendor Name"
+      }
     }
   },
   "fixedAssets": {
@@ -628,6 +1164,76 @@
       "recordDepreciation": "Record Depreciation",
       "disposeAsset": "Dispose Asset",
       "clearFilters": "Clear Filters"
+    },
+    "form": {
+      "title": {
+        "create": "Add Fixed Asset",
+        "edit": "Edit Fixed Asset"
+      },
+      "subtitle": {
+        "create": "Add new fixed asset",
+        "edit": "Edit: {code}"
+      },
+      "breadcrumbCreate": "Add New",
+      "breadcrumbEdit": "Edit",
+      "back": "Back",
+      "save": "Save",
+      "saving": "Saving...",
+      "loading": "Loading asset...",
+      "sections": {
+        "basic": "Basic Information",
+        "acquisition": "Acquisition & Depreciation"
+      },
+      "fields": {
+        "nameTh": "Name (Thai)",
+        "nameThPlaceholder": "Asset name",
+        "nameEn": "Name (English)",
+        "nameEnPlaceholder": "Asset Name",
+        "category": "Category",
+        "categoryPlaceholder": "Select category",
+        "location": "Location",
+        "acquisitionDate": "Acquisition Date",
+        "acquisitionCost": "Acquisition Cost",
+        "salvageValue": "Salvage Value",
+        "usefulLifeMonths": "Useful Life (Months)",
+        "depreciationMethod": "Depreciation Method",
+        "depreciationStartDate": "Depreciation Start Date"
+      },
+      "depreciationMethods": {
+        "straightLine": "Straight-Line",
+        "decliningBalance": "Declining Balance"
+      },
+      "validation": {
+        "requiredFields": "Please fill in required fields (Name TH, Name EN, Category, Acquisition Date, and Acquisition Cost > 0)"
+      },
+      "toast": {
+        "createSuccess": "Fixed asset created successfully",
+        "updateSuccess": "Fixed asset updated successfully"
+      },
+      "deleteConfirm": {
+        "message": "Are you sure you want to delete this asset? This action cannot be undone."
+      },
+      "detail": {
+        "title": "Asset Details",
+        "assetCode": "Asset Code",
+        "status": "Status",
+        "netBookValue": "Net Book Value",
+        "accumulatedDepreciation": "Accumulated Depreciation"
+      },
+      "audit": {
+        "title": "Audit History",
+        "description": "View all changes made to this asset",
+        "viewHistory": "View History",
+        "fields": {
+          "department": "Department",
+          "responsiblePerson": "Responsible Person"
+        }
+      },
+      "dangerZone": {
+        "title": "Danger Zone",
+        "description": "Deleting this asset will remove all associated records",
+        "deleteButton": "Delete Asset"
+      }
     }
   },
   "equipment": {
@@ -696,6 +1302,81 @@
       "due": "Due",
       "today": "Today",
       "days": "{count} days"
+    },
+    "form": {
+      "title": {
+        "create": "Add Equipment",
+        "edit": "Edit Equipment"
+      },
+      "subtitle": {
+        "create": "Add new equipment",
+        "edit": "Edit: {code}"
+      },
+      "breadcrumbCreate": "Add New",
+      "breadcrumbEdit": "Edit",
+      "back": "Back",
+      "save": "Save",
+      "saving": "Saving...",
+      "loading": "Loading equipment...",
+      "sections": {
+        "basic": "Basic Information",
+        "warranty": "Warranty Information"
+      },
+      "fields": {
+        "fixedAsset": "Fixed Asset",
+        "fixedAssetPlaceholder": "Select fixed asset",
+        "serialNumber": "Serial Number",
+        "manufacturer": "Manufacturer",
+        "model": "Model",
+        "specifications": "Specifications",
+        "specificationsPlaceholder": "Equipment specifications...",
+        "warrantyStartDate": "Warranty Start Date",
+        "warrantyEndDate": "Warranty End Date",
+        "isAvailable": "Available"
+      },
+      "status": {
+        "available": "Equipment available",
+        "unavailable": "Equipment unavailable"
+      },
+      "validation": {
+        "selectFixedAsset": "Please select a Fixed Asset"
+      },
+      "toast": {
+        "createSuccess": "Equipment created successfully",
+        "updateSuccess": "Equipment updated successfully"
+      },
+      "deleteConfirm": {
+        "message": "Are you sure you want to delete this equipment? This action cannot be undone."
+      },
+      "detail": {
+        "title": "Equipment Details",
+        "assetCode": "Asset Code",
+        "assetName": "Asset Name",
+        "operatingHours": "Operating Hours",
+        "operatingHoursValue": "{hours} hrs",
+        "lastMaintenance": "Last Maintenance",
+        "never": "Never",
+        "status": "Status",
+        "statusAvailable": "Available",
+        "statusUnavailable": "Unavailable"
+      },
+      "audit": {
+        "title": "Audit History",
+        "description": "View all changes made to this equipment",
+        "viewHistory": "View History",
+        "fields": {
+          "operatingHours": "Operating Hours",
+          "operatingUnits": "Operating Units",
+          "lastMeterReading": "Last Meter Reading",
+          "lastMaintenanceDate": "Last Maintenance Date",
+          "nextMaintenanceDue": "Next Maintenance Due"
+        }
+      },
+      "dangerZone": {
+        "title": "Danger Zone",
+        "description": "Deleting this equipment will remove all associated maintenance records",
+        "deleteButton": "Delete Equipment"
+      }
     }
   },
   "periodClose": {
@@ -823,12 +1504,253 @@
   },
   "reports": {
     "title": "Financial Reports",
-    "balanceSheet": "Balance Sheet",
-    "incomeStatement": "Income Statement",
-    "cashFlow": "Cash Flow Statement",
-    "trialBalance": "Trial Balance",
+    "balanceSheet": {
+      "liabilitiesAndEquity": "Liabilities & Equity",
+      "assetCompositionTitle": "Asset Composition"
+    },
+    "incomeStatement": {
+      "profitTrendTitle": "Profit Trend",
+      "totalPrefix": "Total",
+      "grossMarginLabel": "Gross Margin",
+      "netMarginLabel": "Net Margin"
+    },
+    "cashFlow": {
+      "summaryChartTitle": "Cash Flow Summary",
+      "legendCashFlow": "Cash Flow",
+      "chartOperating": "Operating Activities",
+      "chartInvesting": "Investing Activities",
+      "chartFinancing": "Financing Activities",
+      "chartNetChange": "Net Change"
+    },
+    "trialBalance": {
+      "closingDebit": "Closing Debit",
+      "closingCredit": "Closing Credit",
+      "chartTitle": "Debit vs Credit by Category",
+      "categoryColumn": "Category"
+    },
     "agingReport": "Aging Report",
-    "taxReport": "Tax Report"
+    "taxReport": "Tax Report",
+    "subtitle": "Generate financial statements per TFRS standards",
+    "loading": "Loading report...",
+    "errorPrefix": "Error",
+    "errorGeneric": "Unable to load report",
+    "empty": {
+      "title": "No report yet",
+      "description": "Select a report type and click Generate Report to view data"
+    },
+    "type": {
+      "trialBalance": "Trial Balance",
+      "balanceSheet": "Balance Sheet",
+      "incomeStatement": "Income Statement",
+      "cashFlow": "Cash Flow Statement",
+      "agingAp": "AP Aging Report",
+      "agingAr": "AR Aging Report"
+    },
+    "filters": {
+      "reportType": "Report Type",
+      "periodStart": "Period Start",
+      "periodEnd": "Period End",
+      "asOfDate": "As of Date"
+    },
+    "actions": {
+      "generate": "Generate Report",
+      "exportJson": "Export JSON"
+    },
+    "toast": {
+      "exportSuccess": "Report exported successfully"
+    },
+    "overview": {
+      "featuredTitle": "Financial Statements (Bilingual)",
+      "quickTitle": "Quick Reports",
+      "trialBalanceHint": "Charts • KPIs • Export",
+      "balanceSheetHint": "Financial ratios • Pie chart",
+      "incomeStatementHint": "Margins • Area chart",
+      "cashFlowHint": "Waterfall chart • Reconciliation",
+      "viewReport": "View Report",
+      "trialBalanceSubtitle": "Account balance summary",
+      "balanceSheetSubtitle": "Assets and liabilities",
+      "incomeStatementSubtitle": "Profit and loss",
+      "agingLabel": "Aging Report",
+      "agingSubtitle": "AP/AR aging analysis"
+    },
+    "common": {
+      "accountType": "Type",
+      "category": "Category",
+      "code": "Code",
+      "account": "Account",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "grandTotal": "Grand Total",
+      "balancedYes": "Balanced",
+      "balancedNo": "Out of Balance",
+      "matched": "Matched",
+      "notMatched": "Not Matched",
+      "totalLiabilitiesAndEquity": "Total Liabilities & Equity"
+    },
+    "aging": {
+      "titleAp": "AP Aging Report",
+      "titleAr": "AR Aging Report",
+      "invoicesCount": "{count, plural, one {# invoice} other {# invoices}}",
+      "vendor": "Vendor",
+      "customer": "Customer",
+      "current": "Not Yet Due",
+      "days1to30": "1-30 Days",
+      "days31to60": "31-60 Days",
+      "days61to90": "61-90 Days",
+      "over90": "Over 90 Days",
+      "total": "Total",
+      "grandTotal": "Grand Total"
+    },
+    "vat": {
+      "title": "VAT Report",
+      "subtitle": "VAT Report (Por Por 30) - Summary of input and output VAT for filing",
+      "selectPeriodLabel": "Select Tax Period",
+      "kpi": {
+        "taxPeriod": "Tax Period",
+        "outputVat": "Output VAT",
+        "outputVatSubtitle": "Output VAT (sales tax)",
+        "inputVat": "Input VAT",
+        "inputVatSubtitle": "Input VAT (purchase tax)",
+        "netVat": "Net VAT",
+        "netVatPayable": "Net VAT payable",
+        "netVatRefundable": "Net VAT refundable"
+      },
+      "generating": "Generating VAT report...",
+      "empty": {
+        "title": "Select a tax period to generate the report",
+        "description": "Select a tax period above then click \"Generate Report\" to view input and output VAT details"
+      },
+      "outputSectionTitle": "Output VAT (Sales Tax)",
+      "outputSectionSubtitle": "Output VAT",
+      "inputSectionTitle": "Input VAT (Purchase Tax)",
+      "inputSectionSubtitle": "Input VAT",
+      "sectionTotal": "Total",
+      "summaryTitle": "VAT Summary",
+      "outputVatLine": "Output VAT:",
+      "inputVatLine": "Less: Input VAT:",
+      "netVatLabel": "Net VAT",
+      "payable": "Payable",
+      "refundable": "Refundable",
+      "toastExportSuccess": "VAT report exported successfully",
+      "columns": {
+        "taxInvoiceNumber": "Tax Invoice No.",
+        "date": "Date",
+        "customerName": "Customer Name",
+        "vendorName": "Vendor Name",
+        "taxId": "Tax ID",
+        "branch": "Branch",
+        "taxableAmount": "Goods/Services Value",
+        "vatAmount": "VAT 7%",
+        "totalAmount": "Total Amount"
+      }
+    },
+    "wht": {
+      "title": "Withholding Tax Certificates",
+      "subtitle": "Withholding tax (WHT) certificate report for filing",
+      "selectPeriodLabel": "Select Tax Period",
+      "certificateTypeLabel": "Form Type",
+      "certificateType": {
+        "pnd3": "PND 3 (Individual)",
+        "pnd53": "PND 53 (Juristic Person)",
+        "pnd3Short": "PND 3",
+        "pnd53Short": "PND 53"
+      },
+      "kpi": {
+        "taxPeriod": "Tax Period",
+        "formType": "Form Type",
+        "formTypeSubtitle": "Certificate type",
+        "certificateCount": "Certificate Count",
+        "certificateCountSubtitle": "Number of certificates",
+        "whtAmount": "Withholding Tax",
+        "whtAmountSubtitle": "Total withholding tax"
+      },
+      "generating": "Generating certificate report...",
+      "empty": {
+        "title": "Select tax period and form type",
+        "description": "Select a tax period and form type (PND 3 / PND 53) above then click \"Generate Report\" to view withholding tax certificates"
+      },
+      "certificatesCountLabel": "Certificate Count",
+      "certificatesUnit": "{count, plural, one {# certificate} other {# certificates}}",
+      "sectionTitle": "Withholding Tax Certificates",
+      "sectionSubtitle": "Withholding Tax Certificates",
+      "summaryTitle": "Withholding Tax Summary",
+      "summaryCount": "Certificates",
+      "summaryCountSubtitle": "certificate(s)",
+      "summaryPayment": "Payment Amount",
+      "summaryPaymentSubtitle": "Total amount paid",
+      "summaryWht": "Withholding Tax",
+      "summaryWhtSubtitle": "Tax withheld",
+      "summaryNet": "Net Amount",
+      "summaryNetSubtitle": "Net amount paid",
+      "toastExportSuccess": "Withholding tax certificates exported successfully",
+      "columns": {
+        "certificateNumber": "Certificate No.",
+        "paymentDate": "Payment Date",
+        "vendorName": "Payee Name",
+        "vendorTaxId": "Tax ID",
+        "incomeType": "Income Type",
+        "details": "Details",
+        "paymentAmount": "Amount",
+        "whtRate": "Tax Rate (%)",
+        "whtAmount": "Withholding Tax",
+        "netAmount": "Net Amount"
+      },
+      "dialog": {
+        "popupTitle": "Withholding Tax Certificate - {number}",
+        "loading": "Loading certificate data...",
+        "loadError": "Unable to load certificate data",
+        "headerTh": "Withholding Tax Certificate",
+        "headerEn": "Withholding Tax Certificate",
+        "formTitle": {
+          "pnd3": "PND 3 (ภ.ง.ด.3)",
+          "pnd53": "PND 53 (ภ.ง.ด.53)"
+        },
+        "individual": "Individual",
+        "juristic": "Juristic Person",
+        "certificateNumber": "Certificate Number",
+        "payer": "Payer / ผู้จ่ายเงิน",
+        "payee": "Payee / ผู้รับเงิน",
+        "nameTh": "Name (Thai):",
+        "nameEn": "Name (English):",
+        "name": "Name:",
+        "taxId": "Tax ID:",
+        "branch": "Branch:",
+        "headOffice": "Head Office",
+        "address": "Address:",
+        "taxWithheldDetails": "Tax Withheld Details / รายการภาษีที่หัก",
+        "columns": {
+          "type": "Type",
+          "description": "Description",
+          "date": "Date",
+          "amount": "Amount",
+          "rate": "Rate",
+          "whtAmount": "Withholding Tax"
+        },
+        "total": "Total",
+        "taxPeriod": "Tax Period / งวดภาษี: {value}",
+        "paymentDate": "Payment Date / วันที่จ่ายเงิน: {value}",
+        "signatoryTh": "Authorized Signatory",
+        "signatoryEn": "Authorized Signatory",
+        "dateTh": "Date",
+        "dateEn": "Date",
+        "downloadJson": "Download JSON",
+        "print": "Print"
+      }
+    },
+    "periodSelector": {
+      "quick": "Quick:",
+      "generate": "Generate Report",
+      "presets": {
+        "today": "Today",
+        "monthEnd": "Month End",
+        "quarterEnd": "Quarter End",
+        "yearEnd": "Year End",
+        "thisMonth": "This Month",
+        "lastMonth": "Last Month",
+        "thisQuarter": "This Quarter",
+        "ytd": "YTD"
+      }
+    }
   },
   "periods": {
     "title": "Accounting Periods",
@@ -866,7 +1788,44 @@
     "discount": "Discount",
     "grandTotal": "Grand Total",
     "refresh": "Refresh",
-    "clearFilters": "Clear Filters"
+    "clearFilters": "Clear Filters",
+    "noData": "No data",
+    "status": "Status",
+    "actions": "Actions",
+    "date": "Date",
+    "amount": "Amount",
+    "type": "Type",
+    "reason": "Reason",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "processing": "Processing...",
+    "comments": "Comments",
+    "notes": "Notes",
+    "vendor": "Vendor",
+    "by": "By",
+    "at": "At",
+    "statusBadge": {
+      "draft": "Draft",
+      "posted": "Posted",
+      "reversed": "Reversed",
+      "approved": "Approved",
+      "cancelled": "Cancelled",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "open": "Open",
+      "closed": "Closed",
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cleared": "Cleared",
+      "bounced": "Bounced",
+      "softClosed": "Soft Closed"
+    }
   },
   "items": {
     "grid": {
@@ -905,5 +1864,807 @@
   "description": "Description",
   "period": "Period",
   "netChangeInCash": "Net Change in Cash",
-  "endingCash": "Ending Cash"
+  "endingCash": "Ending Cash",
+  "creditDebitNotes": {
+    "title": "Credit / Debit Notes",
+    "description": "Create and manage credit notes and debit notes for receivables and payables",
+    "stats": {
+      "draft": "Draft",
+      "pendingApproval": "Pending Approval",
+      "postedThisMonth": "Posted This Month",
+      "totalThisMonth": "Total This Month"
+    },
+    "columns": {
+      "noteNumber": "Note No.",
+      "noteType": "Type",
+      "noteDate": "Date",
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "reason": "Reason",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "lineTotal": "Line Total",
+      "glAccount": "GL Account"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Pending Approval",
+      "approved": "Approved",
+      "posted": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "searchPlaceholder": "Search credit / debit notes..."
+    },
+    "actions": {
+      "view": "View",
+      "new": "New Note",
+      "back": "Back",
+      "edit": "Edit",
+      "submit": "Submit for Approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "post": "Post to GL",
+      "cancelNote": "Cancel Note",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "saveDraft": "Save as Draft"
+    },
+    "stepper": {
+      "title": "Workflow Status"
+    },
+    "detail": {
+      "noteDetails": "Note Details",
+      "approvedBy": "Approved By",
+      "approvedAt": "Approved At",
+      "postedAt": "Posted At",
+      "journalEntry": "Journal Entry",
+      "actionsTitle": "Actions"
+    },
+    "form": {
+      "newSubtitle": "Create a new credit note or debit note",
+      "noteType": "Note Type",
+      "noteTypePlaceholder": "Select note type",
+      "customer": "Customer",
+      "customerPlaceholder": "Select customer",
+      "vendor": "Vendor",
+      "vendorPlaceholder": "Select vendor",
+      "referenceInvoice": "Reference Invoice",
+      "referenceInvoicePlaceholder": "Select invoice",
+      "date": "Date",
+      "reason": "Reason",
+      "reasonPlaceholder": "Select reason",
+      "vatRate": "VAT Rate",
+      "reasonDescription": "Reason Description",
+      "reasonDescriptionPlaceholder": "Additional details about the reason...",
+      "notes": "Notes",
+      "lines": "Line Items",
+      "addLine": "Add Line",
+      "selectAccount": "Select account",
+      "subtotal": "Subtotal",
+      "vat": "VAT ({rate}%):",
+      "wht": "Withholding Tax",
+      "grandTotal": "Grand Total"
+    },
+    "dialog": {
+      "submitConfirm": "Submit this note for approval?",
+      "approveConfirm": "Approve this note?",
+      "postConfirm": "Post this note to the general ledger?",
+      "deleteConfirm": "Delete this note? This action cannot be undone.",
+      "cancelTitle": "Cancel Note",
+      "cancelReasonPrompt": "Please provide a reason for cancellation:",
+      "cancelReasonPlaceholder": "Cancellation reason...",
+      "confirmCancel": "Confirm Cancellation",
+      "rejectTitle": "Reject Note",
+      "rejectReasonPrompt": "Please provide a reason for rejection:",
+      "rejectReasonPlaceholder": "Rejection reason...",
+      "confirmReject": "Confirm Rejection"
+    },
+    "empty": {
+      "notFound": "Credit / debit note not found",
+      "cancelledBanner": "This note has been cancelled"
+    },
+    "toast": {
+      "requiredFields": "Please fill in all required fields",
+      "atLeastOneLine": "Please add at least one line item",
+      "createFailed": "Failed to create credit / debit note",
+      "loadFailed": "Failed to load note data",
+      "submitFailed": "Failed to submit note for approval",
+      "approveFailed": "Failed to approve note",
+      "rejectReasonRequired": "Please provide a reason for rejection",
+      "rejectFailed": "Failed to reject note",
+      "postFailed": "Failed to post note",
+      "cancelReasonRequired": "Please provide a reason for cancellation",
+      "cancelFailed": "Failed to cancel note",
+      "deleteFailed": "Failed to delete note"
+    }
+  },
+  "creditNotes": {
+    "title": "Credit Notes",
+    "description": "Manage credit notes for customers and vendors",
+    "stats": {
+      "draft": "Draft",
+      "pendingApproval": "Pending Approval",
+      "postedThisMonth": "Posted This Month",
+      "totalCreditedThisMonth": "Total Credited (This Month)"
+    },
+    "columns": {
+      "noteNumber": "Note No.",
+      "noteType": "Type",
+      "noteDate": "Date",
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "referenceInvoice": "Reference Invoice",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "description": "Description",
+      "glAccount": "GL Account",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "lineTotal": "Line Total"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Pending Approval",
+      "approved": "Approved",
+      "posted": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "searchPlaceholder": "Search credit notes...",
+      "arCredit": "AR Credit Note",
+      "apCredit": "AP Credit Note"
+    },
+    "reasons": {
+      "return": "Goods Return",
+      "price_adjustment": "Price Adjustment",
+      "quantity_adjustment": "Quantity Adjustment",
+      "defect": "Defective Goods",
+      "discount": "Additional Discount",
+      "other": "Other"
+    },
+    "actions": {
+      "view": "View",
+      "new": "New Credit Note",
+      "cancel": "Cancel",
+      "saveDraft": "Save Draft",
+      "submit": "Submit",
+      "cancelNote": "Cancel Note",
+      "approve": "Approve",
+      "post": "Post to GL",
+      "backToList": "Back to List"
+    },
+    "stepper": {
+      "title": "Workflow Status"
+    },
+    "detail": {
+      "noteDetails": "Note Details",
+      "journalEntry": "Journal Entry",
+      "approvedAt": "Approved At",
+      "postedAt": "Posted At"
+    },
+    "form": {
+      "arInvoiceId": "Customer Invoice ID",
+      "apInvoiceId": "Vendor Invoice ID",
+      "invoiceIdPlaceholder": "Enter invoice ID",
+      "invoiceInfo": "Invoice: {invoiceNumber} | Available: {available}",
+      "date": "Date",
+      "reason": "Reason",
+      "reasonDescription": "Reason Description",
+      "reasonDescriptionPlaceholder": "Enter reason description",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes",
+      "noteType": "Note Type",
+      "referenceInvoice": "Reference Invoice",
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "lines": "Line Items",
+      "subtotal": "Subtotal",
+      "vatFixed": "VAT (7%)",
+      "vat": "VAT ({rate}%):",
+      "grandTotal": "Grand Total"
+    },
+    "dialog": {
+      "cancelTitle": "Cancel Credit Note",
+      "cancelReasonLabel": "Cancellation Reason",
+      "cancelReasonPlaceholder": "Enter the reason for cancellation",
+      "confirmCancel": "Confirm Cancellation"
+    },
+    "empty": {
+      "notFound": "Credit note not found"
+    },
+    "toast": {
+      "selectInvoice": "Please select an invoice",
+      "atLeastOneLine": "Please add at least one line item",
+      "createSuccess": "Credit note created successfully",
+      "createFailed": "Failed to create credit note",
+      "loadFailed": "Failed to load credit note",
+      "submitSuccess": "Credit note submitted for approval",
+      "submitFailed": "Failed to submit",
+      "approveSuccess": "Credit note approved",
+      "approveFailed": "Failed to approve",
+      "postSuccess": "Credit note posted. Journal entry no.: {journalEntryNumber}",
+      "postFailed": "Failed to post",
+      "cancelReasonRequired": "Please enter a cancellation reason",
+      "cancelSuccess": "Credit note cancelled",
+      "cancelFailed": "Failed to cancel"
+    }
+  },
+  "debitNotes": {
+    "title": "Debit Notes",
+    "description": "Manage debit notes for customers and vendors",
+    "columns": {
+      "noteNumber": "Note No.",
+      "noteType": "Type",
+      "noteDate": "Date",
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "referenceInvoice": "Reference Invoice",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "description": "Description",
+      "glAccount": "GL Account",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "lineTotal": "Line Total"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Pending Approval",
+      "approved": "Approved",
+      "posted": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "searchPlaceholder": "Search debit notes...",
+      "arDebit": "AR Debit Note",
+      "apDebit": "AP Debit Note"
+    },
+    "reasons": {
+      "price_adjustment": "Price Adjustment",
+      "quantity_adjustment": "Quantity Adjustment",
+      "other": "Other"
+    },
+    "actions": {
+      "view": "View",
+      "new": "New Debit Note",
+      "cancel": "Cancel",
+      "saveDraft": "Save Draft",
+      "post": "Post to GL",
+      "backToList": "Back to List"
+    },
+    "stepper": {
+      "title": "Workflow Status"
+    },
+    "detail": {
+      "noteDetails": "Note Details",
+      "journalEntry": "Journal Entry",
+      "postedAt": "Posted At"
+    },
+    "form": {
+      "arInvoiceId": "Customer Invoice ID",
+      "apInvoiceId": "Vendor Invoice ID",
+      "invoiceIdPlaceholder": "Enter invoice ID",
+      "invoiceInfo": "Invoice: {invoiceNumber}",
+      "date": "Date",
+      "reason": "Reason",
+      "reasonDescription": "Reason Description",
+      "reasonDescriptionPlaceholder": "Enter reason description",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes",
+      "noteType": "Note Type",
+      "referenceInvoice": "Reference Invoice",
+      "customer": "Customer",
+      "vendor": "Vendor",
+      "lines": "Line Items",
+      "addLine": "Add Line",
+      "subtotal": "Subtotal",
+      "vatFixed": "VAT (7%)",
+      "vat": "VAT ({rate}%):",
+      "grandTotal": "Grand Total"
+    },
+    "empty": {
+      "notFound": "Debit note not found"
+    },
+    "toast": {
+      "selectInvoice": "Please select an invoice",
+      "atLeastOneLine": "Please add at least one line item",
+      "createSuccess": "Debit note created successfully",
+      "createFailed": "Failed to create debit note",
+      "loadFailed": "Failed to load debit note",
+      "postSuccess": "Debit note posted. Journal entry no.: {journalEntryNumber}",
+      "postFailed": "Failed to post"
+    }
+  },
+  "matching": {
+    "title": "Matching Exceptions",
+    "subtitle": "Review and resolve exceptions from 3-way matching",
+    "gridTitle": "Exceptions",
+    "columns": {
+      "id": "ID",
+      "poNumber": "PO Number",
+      "grnNumber": "GRN Number",
+      "invoiceNumber": "Invoice Number",
+      "vendor": "Vendor",
+      "amount": "Amount",
+      "type": "Type",
+      "variance": "Variance",
+      "variancePct": "Variance %",
+      "status": "Status",
+      "resolvedBy": "Resolved By",
+      "notes": "Notes",
+      "actions": "Actions"
+    },
+    "status": {
+      "matched": "Matched",
+      "unmatched": "Unmatched",
+      "partial": "Partial",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "exceptionTypes": {
+      "over_quantity": "Over Quantity",
+      "under_quantity": "Under Quantity",
+      "over_price": "Over Price",
+      "under_price": "Under Price",
+      "quantity_variance": "Quantity Variance",
+      "price_variance": "Price Variance",
+      "amount_variance": "Amount Variance",
+      "missing_grn": "Missing GRN",
+      "missing_po": "Missing PO",
+      "partial_receipt": "Partial Receipt"
+    },
+    "actions": {
+      "match": "Match",
+      "approve": "Approve",
+      "reject": "Reject",
+      "refresh": "Refresh"
+    },
+    "stats": {
+      "matchedToday": "Matched Today",
+      "exceptionsToday": "Exceptions Today",
+      "pending": "Pending Review",
+      "matchedThisMonth": "Matched This Month"
+    },
+    "filters": {
+      "search": "Search exceptions..."
+    },
+    "empty": {
+      "title": "No exceptions"
+    },
+    "dialog": {
+      "approveTitle": "Approve Exception",
+      "rejectTitle": "Reject Exception",
+      "exceptionType": "Exception Type",
+      "variance": "Variance",
+      "comments": "Comments",
+      "commentsPlaceholder": "Enter comments..."
+    }
+  },
+  "varianceReports": {
+    "title": "Variance Reports",
+    "subtitle": "Manufacturing variance analysis and cost control reports",
+    "filters": {
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "groupBy": "Group By",
+      "refresh": "Refresh",
+      "groupOptions": {
+        "varianceType": "Variance Type",
+        "item": "Item",
+        "workOrder": "Work Order",
+        "month": "Month"
+      }
+    },
+    "tabs": {
+      "summary": "Summary",
+      "material": "Material Variance",
+      "labor": "Labor Variance"
+    },
+    "stats": {
+      "totalVariances": "Total Variances",
+      "favorable": "Favorable",
+      "unfavorable": "Unfavorable",
+      "totalMaterialVariance": "Total Material Variance",
+      "mpv": "Price Variance (MPV)",
+      "muv": "Usage Variance (MUV)",
+      "totalLaborVariance": "Total Labor Variance",
+      "lrv": "Rate Variance (LRV)",
+      "lev": "Efficiency Variance (LEV)"
+    },
+    "chart": {
+      "byType": "Variance by Type"
+    },
+    "columns": {
+      "group": "Group",
+      "mpv": "MPV",
+      "muv": "MUV",
+      "lrv": "LRV",
+      "lev": "LEV",
+      "voh": "VOH",
+      "foh": "FOH",
+      "total": "Total",
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "standardPrice": "Standard Price",
+      "actualPrice": "Actual Price",
+      "priceVariance": "Price Variance",
+      "standardQty": "Standard Qty",
+      "actualQty": "Actual Qty",
+      "usageVariance": "Usage Variance",
+      "workOrderNumber": "Work Order",
+      "item": "Item",
+      "standardHours": "Standard Hours",
+      "actualHours": "Actual Hours",
+      "standardRate": "Standard Rate",
+      "actualRate": "Actual Rate",
+      "rateVariance": "Rate Variance",
+      "efficiencyVariance": "Efficiency Variance"
+    },
+    "empty": {
+      "title": "No variance data"
+    }
+  },
+  "standardCosts": {
+    "title": "Standard Costs",
+    "subtitle": "Manage standard costs for manufacturing variance analysis",
+    "gridTitle": "Standard Costs",
+    "columns": {
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "effectiveDate": "Effective Date",
+      "materialCost": "Material",
+      "laborCost": "Labor",
+      "overheadCost": "Overhead",
+      "totalCost": "Total Cost",
+      "status": "Status"
+    },
+    "status": {
+      "current": "Current",
+      "history": "History"
+    },
+    "actions": {
+      "add": "Add Cost",
+      "rollup": "Roll Up from BOM"
+    },
+    "dialog": {
+      "createTitle": "Create Standard Cost",
+      "itemInfo": "Item Information",
+      "selectItem": "Select item",
+      "costGroup": "Costs",
+      "laborStandardGroup": "Labor Standards"
+    },
+    "validation": {
+      "selectItem": "Please select an item",
+      "effectiveDate": "Please specify effective date"
+    },
+    "toast": {
+      "createSuccess": "Standard cost created successfully",
+      "createFailed": "Failed to create standard cost",
+      "rollupSuccess": "Roll-up successful: updated {updated} of {processed} items",
+      "rollupFailed": "Roll-up failed"
+    },
+    "empty": {
+      "title": "No standard costs"
+    }
+  },
+  "approvals": {
+    "title": "Approval Dashboard",
+    "subtitle": "Pending approvals and recent approval activity",
+    "pendingGridTitle": "Pending Approvals",
+    "recentGridTitle": "Recent Actions",
+    "columns": {
+      "requestId": "Request ID",
+      "type": "Type",
+      "documentId": "Document ID",
+      "flow": "Flow",
+      "step": "Step",
+      "requestedBy": "Requested By",
+      "amount": "Amount",
+      "requestedAt": "Requested At",
+      "actions": "Actions",
+      "action": "Action",
+      "actionBy": "By",
+      "actionAt": "At",
+      "comments": "Comments"
+    },
+    "documentTypes": {
+      "purchase_requisition": "Purchase Requisition",
+      "purchase_order": "Purchase Order",
+      "ap_invoice": "AP Invoice",
+      "ar_invoice": "AR Invoice",
+      "payment": "Payment",
+      "credit_note": "Credit Note",
+      "debit_note": "Debit Note"
+    },
+    "status": {
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "pending": "Pending"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "refresh": "Refresh"
+    },
+    "stats": {
+      "pending": "Pending Approval",
+      "approvedToday": "Approved Today",
+      "rejectedToday": "Rejected Today"
+    },
+    "filters": {},
+    "empty": {
+      "title": "No pending approvals"
+    },
+    "dialog": {
+      "approveTitle": "Approve Request",
+      "rejectTitle": "Reject Request",
+      "requestDetails": "Request Details",
+      "requestedBy": "Requested By",
+      "comments": "Comments",
+      "approvePlaceholder": "Enter approval comments...",
+      "rejectPlaceholder": "Enter rejection comments..."
+    }
+  },
+  "bankReconciliation": {
+    "title": "Bank Reconciliation",
+    "subtitle": "Import bank statements and reconcile against accounting entries",
+    "importStatement": "Import Bank Statement",
+    "backToList": "Back to Bank Reconciliation",
+    "notFound": "Bank statement not found",
+    "stats": {
+      "totalStatements": "Total Statements",
+      "totalStatementsSubtitle": "All imported statements",
+      "pending": "Pending Reconciliation",
+      "pendingSubtitle": "Awaiting action",
+      "reconciledThisMonth": "Reconciled This Month",
+      "reconciledThisMonthSubtitle": "Completed this period",
+      "unmatchedLines": "Unmatched Lines",
+      "unmatchedLinesSubtitle": "Need review"
+    },
+    "columns": {
+      "statementNumber": "Statement Number",
+      "bankAccount": "Bank Account",
+      "date": "Date",
+      "openingBalance": "Opening Balance",
+      "closingBalance": "Closing Balance",
+      "matched": "Matched",
+      "unmatched": "Unmatched",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": {
+      "viewReconcile": "View / Reconcile",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "toast": {
+      "deleteSuccess": "Bank statement deleted successfully",
+      "deleteLocked": "Cannot delete a reconciled or closed statement",
+      "deleteConfirm": "Are you sure you want to delete bank statement \"{number}\"?"
+    },
+    "reconcile": {
+      "back": "Back",
+      "autoMatch": "Auto Match",
+      "finalize": "Finalize Reconciliation",
+      "autoMatchResult": "Auto match complete: matched {matched} of {total} lines",
+      "autoMatchFailed": "Auto match failed",
+      "unmatchConfirm": "Are you sure you want to unmatch this line?",
+      "unmatchFailed": "Failed to unmatch line",
+      "ignorePrompt": "Enter a reason for ignoring (optional):",
+      "ignoreFailed": "Failed to ignore line",
+      "defaultChargeDescription": "Bank fee: {description}",
+      "createJournalFailed": "Unable to create journal entry",
+      "finalizeUnbalancedConfirm": "The reconciliation is not balanced. Force finalize anyway?",
+      "finalizeSuccess": "Reconciliation finalized successfully",
+      "finalizeFailed": "Unable to finalize reconciliation",
+      "openingBalance": "Opening Balance",
+      "closingBalance": "Closing Balance",
+      "totalDebits": "Total Debits",
+      "totalCredits": "Total Credits",
+      "status": "Status",
+      "balanced": "Balanced",
+      "unbalanced": "Unbalanced",
+      "difference": "Difference: {amount}",
+      "matchingProgress": "Matching Progress",
+      "matchedProgress": "Matched {matched} / {total} lines",
+      "statementLines": "Statement Lines",
+      "journalDialogTitle": "Create Bank Charge Journal Entry",
+      "amount": "Amount",
+      "chargeTypeLabel": "Charge Type",
+      "expenseAccountLabel": "Expense Account",
+      "expenseAccountPlaceholder": "Select expense account",
+      "descriptionLabel": "Description",
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "createJournal": "Create Journal Entry",
+      "chargeTypes": {
+        "bankFee": "Bank Fee",
+        "interestExpense": "Interest Expense",
+        "interestIncome": "Interest Income",
+        "other": "Other"
+      }
+    },
+    "csvImport": {
+      "title": "Import Bank Statement",
+      "dateFormats": {
+        "thai": "DD/MM/YYYY (Thai)",
+        "iso": "YYYY-MM-DD (ISO)",
+        "us": "MM/DD/YYYY (US)",
+        "dashed": "DD-MM-YYYY"
+      },
+      "upload": {
+        "heading": "Upload Bank Statement CSV File",
+        "subtitle": "Select the CSV file exported from your bank",
+        "selectFile": "Select CSV File"
+      },
+      "mapping": {
+        "heading": "Map CSV Columns",
+        "subtitle": "Map the columns in the CSV file to the required fields",
+        "firstRowHeader": "First row is the header",
+        "dateFormat": "Date Format",
+        "dateColumnLabel": "Date Column *",
+        "dateColumnPlaceholder": "Select date column",
+        "descriptionColumnLabel": "Description Column *",
+        "descriptionColumnPlaceholder": "Select description column",
+        "debitColumnLabel": "Debit Amount Column",
+        "debitColumnPlaceholder": "Select debit column",
+        "creditColumnLabel": "Credit Amount Column",
+        "creditColumnPlaceholder": "Select credit column",
+        "referenceColumnLabel": "Reference Column",
+        "referenceColumnPlaceholder": "Select reference column",
+        "balanceColumnLabel": "Balance Column",
+        "balanceColumnPlaceholder": "Select balance column"
+      },
+      "preview": {
+        "heading": "Review Before Import",
+        "ready": "{count} entries ready to import"
+      },
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "debit": "Debit",
+        "credit": "Credit",
+        "reference": "Reference",
+        "balance": "Balance"
+      },
+      "actions": {
+        "back": "Back",
+        "next": "Next",
+        "import": "Import",
+        "importing": "Importing..."
+      }
+    },
+    "statementLines": {
+      "status": {
+        "unmatched": "Unmatched",
+        "matched": "Matched",
+        "partially_matched": "Partially Matched",
+        "journal_created": "Journal Created",
+        "ignored": "Ignored"
+      },
+      "actions": {
+        "match": "Match",
+        "createJournal": "Create Journal Entry",
+        "ignore": "Ignore",
+        "unmatch": "Unmatch"
+      },
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "reference": "Reference",
+        "amount": "Amount",
+        "type": "Type",
+        "status": "Status",
+        "confidence": "Confidence",
+        "actions": "Actions"
+      }
+    },
+    "statementForm": {
+      "loading": "Loading bank statement...",
+      "titleCreate": "Import Bank Statement",
+      "titleEdit": "Edit: {number}",
+      "lockedWarning": "This bank statement is in {status} status and cannot be edited",
+      "netChange": "Net Change:",
+      "actions": {
+        "back": "Back",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "createAndImport": "Create and Import CSV",
+        "saveEdit": "Save Changes"
+      },
+      "deleteConfirm": {
+        "title": "Confirm Deletion",
+        "message": "Are you sure you want to delete this bank statement? All related entries will also be deleted."
+      },
+      "sections": {
+        "details": "Bank Statement Details",
+        "balances": "Balances"
+      },
+      "fields": {
+        "bankAccount": "Bank Account",
+        "bankAccountPlaceholder": "Select bank account",
+        "statementDate": "Statement Date",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "reference": "Reference",
+        "referencePlaceholder": "Reference (optional)",
+        "openingBalance": "Opening Balance",
+        "closingBalance": "Closing Balance"
+      },
+      "info": {
+        "title": "Bank Statement Information",
+        "id": "ID",
+        "statementNumber": "Statement Number",
+        "status": "Status",
+        "bankAccount": "Bank Account",
+        "accountNumber": "Account Number",
+        "createdAt": "Created At",
+        "updatedAt": "Last Updated"
+      },
+      "summary": {
+        "title": "Reconciliation Summary",
+        "totalLines": "Total Lines",
+        "matched": "Matched",
+        "unmatched": "Unmatched",
+        "totalDebits": "Total Debits",
+        "totalCredits": "Total Credits",
+        "goToReconciliation": "Go to Reconciliation"
+      },
+      "toast": {
+        "updated": "Bank statement updated successfully",
+        "deleted": "Bank statement deleted successfully",
+        "requiredFields": "Please fill in the required fields",
+        "linesImported": "Statement lines imported successfully",
+        "created": "Bank statement created successfully"
+      }
+    },
+    "matchingDialog": {
+      "title": "Match Statement Line",
+      "statementLineHeading": "Statement Line",
+      "fields": {
+        "date": "Date:",
+        "amount": "Amount:",
+        "description": "Description:"
+      },
+      "availablePayments": "Available Payments",
+      "filteredCount": "(showing {shown} of {total} entries with similar amounts)",
+      "loading": "Loading...",
+      "noPayments": "No unmatched payments found",
+      "columns": {
+        "documentNumber": "Document Number",
+        "date": "Date",
+        "amount": "Amount",
+        "vendorOrCustomer": "Vendor/Customer",
+        "reference": "Reference",
+        "type": "Type"
+      },
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add notes about this match...",
+      "actions": {
+        "cancel": "Cancel",
+        "matchSelected": "Match Selected Entry",
+        "matching": "Matching..."
+      }
+    }
+  },
+  "charts": {
+    "revenueExpenses": {
+      "title": "Revenue vs Expenses Trend",
+      "loading": "Loading...",
+      "series": {
+        "revenue": "Revenue",
+        "cogs": "COGS",
+        "operatingExpenses": "Operating Expenses"
+      }
+    }
+  }
 }

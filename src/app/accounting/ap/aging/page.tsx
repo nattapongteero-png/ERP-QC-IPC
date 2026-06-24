@@ -86,11 +86,11 @@ export default function APAgingReportPage() {
   // Prepare chart data
   const chartData = reportData
     ? [
-        { name: 'ยังไม่ครบกำหนด', amount: reportData.totals.current },
-        { name: '1-30 วัน', amount: reportData.totals.days1to30 },
-        { name: '31-60 วัน', amount: reportData.totals.days31to60 },
-        { name: '61-90 วัน', amount: reportData.totals.days61to90 },
-        { name: 'เกิน 90 วัน', amount: reportData.totals.over90 },
+        { name: t('accountsPayable.agingPage.buckets.current'), amount: reportData.totals.current },
+        { name: t('accountsPayable.agingPage.buckets.days1to30'), amount: reportData.totals.days1to30 },
+        { name: t('accountsPayable.agingPage.buckets.days31to60'), amount: reportData.totals.days31to60 },
+        { name: t('accountsPayable.agingPage.buckets.days61to90'), amount: reportData.totals.days61to90 },
+        { name: t('accountsPayable.agingPage.buckets.over90'), amount: reportData.totals.over90 },
       ]
     : [];
 
@@ -102,7 +102,7 @@ export default function APAgingReportPage() {
         icon="clock"
         onBack={() => window.location.href = '/accounting/ap'}
         breadcrumbs={[
-          { label: 'เจ้าหนี้การค้า', href: '/accounting/ap' },
+          { label: t('accountsPayable.title'), href: '/accounting/ap' },
           { label: t('reports.agingReport') },
         ]}
       />
@@ -111,7 +111,7 @@ export default function APAgingReportPage() {
         {/* Filter Panel */}
         <AccountingFilterPanel>
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">ณ วันที่</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('accountsPayable.agingPage.asOfDate')}</label>
             <DateBox
               value={asOfDate}
               onValueChanged={(e) => setAsOfDate(e.value)}
@@ -123,7 +123,7 @@ export default function APAgingReportPage() {
 
           <div className="flex gap-2 items-end">
             <Button
-              text="สร้างรายงาน"
+              text={t('accountsPayable.agingPage.generateReport')}
               type="default"
               stylingMode="contained"
               onClick={handleGenerateReport}
@@ -136,44 +136,44 @@ export default function APAgingReportPage() {
         {reportData && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <AccountingKPICard
-              label="ยอดค้างชำระทั้งหมด"
+              label={t('accountsPayable.agingPage.kpi.totalOutstanding')}
               value={formatCurrency(reportData.totals.total)}
-              subtitle="ผู้ขายทั้งหมด"
+              subtitle={t('accountsPayable.agingPage.kpi.allVendors')}
               icon="wallet"
               variant="danger"
             />
             <AccountingKPICard
-              label="ยังไม่ครบกำหนด"
+              label={t('accountsPayable.agingPage.buckets.current')}
               value={formatCurrency(reportData.totals.current)}
-              subtitle="ยังไม่เกินกำหนด"
+              subtitle={t('accountsPayable.agingPage.kpi.notOverdue')}
               icon="check-circle"
               variant="success"
             />
             <AccountingKPICard
-              label="1-30 วัน"
+              label={t('accountsPayable.agingPage.buckets.days1to30')}
               value={formatCurrency(reportData.totals.days1to30)}
-              subtitle="เกินกำหนด"
+              subtitle={t('accountsPayable.agingPage.kpi.overdue')}
               icon="clock"
               variant="info"
             />
             <AccountingKPICard
-              label="31-60 วัน"
+              label={t('accountsPayable.agingPage.buckets.days31to60')}
               value={formatCurrency(reportData.totals.days31to60)}
-              subtitle="เกินกำหนด"
+              subtitle={t('accountsPayable.agingPage.kpi.overdue')}
               icon="clock"
               variant="warning"
             />
             <AccountingKPICard
-              label="61-90 วัน"
+              label={t('accountsPayable.agingPage.buckets.days61to90')}
               value={formatCurrency(reportData.totals.days61to90)}
-              subtitle="เกินกำหนด"
+              subtitle={t('accountsPayable.agingPage.kpi.overdue')}
               icon="clock"
               variant="warning"
             />
             <AccountingKPICard
-              label="เกิน 90 วัน"
+              label={t('accountsPayable.agingPage.buckets.over90')}
               value={formatCurrency(reportData.totals.over90)}
-              subtitle="เกินกำหนด"
+              subtitle={t('accountsPayable.agingPage.kpi.overdue')}
               icon="clock"
               variant="danger"
             />
@@ -183,7 +183,7 @@ export default function APAgingReportPage() {
         {/* Aging Bar Chart */}
         {reportData && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">การกระจายตามอายุหนี้</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('accountsPayable.agingPage.distributionTitle')}</h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
@@ -198,7 +198,7 @@ export default function APAgingReportPage() {
                     labelStyle={{ fontWeight: 600 }}
                   />
                   <Legend />
-                  <Bar dataKey="amount" name="ยอดเจ้าหนี้" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="amount" name={t('accountsPayable.agingPage.payableAmount')} fill="#f97316" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -210,7 +210,7 @@ export default function APAgingReportPage() {
           {isLoading ? (
             <div className="text-center py-12" data-testid="loading-spinner">
               <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="mt-4 text-gray-600">กำลังโหลดรายงาน...</p>
+              <p className="mt-4 text-gray-600">{t('accountsPayable.agingPage.loadingReport')}</p>
             </div>
           ) : error ? (
             <div className="text-center py-12" data-testid="error-message">
@@ -220,7 +220,7 @@ export default function APAgingReportPage() {
                 </svg>
               </div>
               <p className="text-red-600 font-medium">
-                ข้อผิดพลาด: {error instanceof Error ? error.message : 'ไม่สามารถโหลดรายงานได้'}
+                {t('accountsPayable.agingPage.errorPrefix')}: {error instanceof Error ? error.message : t('accountsPayable.agingPage.loadReportError')}
               </p>
             </div>
           ) : !reportData ? (
@@ -230,14 +230,14 @@ export default function APAgingReportPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-lg font-medium mb-2">ยังไม่ได้สร้างรายงาน</p>
-              <p className="text-gray-400 text-sm">เลือกวันที่ ณ วันที่ แล้วคลิกสร้างรายงานเพื่อดูข้อมูล</p>
+              <p className="text-gray-500 text-lg font-medium mb-2">{t('accountsPayable.agingPage.noReportTitle')}</p>
+              <p className="text-gray-400 text-sm">{t('accountsPayable.agingPage.noReportDescription')}</p>
             </div>
           ) : (
             <div data-testid="aging-report-grid">
               <div className="mb-4 pb-2 border-b border-gray-200">
-                <h3 className="text-xl font-bold text-gray-900">อายุหนี้เจ้าหนี้ตามผู้ขาย</h3>
-                <p className="text-sm text-gray-500 mt-1">ณ วันที่ {reportData.asOfDate}</p>
+                <h3 className="text-xl font-bold text-gray-900">{t('accountsPayable.agingPage.gridTitle')}</h3>
+                <p className="text-sm text-gray-500 mt-1">{t('accountsPayable.agingPage.asOfDateValue', { date: reportData.asOfDate })}</p>
               </div>
               <DataGrid
                 dataSource={reportData.entries}
@@ -246,13 +246,13 @@ export default function APAgingReportPage() {
                 keyExpr="entityId"
                 className="report-grid"
               >
-                <Column dataField="entityName" caption="ชื่อผู้ขาย" />
-                <Column dataField="current" caption="ยังไม่ครบกำหนด" format="#,##0.00" width={120} />
-                <Column dataField="days1to30" caption="1-30 วัน" format="#,##0.00" width={120} />
-                <Column dataField="days31to60" caption="31-60 วัน" format="#,##0.00" width={120} />
-                <Column dataField="days61to90" caption="61-90 วัน" format="#,##0.00" width={120} />
-                <Column dataField="over90" caption="เกิน 90 วัน" format="#,##0.00" width={120} />
-                <Column dataField="total" caption="รวม" format="#,##0.00" width={140} />
+                <Column dataField="entityName" caption={t('accountsPayable.agingPage.columns.vendorName')} />
+                <Column dataField="current" caption={t('accountsPayable.agingPage.buckets.current')} format="#,##0.00" width={120} />
+                <Column dataField="days1to30" caption={t('accountsPayable.agingPage.buckets.days1to30')} format="#,##0.00" width={120} />
+                <Column dataField="days31to60" caption={t('accountsPayable.agingPage.buckets.days31to60')} format="#,##0.00" width={120} />
+                <Column dataField="days61to90" caption={t('accountsPayable.agingPage.buckets.days61to90')} format="#,##0.00" width={120} />
+                <Column dataField="over90" caption={t('accountsPayable.agingPage.buckets.over90')} format="#,##0.00" width={120} />
+                <Column dataField="total" caption={t('common.total')} format="#,##0.00" width={140} />
                 <Summary>
                   <TotalItem column="current" summaryType="sum" valueFormat="#,##0.00" />
                   <TotalItem column="days1to30" summaryType="sum" valueFormat="#,##0.00" />
@@ -264,7 +264,7 @@ export default function APAgingReportPage() {
               </DataGrid>
 
               <div className="text-right font-bold text-lg mt-6 p-4 bg-gradient-to-r from-gray-50 to-slate-100 border border-gray-300 rounded-xl">
-                รวมทั้งสิ้น: <span className="text-orange-700">{formatCurrency(reportData.totals.total)}</span>
+                {t('common.grandTotal')}: <span className="text-orange-700">{formatCurrency(reportData.totals.total)}</span>
               </div>
             </div>
           )}

@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -28,18 +29,21 @@ interface ColumnMapping {
   balanceColumn: string;
 }
 
-const dateFormats = [
-  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY (ไทย)' },
-  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (ISO)' },
-  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (สหรัฐฯ)' },
-  { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY' },
-];
-
 export function CSVImportDialog({
   visible,
   onClose,
   onImport,
 }: CSVImportDialogProps) {
+  const t = useTranslations('accounting');
+  const dateFormats = useMemo(
+    () => [
+      { value: 'DD/MM/YYYY', label: t('bankReconciliation.csvImport.dateFormats.thai') },
+      { value: 'YYYY-MM-DD', label: t('bankReconciliation.csvImport.dateFormats.iso') },
+      { value: 'MM/DD/YYYY', label: t('bankReconciliation.csvImport.dateFormats.us') },
+      { value: 'DD-MM-YYYY', label: t('bankReconciliation.csvImport.dateFormats.dashed') },
+    ],
+    [t]
+  );
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -205,7 +209,7 @@ export function CSVImportDialog({
     <Popup
       visible={visible}
       onHiding={handleClose}
-      title="นำเข้ารายการเดินบัญชีธนาคาร"
+      title={t('bankReconciliation.csvImport.title')}
       width={800}
       height={600}
       showCloseButton={true}
@@ -216,10 +220,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-center mb-6">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                อัปโหลดไฟล์ CSV รายการเดินบัญชี
+                {t('bankReconciliation.csvImport.upload.heading')}
               </h3>
               <p className="text-sm text-gray-500">
-                เลือกไฟล์ CSV ที่ส่งออกจากธนาคารของคุณ
+                {t('bankReconciliation.csvImport.upload.subtitle')}
               </p>
             </div>
             <input
@@ -231,7 +235,7 @@ export function CSVImportDialog({
               data-testid="csv-file-input"
             />
             <Button
-              text="เลือกไฟล์ CSV"
+              text={t('bankReconciliation.csvImport.upload.selectFile')}
               icon="upload"
               type="default"
               stylingMode="contained"
@@ -245,10 +249,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                จับคู่คอลัมน์ CSV
+                {t('bankReconciliation.csvImport.mapping.heading')}
               </h3>
               <p className="text-sm text-gray-500">
-                จับคู่คอลัมน์ในไฟล์ CSV กับฟิลด์ที่ต้องการ
+                {t('bankReconciliation.csvImport.mapping.subtitle')}
               </p>
             </div>
 
@@ -258,10 +262,10 @@ export function CSVImportDialog({
                   value={hasHeader}
                   onValueChanged={(e) => setHasHeader(e.value)}
                 />
-                <span className="text-sm">แถวแรกเป็นหัวคอลัมน์</span>
+                <span className="text-sm">{t('bankReconciliation.csvImport.mapping.firstRowHeader')}</span>
               </div>
               <div>
-                <label className="text-sm font-medium">รูปแบบวันที่</label>
+                <label className="text-sm font-medium">{t('bankReconciliation.csvImport.mapping.dateFormat')}</label>
                 <SelectBox
                   items={dateFormats}
                   value={dateFormat}
@@ -274,72 +278,72 @@ export function CSVImportDialog({
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="text-sm font-medium text-red-600">คอลัมน์วันที่ *</label>
+                <label className="text-sm font-medium text-red-600">{t('bankReconciliation.csvImport.mapping.dateColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.dateColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, dateColumn: e.value })}
-                  placeholder="เลือกคอลัมน์วันที่"
+                  placeholder={t('bankReconciliation.csvImport.mapping.dateColumnPlaceholder')}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-red-600">คอลัมน์รายละเอียด *</label>
+                <label className="text-sm font-medium text-red-600">{t('bankReconciliation.csvImport.mapping.descriptionColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.descriptionColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, descriptionColumn: e.value })}
-                  placeholder="เลือกคอลัมน์รายละเอียด"
+                  placeholder={t('bankReconciliation.csvImport.mapping.descriptionColumnPlaceholder')}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">คอลัมน์ยอดเดบิต</label>
+                <label className="text-sm font-medium">{t('bankReconciliation.csvImport.mapping.debitColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.debitColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, debitColumn: e.value })}
-                  placeholder="เลือกคอลัมน์เดบิต"
+                  placeholder={t('bankReconciliation.csvImport.mapping.debitColumnPlaceholder')}
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">คอลัมน์ยอดเครดิต</label>
+                <label className="text-sm font-medium">{t('bankReconciliation.csvImport.mapping.creditColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.creditColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, creditColumn: e.value })}
-                  placeholder="เลือกคอลัมน์เครดิต"
+                  placeholder={t('bankReconciliation.csvImport.mapping.creditColumnPlaceholder')}
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">คอลัมน์อ้างอิง</label>
+                <label className="text-sm font-medium">{t('bankReconciliation.csvImport.mapping.referenceColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.referenceColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, referenceColumn: e.value })}
-                  placeholder="เลือกคอลัมน์อ้างอิง"
+                  placeholder={t('bankReconciliation.csvImport.mapping.referenceColumnPlaceholder')}
                   showClearButton={true}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">คอลัมน์ยอดคงเหลือ</label>
+                <label className="text-sm font-medium">{t('bankReconciliation.csvImport.mapping.balanceColumnLabel')}</label>
                 <SelectBox
                   items={columnOptions}
                   value={mapping.balanceColumn}
                   valueExpr="value"
                   displayExpr="label"
                   onValueChanged={(e) => setMapping({ ...mapping, balanceColumn: e.value })}
-                  placeholder="เลือกคอลัมน์ยอดคงเหลือ"
+                  placeholder={t('bankReconciliation.csvImport.mapping.balanceColumnPlaceholder')}
                   showClearButton={true}
                 />
               </div>
@@ -369,9 +373,9 @@ export function CSVImportDialog({
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="ย้อนกลับ" onClick={() => setStep('upload')} />
+              <Button text={t('bankReconciliation.csvImport.actions.back')} onClick={() => setStep('upload')} />
               <Button
-                text="ถัดไป"
+                text={t('bankReconciliation.csvImport.actions.next')}
                 type="default"
                 stylingMode="contained"
                 onClick={handleMapping}
@@ -385,10 +389,10 @@ export function CSVImportDialog({
           <div className="flex-1 flex flex-col">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                ตรวจสอบก่อนนำเข้า
+                {t('bankReconciliation.csvImport.preview.heading')}
               </h3>
               <p className="text-sm text-gray-500">
-                {parsedLines.length} รายการพร้อมนำเข้า
+                {t('bankReconciliation.csvImport.preview.ready', { count: parsedLines.length })}
               </p>
             </div>
 
@@ -400,19 +404,19 @@ export function CSVImportDialog({
                 height={350}
               >
                 <Column dataField="rowNumber" caption="#" width={50} />
-                <Column dataField="transactionDate" caption="วันที่" width={100} />
-                <Column dataField="description" caption="รายละเอียด" />
-                <Column dataField="debitAmount" caption="เดบิต" width={100} format="fixedPoint" />
-                <Column dataField="creditAmount" caption="เครดิต" width={100} format="fixedPoint" />
-                <Column dataField="reference" caption="อ้างอิง" width={120} />
-                <Column dataField="balance" caption="ยอดคงเหลือ" width={100} format="fixedPoint" />
+                <Column dataField="transactionDate" caption={t('bankReconciliation.csvImport.columns.date')} width={100} />
+                <Column dataField="description" caption={t('bankReconciliation.csvImport.columns.description')} />
+                <Column dataField="debitAmount" caption={t('bankReconciliation.csvImport.columns.debit')} width={100} format="fixedPoint" />
+                <Column dataField="creditAmount" caption={t('bankReconciliation.csvImport.columns.credit')} width={100} format="fixedPoint" />
+                <Column dataField="reference" caption={t('bankReconciliation.csvImport.columns.reference')} width={120} />
+                <Column dataField="balance" caption={t('bankReconciliation.csvImport.columns.balance')} width={100} format="fixedPoint" />
               </DataGrid>
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="ย้อนกลับ" onClick={() => setStep('mapping')} />
+              <Button text={t('bankReconciliation.csvImport.actions.back')} onClick={() => setStep('mapping')} />
               <Button
-                text={importing ? 'กำลังนำเข้า...' : 'นำเข้า'}
+                text={importing ? t('bankReconciliation.csvImport.actions.importing') : t('bankReconciliation.csvImport.actions.import')}
                 type="success"
                 stylingMode="contained"
                 onClick={handleImport}

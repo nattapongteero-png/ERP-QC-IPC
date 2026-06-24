@@ -295,7 +295,95 @@
       "noResultsDescription": "ล้างตัวกรองเพื่อดูรายการทั้งหมด"
     },
     "refresh": "รีเฟรช",
-    "clearFilters": "ล้างตัวกรอง"
+    "clearFilters": "ล้างตัวกรอง",
+    "form": {
+      "header": {
+        "create": "สร้างรายการบันทึกบัญชี",
+        "edit": "รายการ: {entryNumber}"
+      },
+      "back": "ย้อนกลับ",
+      "saveEdit": "บันทึกการแก้ไข",
+      "loading": "กำลังโหลดข้อมูล...",
+      "sections": {
+        "general": "ข้อมูลทั่วไป",
+        "lines": "รายการบัญชี"
+      },
+      "referenceNumber": "เลขที่อ้างอิง",
+      "referenceNumberPlaceholder": "เลขที่เอกสารอ้างอิง",
+      "descriptionPlaceholder": "คำอธิบายรายการ",
+      "costCenter": "ศูนย์ต้นทุน",
+      "addLine": "เพิ่มบรรทัด",
+      "deleteLine": "ลบ",
+      "selectAccount": "เลือกบัญชี",
+      "noneOption": "- ไม่ระบุ -",
+      "balanced": "ยอดเดบิตและเครดิตเท่ากัน",
+      "differenceLabel": "ผลต่าง: {diff}",
+      "validationSummaryTitle": "ตรวจสอบข้อมูล",
+      "summaryTitle": "สรุปยอด",
+      "totalDebit": "ยอดเดบิต",
+      "totalCredit": "ยอดเครดิต",
+      "difference": "ผลต่าง",
+      "auditHistory": "ประวัติการเปลี่ยนแปลง",
+      "auditHistoryTitle": "ประวัติการเปลี่ยนแปลง: {entryNumber}",
+      "entryInfo": {
+        "title": "ข้อมูลรายการ",
+        "number": "เลขที่",
+        "postedAt": "ผ่านรายการเมื่อ",
+        "createdAt": "สร้างเมื่อ",
+        "updatedAt": "แก้ไขล่าสุด"
+      },
+      "tips": {
+        "title": "คำแนะนำ",
+        "balanced": "ยอดเดบิตและเครดิตต้องเท่ากัน",
+        "minLines": "ต้องมีอย่างน้อย 2 รายการ",
+        "postedReadOnly": "รายการที่ผ่านแล้วจะแก้ไขไม่ได้",
+        "useReverse": "ใช้ \"กลับรายการ\" เพื่อยกเลิก"
+      },
+      "dialogs": {
+        "postMessage": "คุณต้องการผ่านรายการบันทึกนี้หรือไม่?",
+        "reverseMessage": "คุณต้องการกลับรายการนี้หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ"
+      },
+      "lineError": {
+        "debitOrCredit": "ต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง",
+        "selectAccount": "กรุณาเลือกบัญชี",
+        "enterAmount": "กรุณาระบุยอดเงิน"
+      },
+      "category": {
+        "asset": "สินทรัพย์",
+        "liability": "หนี้สิน",
+        "equity": "ส่วนของเจ้าของ",
+        "revenue": "รายได้",
+        "expense": "ค่าใช้จ่าย"
+      },
+      "warning": {
+        "duplicateDebit": "บัญชี \"{account}\" ถูกใช้ฝั่งเดบิต {count} ครั้ง",
+        "duplicateCredit": "บัญชี \"{account}\" ถูกใช้ฝั่งเครดิต {count} ครั้ง",
+        "normalDebit": "บรรทัด {line}: บัญชี \"{account}\" ({category}) ปกติเป็นเดบิต แต่ถูกบันทึกเครดิต - กรุณาตรวจสอบ",
+        "normalCredit": "บรรทัด {line}: บัญชี \"{account}\" ({category}) ปกติเป็นเครดิต แต่ถูกบันทึกเดบิต - กรุณาตรวจสอบ"
+      },
+      "error": {
+        "expenseWithRevenue": "ไม่ควรบันทึกค่าใช้จ่าย (เดบิต) พร้อมกับรายได้ (เครดิต) ในรายการเดียวกัน - กรุณาตรวจสอบรายการ",
+        "sameAccountBothSides": "บัญชี \"{account}\" ถูกใช้ทั้งฝั่งเดบิตและเครดิต - กรุณาตรวจสอบความถูกต้อง",
+        "bankBothSides": "บัญชีเงินสด/ธนาคารถูกใช้ทั้งฝั่งเดบิตและเครดิต - กรุณาตรวจสอบ"
+      },
+      "validation": {
+        "entryDateRequired": "กรุณาระบุวันที่บันทึก",
+        "minTwoLines": "ต้องมีรายการที่ถูกต้องอย่างน้อย 2 รายการ",
+        "minOneDebit": "ต้องมีรายการเดบิตอย่างน้อย 1 รายการ",
+        "minOneCredit": "ต้องมีรายการเครดิตอย่างน้อย 1 รายการ",
+        "unbalancedDiff": "ยอดไม่สมดุล (ผลต่าง: {diff})",
+        "linesWithBoth": "{count} รายการมีทั้งเดบิตและเครดิต",
+        "linesWithoutAccount": "{count} รายการไม่ได้ระบุบัญชี",
+        "debitOrCreditNotBoth": "รายการต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง ไม่ใช่ทั้งสอง",
+        "accountRequiredForAmounts": "กรุณาระบุบัญชีสำหรับทุกรายการที่มียอดเงิน",
+        "addAtLeastTwoLines": "กรุณาเพิ่มรายการอย่างน้อย 2 รายการ (ต้องมีทั้งเดบิตและเครดิต)",
+        "debitCreditNotEqual": "ยอดเดบิตและเครดิตไม่เท่ากัน (ผลต่าง: {diff})"
+      },
+      "toast": {
+        "createSuccess": "สร้างรายการบันทึกบัญชีสำเร็จ",
+        "updateSuccess": "บันทึกการแก้ไขสำเร็จ"
+      }
+    }
   },
   "generalLedger": {
     "title": "บัญชีแยกประเภท",
@@ -458,6 +546,269 @@
       "recordPayment": "บันทึกการรับชำระ",
       "sendReminder": "ส่งการแจ้งเตือน",
       "viewAging": "ดูรายงานอายุหนี้"
+    },
+    "paymentMethods": {
+      "transfer": "โอนเงิน",
+      "cash": "เงินสด",
+      "check": "เช็ค",
+      "other": "อื่นๆ",
+      "bankTransfer": "โอนเงินผ่านธนาคาร",
+      "cheque": "เช็ค",
+      "creditCard": "บัตรเครดิต"
+    },
+    "invoicesPage": {
+      "addInvoice": "เพิ่มใบแจ้งหนี้",
+      "searchPlaceholder": "ค้นหา...",
+      "summaryTotal": "รวม: {0}",
+      "kpi": {
+        "total": "รายการทั้งหมด",
+        "pending": "รอดำเนินการ",
+        "pendingSubtitle": "รอการยืนยัน",
+        "outstanding": "ค้างรับ",
+        "paid": "ชำระแล้ว",
+        "paidSubtitle": "เสร็จสมบูรณ์"
+      },
+      "filters": {
+        "statusLabel": "สถานะ",
+        "statusPlaceholder": "กรองสถานะ",
+        "all": "ทั้งหมด"
+      },
+      "statusLabels": {
+        "draft": "ร่าง",
+        "posted": "ลงบัญชี",
+        "partial": "รับบางส่วน",
+        "paid": "ชำระแล้ว"
+      },
+      "columns": {
+        "taxInvoiceNumber": "เลขที่ใบกำกับภาษี",
+        "date": "วันที่",
+        "description": "รายละเอียด",
+        "totalAmount": "ยอดรวม",
+        "paidAmount": "รับแล้ว",
+        "actions": "การดำเนินการ"
+      },
+      "actions": {
+        "edit": "แก้ไข",
+        "delete": "ลบ",
+        "confirm": "ยืนยัน",
+        "receivePayment": "รับชำระ"
+      },
+      "dialog": {
+        "createTitle": "สร้างใบแจ้งหนี้ขาย",
+        "editTitle": "แก้ไขใบแจ้งหนี้ขาย",
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saveEdit": "บันทึกการแก้ไข"
+      },
+      "form": {
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "invoiceNumberRequired": "กรุณากรอกเลขที่ใบแจ้งหนี้",
+        "customer": "ลูกค้า",
+        "customerRequired": "กรุณาเลือกลูกค้า",
+        "invoiceDate": "วันที่ใบแจ้งหนี้",
+        "dateRequired": "กรุณาเลือกวันที่",
+        "dueDate": "วันครบกำหนดชำระ",
+        "dueDateRequired": "กรุณาเลือกวันครบกำหนด",
+        "description": "รายละเอียด"
+      },
+      "lineItems": {
+        "title": "รายการ",
+        "addLine": "เพิ่มรายการ",
+        "description": "รายละเอียด",
+        "revenueAccount": "บัญชีรายได้",
+        "quantity": "จำนวน",
+        "unitPrice": "ราคา/หน่วย",
+        "lineTotal": "รวม",
+        "selectAccount": "เลือกบัญชี",
+        "subtotalBeforeVat": "ยอดก่อน VAT",
+        "grandTotal": "ยอดรวมสุทธิ"
+      },
+      "paymentDialog": {
+        "title": "รับชำระเงิน - {invoiceNumber}",
+        "taxInvoiceNumber": "เลขที่ใบกำกับภาษี",
+        "totalAmount": "ยอดรวม",
+        "received": "รับแล้ว",
+        "outstanding": "ค้างรับ",
+        "baht": "บาท",
+        "paymentDate": "วันที่รับชำระ",
+        "bankAccount": "บัญชีรับเงิน",
+        "bankAccountRequired": "กรุณาเลือกบัญชี",
+        "paymentMethod": "วิธีการรับชำระ",
+        "referenceNumber": "เลขที่อ้างอิง",
+        "referencePlaceholder": "เลขที่เช็ค / Ref. No.",
+        "amountBaht": "จำนวนเงิน (บาท)",
+        "amountRequired": "กรุณากรอกจำนวนเงิน",
+        "note": "หมายเหตุ"
+      },
+      "confirmInvoice": {
+        "title": "ยืนยันใบแจ้งหนี้",
+        "message": "คุณต้องการยืนยันใบแจ้งหนี้ {invoiceNumber} หรือไม่?<br/><strong>Tax Invoice: {taxInvoiceNumber}</strong><br/>ระบบจะสร้างรายการบันทึกบัญชีและ Output VAT อัตโนมัติ"
+      },
+      "confirmDelete": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณต้องการลบใบแจ้งหนี้ {invoiceNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้"
+      },
+      "toast": {
+        "createSuccess": "สร้างใบแจ้งหนี้สำเร็จ (Tax Invoice: {taxInvoiceNumber})",
+        "createError": "ไม่สามารถสร้างใบแจ้งหนี้ได้",
+        "confirmSuccess": "ยืนยันใบแจ้งหนี้และบันทึกรายการบัญชีแล้ว",
+        "confirmError": "ไม่สามารถยืนยันใบแจ้งหนี้ได้",
+        "paymentSuccess": "รับชำระเงินสำเร็จ (Receipt: {receiptNumber})",
+        "paymentError": "ไม่สามารถรับชำระเงินได้",
+        "deleteSuccess": "ลบใบแจ้งหนี้สำเร็จ",
+        "deleteError": "ไม่สามารถลบใบแจ้งหนี้ได้",
+        "updateSuccess": "แก้ไขใบแจ้งหนี้สำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขใบแจ้งหนี้ได้",
+        "loadError": "ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้",
+        "fillRequired": "กรุณากรอกข้อมูลให้ครบ",
+        "addAtLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ",
+        "selectPaymentAccount": "กรุณาเลือกบัญชีรับชำระ",
+        "amountMustBePositive": "จำนวนเงินต้องมากกว่า 0"
+      }
+    },
+    "receiptsPage": {
+      "recordReceipt": "บันทึกใบเสร็จรับเงิน",
+      "export": "ส่งออก",
+      "methodFilter": {
+        "all": "ทุกวิธี"
+      },
+      "statusFilter": {
+        "all": "ทุกสถานะ",
+        "pending": "รอดำเนินการ",
+        "cleared": "เคลียร์แล้ว",
+        "bounced": "เช็คเด้ง",
+        "cancelled": "ยกเลิก"
+      },
+      "kpi": {
+        "totalReceipts": "ใบเสร็จทั้งหมด",
+        "totalReceiptsSubtitle": "ทั้งหมด",
+        "totalAmount": "จำนวนเงินรวม",
+        "totalAmountSubtitle": "ยอดรับชำระทั้งหมด",
+        "cleared": "เคลียร์แล้ว",
+        "clearedSubtitle": "การชำระที่ยืนยันแล้ว",
+        "pending": "รอดำเนินการ",
+        "pendingSubtitle": "รอการเคลียร์"
+      },
+      "filters": {
+        "paymentMethod": "วิธีชำระเงิน",
+        "status": "สถานะ",
+        "dateFrom": "ตั้งแต่วันที่",
+        "dateTo": "ถึงวันที่"
+      },
+      "grid": {
+        "title": "รายการใบเสร็จรับเงิน",
+        "found": "พบ {count} รายการ",
+        "loading": "กำลังโหลดใบเสร็จรับเงิน...",
+        "searchPlaceholder": "ค้นหาใบเสร็จรับเงิน..."
+      },
+      "columns": {
+        "method": "วิธีการ",
+        "reference": "อ้างอิง",
+        "bankAccount": "บัญชีธนาคาร",
+        "status": "สถานะ",
+        "actions": "การดำเนินการ"
+      },
+      "actions": {
+        "edit": "แก้ไข",
+        "delete": "ลบ"
+      },
+      "summary": {
+        "total": "รวม: {0}",
+        "count": "{0} รายการ"
+      },
+      "dialog": {
+        "createTitle": "บันทึกการรับชำระเงิน",
+        "editTitle": "แก้ไขรายการรับชำระ",
+        "cancel": "ยกเลิก",
+        "save": "บันทึกการรับชำระ",
+        "saveEdit": "บันทึกการแก้ไข"
+      },
+      "invoiceInfo": {
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "customer": "ลูกค้า",
+        "totalAmount": "ยอดรวม",
+        "paidAmount": "รับแล้ว",
+        "outstanding": "ค้างรับ"
+      },
+      "receiptInfo": {
+        "receiptNumber": "เลขที่ใบเสร็จ",
+        "amountThb": "จำนวนเงิน (THB)"
+      },
+      "form": {
+        "arInvoice": "ใบแจ้งหนี้ (AR Invoice)",
+        "arInvoiceRequired": "กรุณาเลือกใบแจ้งหนี้",
+        "unknownCustomer": "ไม่ทราบ",
+        "outstandingShort": "ค้าง",
+        "paymentDate": "วันที่รับชำระ",
+        "dateRequired": "กรุณาเลือกวันที่",
+        "paymentMethod": "วิธีชำระ",
+        "bankAccount": "บัญชีรับเงิน",
+        "bankAccountRequired": "กรุณาเลือกบัญชีรับเงิน",
+        "amountThb": "จำนวนเงิน (THB)",
+        "amountRequired": "กรุณาระบุจำนวนเงิน",
+        "referenceNumber": "เลขอ้างอิง",
+        "referencePlaceholder": "เลขที่เช็ค / Ref.",
+        "description": "รายละเอียด"
+      },
+      "toast": {
+        "recordSuccess": "บันทึกการรับชำระเงินสำเร็จ ({receiptNumber})",
+        "recordError": "ไม่สามารถบันทึกการรับชำระเงินได้",
+        "deleteSuccess": "ลบรายการรับชำระสำเร็จ",
+        "deleteError": "ไม่สามารถลบรายการรับชำระได้",
+        "updateSuccess": "แก้ไขรายการรับชำระสำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขรายการรับชำระได้",
+        "exportSuccess": "ส่งออกใบเสร็จรับเงินสำเร็จ",
+        "selectInvoiceAndAccount": "กรุณาเลือกใบแจ้งหนี้และบัญชีรับชำระ",
+        "amountMustBePositive": "จำนวนเงินต้องมากกว่า 0"
+      },
+      "confirmDelete": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณต้องการลบรายการรับชำระ {receiptNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้"
+      }
+    },
+    "agingPage": {
+      "toast": {
+        "exportSuccess": "ส่งออกรายงานอายุหนี้ลูกหนี้สำเร็จ"
+      },
+      "exportReport": "ส่งออกรายงาน",
+      "asOfDate": "ณ วันที่",
+      "generateReport": "สร้างรายงาน",
+      "distributionTitle": "การกระจายตามอายุหนี้",
+      "summaryTitle": "สรุปอายุหนี้",
+      "loadingChart": "กำลังโหลดกราฟ...",
+      "amountLegend": "จำนวนเงิน",
+      "totalOutstanding": "ยอดค้างชำระรวม",
+      "summaryTotal": "รวม: {0}",
+      "buckets": {
+        "current": "ยังไม่ครบกำหนด",
+        "days1to30": "1-30 วัน",
+        "days31to60": "31-60 วัน",
+        "days61to90": "61-90 วัน",
+        "over90": "เกิน 90 วัน"
+      },
+      "kpi": {
+        "currentSubtitle": "ยังไม่ถึงกำหนดชำระ",
+        "days1to30Subtitle": "เกินกำหนดเล็กน้อย",
+        "days31to60Subtitle": "ต้องติดตาม",
+        "days61to90Subtitle": "ต้องให้ความสำคัญ",
+        "over90Subtitle": "วิกฤต",
+        "totalReceivable": "ลูกหนี้รวม",
+        "overduePercent": "เกินกำหนด {percent}%"
+      },
+      "criticalAlert": {
+        "title": "แจ้งเตือนหนี้ค้างวิกฤต",
+        "message": "{amount} เกินกำหนดชำระมากกว่า 60 วัน ควรดำเนินการเรียกเก็บโดยทันที"
+      },
+      "columns": {
+        "customer": "ลูกค้า",
+        "total": "รวม"
+      },
+      "grid": {
+        "title": "อายุหนี้ลูกหนี้ตามลูกค้า",
+        "asOf": "ณ วันที่ {date}",
+        "loading": "กำลังโหลดข้อมูลอายุหนี้...",
+        "searchPlaceholder": "ค้นหาลูกค้า..."
+      }
     }
   },
   "accountsPayable": {
@@ -558,6 +909,191 @@
       "recordBill": "บันทึกใบแจ้งหนี้",
       "makePayment": "ชำระเงิน",
       "viewAging": "ดูรายงานอายุหนี้"
+    },
+    "statusLabels": {
+      "status": "สถานะ",
+      "all": "ทั้งหมด",
+      "draft": "ร่าง",
+      "posted": "ลงบัญชี",
+      "partial": "ชำระบางส่วน",
+      "paid": "ชำระแล้ว"
+    },
+    "invoicesPage": {
+      "addInvoice": "เพิ่มใบแจ้งหนี้",
+      "filterStatusPlaceholder": "กรองสถานะ",
+      "searchPlaceholder": "ค้นหา...",
+      "summaryTotal": "รวม",
+      "toast": {
+        "createSuccess": "สร้างใบแจ้งหนี้สำเร็จ",
+        "createError": "ไม่สามารถสร้างใบแจ้งหนี้ได้",
+        "approveSuccess": "อนุมัติใบแจ้งหนี้และบันทึกรายการบัญชีแล้ว",
+        "approveError": "ไม่สามารถอนุมัติใบแจ้งหนี้ได้",
+        "deleteSuccess": "ลบใบแจ้งหนี้สำเร็จ",
+        "deleteError": "ไม่สามารถลบใบแจ้งหนี้ได้",
+        "updateSuccess": "แก้ไขใบแจ้งหนี้สำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขใบแจ้งหนี้ได้",
+        "fillRequired": "กรุณากรอกข้อมูลให้ครบ",
+        "addAtLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ",
+        "loadError": "ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้",
+        "paymentUnderDevelopment": "ฟังก์ชันชำระเงินอยู่ระหว่างพัฒนา"
+      },
+      "confirm": {
+        "approveMessage": "คุณต้องการอนุมัติใบแจ้งหนี้ {number} หรือไม่?<br/>ระบบจะสร้างรายการบันทึกบัญชีอัตโนมัติ",
+        "approveTitle": "ยืนยันการอนุมัติ",
+        "deleteMessage": "คุณต้องการลบใบแจ้งหนี้ {number} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้",
+        "deleteTitle": "ยืนยันการลบ"
+      },
+      "actions": {
+        "edit": "แก้ไข",
+        "delete": "ลบ",
+        "approve": "อนุมัติ",
+        "pay": "ชำระ"
+      },
+      "kpi": {
+        "totalItems": "รายการทั้งหมด",
+        "pending": "รอดำเนินการ",
+        "pendingSubtitle": "รอการอนุมัติ",
+        "outstanding": "ค้างชำระ",
+        "paid": "ชำระแล้ว",
+        "paidSubtitle": "เสร็จสมบูรณ์"
+      },
+      "columns": {
+        "vendor": "ผู้จำหน่าย",
+        "description": "รายละเอียด",
+        "total": "ยอดรวม",
+        "actions": "การดำเนินการ"
+      },
+      "dialog": {
+        "addTitle": "เพิ่มใบแจ้งหนี้ซื้อ",
+        "editTitle": "แก้ไขใบแจ้งหนี้ซื้อ",
+        "cancel": "ยกเลิก",
+        "save": "บันทึก",
+        "saveEdit": "บันทึกการแก้ไข"
+      },
+      "form": {
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "invoiceNumberRequired": "กรุณากรอกเลขที่ใบแจ้งหนี้",
+        "vendor": "ผู้จำหน่าย",
+        "vendorRequired": "กรุณาเลือกผู้จำหน่าย",
+        "invoiceDate": "วันที่ใบแจ้งหนี้",
+        "invoiceDateRequired": "กรุณาเลือกวันที่",
+        "receivedDate": "วันที่รับเอกสาร",
+        "receivedDateRequired": "กรุณาเลือกวันที่รับ",
+        "dueDate": "วันครบกำหนดชำระ",
+        "dueDateRequired": "กรุณาเลือกวันครบกำหนด",
+        "description": "รายละเอียด"
+      },
+      "lineItems": {
+        "title": "รายการ",
+        "addLine": "เพิ่มรายการ",
+        "colDescription": "รายละเอียด",
+        "colAccount": "บัญชี",
+        "colQuantity": "จำนวน",
+        "colUnitPrice": "ราคา/หน่วย",
+        "colTotal": "รวม",
+        "selectAccount": "เลือกบัญชี",
+        "beforeVat": "ยอดก่อน VAT",
+        "netTotal": "ยอดรวมสุทธิ"
+      }
+    },
+    "paymentsPage": {
+      "recordPayment": "บันทึกการชำระเงิน",
+      "toast": {
+        "recordSuccess": "บันทึกการจ่ายเงินสำเร็จ (Payment: {number})",
+        "recordError": "ไม่สามารถบันทึกการจ่ายเงินได้",
+        "deleteSuccess": "ลบรายการชำระเงินสำเร็จ",
+        "deleteError": "ไม่สามารถลบรายการชำระเงินได้",
+        "updateSuccess": "แก้ไขรายการชำระเงินสำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขรายการชำระเงินได้",
+        "selectInvoiceAndAccount": "กรุณาเลือกใบแจ้งหนี้และบัญชีจ่าย",
+        "amountMustBePositive": "จำนวนเงินต้องมากกว่า 0"
+      },
+      "confirm": {
+        "deleteMessage": "คุณต้องการลบรายการชำระเงิน {number} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้",
+        "deleteTitle": "ยืนยันการลบ"
+      },
+      "methods": {
+        "cash": "เงินสด",
+        "check": "เช็ค",
+        "transfer": "โอนเงิน",
+        "other": "อื่นๆ"
+      },
+      "kpi": {
+        "totalPayments": "การชำระเงินทั้งหมด",
+        "totalPaymentsSubtitle": "รายการชำระเงินทั้งหมด",
+        "paidThisMonth": "ชำระแล้วเดือนนี้",
+        "paidThisMonthSubtitle": "เดือนปัจจุบัน",
+        "pending": "รอดำเนินการ",
+        "pendingSubtitle": "รอการประมวลผล",
+        "outstanding": "ยอดค้างชำระ",
+        "outstandingSubtitle": "จากใบแจ้งหนี้ที่ยังไม่ชำระ"
+      },
+      "filters": {
+        "paymentMethod": "วิธีชำระเงิน",
+        "paymentMethodPlaceholder": "กรองตามวิธีชำระ",
+        "dateFrom": "ตั้งแต่วันที่",
+        "dateTo": "ถึงวันที่",
+        "clearDate": "ล้างวันที่"
+      },
+      "columns": {
+        "vendorName": "ชื่อผู้ขาย",
+        "paymentDate": "วันที่ชำระ",
+        "whtAmount": "ภาษีหัก ณ ที่จ่าย",
+        "referenceNumber": "เลขที่อ้างอิง"
+      },
+      "dialog": {
+        "editTitle": "แก้ไขรายการชำระเงิน",
+        "recordTitle": "บันทึกการชำระเงินผู้ขาย"
+      },
+      "info": {
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "total": "ยอดรวม",
+        "paid": "ชำระแล้ว",
+        "outstanding": "ยอดค้างชำระ",
+        "baht": "บาท",
+        "vendor": "ผู้ขาย",
+        "amountBaht": "จำนวนเงิน (บาท)"
+      },
+      "form": {
+        "apInvoice": "ใบแจ้งหนี้เจ้าหนี้",
+        "apInvoiceRequired": "กรุณาเลือกใบแจ้งหนี้",
+        "unspecified": "ไม่ระบุ",
+        "paymentDateRequired": "กรุณาเลือกวันที่ชำระ",
+        "bankAccount": "บัญชีธนาคาร",
+        "bankAccountRequired": "กรุณาเลือกบัญชีธนาคาร",
+        "amountRequired": "กรุณากรอกจำนวนเงิน",
+        "whtRate": "อัตราภาษีหัก ณ ที่จ่าย (%)",
+        "referencePlaceholder": "เลขที่เช็ค / เลขที่อ้างอิงการโอน"
+      }
+    },
+    "agingPage": {
+      "asOfDate": "ณ วันที่",
+      "generateReport": "สร้างรายงาน",
+      "distributionTitle": "การกระจายตามอายุหนี้",
+      "payableAmount": "ยอดเจ้าหนี้",
+      "loadingReport": "กำลังโหลดรายงาน...",
+      "errorPrefix": "ข้อผิดพลาด",
+      "loadReportError": "ไม่สามารถโหลดรายงานได้",
+      "noReportTitle": "ยังไม่ได้สร้างรายงาน",
+      "noReportDescription": "เลือกวันที่ ณ วันที่ แล้วคลิกสร้างรายงานเพื่อดูข้อมูล",
+      "gridTitle": "อายุหนี้เจ้าหนี้ตามผู้ขาย",
+      "asOfDateValue": "ณ วันที่ {date}",
+      "buckets": {
+        "current": "ยังไม่ครบกำหนด",
+        "days1to30": "1-30 วัน",
+        "days31to60": "31-60 วัน",
+        "days61to90": "61-90 วัน",
+        "over90": "เกิน 90 วัน"
+      },
+      "kpi": {
+        "totalOutstanding": "ยอดค้างชำระทั้งหมด",
+        "allVendors": "ผู้ขายทั้งหมด",
+        "notOverdue": "ยังไม่เกินกำหนด",
+        "overdue": "เกินกำหนด"
+      },
+      "columns": {
+        "vendorName": "ชื่อผู้ขาย"
+      }
     }
   },
   "fixedAssets": {
@@ -628,6 +1164,76 @@
       "recordDepreciation": "บันทึกค่าเสื่อมราคา",
       "disposeAsset": "จำหน่ายสินทรัพย์",
       "clearFilters": "ล้างตัวกรอง"
+    },
+    "form": {
+      "title": {
+        "create": "เพิ่มทรัพย์สินถาวร",
+        "edit": "แก้ไขทรัพย์สินถาวร"
+      },
+      "subtitle": {
+        "create": "เพิ่มทรัพย์สินถาวรใหม่",
+        "edit": "แก้ไข: {code}"
+      },
+      "breadcrumbCreate": "เพิ่มใหม่",
+      "breadcrumbEdit": "แก้ไข",
+      "back": "ย้อนกลับ",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก...",
+      "loading": "กำลังโหลดสินทรัพย์...",
+      "sections": {
+        "basic": "ข้อมูลพื้นฐาน",
+        "acquisition": "การได้มาและค่าเสื่อมราคา"
+      },
+      "fields": {
+        "nameTh": "ชื่อ (ภาษาไทย)",
+        "nameThPlaceholder": "ชื่อทรัพย์สิน",
+        "nameEn": "ชื่อ (ภาษาอังกฤษ)",
+        "nameEnPlaceholder": "Asset Name",
+        "category": "หมวดหมู่",
+        "categoryPlaceholder": "เลือกหมวดหมู่",
+        "location": "สถานที่",
+        "acquisitionDate": "วันที่ได้มา",
+        "acquisitionCost": "ต้นทุนการได้มา",
+        "salvageValue": "มูลค่าซาก",
+        "usefulLifeMonths": "อายุการใช้งาน (เดือน)",
+        "depreciationMethod": "วิธีคิดค่าเสื่อมราคา",
+        "depreciationStartDate": "วันที่เริ่มคิดค่าเสื่อมราคา"
+      },
+      "depreciationMethods": {
+        "straightLine": "เส้นตรง",
+        "decliningBalance": "ยอดลดลง"
+      },
+      "validation": {
+        "requiredFields": "กรุณากรอกข้อมูลที่จำเป็น (ชื่อภาษาไทย, ชื่อภาษาอังกฤษ, หมวดหมู่, วันที่ได้มา และต้นทุนการได้มามากกว่า 0)"
+      },
+      "toast": {
+        "createSuccess": "เพิ่มสินทรัพย์ถาวรสำเร็จ",
+        "updateSuccess": "แก้ไขสินทรัพย์ถาวรสำเร็จ"
+      },
+      "deleteConfirm": {
+        "message": "คุณแน่ใจหรือไม่ว่าต้องการลบสินทรัพย์นี้? การกระทำนี้ไม่สามารถยกเลิกได้"
+      },
+      "detail": {
+        "title": "รายละเอียดสินทรัพย์",
+        "assetCode": "รหัสสินทรัพย์",
+        "status": "สถานะ",
+        "netBookValue": "มูลค่าตามบัญชีสุทธิ",
+        "accumulatedDepreciation": "ค่าเสื่อมราคาสะสม"
+      },
+      "audit": {
+        "title": "ประวัติการตรวจสอบ",
+        "description": "ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับสินทรัพย์นี้",
+        "viewHistory": "ดูประวัติ",
+        "fields": {
+          "department": "แผนก",
+          "responsiblePerson": "ผู้รับผิดชอบ"
+        }
+      },
+      "dangerZone": {
+        "title": "โซนอันตราย",
+        "description": "การลบสินทรัพย์นี้จะลบบันทึกที่เกี่ยวข้องทั้งหมด",
+        "deleteButton": "ลบสินทรัพย์"
+      }
     }
   },
   "equipment": {
@@ -696,6 +1302,81 @@
       "due": "กำหนด",
       "today": "วันนี้",
       "days": "{count} วัน"
+    },
+    "form": {
+      "title": {
+        "create": "เพิ่มอุปกรณ์",
+        "edit": "แก้ไขอุปกรณ์"
+      },
+      "subtitle": {
+        "create": "เพิ่มอุปกรณ์ใหม่",
+        "edit": "แก้ไข: {code}"
+      },
+      "breadcrumbCreate": "เพิ่มใหม่",
+      "breadcrumbEdit": "แก้ไข",
+      "back": "ย้อนกลับ",
+      "save": "บันทึก",
+      "saving": "กำลังบันทึก...",
+      "loading": "กำลังโหลดอุปกรณ์...",
+      "sections": {
+        "basic": "ข้อมูลพื้นฐาน",
+        "warranty": "ข้อมูลการรับประกัน"
+      },
+      "fields": {
+        "fixedAsset": "สินทรัพย์ถาวร",
+        "fixedAssetPlaceholder": "เลือกสินทรัพย์ถาวร",
+        "serialNumber": "หมายเลขซีเรียล",
+        "manufacturer": "ผู้ผลิต",
+        "model": "รุ่น",
+        "specifications": "ข้อมูลจำเพาะ",
+        "specificationsPlaceholder": "ข้อมูลจำเพาะของอุปกรณ์...",
+        "warrantyStartDate": "วันที่เริ่มรับประกัน",
+        "warrantyEndDate": "วันที่สิ้นสุดรับประกัน",
+        "isAvailable": "พร้อมใช้งาน"
+      },
+      "status": {
+        "available": "อุปกรณ์พร้อมใช้งาน",
+        "unavailable": "อุปกรณ์ไม่พร้อมใช้งาน"
+      },
+      "validation": {
+        "selectFixedAsset": "กรุณาเลือกสินทรัพย์ถาวร"
+      },
+      "toast": {
+        "createSuccess": "เพิ่มอุปกรณ์สำเร็จ",
+        "updateSuccess": "แก้ไขอุปกรณ์สำเร็จ"
+      },
+      "deleteConfirm": {
+        "message": "คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์นี้? การกระทำนี้ไม่สามารถยกเลิกได้"
+      },
+      "detail": {
+        "title": "รายละเอียดอุปกรณ์",
+        "assetCode": "รหัสสินทรัพย์",
+        "assetName": "ชื่อสินทรัพย์",
+        "operatingHours": "ชั่วโมงการทำงาน",
+        "operatingHoursValue": "{hours} ชม.",
+        "lastMaintenance": "บำรุงรักษาล่าสุด",
+        "never": "ไม่เคย",
+        "status": "สถานะ",
+        "statusAvailable": "พร้อมใช้งาน",
+        "statusUnavailable": "ไม่พร้อมใช้งาน"
+      },
+      "audit": {
+        "title": "ประวัติการตรวจสอบ",
+        "description": "ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับอุปกรณ์นี้",
+        "viewHistory": "ดูประวัติ",
+        "fields": {
+          "operatingHours": "ชั่วโมงการทำงาน",
+          "operatingUnits": "หน่วยการทำงาน",
+          "lastMeterReading": "ค่ามิเตอร์ล่าสุด",
+          "lastMaintenanceDate": "วันที่บำรุงรักษาล่าสุด",
+          "nextMaintenanceDue": "กำหนดบำรุงรักษาครั้งถัดไป"
+        }
+      },
+      "dangerZone": {
+        "title": "โซนอันตราย",
+        "description": "การลบอุปกรณ์นี้จะลบบันทึกการบำรุงรักษาที่เกี่ยวข้องทั้งหมด",
+        "deleteButton": "ลบอุปกรณ์"
+      }
     }
   },
   "periodClose": {
@@ -823,12 +1504,253 @@
   },
   "reports": {
     "title": "รายงานทางการเงิน",
-    "balanceSheet": "งบดุล",
-    "incomeStatement": "งบกำไรขาดทุน",
-    "cashFlow": "งบกระแสเงินสด",
-    "trialBalance": "งบทดลอง",
+    "balanceSheet": {
+      "liabilitiesAndEquity": "หนี้สินและส่วนของเจ้าของ",
+      "assetCompositionTitle": "องค์ประกอบสินทรัพย์"
+    },
+    "incomeStatement": {
+      "profitTrendTitle": "กระแสกำไร",
+      "totalPrefix": "รวม",
+      "grossMarginLabel": "อัตรากำไรขั้นต้น",
+      "netMarginLabel": "อัตรากำไรสุทธิ"
+    },
+    "cashFlow": {
+      "summaryChartTitle": "สรุปงบกระแสเงินสด",
+      "legendCashFlow": "กระแสเงินสด",
+      "chartOperating": "กิจกรรมดำเนินงาน",
+      "chartInvesting": "กิจกรรมลงทุน",
+      "chartFinancing": "กิจกรรมจัดหาเงิน",
+      "chartNetChange": "เปลี่ยนแปลงสุทธิ"
+    },
+    "trialBalance": {
+      "closingDebit": "เดบิตปลายงวด",
+      "closingCredit": "เครดิตปลายงวด",
+      "chartTitle": "เดบิตเทียบกับเครดิตแยกตามหมวดหมู่",
+      "categoryColumn": "หมวดหมู่"
+    },
     "agingReport": "รายงานอายุหนี้",
-    "taxReport": "รายงานภาษี"
+    "taxReport": "รายงานภาษี",
+    "subtitle": "สร้างงบการเงินตามมาตรฐาน TFRS",
+    "loading": "กำลังโหลดรายงาน...",
+    "errorPrefix": "ข้อผิดพลาด",
+    "errorGeneric": "ไม่สามารถโหลดรายงานได้",
+    "empty": {
+      "title": "ยังไม่มีรายงาน",
+      "description": "เลือกประเภทรายงานแล้วคลิกสร้างรายงานเพื่อดูข้อมูล"
+    },
+    "type": {
+      "trialBalance": "งบทดลอง",
+      "balanceSheet": "งบแสดงฐานะการเงิน",
+      "incomeStatement": "งบกำไรขาดทุน",
+      "cashFlow": "งบกระแสเงินสด",
+      "agingAp": "รายงานอายุหนี้เจ้าหนี้",
+      "agingAr": "รายงานอายุหนี้ลูกหนี้"
+    },
+    "filters": {
+      "reportType": "ประเภทรายงาน",
+      "periodStart": "วันเริ่มต้นงวด",
+      "periodEnd": "วันสิ้นสุดงวด",
+      "asOfDate": "ณ วันที่"
+    },
+    "actions": {
+      "generate": "สร้างรายงาน",
+      "exportJson": "ส่งออก JSON"
+    },
+    "toast": {
+      "exportSuccess": "ส่งออกรายงานสำเร็จ"
+    },
+    "overview": {
+      "featuredTitle": "งบการเงิน (สองภาษา)",
+      "quickTitle": "สร้างรายงานด่วน",
+      "trialBalanceHint": "กราฟ • ตัวชี้วัด • ส่งออก",
+      "balanceSheetHint": "อัตราส่วนทางการเงิน • กราฟวงกลม",
+      "incomeStatementHint": "อัตรากำไร • กราฟพื้นที่",
+      "cashFlowHint": "กราฟน้ำตก • การกระทบยอด",
+      "viewReport": "ดูรายงาน",
+      "trialBalanceSubtitle": "สรุปยอดคงเหลือบัญชี",
+      "balanceSheetSubtitle": "สินทรัพย์และหนี้สิน",
+      "incomeStatementSubtitle": "งบกำไรขาดทุน",
+      "agingLabel": "รายงานอายุหนี้",
+      "agingSubtitle": "วิเคราะห์อายุหนี้เจ้าหนี้/ลูกหนี้"
+    },
+    "common": {
+      "accountType": "ประเภท",
+      "category": "หมวดหมู่",
+      "code": "รหัส",
+      "account": "บัญชี",
+      "subtotal": "รวมย่อย",
+      "total": "รวม",
+      "grandTotal": "ยอดรวมทั้งสิ้น",
+      "balancedYes": "สมดุล",
+      "balancedNo": "ไม่สมดุล",
+      "matched": "ตรงกัน",
+      "notMatched": "ไม่ตรงกัน",
+      "totalLiabilitiesAndEquity": "รวมหนี้สินและส่วนของเจ้าของ"
+    },
+    "aging": {
+      "titleAp": "รายงานอายุหนี้เจ้าหนี้การค้า",
+      "titleAr": "รายงานอายุหนี้ลูกหนี้การค้า",
+      "invoicesCount": "{count, plural, other {# ใบแจ้งหนี้}}",
+      "vendor": "ผู้ขาย",
+      "customer": "ลูกค้า",
+      "current": "ยังไม่ครบกำหนด",
+      "days1to30": "1-30 วัน",
+      "days31to60": "31-60 วัน",
+      "days61to90": "61-90 วัน",
+      "over90": "เกิน 90 วัน",
+      "total": "รวม",
+      "grandTotal": "ยอดรวมทั้งสิ้น"
+    },
+    "vat": {
+      "title": "รายงานภาษีมูลค่าเพิ่ม",
+      "subtitle": "รายงานภาษีมูลค่าเพิ่ม (ภ.พ.30) - สรุปภาษีซื้อและภาษีขายสำหรับยื่นแบบ",
+      "selectPeriodLabel": "เลือกงวดภาษี",
+      "kpi": {
+        "taxPeriod": "งวดภาษี",
+        "outputVat": "ภาษีขาออก",
+        "outputVatSubtitle": "ภาษีขาย (Output VAT)",
+        "inputVat": "ภาษีขาเข้า",
+        "inputVatSubtitle": "ภาษีซื้อ (Input VAT)",
+        "netVat": "ภาษีสุทธิ",
+        "netVatPayable": "ภาษีสุทธิที่ต้องชำระ",
+        "netVatRefundable": "ภาษีสุทธิที่ขอคืน"
+      },
+      "generating": "กำลังสร้างรายงานภาษีมูลค่าเพิ่ม...",
+      "empty": {
+        "title": "เลือกงวดภาษีเพื่อสร้างรายงาน",
+        "description": "เลือกงวดภาษีจากด้านบนแล้วคลิก \"สร้างรายงาน\" เพื่อดูรายละเอียดภาษีมูลค่าเพิ่มขาเข้าและขาออก"
+      },
+      "outputSectionTitle": "ภาษีขาออก (ภาษีจากการขาย)",
+      "outputSectionSubtitle": "ภาษีขาย",
+      "inputSectionTitle": "ภาษีขาเข้า (ภาษีจากการซื้อ)",
+      "inputSectionSubtitle": "ภาษีซื้อ",
+      "sectionTotal": "ยอดรวม",
+      "summaryTitle": "สรุปภาษีมูลค่าเพิ่ม",
+      "outputVatLine": "ภาษีขาย (Output VAT):",
+      "inputVatLine": "หัก: ภาษีซื้อ (Input VAT):",
+      "netVatLabel": "ภาษีมูลค่าเพิ่มสุทธิ",
+      "payable": "ต้องชำระ",
+      "refundable": "ขอคืน",
+      "toastExportSuccess": "ส่งออกรายงานภาษีมูลค่าเพิ่มสำเร็จ",
+      "columns": {
+        "taxInvoiceNumber": "เลขที่ใบกำกับภาษี",
+        "date": "วันที่",
+        "customerName": "ชื่อลูกค้า",
+        "vendorName": "ชื่อผู้ขาย",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "branch": "สาขา",
+        "taxableAmount": "มูลค่าสินค้า/บริการ",
+        "vatAmount": "ภาษีมูลค่าเพิ่ม 7%",
+        "totalAmount": "จำนวนเงินรวม"
+      }
+    },
+    "wht": {
+      "title": "หนังสือรับรองภาษีหัก ณ ที่จ่าย",
+      "subtitle": "รายงานหนังสือรับรองการหักภาษี ณ ที่จ่ายสำหรับยื่นแบบ",
+      "selectPeriodLabel": "เลือกงวดภาษี",
+      "certificateTypeLabel": "ประเภทแบบ",
+      "certificateType": {
+        "pnd3": "ภ.ง.ด.3 (บุคคลธรรมดา)",
+        "pnd53": "ภ.ง.ด.53 (นิติบุคคล)",
+        "pnd3Short": "ภ.ง.ด.3",
+        "pnd53Short": "ภ.ง.ด.53"
+      },
+      "kpi": {
+        "taxPeriod": "งวดภาษี",
+        "formType": "ประเภทแบบ",
+        "formTypeSubtitle": "ประเภทหนังสือรับรอง",
+        "certificateCount": "จำนวนหนังสือ",
+        "certificateCountSubtitle": "จำนวนหนังสือรับรอง",
+        "whtAmount": "ภาษีหัก ณ ที่จ่าย",
+        "whtAmountSubtitle": "ยอดภาษีหัก ณ ที่จ่ายรวม"
+      },
+      "generating": "กำลังสร้างรายงานหนังสือรับรอง...",
+      "empty": {
+        "title": "เลือกงวดภาษีและประเภทแบบ",
+        "description": "เลือกงวดภาษีและประเภทแบบ (PND 3 / PND 53) จากด้านบนแล้วคลิก \"สร้างรายงาน\" เพื่อดูรายการหนังสือรับรองภาษีหัก ณ ที่จ่าย"
+      },
+      "certificatesCountLabel": "จำนวนหนังสือ",
+      "certificatesUnit": "{count, plural, other {# ฉบับ}}",
+      "sectionTitle": "หนังสือรับรองภาษีหัก ณ ที่จ่าย",
+      "sectionSubtitle": "หนังสือรับรองภาษีหัก ณ ที่จ่าย",
+      "summaryTitle": "สรุปภาษีหัก ณ ที่จ่าย",
+      "summaryCount": "จำนวนหนังสือรับรอง",
+      "summaryCountSubtitle": "ฉบับ",
+      "summaryPayment": "จำนวนเงินจ่าย",
+      "summaryPaymentSubtitle": "ยอดเงินที่จ่าย",
+      "summaryWht": "ภาษีหัก ณ ที่จ่าย",
+      "summaryWhtSubtitle": "ภาษีที่หักไว้",
+      "summaryNet": "จำนวนเงินสุทธิ",
+      "summaryNetSubtitle": "ยอดเงินสุทธิที่จ่าย",
+      "toastExportSuccess": "ส่งออกหนังสือรับรองภาษีหัก ณ ที่จ่ายสำเร็จ",
+      "columns": {
+        "certificateNumber": "เลขที่หนังสือรับรอง",
+        "paymentDate": "วันที่จ่าย",
+        "vendorName": "ชื่อผู้รับเงิน",
+        "vendorTaxId": "เลขประจำตัวผู้เสียภาษี",
+        "incomeType": "ประเภทเงินได้",
+        "details": "รายละเอียด",
+        "paymentAmount": "จำนวนเงิน",
+        "whtRate": "อัตราภาษี (%)",
+        "whtAmount": "ภาษีหัก ณ ที่จ่าย",
+        "netAmount": "จำนวนเงินสุทธิ"
+      },
+      "dialog": {
+        "popupTitle": "หนังสือรับรองภาษีหัก ณ ที่จ่าย - {number}",
+        "loading": "กำลังโหลดข้อมูลหนังสือรับรอง...",
+        "loadError": "ไม่สามารถโหลดข้อมูลหนังสือรับรองได้",
+        "headerTh": "หนังสือรับรองการหักภาษี ณ ที่จ่าย",
+        "headerEn": "Withholding Tax Certificate",
+        "formTitle": {
+          "pnd3": "ภ.ง.ด.3 (PND 3)",
+          "pnd53": "ภ.ง.ด.53 (PND 53)"
+        },
+        "individual": "บุคคลธรรมดา",
+        "juristic": "นิติบุคคล",
+        "certificateNumber": "เลขที่หนังสือรับรอง",
+        "payer": "ผู้จ่ายเงิน / Payer",
+        "payee": "ผู้รับเงิน / Payee",
+        "nameTh": "ชื่อ (ไทย):",
+        "nameEn": "ชื่อ (อังกฤษ):",
+        "name": "ชื่อ:",
+        "taxId": "เลขประจำตัวผู้เสียภาษี:",
+        "branch": "สาขา:",
+        "headOffice": "สำนักงานใหญ่",
+        "address": "ที่อยู่:",
+        "taxWithheldDetails": "รายการภาษีที่หัก / Tax Withheld Details",
+        "columns": {
+          "type": "ประเภท",
+          "description": "รายละเอียด",
+          "date": "วันที่",
+          "amount": "จำนวนเงิน",
+          "rate": "อัตรา",
+          "whtAmount": "ภาษีหัก ณ ที่จ่าย"
+        },
+        "total": "รวม",
+        "taxPeriod": "งวดภาษี / Tax Period: {value}",
+        "paymentDate": "วันที่จ่ายเงิน / Payment Date: {value}",
+        "signatoryTh": "ผู้มีหน้าที่หักภาษี ณ ที่จ่าย",
+        "signatoryEn": "Authorized Signatory",
+        "dateTh": "วันที่",
+        "dateEn": "Date",
+        "downloadJson": "ดาวน์โหลด JSON",
+        "print": "พิมพ์"
+      }
+    },
+    "periodSelector": {
+      "quick": "ด่วน:",
+      "generate": "สร้างรายงาน",
+      "presets": {
+        "today": "วันนี้",
+        "monthEnd": "สิ้นเดือน",
+        "quarterEnd": "สิ้นไตรมาส",
+        "yearEnd": "สิ้นปี",
+        "thisMonth": "เดือนนี้",
+        "lastMonth": "เดือนที่แล้ว",
+        "thisQuarter": "ไตรมาสนี้",
+        "ytd": "ตั้งแต่ต้นปี"
+      }
+    }
   },
   "periods": {
     "title": "รอบบัญชี",
@@ -866,7 +1788,44 @@
     "discount": "ส่วนลด",
     "grandTotal": "รวมทั้งสิ้น",
     "refresh": "รีเฟรช",
-    "clearFilters": "ล้างตัวกรอง"
+    "clearFilters": "ล้างตัวกรอง",
+    "noData": "ไม่มีข้อมูล",
+    "status": "สถานะ",
+    "actions": "การดำเนินการ",
+    "date": "วันที่",
+    "amount": "จำนวนเงิน",
+    "type": "ประเภท",
+    "reason": "เหตุผล",
+    "approve": "อนุมัติ",
+    "reject": "ปฏิเสธ",
+    "cancel": "ยกเลิก",
+    "save": "บันทึก",
+    "saving": "กำลังบันทึก...",
+    "processing": "กำลังดำเนินการ...",
+    "comments": "ความคิดเห็น",
+    "notes": "หมายเหตุ",
+    "vendor": "ผู้ขาย",
+    "by": "โดย",
+    "at": "เมื่อ",
+    "statusBadge": {
+      "draft": "ร่าง",
+      "posted": "ผ่านแล้ว",
+      "reversed": "กลับรายการ",
+      "approved": "อนุมัติ",
+      "cancelled": "ยกเลิก",
+      "partial": "บางส่วน",
+      "paid": "ชำระแล้ว",
+      "overdue": "ค้างชำระ",
+      "open": "เปิด",
+      "closed": "ปิด",
+      "active": "ใช้งาน",
+      "inactive": "ไม่ใช้งาน",
+      "pending": "รอดำเนินการ",
+      "confirmed": "ยืนยัน",
+      "cleared": "เคลียร์แล้ว",
+      "bounced": "เช็คคืน",
+      "softClosed": "ปิดชั่วคราว"
+    }
   },
   "items": {
     "grid": {
@@ -905,5 +1864,807 @@
   "description": "รายการ",
   "period": "งวด",
   "netChangeInCash": "การเปลี่ยนแปลงเงินสดสุทธิ",
-  "endingCash": "เงินสดปลายงวด"
+  "endingCash": "เงินสดปลายงวด",
+  "creditDebitNotes": {
+    "title": "ใบลดหนี้/ใบเพิ่มหนี้",
+    "description": "สร้างและจัดการใบลดหนี้และใบเพิ่มหนี้สำหรับลูกหนี้และเจ้าหนี้",
+    "stats": {
+      "draft": "ใบร่าง",
+      "pendingApproval": "รออนุมัติ",
+      "postedThisMonth": "ลงบัญชีเดือนนี้",
+      "totalThisMonth": "ยอดรวมเดือนนี้"
+    },
+    "columns": {
+      "noteNumber": "เลขที่ใบ",
+      "noteType": "ประเภท",
+      "noteDate": "วันที่",
+      "customer": "ลูกค้า",
+      "vendor": "ผู้ขาย",
+      "reason": "เหตุผล",
+      "amount": "จำนวนเงิน",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ",
+      "description": "รายละเอียด",
+      "quantity": "จำนวน",
+      "unitPrice": "ราคาต่อหน่วย",
+      "lineTotal": "รวมรายการ",
+      "glAccount": "บัญชีแยกประเภท"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งอนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "posted": "ลงบัญชีแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "filters": {
+      "searchPlaceholder": "ค้นหาใบลด/เพิ่มหนี้..."
+    },
+    "actions": {
+      "view": "ดู",
+      "new": "สร้างใบใหม่",
+      "back": "ย้อนกลับ",
+      "edit": "แก้ไข",
+      "submit": "ส่งเพื่ออนุมัติ",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "post": "ลงบัญชีแยกประเภท",
+      "cancelNote": "ยกเลิกใบ",
+      "delete": "ลบ",
+      "cancel": "ยกเลิก",
+      "saving": "กำลังบันทึก...",
+      "saveDraft": "บันทึกเป็นใบร่าง"
+    },
+    "stepper": {
+      "title": "สถานะการดำเนินงาน"
+    },
+    "detail": {
+      "noteDetails": "รายละเอียดใบ",
+      "approvedBy": "อนุมัติโดย",
+      "approvedAt": "อนุมัติเมื่อ",
+      "postedAt": "ลงบัญชีเมื่อ",
+      "journalEntry": "รายการบัญชี",
+      "actionsTitle": "การดำเนินการ"
+    },
+    "form": {
+      "newSubtitle": "สร้างใบลดหนี้หรือใบเพิ่มหนี้ใหม่",
+      "noteType": "ประเภทใบ",
+      "noteTypePlaceholder": "เลือกประเภทใบ",
+      "customer": "ลูกค้า",
+      "customerPlaceholder": "เลือกลูกค้า",
+      "vendor": "ผู้ขาย",
+      "vendorPlaceholder": "เลือกผู้ขาย",
+      "referenceInvoice": "ใบแจ้งหนี้อ้างอิง",
+      "referenceInvoicePlaceholder": "เลือกใบแจ้งหนี้",
+      "date": "วันที่",
+      "reason": "เหตุผล",
+      "reasonPlaceholder": "เลือกเหตุผล",
+      "vatRate": "อัตราภาษีมูลค่าเพิ่ม",
+      "reasonDescription": "รายละเอียดเหตุผล",
+      "reasonDescriptionPlaceholder": "รายละเอียดเพิ่มเติมเกี่ยวกับเหตุผล...",
+      "notes": "หมายเหตุ",
+      "lines": "รายการ",
+      "addLine": "เพิ่มรายการ",
+      "selectAccount": "เลือกบัญชี",
+      "subtotal": "ยอดรวมย่อย",
+      "vat": "VAT ({rate}%):",
+      "wht": "ภาษีหัก ณ ที่จ่าย",
+      "grandTotal": "รวมทั้งสิ้น"
+    },
+    "dialog": {
+      "submitConfirm": "ส่งใบนี้เพื่อขออนุมัติ?",
+      "approveConfirm": "อนุมัติใบนี้?",
+      "postConfirm": "ลงบัญชีใบนี้ในบัญชีแยกประเภท?",
+      "deleteConfirm": "ลบใบนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+      "cancelTitle": "ยกเลิกใบ",
+      "cancelReasonPrompt": "กรุณาระบุเหตุผลในการยกเลิก:",
+      "cancelReasonPlaceholder": "เหตุผลการยกเลิก...",
+      "confirmCancel": "ยืนยันการยกเลิก",
+      "rejectTitle": "ปฏิเสธใบ",
+      "rejectReasonPrompt": "กรุณาระบุเหตุผลในการปฏิเสธ:",
+      "rejectReasonPlaceholder": "เหตุผลการปฏิเสธ...",
+      "confirmReject": "ยืนยันการปฏิเสธ"
+    },
+    "empty": {
+      "notFound": "ไม่พบใบลด/เพิ่มหนี้",
+      "cancelledBanner": "ใบนี้ถูกยกเลิกแล้ว"
+    },
+    "toast": {
+      "requiredFields": "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน",
+      "atLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ",
+      "createFailed": "ไม่สามารถสร้างใบลด/เพิ่มหนี้ได้",
+      "loadFailed": "ไม่สามารถโหลดข้อมูลใบได้",
+      "submitFailed": "ไม่สามารถส่งใบเพื่ออนุมัติได้",
+      "approveFailed": "ไม่สามารถอนุมัติใบได้",
+      "rejectReasonRequired": "กรุณาระบุเหตุผลในการปฏิเสธ",
+      "rejectFailed": "ไม่สามารถปฏิเสธใบได้",
+      "postFailed": "ไม่สามารถลงบัญชีใบได้",
+      "cancelReasonRequired": "กรุณาระบุเหตุผลในการยกเลิก",
+      "cancelFailed": "ไม่สามารถยกเลิกใบได้",
+      "deleteFailed": "ไม่สามารถลบใบได้"
+    }
+  },
+  "creditNotes": {
+    "title": "ใบลดหนี้",
+    "description": "จัดการใบลดหนี้สำหรับลูกค้าและผู้ขาย",
+    "stats": {
+      "draft": "ใบร่าง",
+      "pendingApproval": "รออนุมัติ",
+      "postedThisMonth": "ลงบัญชีเดือนนี้",
+      "totalCreditedThisMonth": "ยอดลดหนี้รวม (เดือนนี้)"
+    },
+    "columns": {
+      "noteNumber": "เลขที่ใบ",
+      "noteType": "ประเภท",
+      "noteDate": "วันที่",
+      "customer": "ลูกค้า",
+      "vendor": "ผู้ขาย",
+      "referenceInvoice": "อ้างอิงใบแจ้งหนี้",
+      "amount": "จำนวนเงิน",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ",
+      "description": "รายละเอียด",
+      "glAccount": "บัญชีแยกประเภท",
+      "quantity": "จำนวน",
+      "unitPrice": "ราคาต่อหน่วย",
+      "lineTotal": "รวมรายการ"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งอนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "posted": "ลงบัญชีแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "filters": {
+      "searchPlaceholder": "ค้นหาใบลดหนี้...",
+      "arCredit": "ใบลดหนี้ลูกหนี้",
+      "apCredit": "ใบลดหนี้เจ้าหนี้"
+    },
+    "reasons": {
+      "return": "คืนสินค้า",
+      "price_adjustment": "ปรับราคา",
+      "quantity_adjustment": "ปรับจำนวน",
+      "defect": "สินค้าชำรุด",
+      "discount": "ส่วนลดเพิ่มเติม",
+      "other": "อื่นๆ"
+    },
+    "actions": {
+      "view": "ดู",
+      "new": "สร้างใบลดหนี้",
+      "cancel": "ยกเลิก",
+      "saveDraft": "บันทึกใบร่าง",
+      "submit": "ส่ง",
+      "cancelNote": "ยกเลิกใบ",
+      "approve": "อนุมัติ",
+      "post": "ลงบัญชีแยกประเภท",
+      "backToList": "กลับสู่รายการ"
+    },
+    "stepper": {
+      "title": "สถานะการดำเนินงาน"
+    },
+    "detail": {
+      "noteDetails": "รายละเอียดใบ",
+      "journalEntry": "รายการบัญชี",
+      "approvedAt": "อนุมัติเมื่อ",
+      "postedAt": "ลงบัญชีเมื่อ"
+    },
+    "form": {
+      "arInvoiceId": "รหัสใบแจ้งหนี้ลูกค้า",
+      "apInvoiceId": "รหัสใบแจ้งหนี้ผู้ขาย",
+      "invoiceIdPlaceholder": "กรอกรหัสใบแจ้งหนี้",
+      "invoiceInfo": "ใบแจ้งหนี้: {invoiceNumber} | คงเหลือ: {available}",
+      "date": "วันที่",
+      "reason": "เหตุผล",
+      "reasonDescription": "รายละเอียดเหตุผล",
+      "reasonDescriptionPlaceholder": "กรอกคำอธิบายเหตุผล",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม",
+      "noteType": "ประเภทใบ",
+      "referenceInvoice": "ใบแจ้งหนี้อ้างอิง",
+      "customer": "ลูกค้า",
+      "vendor": "ผู้ขาย",
+      "lines": "รายการ",
+      "subtotal": "ยอดรวมย่อย",
+      "vatFixed": "ภาษีมูลค่าเพิ่ม (7%)",
+      "vat": "ภาษีมูลค่าเพิ่ม ({rate}%):",
+      "grandTotal": "รวมทั้งสิ้น"
+    },
+    "dialog": {
+      "cancelTitle": "ยกเลิกใบลดหนี้",
+      "cancelReasonLabel": "เหตุผลการยกเลิก",
+      "cancelReasonPlaceholder": "กรอกเหตุผลในการยกเลิก",
+      "confirmCancel": "ยืนยันการยกเลิก"
+    },
+    "empty": {
+      "notFound": "ไม่พบใบลดหนี้"
+    },
+    "toast": {
+      "selectInvoice": "กรุณาเลือกใบแจ้งหนี้",
+      "atLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ",
+      "createSuccess": "สร้างใบลดหนี้สำเร็จ",
+      "createFailed": "ไม่สามารถสร้างใบลดหนี้ได้",
+      "loadFailed": "ไม่สามารถโหลดใบลดหนี้ได้",
+      "submitSuccess": "ส่งใบลดหนี้เพื่อขออนุมัติแล้ว",
+      "submitFailed": "ไม่สามารถส่งได้",
+      "approveSuccess": "อนุมัติใบลดหนี้แล้ว",
+      "approveFailed": "ไม่สามารถอนุมัติได้",
+      "postSuccess": "ลงบัญชีใบลดหนี้แล้ว เลขที่รายการบันทึกบัญชี: {journalEntryNumber}",
+      "postFailed": "ไม่สามารถลงบัญชีได้",
+      "cancelReasonRequired": "กรุณากรอกเหตุผลการยกเลิก",
+      "cancelSuccess": "ยกเลิกใบลดหนี้แล้ว",
+      "cancelFailed": "ไม่สามารถยกเลิกได้"
+    }
+  },
+  "debitNotes": {
+    "title": "ใบเพิ่มหนี้",
+    "description": "จัดการใบเพิ่มหนี้สำหรับลูกค้าและผู้ขาย",
+    "columns": {
+      "noteNumber": "เลขที่ใบ",
+      "noteType": "ประเภท",
+      "noteDate": "วันที่",
+      "customer": "ลูกค้า",
+      "vendor": "ผู้ขาย",
+      "referenceInvoice": "อ้างอิงใบแจ้งหนี้",
+      "amount": "จำนวนเงิน",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ",
+      "description": "รายละเอียด",
+      "glAccount": "บัญชีแยกประเภท",
+      "quantity": "จำนวน",
+      "unitPrice": "ราคาต่อหน่วย",
+      "lineTotal": "รวมรายการ"
+    },
+    "status": {
+      "draft": "ร่าง",
+      "submitted": "ส่งอนุมัติ",
+      "approved": "อนุมัติแล้ว",
+      "posted": "ลงบัญชีแล้ว",
+      "cancelled": "ยกเลิก"
+    },
+    "filters": {
+      "searchPlaceholder": "ค้นหาใบเพิ่มหนี้...",
+      "arDebit": "ใบเพิ่มหนี้ลูกหนี้",
+      "apDebit": "ใบเพิ่มหนี้เจ้าหนี้"
+    },
+    "reasons": {
+      "price_adjustment": "ปรับราคา",
+      "quantity_adjustment": "ปรับจำนวน",
+      "other": "อื่นๆ"
+    },
+    "actions": {
+      "view": "ดู",
+      "new": "สร้างใบเพิ่มหนี้",
+      "cancel": "ยกเลิก",
+      "saveDraft": "บันทึกใบร่าง",
+      "post": "ลงบัญชีแยกประเภท",
+      "backToList": "กลับสู่รายการ"
+    },
+    "stepper": {
+      "title": "สถานะการดำเนินงาน"
+    },
+    "detail": {
+      "noteDetails": "รายละเอียดใบ",
+      "journalEntry": "รายการบัญชี",
+      "postedAt": "ลงบัญชีเมื่อ"
+    },
+    "form": {
+      "arInvoiceId": "รหัสใบแจ้งหนี้ลูกค้า",
+      "apInvoiceId": "รหัสใบแจ้งหนี้ผู้ขาย",
+      "invoiceIdPlaceholder": "กรอกรหัสใบแจ้งหนี้",
+      "invoiceInfo": "ใบแจ้งหนี้: {invoiceNumber}",
+      "date": "วันที่",
+      "reason": "เหตุผล",
+      "reasonDescription": "รายละเอียดเหตุผล",
+      "reasonDescriptionPlaceholder": "กรอกคำอธิบายเหตุผล",
+      "notes": "หมายเหตุ",
+      "notesPlaceholder": "หมายเหตุเพิ่มเติม",
+      "noteType": "ประเภทใบ",
+      "referenceInvoice": "ใบแจ้งหนี้อ้างอิง",
+      "customer": "ลูกค้า",
+      "vendor": "ผู้ขาย",
+      "lines": "รายการ",
+      "addLine": "เพิ่มรายการ",
+      "subtotal": "ยอดรวมย่อย",
+      "vatFixed": "ภาษีมูลค่าเพิ่ม (7%)",
+      "vat": "ภาษีมูลค่าเพิ่ม ({rate}%):",
+      "grandTotal": "รวมทั้งสิ้น"
+    },
+    "empty": {
+      "notFound": "ไม่พบใบเพิ่มหนี้"
+    },
+    "toast": {
+      "selectInvoice": "กรุณาเลือกใบแจ้งหนี้",
+      "atLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ",
+      "createSuccess": "สร้างใบเพิ่มหนี้สำเร็จ",
+      "createFailed": "ไม่สามารถสร้างใบเพิ่มหนี้ได้",
+      "loadFailed": "ไม่สามารถโหลดใบเพิ่มหนี้ได้",
+      "postSuccess": "ลงบัญชีใบเพิ่มหนี้แล้ว เลขที่รายการบันทึกบัญชี: {journalEntryNumber}",
+      "postFailed": "ไม่สามารถลงบัญชีได้"
+    }
+  },
+  "matching": {
+    "title": "รายการผิดปกติจากการจับคู่",
+    "subtitle": "ตรวจสอบและแก้ไขรายการผิดปกติจากการจับคู่ 3 ทาง",
+    "gridTitle": "รายการผิดปกติ",
+    "columns": {
+      "id": "รหัส",
+      "poNumber": "เลขใบสั่งซื้อ",
+      "grnNumber": "เลขใบรับสินค้า",
+      "invoiceNumber": "เลขใบแจ้งหนี้",
+      "vendor": "ผู้ขาย",
+      "amount": "จำนวนเงิน",
+      "type": "ประเภท",
+      "variance": "ผลต่าง",
+      "variancePct": "ผลต่าง %",
+      "status": "สถานะ",
+      "resolvedBy": "แก้ไขโดย",
+      "notes": "หมายเหตุ",
+      "actions": "การดำเนินการ"
+    },
+    "status": {
+      "matched": "จับคู่แล้ว",
+      "unmatched": "ไม่จับคู่",
+      "partial": "จับคู่บางส่วน",
+      "pending": "รอตรวจสอบ",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธแล้ว"
+    },
+    "exceptionTypes": {
+      "over_quantity": "ปริมาณเกิน",
+      "under_quantity": "ปริมาณขาด",
+      "over_price": "ราคาเกิน",
+      "under_price": "ราคาต่ำกว่า",
+      "quantity_variance": "ผลต่างปริมาณ",
+      "price_variance": "ผลต่างราคา",
+      "amount_variance": "ผลต่างจำนวนเงิน",
+      "missing_grn": "ไม่มีใบรับสินค้า",
+      "missing_po": "ไม่มีใบสั่งซื้อ",
+      "partial_receipt": "รับสินค้าบางส่วน"
+    },
+    "actions": {
+      "match": "จับคู่",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "refresh": "รีเฟรช"
+    },
+    "stats": {
+      "matchedToday": "จับคู่วันนี้",
+      "exceptionsToday": "รายการผิดปกติวันนี้",
+      "pending": "รอตรวจสอบ",
+      "matchedThisMonth": "จับคู่เดือนนี้"
+    },
+    "filters": {
+      "search": "ค้นหารายการผิดปกติ..."
+    },
+    "empty": {
+      "title": "ไม่มีรายการผิดปกติ"
+    },
+    "dialog": {
+      "approveTitle": "อนุมัติรายการผิดปกติ",
+      "rejectTitle": "ปฏิเสธรายการผิดปกติ",
+      "exceptionType": "ประเภทรายการผิดปกติ",
+      "variance": "ผลต่าง",
+      "comments": "ความคิดเห็น",
+      "commentsPlaceholder": "กรอกความคิดเห็น..."
+    }
+  },
+  "varianceReports": {
+    "title": "รายงานผลต่าง",
+    "subtitle": "รายงานวิเคราะห์ผลต่างการผลิตและการควบคุมต้นทุน",
+    "filters": {
+      "dateFrom": "ตั้งแต่วันที่",
+      "dateTo": "ถึงวันที่",
+      "groupBy": "จัดกลุ่มตาม",
+      "refresh": "รีเฟรช",
+      "groupOptions": {
+        "varianceType": "ประเภทผลต่าง",
+        "item": "สินค้า",
+        "workOrder": "ใบสั่งผลิต",
+        "month": "เดือน"
+      }
+    },
+    "tabs": {
+      "summary": "สรุป",
+      "material": "ผลต่างวัตถุดิบ",
+      "labor": "ผลต่างค่าแรง"
+    },
+    "stats": {
+      "totalVariances": "ผลต่างรวม",
+      "favorable": "เป็นผลดี",
+      "unfavorable": "เป็นผลเสีย",
+      "totalMaterialVariance": "ผลต่างวัตถุดิบรวม",
+      "mpv": "ผลต่างราคา (MPV)",
+      "muv": "ผลต่างการใช้ (MUV)",
+      "totalLaborVariance": "ผลต่างค่าแรงรวม",
+      "lrv": "ผลต่างอัตรา (LRV)",
+      "lev": "ผลต่างประสิทธิภาพ (LEV)"
+    },
+    "chart": {
+      "byType": "ผลต่างตามประเภท"
+    },
+    "columns": {
+      "group": "กลุ่ม",
+      "mpv": "MPV",
+      "muv": "MUV",
+      "lrv": "LRV",
+      "lev": "LEV",
+      "voh": "VOH",
+      "foh": "FOH",
+      "total": "รวม",
+      "itemCode": "รหัสสินค้า",
+      "itemName": "ชื่อสินค้า",
+      "standardPrice": "ราคามาตรฐาน",
+      "actualPrice": "ราคาจริง",
+      "priceVariance": "ผลต่างราคา",
+      "standardQty": "ปริมาณมาตรฐาน",
+      "actualQty": "ปริมาณจริง",
+      "usageVariance": "ผลต่างการใช้",
+      "workOrderNumber": "ใบสั่งผลิต",
+      "item": "สินค้า",
+      "standardHours": "ชั่วโมงมาตรฐาน",
+      "actualHours": "ชั่วโมงจริง",
+      "standardRate": "อัตรามาตรฐาน",
+      "actualRate": "อัตราจริง",
+      "rateVariance": "ผลต่างอัตรา",
+      "efficiencyVariance": "ผลต่างประสิทธิภาพ"
+    },
+    "empty": {
+      "title": "ไม่มีข้อมูลผลต่าง"
+    }
+  },
+  "standardCosts": {
+    "title": "ต้นทุนมาตรฐาน",
+    "subtitle": "จัดการต้นทุนมาตรฐานสำหรับการวิเคราะห์ผลต่างการผลิต",
+    "gridTitle": "ต้นทุนมาตรฐาน",
+    "columns": {
+      "itemCode": "รหัสสินค้า",
+      "itemName": "ชื่อสินค้า",
+      "effectiveDate": "วันที่มีผล",
+      "materialCost": "วัตถุดิบ",
+      "laborCost": "ค่าแรง",
+      "overheadCost": "ค่าโสหุ้ย",
+      "totalCost": "ต้นทุนรวม",
+      "status": "สถานะ"
+    },
+    "status": {
+      "current": "ปัจจุบัน",
+      "history": "ประวัติ"
+    },
+    "actions": {
+      "add": "เพิ่มต้นทุน",
+      "rollup": "รวมต้นทุนจาก BOM"
+    },
+    "dialog": {
+      "createTitle": "สร้างต้นทุนมาตรฐาน",
+      "itemInfo": "ข้อมูลสินค้า",
+      "selectItem": "เลือกสินค้า",
+      "costGroup": "ต้นทุน",
+      "laborStandardGroup": "มาตรฐานค่าแรง"
+    },
+    "validation": {
+      "selectItem": "กรุณาเลือกสินค้า",
+      "effectiveDate": "กรุณาระบุวันที่มีผล"
+    },
+    "toast": {
+      "createSuccess": "สร้างต้นทุนมาตรฐานสำเร็จ",
+      "createFailed": "ไม่สามารถสร้างต้นทุนมาตรฐานได้",
+      "rollupSuccess": "รวมต้นทุนสำเร็จ: ปรับปรุงสินค้า {updated} จาก {processed} รายการ",
+      "rollupFailed": "รวมต้นทุนไม่สำเร็จ"
+    },
+    "empty": {
+      "title": "ไม่มีต้นทุนมาตรฐาน"
+    }
+  },
+  "approvals": {
+    "title": "แดชบอร์ดการอนุมัติ",
+    "subtitle": "รายการรออนุมัติและกิจกรรมการอนุมัติล่าสุด",
+    "pendingGridTitle": "รายการรออนุมัติ",
+    "recentGridTitle": "การดำเนินการล่าสุด",
+    "columns": {
+      "requestId": "รหัสคำขอ",
+      "type": "ประเภท",
+      "documentId": "รหัสเอกสาร",
+      "flow": "ขั้นตอน",
+      "step": "ขั้น",
+      "requestedBy": "ขอโดย",
+      "amount": "จำนวนเงิน",
+      "requestedAt": "ขอเมื่อ",
+      "actions": "การดำเนินการ",
+      "action": "การดำเนินการ",
+      "actionBy": "โดย",
+      "actionAt": "เมื่อ",
+      "comments": "ความคิดเห็น"
+    },
+    "documentTypes": {
+      "purchase_requisition": "ใบขอซื้อ",
+      "purchase_order": "ใบสั่งซื้อ",
+      "ap_invoice": "ใบแจ้งหนี้เจ้าหนี้",
+      "ar_invoice": "ใบแจ้งหนี้ลูกหนี้",
+      "payment": "การชำระเงิน",
+      "credit_note": "ใบลดหนี้",
+      "debit_note": "ใบเพิ่มหนี้"
+    },
+    "status": {
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธแล้ว",
+      "pending": "รออนุมัติ"
+    },
+    "actions": {
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "refresh": "รีเฟรช"
+    },
+    "stats": {
+      "pending": "รออนุมัติ",
+      "approvedToday": "อนุมัติวันนี้",
+      "rejectedToday": "ปฏิเสธวันนี้"
+    },
+    "filters": {},
+    "empty": {
+      "title": "ไม่มีรายการรออนุมัติ"
+    },
+    "dialog": {
+      "approveTitle": "อนุมัติคำขอ",
+      "rejectTitle": "ปฏิเสธคำขอ",
+      "requestDetails": "รายละเอียดคำขอ",
+      "requestedBy": "ขอโดย",
+      "comments": "ความคิดเห็น",
+      "approvePlaceholder": "กรอกความคิดเห็นการอนุมัติ...",
+      "rejectPlaceholder": "กรอกความคิดเห็นการปฏิเสธ..."
+    }
+  },
+  "bankReconciliation": {
+    "title": "การกระทบยอดธนาคาร",
+    "subtitle": "นำเข้ารายการเดินบัญชีและกระทบยอดกับรายการบัญชี",
+    "importStatement": "นำเข้ารายการเดินบัญชี",
+    "backToList": "กลับไปหน้าการกระทบยอดธนาคาร",
+    "notFound": "ไม่พบรายการเดินบัญชี",
+    "stats": {
+      "totalStatements": "รายการเดินบัญชีทั้งหมด",
+      "totalStatementsSubtitle": "รายการที่นำเข้าทั้งหมด",
+      "pending": "รอการกระทบยอด",
+      "pendingSubtitle": "รอดำเนินการ",
+      "reconciledThisMonth": "กระทบยอดแล้วเดือนนี้",
+      "reconciledThisMonthSubtitle": "เสร็จสิ้นในงวดนี้",
+      "unmatchedLines": "รายการที่ยังไม่จับคู่",
+      "unmatchedLinesSubtitle": "ต้องตรวจสอบ"
+    },
+    "columns": {
+      "statementNumber": "เลขที่รายการเดินบัญชี",
+      "bankAccount": "บัญชีธนาคาร",
+      "date": "วันที่",
+      "openingBalance": "ยอดยกมา",
+      "closingBalance": "ยอดคงเหลือ",
+      "matched": "จับคู่แล้ว",
+      "unmatched": "ยังไม่จับคู่",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ"
+    },
+    "rowActions": {
+      "viewReconcile": "ดู/กระทบยอด",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "toast": {
+      "deleteSuccess": "ลบรายการเดินบัญชีสำเร็จ",
+      "deleteLocked": "ไม่สามารถลบรายการที่กระทบยอดแล้วหรือปิดแล้วได้",
+      "deleteConfirm": "คุณต้องการลบรายการเดินบัญชี \"{number}\" ใช่หรือไม่?"
+    },
+    "reconcile": {
+      "back": "ย้อนกลับ",
+      "autoMatch": "จับคู่อัตโนมัติ",
+      "finalize": "ปิดการกระทบยอด",
+      "autoMatchResult": "จับคู่อัตโนมัติเสร็จสิ้น: จับคู่แล้ว {matched} จาก {total} รายการ",
+      "autoMatchFailed": "จับคู่อัตโนมัติไม่สำเร็จ",
+      "unmatchConfirm": "คุณต้องการยกเลิกการจับคู่รายการนี้ใช่หรือไม่?",
+      "unmatchFailed": "ยกเลิกการจับคู่ไม่สำเร็จ",
+      "ignorePrompt": "ระบุเหตุผลที่ละเว้น (ไม่บังคับ):",
+      "ignoreFailed": "ละเว้นรายการไม่สำเร็จ",
+      "defaultChargeDescription": "ค่าธรรมเนียมธนาคาร: {description}",
+      "createJournalFailed": "ไม่สามารถสร้างรายการบันทึกบัญชีได้",
+      "finalizeUnbalancedConfirm": "ยอดกระทบยังไม่สมดุล ต้องการบังคับปิดหรือไม่?",
+      "finalizeSuccess": "ปิดการกระทบยอดเรียบร้อยแล้ว",
+      "finalizeFailed": "ไม่สามารถปิดการกระทบยอดได้",
+      "openingBalance": "ยอดยกมา",
+      "closingBalance": "ยอดคงเหลือ",
+      "totalDebits": "รวมเดบิต",
+      "totalCredits": "รวมเครดิต",
+      "status": "สถานะ",
+      "balanced": "สมดุล",
+      "unbalanced": "ไม่สมดุล",
+      "difference": "ผลต่าง: {amount}",
+      "matchingProgress": "ความคืบหน้าการจับคู่",
+      "matchedProgress": "จับคู่แล้ว {matched} / {total} รายการ",
+      "statementLines": "รายการในใบแจ้งยอด",
+      "journalDialogTitle": "สร้างรายการบันทึกค่าธรรมเนียมธนาคาร",
+      "amount": "จำนวนเงิน",
+      "chargeTypeLabel": "ประเภทค่าธรรมเนียม",
+      "expenseAccountLabel": "บัญชีค่าใช้จ่าย",
+      "expenseAccountPlaceholder": "เลือกบัญชีค่าใช้จ่าย",
+      "descriptionLabel": "รายละเอียด",
+      "cancel": "ยกเลิก",
+      "creating": "กำลังสร้าง...",
+      "createJournal": "สร้างรายการบันทึก",
+      "chargeTypes": {
+        "bankFee": "ค่าธรรมเนียมธนาคาร",
+        "interestExpense": "ดอกเบี้ยจ่าย",
+        "interestIncome": "ดอกเบี้ยรับ",
+        "other": "อื่น ๆ"
+      }
+    },
+    "csvImport": {
+      "title": "นำเข้ารายการเดินบัญชีธนาคาร",
+      "dateFormats": {
+        "thai": "DD/MM/YYYY (ไทย)",
+        "iso": "YYYY-MM-DD (ISO)",
+        "us": "MM/DD/YYYY (สหรัฐฯ)",
+        "dashed": "DD-MM-YYYY"
+      },
+      "upload": {
+        "heading": "อัปโหลดไฟล์ CSV รายการเดินบัญชี",
+        "subtitle": "เลือกไฟล์ CSV ที่ส่งออกจากธนาคารของคุณ",
+        "selectFile": "เลือกไฟล์ CSV"
+      },
+      "mapping": {
+        "heading": "จับคู่คอลัมน์ CSV",
+        "subtitle": "จับคู่คอลัมน์ในไฟล์ CSV กับฟิลด์ที่ต้องการ",
+        "firstRowHeader": "แถวแรกเป็นหัวคอลัมน์",
+        "dateFormat": "รูปแบบวันที่",
+        "dateColumnLabel": "คอลัมน์วันที่ *",
+        "dateColumnPlaceholder": "เลือกคอลัมน์วันที่",
+        "descriptionColumnLabel": "คอลัมน์รายละเอียด *",
+        "descriptionColumnPlaceholder": "เลือกคอลัมน์รายละเอียด",
+        "debitColumnLabel": "คอลัมน์ยอดเดบิต",
+        "debitColumnPlaceholder": "เลือกคอลัมน์เดบิต",
+        "creditColumnLabel": "คอลัมน์ยอดเครดิต",
+        "creditColumnPlaceholder": "เลือกคอลัมน์เครดิต",
+        "referenceColumnLabel": "คอลัมน์อ้างอิง",
+        "referenceColumnPlaceholder": "เลือกคอลัมน์อ้างอิง",
+        "balanceColumnLabel": "คอลัมน์ยอดคงเหลือ",
+        "balanceColumnPlaceholder": "เลือกคอลัมน์ยอดคงเหลือ"
+      },
+      "preview": {
+        "heading": "ตรวจสอบก่อนนำเข้า",
+        "ready": "{count} รายการพร้อมนำเข้า"
+      },
+      "columns": {
+        "date": "วันที่",
+        "description": "รายละเอียด",
+        "debit": "เดบิต",
+        "credit": "เครดิต",
+        "reference": "อ้างอิง",
+        "balance": "ยอดคงเหลือ"
+      },
+      "actions": {
+        "back": "ย้อนกลับ",
+        "next": "ถัดไป",
+        "import": "นำเข้า",
+        "importing": "กำลังนำเข้า..."
+      }
+    },
+    "statementLines": {
+      "status": {
+        "unmatched": "ยังไม่จับคู่",
+        "matched": "จับคู่แล้ว",
+        "partially_matched": "จับคู่บางส่วน",
+        "journal_created": "สร้างรายการบันทึกแล้ว",
+        "ignored": "ละเว้น"
+      },
+      "actions": {
+        "match": "จับคู่",
+        "createJournal": "สร้างรายการบันทึก",
+        "ignore": "ละเว้น",
+        "unmatch": "ยกเลิกการจับคู่"
+      },
+      "columns": {
+        "date": "วันที่",
+        "description": "รายละเอียด",
+        "reference": "อ้างอิง",
+        "amount": "จำนวนเงิน",
+        "type": "ประเภท",
+        "status": "สถานะ",
+        "confidence": "ความเชื่อมั่น",
+        "actions": "การดำเนินการ"
+      }
+    },
+    "statementForm": {
+      "loading": "กำลังโหลดรายการเดินบัญชี...",
+      "titleCreate": "นำเข้ารายการเดินบัญชีธนาคาร",
+      "titleEdit": "แก้ไข: {number}",
+      "lockedWarning": "รายการเดินบัญชีนี้อยู่ในสถานะ {status} จึงไม่สามารถแก้ไขได้",
+      "netChange": "ยอดเปลี่ยนแปลงสุทธิ:",
+      "actions": {
+        "back": "ย้อนกลับ",
+        "delete": "ลบ",
+        "cancel": "ยกเลิก",
+        "createAndImport": "สร้างและนำเข้า CSV",
+        "saveEdit": "บันทึกการแก้ไข"
+      },
+      "deleteConfirm": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณต้องการลบรายการเดินบัญชีนี้ใช่หรือไม่? ระบบจะลบรายการที่เกี่ยวข้องทั้งหมดด้วย"
+      },
+      "sections": {
+        "details": "รายละเอียดรายการเดินบัญชี",
+        "balances": "ยอดคงเหลือ"
+      },
+      "fields": {
+        "bankAccount": "บัญชีธนาคาร",
+        "bankAccountPlaceholder": "เลือกบัญชีธนาคาร",
+        "statementDate": "วันที่รายการเดินบัญชี",
+        "startDate": "วันที่เริ่มต้น",
+        "endDate": "วันที่สิ้นสุด",
+        "reference": "อ้างอิง",
+        "referencePlaceholder": "อ้างอิง (ไม่บังคับ)",
+        "openingBalance": "ยอดยกมา",
+        "closingBalance": "ยอดคงเหลือ"
+      },
+      "info": {
+        "title": "ข้อมูลรายการเดินบัญชี",
+        "id": "รหัส",
+        "statementNumber": "เลขที่รายการเดินบัญชี",
+        "status": "สถานะ",
+        "bankAccount": "บัญชีธนาคาร",
+        "accountNumber": "เลขที่บัญชี",
+        "createdAt": "สร้างเมื่อ",
+        "updatedAt": "แก้ไขล่าสุด"
+      },
+      "summary": {
+        "title": "สรุปการกระทบยอด",
+        "totalLines": "จำนวนรายการทั้งหมด",
+        "matched": "จับคู่แล้ว",
+        "unmatched": "ยังไม่จับคู่",
+        "totalDebits": "รวมเดบิต",
+        "totalCredits": "รวมเครดิต",
+        "goToReconciliation": "ไปยังการกระทบยอด"
+      },
+      "toast": {
+        "updated": "แก้ไขรายการเดินบัญชีสำเร็จ",
+        "deleted": "ลบรายการเดินบัญชีสำเร็จ",
+        "requiredFields": "กรุณากรอกข้อมูลในช่องที่จำเป็น",
+        "linesImported": "นำเข้ารายการสำเร็จ",
+        "created": "สร้างรายการเดินบัญชีสำเร็จ"
+      }
+    },
+    "matchingDialog": {
+      "title": "จับคู่รายการในใบแจ้งยอด",
+      "statementLineHeading": "รายการในใบแจ้งยอด",
+      "fields": {
+        "date": "วันที่:",
+        "amount": "จำนวนเงิน:",
+        "description": "รายละเอียด:"
+      },
+      "availablePayments": "รายการชำระเงินที่ใช้ได้",
+      "filteredCount": "(แสดง {shown} จาก {total} รายการที่มีจำนวนเงินใกล้เคียง)",
+      "loading": "กำลังโหลด...",
+      "noPayments": "ไม่พบรายการชำระเงินที่ยังไม่จับคู่",
+      "columns": {
+        "documentNumber": "เลขที่เอกสาร",
+        "date": "วันที่",
+        "amount": "จำนวนเงิน",
+        "vendorOrCustomer": "ผู้ขาย/ลูกค้า",
+        "reference": "อ้างอิง",
+        "type": "ประเภท"
+      },
+      "notesLabel": "หมายเหตุ (ไม่บังคับ)",
+      "notesPlaceholder": "เพิ่มหมายเหตุเกี่ยวกับการจับคู่นี้...",
+      "actions": {
+        "cancel": "ยกเลิก",
+        "matchSelected": "จับคู่รายการที่เลือก",
+        "matching": "กำลังจับคู่..."
+      }
+    }
+  },
+  "charts": {
+    "revenueExpenses": {
+      "title": "แนวโน้มรายได้เทียบกับค่าใช้จ่าย",
+      "loading": "กำลังโหลด...",
+      "series": {
+        "revenue": "รายได้",
+        "cogs": "ต้นทุนขาย",
+        "operatingExpenses": "ค่าใช้จ่ายในการดำเนินงาน"
+      }
+    }
+  }
 }

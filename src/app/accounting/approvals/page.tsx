@@ -53,15 +53,15 @@ interface ApprovalDashboard {
   };
 }
 
-const documentTypeLabels: Record<DocumentType, string> = {
-  purchase_requisition: 'ใบขอซื้อ',
-  purchase_order: 'ใบสั่งซื้อ',
-  ap_invoice: 'ใบแจ้งหนี้เจ้าหนี้',
-  ar_invoice: 'ใบแจ้งหนี้ลูกหนี้',
-  payment: 'การชำระเงิน',
-  credit_note: 'ใบลดหนี้',
-  debit_note: 'ใบเพิ่มหนี้',
-};
+const documentTypeKeys: DocumentType[] = [
+  'purchase_requisition',
+  'purchase_order',
+  'ap_invoice',
+  'ar_invoice',
+  'payment',
+  'credit_note',
+  'debit_note',
+];
 
 const statusColors = {
   approved: 'bg-green-100 text-green-800',
@@ -71,6 +71,9 @@ const statusColors = {
 
 export default function ApprovalDashboardPage() {
   const t = useTranslations('accounting');
+
+  const documentTypeLabel = (docType: DocumentType) =>
+    documentTypeKeys.includes(docType) ? t(`approvals.documentTypes.${docType}`) : docType;
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<ApprovalDashboard | null>(null);
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -147,7 +150,7 @@ export default function ApprovalDashboardPage() {
 
   const renderDocType = (cellData: any) => {
     const docType = cellData.value as DocumentType;
-    return documentTypeLabels[docType] || docType;
+    return documentTypeLabel(docType);
   };
 
   const renderActions = (cellData: any) => {
@@ -156,7 +159,7 @@ export default function ApprovalDashboardPage() {
       <div className="flex gap-1">
         <Button
           icon="check"
-          hint="อนุมัติ"
+          hint={t('approvals.actions.approve')}
           stylingMode="text"
           type="success"
           onClick={() => handleAction(approval, 'approve')}
@@ -164,7 +167,7 @@ export default function ApprovalDashboardPage() {
         />
         <Button
           icon="close"
-          hint="ปฏิเสธ"
+          hint={t('approvals.actions.reject')}
           stylingMode="text"
           type="danger"
           onClick={() => handleAction(approval, 'reject')}
@@ -196,10 +199,10 @@ export default function ApprovalDashboardPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            {t('page.title')}
+            {t('approvals.title')}
           </h1>
           <p className="text-gray-600">
-            {t('page.description')}
+            {t('approvals.subtitle')}
           </p>
         </div>
 
@@ -207,19 +210,19 @@ export default function ApprovalDashboardPage() {
         {dashboard && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">รออนุมัติ</div>
+              <div className="text-sm text-gray-500">{t('approvals.stats.pending')}</div>
               <div className="text-3xl font-bold text-yellow-600">
                 {dashboard.stats.pendingCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">อนุมัติวันนี้</div>
+              <div className="text-sm text-gray-500">{t('approvals.stats.approvedToday')}</div>
               <div className="text-3xl font-bold text-green-600">
                 {dashboard.stats.approvedToday}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-              <div className="text-sm text-gray-500">ปฏิเสธวันนี้</div>
+              <div className="text-sm text-gray-500">{t('approvals.stats.rejectedToday')}</div>
               <div className="text-3xl font-bold text-red-600">
                 {dashboard.stats.rejectedToday}
               </div>
@@ -240,44 +243,44 @@ export default function ApprovalDashboardPage() {
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">รายการรออนุมัติ</span>
+                <span className="text-lg font-medium">{t('approvals.pendingGridTitle')}</span>
               </Item>
               <Item location="after">
                 <Button
                   icon="refresh"
                   onClick={fetchDashboard}
-                  hint="รีเฟรช"
+                  hint={t('approvals.actions.refresh')}
                   data-testid="refresh-btn"
                 />
               </Item>
             </Toolbar>
 
-            <Column dataField="id" caption="รหัสคำขอ" width={100} />
+            <Column dataField="id" caption={t('approvals.columns.requestId')} width={100} />
             <Column
               dataField="documentType"
-              caption="ประเภท"
+              caption={t('approvals.columns.type')}
               width={180}
               cellRender={renderDocType}
             />
-            <Column dataField="documentId" caption="รหัสเอกสาร" width={80} />
-            <Column dataField="flowName" caption="ขั้นตอน" width={150} />
-            <Column dataField="currentStepOrder" caption="ขั้น" width={60} />
-            <Column dataField="requestedByName" caption="ขอโดย" width={150} />
+            <Column dataField="documentId" caption={t('approvals.columns.documentId')} width={80} />
+            <Column dataField="flowName" caption={t('approvals.columns.flow')} width={150} />
+            <Column dataField="currentStepOrder" caption={t('approvals.columns.step')} width={60} />
+            <Column dataField="requestedByName" caption={t('approvals.columns.requestedBy')} width={150} />
             <Column
               dataField="amount"
-              caption="จำนวนเงิน"
+              caption={t('approvals.columns.amount')}
               width={120}
               dataType="number"
               format="#,##0.00"
             />
             <Column
               dataField="requestedAt"
-              caption="ขอเมื่อ"
+              caption={t('approvals.columns.requestedAt')}
               width={180}
               dataType="datetime"
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('approvals.columns.actions')}
               width={100}
               cellRender={renderActions}
             />
@@ -296,26 +299,26 @@ export default function ApprovalDashboardPage() {
             <Paging defaultPageSize={5} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">การดำเนินการล่าสุด</span>
+                <span className="text-lg font-medium">{t('approvals.recentGridTitle')}</span>
               </Item>
             </Toolbar>
 
-            <Column dataField="documentType" caption="ประเภท" width={150} />
-            <Column dataField="documentId" caption="รหัสเอกสาร" width={80} />
+            <Column dataField="documentType" caption={t('approvals.columns.type')} width={150} />
+            <Column dataField="documentId" caption={t('approvals.columns.documentId')} width={80} />
             <Column
               dataField="action"
-              caption="การดำเนินการ"
+              caption={t('approvals.columns.action')}
               width={100}
               cellRender={renderRecentAction}
             />
-            <Column dataField="actionByName" caption="โดย" width={150} />
+            <Column dataField="actionByName" caption={t('approvals.columns.actionBy')} width={150} />
             <Column
               dataField="actionAt"
-              caption="เมื่อ"
+              caption={t('approvals.columns.actionAt')}
               width={180}
               dataType="datetime"
             />
-            <Column dataField="comments" caption="ความคิดเห็น" />
+            <Column dataField="comments" caption={t('approvals.columns.comments')} />
           </DataGrid>
         </div>
 
@@ -323,7 +326,7 @@ export default function ApprovalDashboardPage() {
         <Popup
           visible={showActionDialog}
           onHiding={() => setShowActionDialog(false)}
-          title={actionType === 'approve' ? 'อนุมัติคำขอ' : 'ปฏิเสธคำขอ'}
+          title={actionType === 'approve' ? t('approvals.dialog.approveTitle') : t('approvals.dialog.rejectTitle')}
           width={400}
           height="auto"
           showCloseButton={true}
@@ -331,33 +334,33 @@ export default function ApprovalDashboardPage() {
           <div className="p-4">
             {selectedApproval && (
               <div className="mb-4 p-3 bg-gray-50 rounded">
-                <div className="text-sm text-gray-500">รายละเอียดคำขอ</div>
+                <div className="text-sm text-gray-500">{t('approvals.dialog.requestDetails')}</div>
                 <div className="font-medium">
-                  {documentTypeLabels[selectedApproval.documentType]} #{selectedApproval.documentId}
+                  {documentTypeLabel(selectedApproval.documentType)} #{selectedApproval.documentId}
                 </div>
                 <div className="text-sm text-gray-600">
-                  ขอโดย: {selectedApproval.requestedByName}
+                  {t('approvals.dialog.requestedBy')}: {selectedApproval.requestedByName}
                 </div>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ความคิดเห็น {actionType === 'reject' && <span className="text-red-500">*</span>}
+                {t('approvals.dialog.comments')} {actionType === 'reject' && <span className="text-red-500">*</span>}
               </label>
               <TextArea
                 value={actionComments}
                 onValueChanged={(e) => setActionComments(e.value || '')}
                 height={100}
-                placeholder={actionType === 'approve' ? 'กรอกความคิดเห็นการอนุมัติ...' : 'กรอกความคิดเห็นการปฏิเสธ...'}
+                placeholder={actionType === 'approve' ? t('approvals.dialog.approvePlaceholder') : t('approvals.dialog.rejectPlaceholder')}
                 data-testid="action-comments-input"
               />
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="ยกเลิก" onClick={() => setShowActionDialog(false)} />
+              <Button text={t('common.cancel')} onClick={() => setShowActionDialog(false)} />
               <Button
-                text={actionLoading ? 'กำลังดำเนินการ...' : actionType === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}
+                text={actionLoading ? t('common.processing') : actionType === 'approve' ? t('approvals.actions.approve') : t('approvals.actions.reject')}
                 type={actionType === 'approve' ? 'success' : 'danger'}
                 stylingMode="contained"
                 onClick={submitAction}

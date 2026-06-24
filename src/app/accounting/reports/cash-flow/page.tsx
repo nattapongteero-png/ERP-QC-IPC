@@ -25,6 +25,7 @@ async function fetchCashFlow(startDate: string, endDate: string): Promise<CashFl
 
 function SectionTable({ section, title }: { section: CashFlowSection; title: string }) {
   const { formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
 
   return (
     <div className="mb-4">
@@ -40,7 +41,7 @@ function SectionTable({ section, title }: { section: CashFlowSection; title: str
             </tr>
           ))}
           <tr className="font-bold border-t border-gray-300">
-            <td className="py-2 px-2">รวม</td>
+            <td className="py-2 px-2">{t('reports.common.total')}</td>
             <td className={`py-2 px-2 text-right ${section.subtotal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {section.subtotal >= 0 ? formatCurrency(section.subtotal) : `(${formatCurrency(Math.abs(section.subtotal))})`}
             </td>
@@ -76,10 +77,10 @@ function CashFlowContent() {
   ] : [];
 
   const chartData = data ? [
-    { name: 'กิจกรรมดำเนินงาน', value: data.operatingActivities.netCashFromOperating },
-    { name: 'กิจกรรมลงทุน', value: data.investingActivities.netCashFromInvesting },
-    { name: 'กิจกรรมจัดหาเงิน', value: data.financingActivities.netCashFromFinancing },
-    { name: 'เปลี่ยนแปลงสุทธิ', value: data.netChangeInCash },
+    { name: t('reports.cashFlow.chartOperating'), value: data.operatingActivities.netCashFromOperating },
+    { name: t('reports.cashFlow.chartInvesting'), value: data.investingActivities.netCashFromInvesting },
+    { name: t('reports.cashFlow.chartFinancing'), value: data.financingActivities.netCashFromFinancing },
+    { name: t('reports.cashFlow.chartNetChange'), value: data.netChangeInCash },
   ] : [];
 
   const columns = [
@@ -89,17 +90,17 @@ function CashFlowContent() {
 
   // Flatten all items for export
   const flattenedData = data ? [
-    { description: 'กำไรสุทธิ', amount: data.operatingActivities.netIncome, section: 'Operating' },
+    { description: t('netIncome'), amount: data.operatingActivities.netIncome, section: 'Operating' },
     ...data.operatingActivities.adjustments.items.map(i => ({ ...i, section: 'Operating - Adjustments' })),
     ...data.operatingActivities.workingCapitalChanges.items.map(i => ({ ...i, section: 'Operating - Working Capital' })),
-    { description: 'กระแสเงินสดสุทธิจากกิจกรรมดำเนินงาน', amount: data.operatingActivities.netCashFromOperating, section: 'Operating' },
+    { description: t('netCashFromOperating'), amount: data.operatingActivities.netCashFromOperating, section: 'Operating' },
     ...data.investingActivities.section.items.map(i => ({ ...i, section: 'Investing' })),
-    { description: 'กระแสเงินสดสุทธิจากกิจกรรมลงทุน', amount: data.investingActivities.netCashFromInvesting, section: 'Investing' },
+    { description: t('netCashFromInvesting'), amount: data.investingActivities.netCashFromInvesting, section: 'Investing' },
     ...data.financingActivities.section.items.map(i => ({ ...i, section: 'Financing' })),
-    { description: 'กระแสเงินสดสุทธิจากกิจกรรมจัดหาเงิน', amount: data.financingActivities.netCashFromFinancing, section: 'Financing' },
-    { description: 'เงินสดเปลี่ยนแปลงสุทธิ', amount: data.netChangeInCash, section: 'Summary' },
-    { description: 'เงินสดต้นงวด', amount: data.beginningCashBalance, section: 'Summary' },
-    { description: 'เงินสดปลายงวด', amount: data.endingCashBalance, section: 'Summary' },
+    { description: t('netCashFromFinancing'), amount: data.financingActivities.netCashFromFinancing, section: 'Financing' },
+    { description: t('netChangeInCash'), amount: data.netChangeInCash, section: 'Summary' },
+    { description: t('beginningCash'), amount: data.beginningCashBalance, section: 'Summary' },
+    { description: t('endingCash'), amount: data.endingCashBalance, section: 'Summary' },
   ] : [];
 
   const handleExportPDF = useCallback(() => {
@@ -120,7 +121,7 @@ function CashFlowContent() {
     const entries = flattenedData as unknown as Record<string, unknown>[];
     exportToExcel(entries, columns, {
       filename: `cash-flow-${startDate}-${endDate}`,
-      title: 'งบกระแสเงินสด',
+      title: t('reports.type.cashFlow'),
       language,
       periodStart: startDate,
       periodEnd: endDate,
@@ -170,7 +171,7 @@ function CashFlowContent() {
       {data && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">สรุปงบกระแสเงินสด</CardTitle>
+            <CardTitle className="text-base">{t('reports.cashFlow.summaryChartTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -182,7 +183,7 @@ function CashFlowContent() {
                   <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                   <Legend />
                   <ReferenceLine y={0} stroke="#666" />
-                  <Bar dataKey="value" name="กระแสเงินสด">
+                  <Bar dataKey="value" name={t('reports.cashFlow.legendCashFlow')}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.value >= 0 ? '#22c55e' : '#ef4444'} />
                     ))}
@@ -276,9 +277,9 @@ function CashFlowContent() {
               </div>
               <div className="p-4 bg-gray-50 rounded-lg flex items-center justify-center">
                 {data.beginningCashBalance + data.netChangeInCash === data.endingCashBalance ? (
-                  <span className="text-emerald-600 font-semibold">✓ ตรงกัน</span>
+                  <span className="text-emerald-600 font-semibold">✓ {t('reports.common.matched')}</span>
                 ) : (
-                  <span className="text-red-600 font-semibold">✗ ไม่ตรงกัน</span>
+                  <span className="text-red-600 font-semibold">✗ {t('reports.common.notMatched')}</span>
                 )}
               </div>
             </div>

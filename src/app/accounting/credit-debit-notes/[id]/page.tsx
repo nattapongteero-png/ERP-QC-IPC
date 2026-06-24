@@ -35,14 +35,6 @@ const statusColors: Record<NoteStatus, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
-const statusLabels: Record<NoteStatus, string> = {
-  draft: 'ร่าง',
-  submitted: 'ส่งอนุมัติ',
-  approved: 'อนุมัติแล้ว',
-  posted: 'ลงบัญชีแล้ว',
-  cancelled: 'ยกเลิก',
-};
-
 const noteTypeLabels: Record<NoteType, string> = {
   ar_credit: 'AR Credit Note',
   ap_credit: 'AP Credit Note',
@@ -94,12 +86,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         setNote(data.data);
       } else {
-        alert(data.error || 'ไม่สามารถโหลดข้อมูลใบได้');
+        alert(data.error || t('creditDebitNotes.toast.loadFailed'));
         router.push('/accounting/credit-debit-notes');
       }
     } catch (error) {
       console.error('Error fetching note:', error);
-      alert('ไม่สามารถโหลดข้อมูลใบได้');
+      alert(t('creditDebitNotes.toast.loadFailed'));
       router.push('/accounting/credit-debit-notes');
     } finally {
       setLoading(false);
@@ -107,7 +99,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   };
 
   const handleSubmit = async () => {
-    if (!confirm('ส่งใบนี้เพื่อขออนุมัติ?')) return;
+    if (!confirm(t('creditDebitNotes.dialog.submitConfirm'))) return;
 
     setActionLoading(true);
     try {
@@ -119,18 +111,18 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'ไม่สามารถส่งใบเพื่ออนุมัติได้');
+        alert(data.error || t('creditDebitNotes.toast.submitFailed'));
       }
     } catch (error) {
       console.error('Error submitting note:', error);
-      alert('ไม่สามารถส่งใบเพื่ออนุมัติได้');
+      alert(t('creditDebitNotes.toast.submitFailed'));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleApprove = async () => {
-    if (!confirm('อนุมัติใบนี้?')) return;
+    if (!confirm(t('creditDebitNotes.dialog.approveConfirm'))) return;
 
     setActionLoading(true);
     try {
@@ -146,11 +138,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'ไม่สามารถอนุมัติใบได้');
+        alert(data.error || t('creditDebitNotes.toast.approveFailed'));
       }
     } catch (error) {
       console.error('Error approving note:', error);
-      alert('ไม่สามารถอนุมัติใบได้');
+      alert(t('creditDebitNotes.toast.approveFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -158,7 +150,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      alert('กรุณาระบุเหตุผลในการปฏิเสธ');
+      alert(t('creditDebitNotes.toast.rejectReasonRequired'));
       return;
     }
 
@@ -181,18 +173,18 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         setRejectReason('');
         await fetchNote();
       } else {
-        alert(data.error || 'ไม่สามารถปฏิเสธใบได้');
+        alert(data.error || t('creditDebitNotes.toast.rejectFailed'));
       }
     } catch (error) {
       console.error('Error rejecting note:', error);
-      alert('ไม่สามารถปฏิเสธใบได้');
+      alert(t('creditDebitNotes.toast.rejectFailed'));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handlePost = async () => {
-    if (!confirm('ลงบัญชีใบนี้ในบัญชีแยกประเภท?')) return;
+    if (!confirm(t('creditDebitNotes.dialog.postConfirm'))) return;
 
     setActionLoading(true);
     try {
@@ -204,11 +196,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         await fetchNote();
       } else {
-        alert(data.error || 'ไม่สามารถลงบัญชีใบได้');
+        alert(data.error || t('creditDebitNotes.toast.postFailed'));
       }
     } catch (error) {
       console.error('Error posting note:', error);
-      alert('ไม่สามารถลงบัญชีใบได้');
+      alert(t('creditDebitNotes.toast.postFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -216,7 +208,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      alert('กรุณาระบุเหตุผลในการยกเลิก');
+      alert(t('creditDebitNotes.toast.cancelReasonRequired'));
       return;
     }
 
@@ -236,18 +228,18 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         setCancelReason('');
         await fetchNote();
       } else {
-        alert(data.error || 'ไม่สามารถยกเลิกใบได้');
+        alert(data.error || t('creditDebitNotes.toast.cancelFailed'));
       }
     } catch (error) {
       console.error('Error cancelling note:', error);
-      alert('ไม่สามารถยกเลิกใบได้');
+      alert(t('creditDebitNotes.toast.cancelFailed'));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('ลบใบนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
+    if (!confirm(t('creditDebitNotes.dialog.deleteConfirm'))) return;
 
     setActionLoading(true);
     try {
@@ -259,11 +251,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
       if (data.success) {
         router.push('/accounting/credit-debit-notes');
       } else {
-        alert(data.error || 'ไม่สามารถลบใบได้');
+        alert(data.error || t('creditDebitNotes.toast.deleteFailed'));
       }
     } catch (error) {
       console.error('Error deleting note:', error);
-      alert('ไม่สามารถลบใบได้');
+      alert(t('creditDebitNotes.toast.deleteFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -294,7 +286,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
   if (!note) {
     return (
         <div className="p-4">
-          <div className="text-center text-gray-500">ไม่พบใบลด/เพิ่มหนี้</div>
+          <div className="text-center text-gray-500">{t('creditDebitNotes.empty.notFound')}</div>
         </div>
     );
   }
@@ -322,21 +314,21 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 }`}
                 data-testid="note-status"
               >
-                {statusLabels[note.status] || note.status}
+                {t(`creditDebitNotes.status.${note.status}`)}
               </span>
             </div>
             <p className="text-gray-600">{noteTypeLabels[note.noteType]}</p>
           </div>
           <div className="flex gap-2">
             <Button
-              text="ย้อนกลับ"
+              text={t('creditDebitNotes.actions.back')}
               icon="back"
               onClick={() => router.push('/accounting/credit-debit-notes')}
               data-testid="back-btn"
             />
             {canEdit && (
               <Button
-                text="แก้ไข"
+                text={t('creditDebitNotes.actions.edit')}
                 icon="edit"
                 onClick={() => router.push(`/accounting/credit-debit-notes/${noteId}/edit`)}
                 data-testid="edit-btn"
@@ -352,16 +344,16 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
               className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800"
               data-testid="note-cancelled-banner"
             >
-              <span className="font-medium">ใบนี้ถูกยกเลิกแล้ว</span>
+              <span className="font-medium">{t('creditDebitNotes.empty.cancelledBanner')}</span>
             </div>
           ) : (
             <StatusStepper
-              title="สถานะการดำเนินงาน"
+              title={t('creditDebitNotes.stepper.title')}
               steps={[
-                { key: 'draft', label: 'ร่าง' },
-                { key: 'submitted', label: 'ส่งอนุมัติ' },
-                { key: 'approved', label: 'อนุมัติแล้ว' },
-                { key: 'posted', label: 'ลงบัญชีแล้ว' },
+                { key: 'draft', label: t('creditDebitNotes.status.draft') },
+                { key: 'submitted', label: t('creditDebitNotes.status.submitted') },
+                { key: 'approved', label: t('creditDebitNotes.status.approved') },
+                { key: 'posted', label: t('creditDebitNotes.status.posted') },
               ]}
               current={String(note.status).toLowerCase()}
             />
@@ -370,49 +362,49 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Note Details */}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
-          <h2 className="text-lg font-semibold mb-4">รายละเอียดใบ</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('creditDebitNotes.detail.noteDetails')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-500">ประเภทใบ</label>
+              <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.noteType')}</label>
               <div className="font-medium">{noteTypeLabels[note.noteType]}</div>
             </div>
             <div>
-              <label className="block text-sm text-gray-500">วันที่</label>
+              <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.date')}</label>
               <div className="font-medium">{formatDate(note.noteDate)}</div>
             </div>
             <div>
-              <label className="block text-sm text-gray-500">ใบแจ้งหนี้อ้างอิง</label>
+              <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.referenceInvoice')}</label>
               <div className="font-medium">
                 {note.referenceInvoiceNumber || `#${note.referenceInvoiceId}`}
               </div>
             </div>
             {note.customerName && (
               <div>
-                <label className="block text-sm text-gray-500">ลูกค้า</label>
+                <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.customer')}</label>
                 <div className="font-medium">{note.customerName}</div>
               </div>
             )}
             {note.vendorName && (
               <div>
-                <label className="block text-sm text-gray-500">ผู้ขาย</label>
+                <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.vendor')}</label>
                 <div className="font-medium">{note.vendorName}</div>
               </div>
             )}
             <div>
-              <label className="block text-sm text-gray-500">เหตุผล</label>
+              <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.reason')}</label>
               <div className="font-medium">
                 {reasonCodeLabels[note.reasonCode] || note.reasonCode}
               </div>
             </div>
             {note.reasonDescription && (
               <div className="md:col-span-3">
-                <label className="block text-sm text-gray-500">รายละเอียดเหตุผล</label>
+                <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.reasonDescription')}</label>
                 <div className="font-medium">{note.reasonDescription}</div>
               </div>
             )}
             {note.notes && (
               <div className="md:col-span-3">
-                <label className="block text-sm text-gray-500">หมายเหตุ</label>
+                <label className="block text-sm text-gray-500">{t('creditDebitNotes.form.notes')}</label>
                 <div className="font-medium">{note.notes}</div>
               </div>
             )}
@@ -423,11 +415,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             <div className="mt-4 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-500">อนุมัติโดย</label>
+                  <label className="block text-sm text-gray-500">{t('creditDebitNotes.detail.approvedBy')}</label>
                   <div className="font-medium">{note.approvedByName}</div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-500">อนุมัติเมื่อ</label>
+                  <label className="block text-sm text-gray-500">{t('creditDebitNotes.detail.approvedAt')}</label>
                   <div className="font-medium">{formatDateTime(note.approvedAt)}</div>
                 </div>
               </div>
@@ -438,12 +430,12 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             <div className="mt-4 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-500">ลงบัญชีเมื่อ</label>
+                  <label className="block text-sm text-gray-500">{t('creditDebitNotes.detail.postedAt')}</label>
                   <div className="font-medium">{formatDateTime(note.postedAt)}</div>
                 </div>
                 {note.journalEntryId && (
                   <div>
-                    <label className="block text-sm text-gray-500">รายการบัญชี</label>
+                    <label className="block text-sm text-gray-500">{t('creditDebitNotes.detail.journalEntry')}</label>
                     <div className="font-medium">#{note.journalEntryId}</div>
                   </div>
                 )}
@@ -454,25 +446,25 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Line Items */}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
-          <h2 className="text-lg font-semibold mb-4">รายการ</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('creditDebitNotes.form.lines')}</h2>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                  รายละเอียด
+                  {t('creditDebitNotes.columns.description')}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  จำนวน
+                  {t('creditDebitNotes.columns.quantity')}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  ราคาต่อหน่วย
+                  {t('creditDebitNotes.columns.unitPrice')}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                  รวมรายการ
+                  {t('creditDebitNotes.columns.lineTotal')}
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                  บัญชีแยกประเภท
+                  {t('creditDebitNotes.columns.glAccount')}
                 </th>
               </tr>
             </thead>
@@ -498,21 +490,21 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">ยอดรวมย่อย:</span>
+                <span className="text-gray-600">{t('creditDebitNotes.form.subtotal')}:</span>
                 <span className="font-medium">{formatAmount(note.subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">VAT ({(note.vatRate * 100).toFixed(0)}%):</span>
+                <span className="text-gray-600">{t('creditDebitNotes.form.vat', { rate: (note.vatRate * 100).toFixed(0) })}</span>
                 <span className="font-medium">{formatAmount(note.vatAmount)}</span>
               </div>
               {note.whtAmount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">ภาษีหัก ณ ที่จ่าย:</span>
+                  <span className="text-gray-600">{t('creditDebitNotes.form.wht')}:</span>
                   <span className="font-medium">-{formatAmount(note.whtAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>รวมทั้งสิ้น:</span>
+                <span>{t('creditDebitNotes.form.grandTotal')}:</span>
                 <span>{formatAmount(note.totalAmount)}</span>
               </div>
             </div>
@@ -521,11 +513,11 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
 
         {/* Actions */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">การดำเนินการ</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('creditDebitNotes.detail.actionsTitle')}</h2>
           <div className="flex flex-wrap gap-2">
             {canSubmit && (
               <Button
-                text="ส่งเพื่ออนุมัติ"
+                text={t('creditDebitNotes.actions.submit')}
                 type="default"
                 stylingMode="contained"
                 icon="check"
@@ -536,7 +528,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canApprove && (
               <Button
-                text="อนุมัติ"
+                text={t('creditDebitNotes.actions.approve')}
                 type="success"
                 stylingMode="contained"
                 icon="check"
@@ -547,7 +539,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canReject && (
               <Button
-                text="ปฏิเสธ"
+                text={t('creditDebitNotes.actions.reject')}
                 type="danger"
                 stylingMode="outlined"
                 icon="close"
@@ -558,7 +550,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canPost && (
               <Button
-                text="ลงบัญชีแยกประเภท"
+                text={t('creditDebitNotes.actions.post')}
                 type="success"
                 stylingMode="contained"
                 icon="save"
@@ -569,7 +561,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canCancel && (
               <Button
-                text="ยกเลิกใบ"
+                text={t('creditDebitNotes.actions.cancelNote')}
                 type="danger"
                 stylingMode="outlined"
                 icon="close"
@@ -580,7 +572,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
             )}
             {canDelete && (
               <Button
-                text="ลบ"
+                text={t('creditDebitNotes.actions.delete')}
                 type="danger"
                 stylingMode="text"
                 icon="trash"
@@ -596,27 +588,27 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         <Popup
           visible={showCancelDialog}
           onHiding={() => setShowCancelDialog(false)}
-          title="ยกเลิกใบ"
+          title={t('creditDebitNotes.dialog.cancelTitle')}
           width={400}
           height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
-            <p className="mb-4">กรุณาระบุเหตุผลในการยกเลิก:</p>
+            <p className="mb-4">{t('creditDebitNotes.dialog.cancelReasonPrompt')}</p>
             <TextArea
               value={cancelReason}
               onValueChanged={(e) => setCancelReason(e.value || '')}
               height={100}
-              placeholder="เหตุผลการยกเลิก..."
+              placeholder={t('creditDebitNotes.dialog.cancelReasonPlaceholder')}
               data-testid="cancel-reason-input"
             />
             <div className="flex justify-end gap-2 mt-4">
               <Button
-                text="ยกเลิก"
+                text={t('creditDebitNotes.actions.cancel')}
                 onClick={() => setShowCancelDialog(false)}
               />
               <Button
-                text="ยืนยันการยกเลิก"
+                text={t('creditDebitNotes.dialog.confirmCancel')}
                 type="danger"
                 stylingMode="contained"
                 onClick={handleCancel}
@@ -631,27 +623,27 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
         <Popup
           visible={showRejectDialog}
           onHiding={() => setShowRejectDialog(false)}
-          title="ปฏิเสธใบ"
+          title={t('creditDebitNotes.dialog.rejectTitle')}
           width={400}
           height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
-            <p className="mb-4">กรุณาระบุเหตุผลในการปฏิเสธ:</p>
+            <p className="mb-4">{t('creditDebitNotes.dialog.rejectReasonPrompt')}</p>
             <TextArea
               value={rejectReason}
               onValueChanged={(e) => setRejectReason(e.value || '')}
               height={100}
-              placeholder="เหตุผลการปฏิเสธ..."
+              placeholder={t('creditDebitNotes.dialog.rejectReasonPlaceholder')}
               data-testid="reject-reason-input"
             />
             <div className="flex justify-end gap-2 mt-4">
               <Button
-                text="ยกเลิก"
+                text={t('creditDebitNotes.actions.cancel')}
                 onClick={() => setShowRejectDialog(false)}
               />
               <Button
-                text="ยืนยันการปฏิเสธ"
+                text={t('creditDebitNotes.dialog.confirmReject')}
                 type="danger"
                 stylingMode="contained"
                 onClick={handleReject}

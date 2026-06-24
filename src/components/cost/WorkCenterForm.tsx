@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
@@ -57,6 +58,7 @@ const initialFormData: FormData = {
 
 export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
   const router = useRouter();
+  const t = useTranslations('cost');
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
@@ -197,7 +199,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">กำลังโหลดศูนย์งาน...</span>
+        <span className="ml-2 text-gray-500">{t('workCenters.form.loading')}</span>
       </div>
     );
   }
@@ -207,8 +209,8 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
   return (
     <div className="space-y-6">
       <ResponsivePageHeader
-        title={mode === 'create' ? 'เพิ่มศูนย์งาน' : `แก้ไขศูนย์งาน: ${workCenter?.code || ''}`}
-        subtitle="กำหนดอัตราค่าแรงและค่าโสหุ้ยสำหรับการคำนวณต้นทุนการผลิต"
+        title={mode === 'create' ? t('workCenters.form.createTitle') : t('workCenters.form.editTitle', { code: workCenter?.code || '' })}
+        subtitle={t('workCenters.form.subtitle')}
         icon={Factory}
         onBack={() => router.push('/cost/work-centers')}
       />
@@ -219,18 +221,18 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Factory className="h-5 w-5" />
-              ข้อมูลพื้นฐาน
+              {t('workCenters.form.basicInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รหัส <span className="text-red-500">*</span>
+                {t('workCenters.form.code')} <span className="text-red-500">*</span>
               </label>
               <TextBox
                 value={formData.code}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, code: e.value || '' }))}
-                placeholder="เช่น WC-MIX-01"
+                placeholder={t('workCenters.form.codePlaceholder')}
                 maxLength={20}
                 disabled={mode === 'edit'}
                 data-testid="work-center-code"
@@ -239,12 +241,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ชื่อ (ภาษาอังกฤษ) <span className="text-red-500">*</span>
+                {t('workCenters.form.nameEn')} <span className="text-red-500">*</span>
               </label>
               <TextBox
                 value={formData.name}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, name: e.value || '' }))}
-                placeholder="เช่น Mixing Station 1"
+                placeholder={t('workCenters.form.nameEnPlaceholder')}
                 maxLength={100}
                 data-testid="work-center-name"
               />
@@ -252,12 +254,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ชื่อ (ภาษาไทย)
+                {t('workCenters.form.nameTh')}
               </label>
               <TextBox
                 value={formData.nameTh}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, nameTh: e.value || '' }))}
-                placeholder="เช่น สถานีผสม 1"
+                placeholder={t('workCenters.form.nameThPlaceholder')}
                 maxLength={100}
                 data-testid="work-center-name-th"
               />
@@ -265,7 +267,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                หน่วยงาน
+                {t('workCenters.form.orgUnit')}
               </label>
               <SelectBox
                 dataSource={orgUnits || []}
@@ -273,7 +275,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 valueExpr="id"
                 value={formData.orgUnitId}
                 onValueChanged={(e) => setFormData(prev => ({ ...prev, orgUnitId: e.value }))}
-                placeholder="เลือกหน่วยงาน..."
+                placeholder={t('workCenters.form.orgUnitPlaceholder')}
                 showClearButton
                 searchEnabled
                 data-testid="work-center-org-unit"
@@ -287,7 +289,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 data-testid="work-center-active"
               />
               <label className="text-sm font-medium text-gray-700">
-                เปิดใช้งาน
+                {t('workCenters.form.active')}
               </label>
             </div>
           </CardContent>
@@ -298,13 +300,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              อัตราต่อชั่วโมง (บาท/ชั่วโมง)
+              {t('workCenters.form.ratesTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                อัตราค่าแรง
+                {t('workCenters.form.laborRate')}
               </label>
               <NumberBox
                 value={formData.laborRatePerHour}
@@ -314,12 +316,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-labor-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">ต้นทุนค่าแรงทางตรงต่อชั่วโมง</p>
+              <p className="text-xs text-gray-500 mt-1">{t('workCenters.form.laborRateHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                อัตราค่าโสหุ้ย
+                {t('workCenters.form.overheadRate')}
               </label>
               <NumberBox
                 value={formData.overheadRatePerHour}
@@ -329,12 +331,12 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-overhead-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">ต้นทุนทางอ้อม (ค่าสาธารณูปโภค การควบคุมงาน ฯลฯ)</p>
+              <p className="text-xs text-gray-500 mt-1">{t('workCenters.form.overheadRateHint')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                อัตราค่าเครื่องจักร
+                {t('workCenters.form.machineRate')}
               </label>
               <NumberBox
                 value={formData.machineRatePerHour}
@@ -344,14 +346,14 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-machine-rate"
               />
-              <p className="text-xs text-gray-500 mt-1">ค่าเสื่อมราคาและค่าบำรุงรักษาอุปกรณ์</p>
+              <p className="text-xs text-gray-500 mt-1">{t('workCenters.form.machineRateHint')}</p>
             </div>
 
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">อัตรารวมต่อชั่วโมง:</span>
+                <span className="text-sm font-medium text-gray-700">{t('workCenters.form.totalRate')}</span>
                 <span className="text-lg font-bold text-blue-600">
-                  {totalRate.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                  {totalRate.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('workCenters.form.baht')}
                 </span>
               </div>
             </div>
@@ -363,13 +365,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              กำลังการผลิต
+              {t('workCenters.form.capacityTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ชั่วโมงทำงานต่อวัน
+                {t('workCenters.form.capacityHours')}
               </label>
               <NumberBox
                 value={formData.capacityHoursPerDay}
@@ -380,7 +382,7 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
                 showSpinButtons
                 data-testid="work-center-capacity"
               />
-              <p className="text-xs text-gray-500 mt-1">ชั่วโมงทำงานที่ใช้ได้ต่อวัน (สูงสุด 24)</p>
+              <p className="text-xs text-gray-500 mt-1">{t('workCenters.form.capacityHint')}</p>
             </div>
           </CardContent>
         </Card>
@@ -389,13 +391,13 @@ export function WorkCenterForm({ mode, workCenterId }: WorkCenterFormProps) {
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <Button
-          text="ยกเลิก"
+          text={t('workCenters.form.cancel')}
           icon="arrowleft"
           stylingMode="outlined"
           onClick={() => router.push('/cost/work-centers')}
         />
         <Button
-          text={isSaving ? 'กำลังบันทึก...' : mode === 'create' ? 'สร้างศูนย์งาน' : 'บันทึกการเปลี่ยนแปลง'}
+          text={isSaving ? t('workCenters.form.saving') : mode === 'create' ? t('workCenters.form.create') : t('workCenters.form.save')}
           icon="save"
           type="default"
           onClick={handleSubmit}

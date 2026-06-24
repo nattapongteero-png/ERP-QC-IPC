@@ -68,46 +68,46 @@ export default function VATReportPage() {
     a.download = `vat-report-${formatTaxPeriod(taxPeriod)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('ส่งออกรายงานภาษีมูลค่าเพิ่มสำเร็จ', 'success', 3000);
+    notify(t('reports.vat.toastExportSuccess'), 'success', 3000);
   }, [report, taxPeriod]);
 
   return (
     <div className="flex flex-col gap-6 pb-8" data-testid="vat-report-page" data-title={t('page.title')}>
       {/* Professional Page Header */}
       <AccountingPageHeader
-        title="รายงานภาษีมูลค่าเพิ่ม"
-        subtitle="รายงานภาษีมูลค่าเพิ่ม (ภ.พ.30) - สรุปภาษีซื้อและภาษีขายสำหรับยื่นแบบ"
+        title={t('reports.vat.title')}
+        subtitle={t('reports.vat.subtitle')}
         icon="receipt"
       />
 
       {/* VAT Summary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AccountingKPICard
-          label="งวดภาษี"
-          subtitle="งวดภาษี"
+          label={t('reports.vat.kpi.taxPeriod')}
+          subtitle={t('reports.vat.kpi.taxPeriod')}
           value={formatTaxPeriod(taxPeriod)}
           icon="calendar"
           variant="info"
         />
         <AccountingKPICard
-          label="ภาษีขาออก"
-          subtitle="ภาษีขาย (Output VAT)"
+          label={t('reports.vat.kpi.outputVat')}
+          subtitle={t('reports.vat.kpi.outputVatSubtitle')}
           value={report ? formatCurrency(report.outputVAT.totalVATAmount) : '-'}
           icon="trending-up"
           variant="success"
           trend={report && report.outputVAT.totalVATAmount > 0 ? 'up' : 'neutral'}
         />
         <AccountingKPICard
-          label="ภาษีขาเข้า"
-          subtitle="ภาษีซื้อ (Input VAT)"
+          label={t('reports.vat.kpi.inputVat')}
+          subtitle={t('reports.vat.kpi.inputVatSubtitle')}
           value={report ? formatCurrency(report.inputVAT.totalVATAmount) : '-'}
           icon="arrow-down"
           variant="danger"
           trend={report && report.inputVAT.totalVATAmount > 0 ? 'down' : 'neutral'}
         />
         <AccountingKPICard
-          label="ภาษีสุทธิ"
-          subtitle={report && report.netVAT >= 0 ? 'ภาษีสุทธิที่ต้องชำระ' : 'ภาษีสุทธิที่ขอคืน'}
+          label={t('reports.vat.kpi.netVat')}
+          subtitle={report && report.netVAT >= 0 ? t('reports.vat.kpi.netVatPayable') : t('reports.vat.kpi.netVatRefundable')}
           value={report ? formatCurrency(Math.abs(report.netVAT)) : '-'}
           icon="calculator"
           variant={report && report.netVAT >= 0 ? 'warning' : 'success'}
@@ -120,7 +120,7 @@ export default function VATReportPage() {
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            เลือกงวดภาษี
+            {t('reports.vat.selectPeriodLabel')}
           </label>
           <DateBox
             value={taxPeriod}
@@ -133,7 +133,7 @@ export default function VATReportPage() {
         </div>
         <div className="flex gap-2">
           <DxButton
-            text="สร้างรายงาน"
+            text={t('reports.actions.generate')}
             type="default"
             stylingMode="contained"
             onClick={handleGenerateReport}
@@ -147,7 +147,7 @@ export default function VATReportPage() {
               className="gap-2"
             >
               <Download className="h-4 w-4" />
-              ส่งออก JSON
+              {t('reports.actions.exportJson')}
             </Button>
           )}
         </div>
@@ -158,7 +158,7 @@ export default function VATReportPage() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-green-500"></div>
-            <p className="text-gray-600 font-medium">กำลังสร้างรายงานภาษีมูลค่าเพิ่ม...</p>
+            <p className="text-gray-600 font-medium">{t('reports.vat.generating')}</p>
           </div>
         </div>
       )}
@@ -169,9 +169,9 @@ export default function VATReportPage() {
             <div className="p-4 bg-green-100 rounded-full w-fit mx-auto mb-4">
               <Receipt className="h-12 w-12 text-green-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">เลือกงวดภาษีเพื่อสร้างรายงาน</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('reports.vat.empty.title')}</h3>
             <p className="text-gray-500">
-              เลือกงวดภาษีจากด้านบนแล้วคลิก &quot;สร้างรายงาน&quot; เพื่อดูรายละเอียดภาษีมูลค่าเพิ่มขาเข้าและขาออก
+              {t('reports.vat.empty.description')}
             </p>
           </div>
         </div>
@@ -189,15 +189,15 @@ export default function VATReportPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      ภาษีขาออก (ภาษีจากการขาย)
+                      {t('reports.vat.outputSectionTitle')}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      ภาษีขาย - {formatTaxPeriod(taxPeriod)}
+                      {t('reports.vat.outputSectionSubtitle')} - {formatTaxPeriod(taxPeriod)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">ยอดรวม</p>
+                  <p className="text-sm text-gray-500">{t('reports.vat.sectionTotal')}</p>
                   <p className="text-xl font-bold text-green-600">
                     {formatCurrency(report.outputVAT.totalVATAmount)}
                   </p>
@@ -213,26 +213,26 @@ export default function VATReportPage() {
                 rowAlternationEnabled
                 hoverStateEnabled
               >
-                <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" />
-                <Column dataField="taxInvoiceDate" caption="วันที่" dataType="date" />
-                <Column dataField="partyName" caption="ชื่อลูกค้า" />
-                <Column dataField="partyTaxId" caption="เลขประจำตัวผู้เสียภาษี" />
-                <Column dataField="branchCode" caption="สาขา" width={80} />
+                <Column dataField="taxInvoiceNumber" caption={t('reports.vat.columns.taxInvoiceNumber')} />
+                <Column dataField="taxInvoiceDate" caption={t('reports.vat.columns.date')} dataType="date" />
+                <Column dataField="partyName" caption={t('reports.vat.columns.customerName')} />
+                <Column dataField="partyTaxId" caption={t('reports.vat.columns.taxId')} />
+                <Column dataField="branchCode" caption={t('reports.vat.columns.branch')} width={80} />
                 <Column
                   dataField="taxableAmount"
-                  caption="มูลค่าสินค้า/บริการ"
+                  caption={t('reports.vat.columns.taxableAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
                 <Column
                   dataField="vatAmount"
-                  caption="ภาษีมูลค่าเพิ่ม 7%"
+                  caption={t('reports.vat.columns.vatAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
                 <Column
                   dataField="totalAmount"
-                  caption="จำนวนเงินรวม"
+                  caption={t('reports.vat.columns.totalAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
@@ -255,15 +255,15 @@ export default function VATReportPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      ภาษีขาเข้า (ภาษีจากการซื้อ)
+                      {t('reports.vat.inputSectionTitle')}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      ภาษีซื้อ - {formatTaxPeriod(taxPeriod)}
+                      {t('reports.vat.inputSectionSubtitle')} - {formatTaxPeriod(taxPeriod)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">ยอดรวม</p>
+                  <p className="text-sm text-gray-500">{t('reports.vat.sectionTotal')}</p>
                   <p className="text-xl font-bold text-red-600">
                     {formatCurrency(report.inputVAT.totalVATAmount)}
                   </p>
@@ -279,26 +279,26 @@ export default function VATReportPage() {
                 rowAlternationEnabled
                 hoverStateEnabled
               >
-                <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" />
-                <Column dataField="taxInvoiceDate" caption="วันที่" dataType="date" />
-                <Column dataField="partyName" caption="ชื่อผู้ขาย" />
-                <Column dataField="partyTaxId" caption="เลขประจำตัวผู้เสียภาษี" />
-                <Column dataField="branchCode" caption="สาขา" width={80} />
+                <Column dataField="taxInvoiceNumber" caption={t('reports.vat.columns.taxInvoiceNumber')} />
+                <Column dataField="taxInvoiceDate" caption={t('reports.vat.columns.date')} dataType="date" />
+                <Column dataField="partyName" caption={t('reports.vat.columns.vendorName')} />
+                <Column dataField="partyTaxId" caption={t('reports.vat.columns.taxId')} />
+                <Column dataField="branchCode" caption={t('reports.vat.columns.branch')} width={80} />
                 <Column
                   dataField="taxableAmount"
-                  caption="มูลค่าสินค้า/บริการ"
+                  caption={t('reports.vat.columns.taxableAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
                 <Column
                   dataField="vatAmount"
-                  caption="ภาษีมูลค่าเพิ่ม 7%"
+                  caption={t('reports.vat.columns.vatAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
                 <Column
                   dataField="totalAmount"
-                  caption="จำนวนเงินรวม"
+                  caption={t('reports.vat.columns.totalAmount')}
                   dataType="number"
                   format="#,##0.00"
                 />
@@ -319,8 +319,8 @@ export default function VATReportPage() {
                   <Calculator className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">สรุปภาษีมูลค่าเพิ่ม</h3>
-                  <p className="text-sm text-blue-100">สรุปภาษีมูลค่าเพิ่ม - {formatTaxPeriod(taxPeriod)}</p>
+                  <h3 className="text-xl font-bold text-white">{t('reports.vat.summaryTitle')}</h3>
+                  <p className="text-sm text-blue-100">{t('reports.vat.summaryTitle')} - {formatTaxPeriod(taxPeriod)}</p>
                 </div>
               </div>
             </div>
@@ -331,7 +331,7 @@ export default function VATReportPage() {
                     <div className="p-2 bg-green-100 rounded-lg">
                       <TrendingUp className="h-5 w-5 text-green-600" />
                     </div>
-                    <span className="text-gray-700 font-medium">ภาษีขาย (Output VAT):</span>
+                    <span className="text-gray-700 font-medium">{t('reports.vat.outputVatLine')}</span>
                   </div>
                   <span className="text-xl font-bold text-green-600">
                     {formatCurrency(report.outputVAT.totalVATAmount)}
@@ -342,7 +342,7 @@ export default function VATReportPage() {
                     <div className="p-2 bg-red-100 rounded-lg">
                       <TrendingDown className="h-5 w-5 text-red-600" />
                     </div>
-                    <span className="text-gray-700 font-medium">หัก: ภาษีซื้อ (Input VAT):</span>
+                    <span className="text-gray-700 font-medium">{t('reports.vat.inputVatLine')}</span>
                   </div>
                   <span className="text-xl font-bold text-red-600">
                     ({formatCurrency(report.inputVAT.totalVATAmount)})
@@ -356,10 +356,10 @@ export default function VATReportPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 font-medium">
-                        ภาษีมูลค่าเพิ่มสุทธิ
+                        {t('reports.vat.netVatLabel')}
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {report.netVAT >= 0 ? 'ต้องชำระ' : 'ขอคืน'}
+                        {report.netVAT >= 0 ? t('reports.vat.payable') : t('reports.vat.refundable')}
                       </p>
                     </div>
                   </div>

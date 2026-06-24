@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -193,19 +194,6 @@ function formatDateForApi(date: Date | null): string {
   return toLocalDateStr(date);
 }
 
-// Source type labels
-const sourceTypeLabels: Record<string, string> = {
-  MANUAL: 'บันทึกมือ',
-  PO_RECEIPT: 'รับสินค้า',
-  SO_SHIPMENT: 'ส่งสินค้า',
-  AP_PAYMENT: 'จ่ายเงิน',
-  AR_RECEIPT: 'รับเงิน',
-  DEPRECIATION: 'ค่าเสื่อม',
-  PAYROLL: 'เงินเดือน',
-  COST_ALLOCATION: 'จัดสรรต้นทุน',
-  PERIOD_CLOSE: 'ปิดงวด',
-};
-
 const defaultFormData: FormData = {
   entryDate: new Date(),
   description: '',
@@ -222,6 +210,16 @@ export function JournalEntryForm({
   onSuccess,
   onCancel,
 }: JournalEntryFormProps) {
+  const t = useTranslations('accounting');
+  const sourceTypeLabel = React.useCallback(
+    (sourceType: string): string => {
+      const key = `journalEntries.sourceTypes.${sourceType}`;
+      const label = t(key);
+      // next-intl returns the key path when missing; fall back to the raw value
+      return label === key ? sourceType : label;
+    },
+    [t]
+  );
   const router = useRouter();
   const queryClient = useQueryClient();
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
@@ -287,7 +285,7 @@ export function JournalEntryForm({
     mutationFn: createJournalEntry,
     onSuccess: (entry) => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      notify('สร้างรายการบันทึกบัญชีสำเร็จ', 'success', 3000);
+      notify(t('journalEntries.form.toast.createSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(entry);
       } else {
@@ -305,7 +303,7 @@ export function JournalEntryForm({
     onSuccess: (entry) => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entry', entryId] });
-      notify('บันทึกการแก้ไขสำเร็จ', 'success', 3000);
+      notify(t('journalEntries.form.toast.updateSuccess'), 'success', 3000);
       if (onSuccess) {
         onSuccess(entry);
       } else {
@@ -323,7 +321,7 @@ export function JournalEntryForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entry', entryId] });
-      notify('ผ่านรายการบันทึกบัญชีแล้ว', 'success', 3000);
+      notify(t('journalEntries.toast.postSuccess'), 'success', 3000);
       router.push('/accounting/journal-entries');
     },
     onError: (error: Error) => {
@@ -337,7 +335,7 @@ export function JournalEntryForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entry', entryId] });
-      notify('กลับรายการบันทึกบัญชีแล้ว', 'success', 3000);
+      notify(t('journalEntries.toast.reverseSuccess'), 'success', 3000);
       router.push('/accounting/journal-entries');
     },
     onError: (error: Error) => {
@@ -362,18 +360,18 @@ export function JournalEntryForm({
   const getLineValidationError = React.useCallback((line: FormData['lines'][0]): string | null => {
     // Check if line has both debit and credit
     if (line.debit > 0 && line.credit > 0) {
-      return 'ต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง';
+      return t('journalEntries.form.lineError.debitOrCredit');
     }
     // Check if line has amount but no account
     if ((line.debit > 0 || line.credit > 0) && !line.glAccountId) {
-      return 'กรุณาเลือกบัญชี';
+      return t('journalEntries.form.lineError.selectAccount');
     }
     // Check if line has account but no amount
     if (line.glAccountId && line.debit === 0 && line.credit === 0) {
-      return 'กรุณาระบุยอดเงิน';
+      return t('journalEntries.form.lineError.enterAmount');
     }
     return null;
-  }, []);
+  }, [t]);
 
   // Check if the entry is valid for submission
   const isValidForSubmit = React.useMemo(() => {
@@ -408,7 +406,7 @@ export function JournalEntryForm({
       if (count > 1) {
         const account = glAccounts.find((a) => a.id === Number(accountId));
         if (account) {
-          warnings.push(`บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ฝั่งเดบิต ${count} ครั้ง`);
+          warnings.push(t('journalEntries.form.warning.duplicateDebit', { account: `${account.code} - ${account.nameTh}`, count }));
         }
       }
     });
@@ -418,23 +416,23 @@ export function JournalEntryForm({
       if (count > 1) {
         const account = glAccounts.find((a) => a.id === Number(accountId));
         if (account) {
-          warnings.push(`บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ฝั่งเครดิต ${count} ครั้ง`);
+          warnings.push(t('journalEntries.form.warning.duplicateCredit', { account: `${account.code} - ${account.nameTh}`, count }));
         }
       }
     });
 
     return warnings;
-  }, [formData.lines, glAccounts]);
+  }, [formData.lines, glAccounts, t]);
 
   // Check for accounts used against their normal balance
   const getNormalBalanceWarnings = React.useCallback((): string[] => {
-    // Category labels for Thai display
+    // Category labels for display
     const catLabels: Record<string, string> = {
-      asset: 'สินทรัพย์',
-      liability: 'หนี้สิน',
-      equity: 'ส่วนของเจ้าของ',
-      revenue: 'รายได้',
-      expense: 'ค่าใช้จ่าย',
+      asset: t('journalEntries.form.category.asset'),
+      liability: t('journalEntries.form.category.liability'),
+      equity: t('journalEntries.form.category.equity'),
+      revenue: t('journalEntries.form.category.revenue'),
+      expense: t('journalEntries.form.category.expense'),
     };
     const warnings: string[] = [];
 
@@ -452,19 +450,25 @@ export function JournalEntryForm({
       // Credit-normal accounts (liability, equity, revenue) should usually be credited
       if (normalBalance === 'debit' && isCredit) {
         warnings.push(
-          `บรรทัด ${index + 1}: บัญชี "${account.code}" (${catLabels[category] || category}) ` +
-          `ปกติเป็นเดบิต แต่ถูกบันทึกเครดิต - กรุณาตรวจสอบ`
+          t('journalEntries.form.warning.normalDebit', {
+            line: index + 1,
+            account: account.code,
+            category: catLabels[category] || category,
+          })
         );
       } else if (normalBalance === 'credit' && isDebit) {
         warnings.push(
-          `บรรทัด ${index + 1}: บัญชี "${account.code}" (${catLabels[category] || category}) ` +
-          `ปกติเป็นเครดิต แต่ถูกบันทึกเดบิต - กรุณาตรวจสอบ`
+          t('journalEntries.form.warning.normalCredit', {
+            line: index + 1,
+            account: account.code,
+            category: catLabels[category] || category,
+          })
         );
       }
     });
 
     return warnings;
-  }, [formData.lines, glAccounts]);
+  }, [formData.lines, glAccounts, t]);
 
   // Check for invalid account pairings (accounts that shouldn't be used together)
   const getInvalidAccountPairings = React.useCallback((): string[] => {
@@ -493,10 +497,7 @@ export function JournalEntryForm({
     const creditRevenues = creditAccounts.filter((c) => c.account.accountType?.category === 'revenue');
 
     if (debitExpenses.length > 0 && creditRevenues.length > 0) {
-      errors.push(
-        `ไม่ควรบันทึกค่าใช้จ่าย (เดบิต) พร้อมกับรายได้ (เครดิต) ในรายการเดียวกัน - ` +
-        `กรุณาตรวจสอบรายการ`
-      );
+      errors.push(t('journalEntries.form.error.expenseWithRevenue'));
     }
 
     // Rule 2: Same account on both debit and credit (contra entry should have explanation)
@@ -508,8 +509,9 @@ export function JournalEntryForm({
       const account = glAccounts.find((a) => a.id === accountId);
       if (account) {
         errors.push(
-          `บัญชี "${account.code} - ${account.nameTh}" ถูกใช้ทั้งฝั่งเดบิตและเครดิต - ` +
-          `กรุณาตรวจสอบความถูกต้อง`
+          t('journalEntries.form.error.sameAccountBothSides', {
+            account: `${account.code} - ${account.nameTh}`,
+          })
         );
       }
     });
@@ -525,13 +527,11 @@ export function JournalEntryForm({
     });
 
     if (debitBankAccounts.length > 0 && creditBankAccounts.length > 0) {
-      errors.push(
-        `บัญชีเงินสด/ธนาคารถูกใช้ทั้งฝั่งเดบิตและเครดิต - กรุณาตรวจสอบ`
-      );
+      errors.push(t('journalEntries.form.error.bankBothSides'));
     }
 
     return errors;
-  }, [formData.lines, glAccounts]);
+  }, [formData.lines, glAccounts, t]);
 
   // Get validation summary
   const validationSummary = React.useMemo(() => {
@@ -539,7 +539,7 @@ export function JournalEntryForm({
 
     // Check for required entry date
     if (!formData.entryDate) {
-      issues.push({ type: 'error', message: 'กรุณาระบุวันที่บันทึก' });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.entryDateRequired') });
     }
 
     // Check for valid lines
@@ -548,24 +548,26 @@ export function JournalEntryForm({
     );
 
     if (validLines.length < 2) {
-      issues.push({ type: 'error', message: 'ต้องมีรายการที่ถูกต้องอย่างน้อย 2 รายการ' });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.minTwoLines') });
     }
 
     // Check for debit lines
     if (!validLines.some((l) => l.debit > 0)) {
-      issues.push({ type: 'error', message: 'ต้องมีรายการเดบิตอย่างน้อย 1 รายการ' });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.minOneDebit') });
     }
 
     // Check for credit lines
     if (!validLines.some((l) => l.credit > 0)) {
-      issues.push({ type: 'error', message: 'ต้องมีรายการเครดิตอย่างน้อย 1 รายการ' });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.minOneCredit') });
     }
 
     // Check balance
     if (!isBalanced && totalDebit > 0) {
       issues.push({
         type: 'error',
-        message: `ยอดไม่สมดุล (ผลต่าง: ${Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', { minimumFractionDigits: 2 })})`
+        message: t('journalEntries.form.validation.unbalancedDiff', {
+          diff: Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', { minimumFractionDigits: 2 }),
+        }),
       });
     }
 
@@ -587,7 +589,7 @@ export function JournalEntryForm({
     // Check for lines with both debit and credit
     const linesWithBoth = formData.lines.filter((l) => l.debit > 0 && l.credit > 0);
     if (linesWithBoth.length > 0) {
-      issues.push({ type: 'error', message: `${linesWithBoth.length} รายการมีทั้งเดบิตและเครดิต` });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.linesWithBoth', { count: linesWithBoth.length }) });
     }
 
     // Check for lines without account but with amounts
@@ -595,11 +597,11 @@ export function JournalEntryForm({
       (l) => !l.glAccountId && (l.debit > 0 || l.credit > 0)
     );
     if (linesWithoutAccount.length > 0) {
-      issues.push({ type: 'error', message: `${linesWithoutAccount.length} รายการไม่ได้ระบุบัญชี` });
+      issues.push({ type: 'error', message: t('journalEntries.form.validation.linesWithoutAccount', { count: linesWithoutAccount.length }) });
     }
 
     return issues;
-  }, [formData.entryDate, formData.lines, isBalanced, totalDebit, totalCredit, getDuplicateAccountWarnings, getNormalBalanceWarnings, getInvalidAccountPairings]);
+  }, [formData.entryDate, formData.lines, isBalanced, totalDebit, totalCredit, getDuplicateAccountWarnings, getNormalBalanceWarnings, getInvalidAccountPairings, t]);
 
   // Line handlers
   const addLine = React.useCallback(() => {
@@ -628,14 +630,14 @@ export function JournalEntryForm({
   const handleSubmit = () => {
     // Validate entry date
     if (!formData.entryDate) {
-      notify('กรุณาระบุวันที่บันทึก', 'error', 3000);
+      notify(t('journalEntries.form.validation.entryDateRequired'), 'error', 3000);
       return;
     }
 
     // Check for lines with both debit AND credit
     const linesWithBoth = formData.lines.filter((l) => l.debit > 0 && l.credit > 0);
     if (linesWithBoth.length > 0) {
-      notify('รายการต้องเป็นเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง ไม่ใช่ทั้งสอง', 'error', 3000);
+      notify(t('journalEntries.form.validation.debitOrCreditNotBoth'), 'error', 3000);
       return;
     }
 
@@ -644,7 +646,7 @@ export function JournalEntryForm({
       (l) => !l.glAccountId && (l.debit > 0 || l.credit > 0)
     );
     if (linesWithoutAccount.length > 0) {
-      notify('กรุณาระบุบัญชีสำหรับทุกรายการที่มียอดเงิน', 'error', 3000);
+      notify(t('journalEntries.form.validation.accountRequiredForAmounts'), 'error', 3000);
       return;
     }
 
@@ -661,28 +663,28 @@ export function JournalEntryForm({
 
     // Must have at least 2 valid lines
     if (validLines.length < 2) {
-      notify('กรุณาเพิ่มรายการอย่างน้อย 2 รายการ (ต้องมีทั้งเดบิตและเครดิต)', 'warning', 3000);
+      notify(t('journalEntries.form.validation.addAtLeastTwoLines'), 'warning', 3000);
       return;
     }
 
     // Check that we have at least one debit line
     const hasDebit = validLines.some((l) => l.debit > 0);
     if (!hasDebit) {
-      notify('ต้องมีรายการเดบิตอย่างน้อย 1 รายการ', 'error', 3000);
+      notify(t('journalEntries.form.validation.minOneDebit'), 'error', 3000);
       return;
     }
 
     // Check that we have at least one credit line
     const hasCredit = validLines.some((l) => l.credit > 0);
     if (!hasCredit) {
-      notify('ต้องมีรายการเครดิตอย่างน้อย 1 รายการ', 'error', 3000);
+      notify(t('journalEntries.form.validation.minOneCredit'), 'error', 3000);
       return;
     }
 
     // Check balance
     if (!isBalanced) {
       const diff = Math.abs(totalDebit - totalCredit);
-      notify(`ยอดเดบิตและเครดิตไม่เท่ากัน (ผลต่าง: ${diff.toLocaleString('th-TH', { minimumFractionDigits: 2 })})`, 'error', 3000);
+      notify(t('journalEntries.form.validation.debitCreditNotEqual', { diff: diff.toLocaleString('th-TH', { minimumFractionDigits: 2 }) }), 'error', 3000);
       return;
     }
 
@@ -712,8 +714,8 @@ export function JournalEntryForm({
   const handlePost = () => {
     setConfirmDialog({
       visible: true,
-      title: 'ยืนยันการผ่านรายการ',
-      message: 'คุณต้องการผ่านรายการบันทึกนี้หรือไม่?',
+      title: t('journalEntries.dialogs.postTitle'),
+      message: t('journalEntries.form.dialogs.postMessage'),
       testIdPrefix: 'je-post',
       onConfirm: () => {
         postMutation.mutate();
@@ -725,8 +727,8 @@ export function JournalEntryForm({
   const handleReverse = () => {
     setConfirmDialog({
       visible: true,
-      title: 'ยืนยันการกลับรายการ',
-      message: 'คุณต้องการกลับรายการนี้หรือไม่?<br/>ระบบจะสร้างรายการกลับอัตโนมัติ',
+      title: t('journalEntries.dialogs.reverseTitle'),
+      message: t('journalEntries.form.dialogs.reverseMessage'),
       testIdPrefix: 'je-reverse',
       onConfirm: () => {
         reverseMutation.mutate('Manual reversal from form');
@@ -750,7 +752,7 @@ export function JournalEntryForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดข้อมูล...</span>
+            <span>{t('journalEntries.form.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -763,7 +765,7 @@ export function JournalEntryForm({
       <div className="flex items-center justify-between" data-testid="je-form-header">
         <div className="flex items-center gap-3">
           <Button
-            text="ย้อนกลับ"
+            text={t('journalEntries.form.back')}
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
@@ -771,7 +773,7 @@ export function JournalEntryForm({
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="je-form-title">
-            {mode === 'create' ? 'สร้างรายการบันทึกบัญชี' : `รายการ: ${existingEntry?.entryNumber}`}
+            {mode === 'create' ? t('journalEntries.form.header.create') : t('journalEntries.form.header.edit', { entryNumber: existingEntry?.entryNumber ?? '' })}
           </h1>
           {mode === 'edit' && existingEntry && (
             <span data-testid="je-status-badge">
@@ -782,7 +784,7 @@ export function JournalEntryForm({
         <div className="flex items-center gap-2">
           {mode === 'edit' && existingEntry?.status === 'draft' && (
             <Button
-              text="ผ่านรายการ"
+              text={t('journalEntries.actions.post')}
               icon={isPosting ? 'spindown' : 'check'}
               type="success"
               stylingMode="outlined"
@@ -793,7 +795,7 @@ export function JournalEntryForm({
           )}
           {mode === 'edit' && existingEntry?.status === 'posted' && (
             <Button
-              text="กลับรายการ"
+              text={t('journalEntries.actions.reverse')}
               icon={isReversing ? 'spindown' : 'revert'}
               type="danger"
               stylingMode="outlined"
@@ -804,7 +806,7 @@ export function JournalEntryForm({
           )}
           <span data-testid="je-cancel-btn">
             <Button
-              text="ยกเลิก"
+              text={t('common.cancel')}
               icon="close"
               stylingMode="outlined"
               onClick={handleCancel}
@@ -814,7 +816,7 @@ export function JournalEntryForm({
           {!isReadOnly && (
             <span data-testid="je-submit-btn">
               <Button
-                text={mode === 'create' ? 'บันทึก' : 'บันทึกการแก้ไข'}
+                text={mode === 'create' ? t('common.save') : t('journalEntries.form.saveEdit')}
                 icon={isSubmitting ? 'spindown' : 'save'}
                 type="success"
                 onClick={handleSubmit}
@@ -832,13 +834,13 @@ export function JournalEntryForm({
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">ข้อมูลทั่วไป</CardTitle>
+              <CardTitle className="text-base">{t('journalEntries.form.sections.general')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div data-testid="je-entry-date-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    วันที่ <span className="text-red-500">*</span>
+                    {t('journalEntries.columns.date')} <span className="text-red-500">*</span>
                   </label>
                   <DateBox
                     value={formData.entryDate}
@@ -850,23 +852,23 @@ export function JournalEntryForm({
                 </div>
                 <div data-testid="je-reference-number-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เลขที่อ้างอิง
+                    {t('journalEntries.form.referenceNumber')}
                   </label>
                   <TextBox
                     value={formData.referenceNumber}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, referenceNumber: e.value || '' }))}
-                    placeholder="เลขที่เอกสารอ้างอิง"
+                    placeholder={t('journalEntries.form.referenceNumberPlaceholder')}
                     readOnly={isReadOnly}
                   />
                 </div>
                 <div data-testid="je-description-field">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    รายละเอียด
+                    {t('journalEntries.columns.description')}
                   </label>
                   <TextBox
                     value={formData.description}
                     onValueChanged={(e) => setFormData((prev) => ({ ...prev, description: e.value || '' }))}
-                    placeholder="คำอธิบายรายการ"
+                    placeholder={t('journalEntries.form.descriptionPlaceholder')}
                     readOnly={isReadOnly}
                   />
                 </div>
@@ -878,11 +880,11 @@ export function JournalEntryForm({
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">รายการบัญชี</CardTitle>
+                <CardTitle className="text-base">{t('journalEntries.form.sections.lines')}</CardTitle>
                 {!isReadOnly && (
                   <span data-testid="je-add-line-btn">
                     <Button
-                      text="เพิ่มบรรทัด"
+                      text={t('journalEntries.form.addLine')}
                       icon="plus"
                       type="default"
                       stylingMode="outlined"
@@ -897,18 +899,18 @@ export function JournalEntryForm({
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-gray-200 p-2 text-left font-medium">บัญชี</th>
+                      <th className="border border-gray-200 p-2 text-left font-medium">{t('journalEntries.columns.account')}</th>
                       <th className="border border-gray-200 p-2 text-left font-medium" style={{ width: 150 }}>
-                        ศูนย์ต้นทุน
+                        {t('journalEntries.form.costCenter')}
                       </th>
                       <th className="border border-gray-200 p-2 text-left font-medium" style={{ width: 180 }}>
-                        รายละเอียด
+                        {t('journalEntries.columns.description')}
                       </th>
                       <th className="border border-gray-200 p-2 text-right font-medium" style={{ width: 130 }}>
-                        เดบิต
+                        {t('common.debit')}
                       </th>
                       <th className="border border-gray-200 p-2 text-right font-medium" style={{ width: 130 }}>
-                        เครดิต
+                        {t('common.credit')}
                       </th>
                       {!isReadOnly && (
                         <th className="border border-gray-200 p-2" style={{ width: 50 }}></th>
@@ -932,7 +934,7 @@ export function JournalEntryForm({
                             valueExpr="id"
                             value={line.glAccountId}
                             onValueChanged={(e) => updateLine(index, 'glAccountId', e.value)}
-                            placeholder="เลือกบัญชี"
+                            placeholder={t('journalEntries.form.selectAccount')}
                             searchEnabled
                             showClearButton={!isReadOnly}
                             readOnly={isReadOnly}
@@ -945,7 +947,7 @@ export function JournalEntryForm({
                             valueExpr="id"
                             value={line.costCenterId}
                             onValueChanged={(e) => updateLine(index, 'costCenterId', e.value)}
-                            placeholder="- ไม่ระบุ -"
+                            placeholder={t('journalEntries.form.noneOption')}
                             searchEnabled
                             showClearButton={!isReadOnly}
                             readOnly={isReadOnly}
@@ -955,7 +957,7 @@ export function JournalEntryForm({
                           <TextBox
                             value={line.description}
                             onValueChanged={(e) => updateLine(index, 'description', e.value || '')}
-                            placeholder="รายละเอียด"
+                            placeholder={t('journalEntries.columns.description')}
                             readOnly={isReadOnly}
                           />
                         </td>
@@ -985,7 +987,7 @@ export function JournalEntryForm({
                               <button
                                 onClick={() => removeLine(index)}
                                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="ลบ"
+                                title={t('journalEntries.form.deleteLine')}
                                 data-testid={`je-line-delete-${index}`}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1000,7 +1002,7 @@ export function JournalEntryForm({
                   <tfoot data-testid="je-lines-footer">
                     <tr className={`font-bold ${isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
                       <td colSpan={3} className="border border-gray-200 p-2 text-right">
-                        รวม
+                        {t('common.total')}
                       </td>
                       <td className="border border-gray-200 p-2 text-right font-mono" data-testid="je-total-debit">
                         {totalDebit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
@@ -1014,12 +1016,14 @@ export function JournalEntryForm({
                       <td colSpan={isReadOnly ? 5 : 6} className="border border-gray-200 p-2 text-center" data-testid="je-balance-status">
                         {isBalanced ? (
                           <span className="text-green-600 font-medium">
-                            ✓ ยอดเดบิตและเครดิตเท่ากัน
+                            ✓ {t('journalEntries.form.balanced')}
                           </span>
                         ) : (
                           <span className="text-red-600 font-medium">
-                            ✗ ผลต่าง: {Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', {
-                              minimumFractionDigits: 2,
+                            ✗ {t('journalEntries.form.differenceLabel', {
+                              diff: Math.abs(totalDebit - totalCredit).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                              }),
                             })}
                           </span>
                         )}
@@ -1038,7 +1042,7 @@ export function JournalEntryForm({
           {!isReadOnly && validationSummary.length > 0 && (
             <Card className="border-red-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-red-700">ตรวจสอบข้อมูล</CardTitle>
+                <CardTitle className="text-base text-red-700">{t('journalEntries.form.validationSummaryTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
@@ -1064,26 +1068,26 @@ export function JournalEntryForm({
           {mode === 'edit' && existingEntry && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">ข้อมูลรายการ</CardTitle>
+                <CardTitle className="text-base">{t('journalEntries.form.entryInfo.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">เลขที่</span>
+                  <span className="text-gray-500">{t('journalEntries.form.entryInfo.number')}</span>
                   <span className="font-mono text-gray-900">{existingEntry.entryNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ประเภท</span>
+                  <span className="text-gray-500">{t('journalEntries.columns.type')}</span>
                   <span className="text-gray-900">
-                    {existingEntry.sourceType ? sourceTypeLabels[existingEntry.sourceType] || existingEntry.sourceType : '-'}
+                    {existingEntry.sourceType ? sourceTypeLabel(existingEntry.sourceType) : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">สถานะ</span>
+                  <span className="text-gray-500">{t('common.status')}</span>
                   <AccountingStatusBadge status={existingEntry.status} />
                 </div>
                 {existingEntry.postedAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">ผ่านรายการเมื่อ</span>
+                    <span className="text-gray-500">{t('journalEntries.form.entryInfo.postedAt')}</span>
                     <span className="text-gray-900">
                       {new Date(existingEntry.postedAt).toLocaleDateString('th-TH')}
                     </span>
@@ -1091,7 +1095,7 @@ export function JournalEntryForm({
                 )}
                 {existingEntry.createdAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">สร้างเมื่อ</span>
+                    <span className="text-gray-500">{t('journalEntries.form.entryInfo.createdAt')}</span>
                     <span className="text-gray-900">
                       {new Date(existingEntry.createdAt).toLocaleDateString('th-TH')}
                     </span>
@@ -1099,7 +1103,7 @@ export function JournalEntryForm({
                 )}
                 {existingEntry.updatedAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">แก้ไขล่าสุด</span>
+                    <span className="text-gray-500">{t('journalEntries.form.entryInfo.updatedAt')}</span>
                     <span className="text-gray-900">
                       {new Date(existingEntry.updatedAt).toLocaleDateString('th-TH')}
                     </span>
@@ -1107,7 +1111,7 @@ export function JournalEntryForm({
                 )}
                 <div className="pt-2 border-t">
                   <Button
-                    text="ประวัติการเปลี่ยนแปลง"
+                    text={t('journalEntries.form.auditHistory')}
                     icon="clock"
                     stylingMode="outlined"
                     type="default"
@@ -1122,17 +1126,17 @@ export function JournalEntryForm({
           {/* Summary Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">สรุปยอด</CardTitle>
+              <CardTitle className="text-base">{t('journalEntries.form.summaryTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-blue-700">ยอดเดบิต</span>
+                <span className="text-blue-700">{t('journalEntries.form.totalDebit')}</span>
                 <span className="font-mono font-semibold text-blue-900">
                   {totalDebit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-purple-700">ยอดเครดิต</span>
+                <span className="text-purple-700">{t('journalEntries.form.totalCredit')}</span>
                 <span className="font-mono font-semibold text-purple-900">
                   {totalCredit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </span>
@@ -1141,7 +1145,7 @@ export function JournalEntryForm({
                 isBalanced ? 'bg-green-50' : 'bg-red-50'
               }`}>
                 <span className={isBalanced ? 'text-green-700' : 'text-red-700'}>
-                  ผลต่าง
+                  {t('journalEntries.form.difference')}
                 </span>
                 <span className={`font-mono font-semibold ${
                   isBalanced ? 'text-green-900' : 'text-red-900'
@@ -1155,13 +1159,13 @@ export function JournalEntryForm({
           {/* Quick Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">คำแนะนำ</CardTitle>
+              <CardTitle className="text-base">{t('journalEntries.form.tips.title')}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-gray-600 space-y-2">
-              <p>• ยอดเดบิตและเครดิตต้องเท่ากัน</p>
-              <p>• ต้องมีอย่างน้อย 2 รายการ</p>
-              <p>• รายการที่ผ่านแล้วจะแก้ไขไม่ได้</p>
-              <p>• ใช้ &quot;กลับรายการ&quot; เพื่อยกเลิก</p>
+              <p>• {t('journalEntries.form.tips.balanced')}</p>
+              <p>• {t('journalEntries.form.tips.minLines')}</p>
+              <p>• {t('journalEntries.form.tips.postedReadOnly')}</p>
+              <p>• {t('journalEntries.form.tips.useReverse')}</p>
             </CardContent>
           </Card>
         </div>
@@ -1174,16 +1178,16 @@ export function JournalEntryForm({
           entityId={entryId}
           visible={showAuditLog}
           onClose={() => setShowAuditLog(false)}
-          title={`ประวัติการเปลี่ยนแปลง: ${existingEntry?.entryNumber || ''}`}
+          title={t('journalEntries.form.auditHistoryTitle', { entryNumber: existingEntry?.entryNumber || '' })}
           fieldLabels={{
-            entryNumber: 'เลขที่รายการ',
-            entryDate: 'วันที่',
-            description: 'รายละเอียด',
-            referenceNumber: 'เลขที่อ้างอิง',
-            sourceType: 'ประเภท',
-            status: 'สถานะ',
-            totalDebit: 'ยอดเดบิต',
-            totalCredit: 'ยอดเครดิต',
+            entryNumber: t('journalEntries.columns.entryNumber'),
+            entryDate: t('journalEntries.columns.date'),
+            description: t('journalEntries.columns.description'),
+            referenceNumber: t('journalEntries.form.referenceNumber'),
+            sourceType: t('journalEntries.columns.type'),
+            status: t('common.status'),
+            totalDebit: t('journalEntries.form.totalDebit'),
+            totalCredit: t('journalEntries.form.totalCredit'),
           }}
         />
       )}

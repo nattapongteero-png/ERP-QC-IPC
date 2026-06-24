@@ -16,6 +16,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -112,13 +113,13 @@ function formatDateTh(dateStr: string | null | undefined): string {
 function statusInfo(status: string) {
   switch (status) {
     case 'submitted':
-      return { variant: 'warning' as const, label: 'รออนุมัติ' };
+      return { variant: 'warning' as const, labelKey: 'detail.statusInfo.submitted' };
     case 'received':
-      return { variant: 'success' as const, label: 'อนุมัติแล้ว' };
+      return { variant: 'success' as const, labelKey: 'detail.statusInfo.received' };
     case 'rejected':
-      return { variant: 'danger' as const, label: 'ปฏิเสธ' };
+      return { variant: 'danger' as const, labelKey: 'detail.statusInfo.rejected' };
     default:
-      return { variant: 'default' as const, label: status };
+      return { variant: 'default' as const, labelKey: null };
   }
 }
 
@@ -126,6 +127,7 @@ export default function MaterialReturnDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('inventory');
 
   const returnId = Number(params.id);
   const [detail, setDetail] = useState<ReturnDetail | null>(null);
@@ -141,7 +143,7 @@ export default function MaterialReturnDetailPage() {
 
   const fetchDetail = useCallback(async () => {
     if (!Number.isFinite(returnId)) {
-      setError('รหัสรายการคืนไม่ถูกต้อง');
+      setError(t('returns.detail.invalidId'));
       setLoading(false);
       return;
     }
@@ -151,7 +153,7 @@ export default function MaterialReturnDetailPage() {
       const res = await fetch(`/api/inventory/returns/${returnId}`);
       const data = await res.json();
       if (!data.success) {
-        setError(data.error || 'ไม่สามารถโหลดรายละเอียดการคืนได้');
+        setError(data.error || t('returns.detail.loadFailed'));
         setDetail(null);
       } else {
         setDetail(data.data);
@@ -161,7 +163,7 @@ export default function MaterialReturnDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [returnId]);
+  }, [returnId, t]);
 
   useEffect(() => {
     fetchDetail();
@@ -177,18 +179,20 @@ export default function MaterialReturnDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('อนุมัติไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('returns.detail.toast.approveFailed'), data.error || 'Unknown error');
       } else {
         const newLotCount = data.data?.newLots?.length ?? 0;
         const devCount = data.data?.deviationsCreated?.length ?? 0;
         toast.success(
-          'อนุมัติสำเร็จ',
-          `สร้าง lot ใหม่ ${newLotCount} รายการ${devCount > 0 ? ` · เปิด deviation ${devCount} รายการ` : ''}`,
+          t('returns.detail.toast.approveSuccess'),
+          devCount > 0
+            ? t('returns.detail.toast.approveSuccessDetailWithDev', { lots: newLotCount, devs: devCount })
+            : t('returns.detail.toast.approveSuccessDetail', { lots: newLotCount }),
         );
         await fetchDetail();
       }
     } catch (e) {
-      toast.error('อนุมัติไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('returns.detail.toast.approveFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setApproving(false);
       setShowApproveConfirm(false);
@@ -196,7 +200,7 @@ export default function MaterialReturnDetailPage() {
   };
 
   const handleCancelApproval = async () => {
-    if (!confirm('ยืนยันยกเลิกการรับเข้าคลัง?\nลอตที่สร้างจะถูกลบ และสถานะจะกลับเป็น "รอตรวจสอบ" ให้ฝ่ายผลิตแก้ไขได้อีกครั้ง')) {
+    if (!confirm(t('returns.detail.cancelConfirm'))) {
       return;
     }
     setCancelling(true);
@@ -208,13 +212,13 @@ export default function MaterialReturnDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('ยกเลิกไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('returns.detail.toast.cancelFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('ยกเลิกการรับเข้าคลังสำเร็จ', 'รายการกลับเป็นสถานะรอตรวจสอบ');
+        toast.success(t('returns.detail.toast.cancelSuccess'), t('returns.detail.toast.cancelSuccessDetail'));
         await fetchDetail();
       }
     } catch (e) {
-      toast.error('ยกเลิกไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('returns.detail.toast.cancelFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setCancelling(false);
     }
@@ -222,7 +226,7 @@ export default function MaterialReturnDetailPage() {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      toast.error('กรุณาระบุเหตุผล', 'เหตุผลในการปฏิเสธจำเป็นต้องระบุ');
+      toast.error(t('returns.detail.toast.reasonRequired'), t('returns.detail.toast.reasonRequiredDetail'));
       return;
     }
     setRejecting(true);
@@ -234,15 +238,15 @@ export default function MaterialReturnDetailPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error('ปฏิเสธไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('returns.detail.toast.rejectFailed'), data.error || 'Unknown error');
       } else {
-        toast.success('ปฏิเสธสำเร็จ', 'รายการคืนถูกปฏิเสธแล้ว');
+        toast.success(t('returns.detail.toast.rejectSuccess'), t('returns.detail.toast.rejectSuccessDetail'));
         setShowRejectDialog(false);
         setRejectReason('');
         await fetchDetail();
       }
     } catch (e) {
-      toast.error('ปฏิเสธไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('returns.detail.toast.rejectFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setRejecting(false);
     }
@@ -269,11 +273,11 @@ export default function MaterialReturnDetailPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-red-800">ไม่สามารถโหลดข้อมูลได้</p>
-              <p className="text-sm text-red-700">{error || 'ไม่พบรายการคืนวัตถุดิบ'}</p>
+              <p className="font-medium text-red-800">{t('returns.detail.loadFailedTitle')}</p>
+              <p className="text-sm text-red-700">{error || t('returns.detail.notFound')}</p>
             </div>
             <DxButton
-              text="กลับ"
+              text={t('returns.detail.back')}
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/inventory/returns')}
@@ -295,7 +299,7 @@ export default function MaterialReturnDetailPage() {
   const lineColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'วัตถุดิบ',
+      caption: t('returns.detail.columns.material'),
       minWidth: 200,
       cellRender: (cell) => (
         <div>
@@ -306,7 +310,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'sourceLot.lotNumber',
-      caption: 'ล็อตต้นทาง',
+      caption: t('returns.detail.columns.sourceLot'),
       width: 160,
       cellRender: (cell) =>
         cell.data.sourceLot ? (
@@ -317,7 +321,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'issuedQty',
-      caption: 'เบิกแล้ว',
+      caption: t('returns.detail.columns.issued'),
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -329,7 +333,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'usedQty',
-      caption: 'ใช้ไป',
+      caption: t('returns.detail.columns.used'),
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -341,7 +345,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'returnQty',
-      caption: 'คืน',
+      caption: t('returns.detail.columns.returned'),
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -353,7 +357,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'varianceQty',
-      caption: 'ผลต่าง',
+      caption: t('returns.detail.columns.variance'),
       width: 110,
       alignment: 'right',
       cellRender: (cell) => (
@@ -364,7 +368,7 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'variancePct',
-      caption: 'ผลต่าง %',
+      caption: t('returns.detail.columns.variancePct'),
       width: 100,
       alignment: 'right',
       cellRender: (cell) => {
@@ -382,25 +386,25 @@ export default function MaterialReturnDetailPage() {
     },
     {
       dataField: 'varianceReason',
-      caption: 'เหตุผล',
+      caption: t('returns.detail.columns.reason'),
       width: 140,
       cellRender: (cell) => <span className="text-sm capitalize">{String(cell.data.varianceReason).replace(/_/g, ' ')}</span>,
     },
     {
       dataField: 'isOutsideTolerance',
-      caption: 'เกินเกณฑ์?',
+      caption: t('returns.detail.columns.outsideTolerance'),
       width: 110,
       alignment: 'center',
       cellRender: (cell) =>
         cell.data.isOutsideTolerance ? (
-          <Badge variant="danger">เกิน tolerance</Badge>
+          <Badge variant="danger">{t('returns.detail.outsideTolerance')}</Badge>
         ) : (
           <Badge variant="success">OK</Badge>
         ),
     },
     {
       dataField: 'returnContainerLabel',
-      caption: 'ภาชนะ',
+      caption: t('returns.detail.columns.container'),
       minWidth: 160,
       cellRender: (cell) => (
         <div>
@@ -418,28 +422,28 @@ export default function MaterialReturnDetailPage() {
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full print:p-0">
         <div className="print:hidden">
           <ResponsivePageHeader
-            title={`การคืนวัตถุดิบ ${detail.returnNumber}`}
+            title={t('returns.detail.title', { number: detail.returnNumber })}
             subtitle={
-              detail.woNumber ? `WO #${detail.woNumber}` : 'ไม่ได้ผูกกับใบสั่งผลิต'
+              detail.woNumber ? t('returns.detail.subtitleWo', { wo: detail.woNumber }) : t('returns.detail.subtitleNoWo')
             }
             icon={ArrowDownToLine}
             iconBgColor="bg-purple-100"
             iconColor="text-purple-600"
             breadcrumbs={[
-              { label: 'คลังสินค้า', href: '/inventory' },
-              { label: 'การรับคืน', href: '/inventory/returns' },
+              { label: t('returns.breadcrumbs.inventory'), href: '/inventory' },
+              { label: t('returns.breadcrumbs.returns'), href: '/inventory/returns' },
               { label: detail.returnNumber },
             ]}
             actions={
               <div className="flex items-center gap-2 flex-wrap">
                 <DxButton
-                  text="กลับ"
+                  text={t('returns.detail.back')}
                   icon="back"
                   stylingMode="outlined"
                   onClick={() => router.push('/inventory/returns')}
                 />
                 <DxButton
-                  text="พิมพ์"
+                  text={t('returns.detail.print')}
                   icon="print"
                   stylingMode="outlined"
                   onClick={handlePrint}
@@ -447,7 +451,7 @@ export default function MaterialReturnDetailPage() {
                 {canAct && (
                   <>
                     <DxButton
-                      text="ปฏิเสธ"
+                      text={t('returns.detail.reject')}
                       icon="close"
                       type="danger"
                       stylingMode="outlined"
@@ -458,7 +462,7 @@ export default function MaterialReturnDetailPage() {
                       disabled={approving || rejecting}
                     />
                     <DxButton
-                      text="อนุมัติและรับเข้า"
+                      text={t('returns.detail.approveReceive')}
                       icon="check"
                       type="success"
                       onClick={() => setShowApproveConfirm(true)}
@@ -468,7 +472,7 @@ export default function MaterialReturnDetailPage() {
                 )}
                 {canCancel && (
                   <DxButton
-                    text={cancelling ? 'กำลังยกเลิก...' : 'ยกเลิกการรับเข้าคลัง'}
+                    text={cancelling ? t('returns.detail.cancelling') : t('returns.detail.cancelApproval')}
                     icon="undo"
                     type="danger"
                     stylingMode="outlined"
@@ -488,20 +492,20 @@ export default function MaterialReturnDetailPage() {
         <div className="mb-6 print:hidden">
           {String(detail.status).toLowerCase() === 'rejected' ? (
             <StatusStepper
-              title="สถานะการดำเนินงาน"
+              title={t('returns.detail.stepper.title')}
               steps={[
-                { key: 'submitted', label: 'ส่งคำขอ' },
-                { key: 'rejected', label: 'ปฏิเสธ', icon: XCircle },
+                { key: 'submitted', label: t('returns.detail.stepper.submitted') },
+                { key: 'rejected', label: t('returns.detail.stepper.rejected'), icon: XCircle },
               ]}
               current="rejected"
               tone="violet"
             />
           ) : (
             <StatusStepper
-              title="สถานะการดำเนินงาน"
+              title={t('returns.detail.stepper.title')}
               steps={[
-                { key: 'submitted', label: 'ส่งคำขอ' },
-                { key: 'received', label: 'รับคืนแล้ว' },
+                { key: 'submitted', label: t('returns.detail.stepper.submitted') },
+                { key: 'received', label: t('returns.detail.stepper.received') },
               ]}
               current={String(detail.status).toLowerCase()}
             />
@@ -520,31 +524,31 @@ export default function MaterialReturnDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">สถานะ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.status')}</p>
               <div className="mt-1">
-                <Badge variant={sInfo.variant}>{sInfo.label}</Badge>
+                <Badge variant={sInfo.variant}>{sInfo.labelKey ? t(`returns.${sInfo.labelKey}`) : detail.status}</Badge>
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">วันที่คืน</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.returnDate')}</p>
               <p className="mt-1 text-sm font-medium">{formatDateTh(detail.returnDate)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">ผู้คืน</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.returnedBy')}</p>
               <p className="mt-1 text-sm font-medium">{detail.returnedByName || '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">คลังรับ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.warehouse')}</p>
               <p className="mt-1 text-sm font-medium">{detail.warehouseName || '—'}</p>
             </div>
             {detail.approvedAt && (
               <>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">วันที่อนุมัติ</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.approvedDate')}</p>
                   <p className="mt-1 text-sm font-medium">{formatDateTh(detail.approvedAt)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">ผู้อนุมัติ</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.approvedBy')}</p>
                   <p className="mt-1 text-sm font-medium">{detail.approvedByName || '—'}</p>
                 </div>
               </>
@@ -552,14 +556,14 @@ export default function MaterialReturnDetailPage() {
           </div>
           {detail.notes && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">หมายเหตุ</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">{t('returns.detail.fields.notes')}</p>
               <p className="mt-1 text-sm">{detail.notes}</p>
             </div>
           )}
           {detail.rejectionReason && (
             <div className="mt-4 pt-4 border-t border-red-100 bg-red-50 -mx-4 -mb-4 md:-mx-6 md:-mb-6 px-4 md:px-6 py-3 rounded-b-xl">
               <p className="text-xs text-red-700 uppercase tracking-wide font-semibold">
-                เหตุผลการปฏิเสธ
+                {t('returns.detail.fields.rejectionReason')}
               </p>
               <p className="mt-1 text-sm text-red-900">{detail.rejectionReason}</p>
             </div>
@@ -572,7 +576,7 @@ export default function MaterialReturnDetailPage() {
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-emerald-900">สร้าง lot ใหม่แล้ว</p>
+                <p className="font-medium text-emerald-900">{t('returns.detail.newLotsCreated')}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {createdLots.map((lot) => (
                     <span
@@ -600,7 +604,7 @@ export default function MaterialReturnDetailPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-amber-900">มี Deviation ที่เกี่ยวข้อง</p>
+                <p className="font-medium text-amber-900">{t('returns.detail.relatedDeviations')}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {linkedDeviations.map((dev) => (
                     <a
@@ -625,7 +629,7 @@ export default function MaterialReturnDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
             <h2 className="text-sm font-semibold text-gray-700">
-              รายการที่คืน ({detail.lines.length})
+              {t('returns.detail.linesTitle', { count: detail.lines.length })}
             </h2>
           </div>
           <DxDataGrid
@@ -635,7 +639,7 @@ export default function MaterialReturnDetailPage() {
             sorting
             pageSize={50}
             height="auto"
-            noDataText="ไม่มีรายการ"
+            noDataText={t('returns.detail.noLines')}
           />
         </div>
       </div>
@@ -643,13 +647,11 @@ export default function MaterialReturnDetailPage() {
       {/* Approve confirmation */}
       <DxConfirmDialog
         visible={showApproveConfirm}
-        title="ยืนยันการอนุมัติ"
-        message={
-          'ระบบจะสร้าง lot ใหม่ตามจำนวนที่คืน และอาจเปิด Deviation อัตโนมัติหาก variance เกิน tolerance ดำเนินการต่อหรือไม่?'
-        }
-        confirmText={approving ? 'กำลังอนุมัติ...' : 'อนุมัติ'}
+        title={t('returns.detail.approveConfirm.title')}
+        message={t('returns.detail.approveConfirm.message')}
+        confirmText={approving ? t('returns.detail.approveConfirm.confirming') : t('returns.detail.approveConfirm.confirm')}
         confirmType="success"
-        cancelText="ยกเลิก"
+        cancelText={t('returns.detail.approveConfirm.cancel')}
         onConfirm={handleApprove}
         onCancel={() => setShowApproveConfirm(false)}
       />
@@ -660,30 +662,30 @@ export default function MaterialReturnDetailPage() {
         onHiding={() => {
           if (!rejecting) setShowRejectDialog(false);
         }}
-        title="ปฏิเสธการคืนวัตถุดิบ"
+        title={t('returns.detail.rejectDialog.title')}
         width={480}
         height="auto"
         showCloseButton
       >
         <div className="p-4 space-y-4">
           <p className="text-sm text-gray-700">
-            กรุณาระบุเหตุผลที่ปฏิเสธ — ผู้ปฏิบัติงานจะเห็นข้อความนี้
+            {t('returns.detail.rejectDialog.prompt')}
           </p>
           <DxTextArea
             value={rejectReason}
             onValueChanged={(e) => setRejectReason(String(e.value || ''))}
-            placeholder="เหตุผลในการปฏิเสธ..."
+            placeholder={t('returns.detail.rejectDialog.placeholder')}
             height={100}
           />
           <div className="flex justify-end gap-2 pt-2 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={t('returns.detail.rejectDialog.cancel')}
               stylingMode="outlined"
               onClick={() => setShowRejectDialog(false)}
               disabled={rejecting}
             />
             <DxButton
-              text={rejecting ? 'กำลังปฏิเสธ...' : 'ยืนยันปฏิเสธ'}
+              text={rejecting ? t('returns.detail.rejectDialog.rejecting') : t('returns.detail.rejectDialog.confirm')}
               type="danger"
               onClick={handleReject}
               disabled={rejecting || !rejectReason.trim()}

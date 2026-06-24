@@ -82,7 +82,7 @@ export default function BankReconciliationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('ลบรายการเดินบัญชีสำเร็จ', 'success', 3000);
+      notify(t('bankReconciliation.toast.deleteSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
       notify(error.message, 'error', 5000);
@@ -103,10 +103,10 @@ export default function BankReconciliationPage() {
 
   const handleDeleteStatement = (statement: BankStatement) => {
     if (statement.status === 'reconciled' || statement.status === 'closed') {
-      notify('ไม่สามารถลบรายการที่กระทบยอดแล้วหรือปิดแล้วได้', 'warning', 3000);
+      notify(t('bankReconciliation.toast.deleteLocked'), 'warning', 3000);
       return;
     }
-    if (confirm(`คุณต้องการลบรายการเดินบัญชี "${statement.statementNumber}" ใช่หรือไม่?`)) {
+    if (confirm(t('bankReconciliation.toast.deleteConfirm', { number: statement.statementNumber }))) {
       deleteMutation.mutate(statement.id);
     }
   };
@@ -154,7 +154,7 @@ export default function BankReconciliationPage() {
             handleViewStatement(statement.id);
           }}
           className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="ดู/กระทบยอด"
+          title={t('bankReconciliation.rowActions.viewReconcile')}
         >
           <Eye className="h-4 w-4" />
         </button>
@@ -164,7 +164,7 @@ export default function BankReconciliationPage() {
             handleEditStatement(statement.id);
           }}
           className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-          title="แก้ไข"
+          title={t('bankReconciliation.rowActions.edit')}
         >
           <Edit className="h-4 w-4" />
         </button>
@@ -175,7 +175,7 @@ export default function BankReconciliationPage() {
               handleDeleteStatement(statement);
             }}
             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="ลบ"
+            title={t('bankReconciliation.rowActions.delete')}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -190,13 +190,13 @@ export default function BankReconciliationPage() {
     <div className="space-y-6 p-1">
       {/* Header */}
       <AccountingPageHeader
-        title={t('page.title')}
-        subtitle={t('page.description')}
+        title={t('bankReconciliation.title')}
+        subtitle={t('bankReconciliation.subtitle')}
         icon="banknote"
         onRefresh={() => refetch()}
         actions={
           <Button
-            text="นำเข้ารายการเดินบัญชี"
+            text={t('bankReconciliation.importStatement')}
             icon="upload"
             type="success"
             stylingMode="contained"
@@ -219,32 +219,32 @@ export default function BankReconciliationPage() {
           <>
             <KPICard
               value={summary?.totalStatements || 0}
-              label="รายการเดินบัญชีทั้งหมด"
-              subtitle="รายการที่นำเข้าทั้งหมด"
+              label={t('bankReconciliation.stats.totalStatements')}
+              subtitle={t('bankReconciliation.stats.totalStatementsSubtitle')}
               icon={<FileText className="h-6 w-6" />}
               iconBgColor="bg-blue-100"
               iconColor="text-blue-600"
             />
             <KPICard
               value={summary?.pendingReconciliation || 0}
-              label="รอการกระทบยอด"
-              subtitle="รอดำเนินการ"
+              label={t('bankReconciliation.stats.pending')}
+              subtitle={t('bankReconciliation.stats.pendingSubtitle')}
               icon={<Clock className="h-6 w-6" />}
               iconBgColor="bg-yellow-100"
               iconColor="text-yellow-600"
             />
             <KPICard
               value={summary?.reconciledThisMonth || 0}
-              label="กระทบยอดแล้วเดือนนี้"
-              subtitle="เสร็จสิ้นในงวดนี้"
+              label={t('bankReconciliation.stats.reconciledThisMonth')}
+              subtitle={t('bankReconciliation.stats.reconciledThisMonthSubtitle')}
               icon={<CheckCircle className="h-6 w-6" />}
               iconBgColor="bg-green-100"
               iconColor="text-green-600"
             />
             <KPICard
               value={summary?.unmatchedLines || 0}
-              label="รายการที่ยังไม่จับคู่"
-              subtitle="ต้องตรวจสอบ"
+              label={t('bankReconciliation.stats.unmatchedLines')}
+              subtitle={t('bankReconciliation.stats.unmatchedLinesSubtitle')}
               icon={<AlertCircle className="h-6 w-6" />}
               iconBgColor="bg-red-100"
               iconColor="text-red-600"
@@ -280,57 +280,57 @@ export default function BankReconciliationPage() {
 
             <Column
               dataField="statementNumber"
-              caption="เลขที่รายการเดินบัญชี"
+              caption={t('bankReconciliation.columns.statementNumber')}
               width={150}
             />
             <Column
               dataField="bankAccountName"
-              caption="บัญชีธนาคาร"
+              caption={t('bankReconciliation.columns.bankAccount')}
               minWidth={180}
             />
             <Column
               dataField="statementDate"
-              caption="วันที่"
+              caption={t('bankReconciliation.columns.date')}
               dataType="date"
               width={110}
               cellRender={formatDate}
             />
             <Column
               dataField="openingBalance"
-              caption="ยอดยกมา"
+              caption={t('bankReconciliation.columns.openingBalance')}
               width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="closingBalance"
-              caption="ยอดคงเหลือ"
+              caption={t('bankReconciliation.columns.closingBalance')}
               width={130}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="matchedCount"
-              caption="จับคู่แล้ว"
+              caption={t('bankReconciliation.columns.matched')}
               width={90}
               alignment="center"
             />
             <Column
               dataField="unmatchedCount"
-              caption="ยังไม่จับคู่"
+              caption={t('bankReconciliation.columns.unmatched')}
               width={100}
               alignment="center"
               cellRender={renderUnmatched}
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('bankReconciliation.columns.status')}
               width={130}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('bankReconciliation.columns.actions')}
               width={120}
               alignment="center"
               cellRender={renderActions}

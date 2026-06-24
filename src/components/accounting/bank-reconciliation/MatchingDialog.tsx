@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -28,6 +29,7 @@ export function MatchingDialog({
   onClose,
   onMatch,
 }: MatchingDialogProps) {
+  const t = useTranslations('accounting');
   const [payments, setPayments] = useState<UnmatchedPayment[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<UnmatchedPayment | null>(null);
@@ -108,7 +110,7 @@ export function MatchingDialog({
     <Popup
       visible={visible}
       onHiding={handleClose}
-      title="จับคู่รายการในใบแจ้งยอด"
+      title={t('bankReconciliation.matchingDialog.title')}
       width={900}
       height={600}
       showCloseButton={true}
@@ -117,14 +119,14 @@ export function MatchingDialog({
       <div className="p-4 h-full flex flex-col">
         {statementLine && (
           <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
-            <h4 className="font-medium text-blue-900 mb-2">รายการในใบแจ้งยอด</h4>
+            <h4 className="font-medium text-blue-900 mb-2">{t('bankReconciliation.matchingDialog.statementLineHeading')}</h4>
             <div className="grid grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">วันที่:</span>{' '}
+                <span className="text-gray-500">{t('bankReconciliation.matchingDialog.fields.date')}</span>{' '}
                 {new Date(statementLine.transactionDate).toLocaleDateString('th-TH')}
               </div>
               <div>
-                <span className="text-gray-500">จำนวนเงิน:</span>{' '}
+                <span className="text-gray-500">{t('bankReconciliation.matchingDialog.fields.amount')}</span>{' '}
                 <span
                   className={
                     statementLine.transactionType === 'debit' ? 'text-red-600' : 'text-green-600'
@@ -135,7 +137,7 @@ export function MatchingDialog({
                 </span>
               </div>
               <div className="col-span-2">
-                <span className="text-gray-500">รายละเอียด:</span> {statementLine.description}
+                <span className="text-gray-500">{t('bankReconciliation.matchingDialog.fields.description')}</span> {statementLine.description}
               </div>
             </div>
           </div>
@@ -143,10 +145,13 @@ export function MatchingDialog({
 
         <div className="mb-2">
           <h4 className="font-medium text-gray-900">
-            รายการชำระเงินที่ใช้ได้
+            {t('bankReconciliation.matchingDialog.availablePayments')}
             {filteredPayments.length !== payments.length && (
               <span className="text-sm text-gray-500 ml-2">
-                (แสดง {filteredPayments.length} จาก {payments.length} รายการที่มีจำนวนเงินใกล้เคียง)
+                {t('bankReconciliation.matchingDialog.filteredCount', {
+                  shown: filteredPayments.length,
+                  total: payments.length,
+                })}
               </span>
             )}
           </h4>
@@ -160,39 +165,39 @@ export function MatchingDialog({
             rowAlternationEnabled={true}
             height={280}
             onSelectionChanged={handleSelectionChanged}
-            noDataText={loading ? 'กำลังโหลด...' : 'ไม่พบรายการชำระเงินที่ยังไม่จับคู่'}
+            noDataText={loading ? t('bankReconciliation.matchingDialog.loading') : t('bankReconciliation.matchingDialog.noPayments')}
             data-testid="payments-grid"
           >
             <Selection mode="single" />
-            <Column dataField="documentNumber" caption="เลขที่เอกสาร" width={140} />
-            <Column dataField="date" caption="วันที่" width={100} cellRender={formatDate} />
+            <Column dataField="documentNumber" caption={t('bankReconciliation.matchingDialog.columns.documentNumber')} width={140} />
+            <Column dataField="date" caption={t('bankReconciliation.matchingDialog.columns.date')} width={100} cellRender={formatDate} />
             <Column
               dataField="amount"
-              caption="จำนวนเงิน"
+              caption={t('bankReconciliation.matchingDialog.columns.amount')}
               width={120}
               alignment="right"
               cellRender={formatAmount}
             />
-            <Column dataField="vendorOrCustomerName" caption="ผู้ขาย/ลูกค้า" />
-            <Column dataField="reference" caption="อ้างอิง" width={120} />
-            <Column dataField="type" caption="ประเภท" width={80} />
+            <Column dataField="vendorOrCustomerName" caption={t('bankReconciliation.matchingDialog.columns.vendorOrCustomer')} />
+            <Column dataField="reference" caption={t('bankReconciliation.matchingDialog.columns.reference')} width={120} />
+            <Column dataField="type" caption={t('bankReconciliation.matchingDialog.columns.type')} width={80} />
           </DataGrid>
         </div>
 
         <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700">หมายเหตุ (ไม่บังคับ)</label>
+          <label className="text-sm font-medium text-gray-700">{t('bankReconciliation.matchingDialog.notesLabel')}</label>
           <TextArea
             value={notes}
             onValueChanged={(e) => setNotes(e.value || '')}
             height={60}
-            placeholder="เพิ่มหมายเหตุเกี่ยวกับการจับคู่นี้..."
+            placeholder={t('bankReconciliation.matchingDialog.notesPlaceholder')}
           />
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button text="ยกเลิก" onClick={handleClose} />
+          <Button text={t('bankReconciliation.matchingDialog.actions.cancel')} onClick={handleClose} />
           <Button
-            text={matching ? 'กำลังจับคู่...' : 'จับคู่รายการที่เลือก'}
+            text={matching ? t('bankReconciliation.matchingDialog.actions.matching') : t('bankReconciliation.matchingDialog.actions.matchSelected')}
             type="success"
             stylingMode="contained"
             onClick={handleMatch}

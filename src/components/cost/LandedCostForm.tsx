@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import notify from 'devextreme/ui/notify';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,21 +140,8 @@ async function postLandedCostApi(id: number): Promise<void> {
   }
 }
 
-const costTypes: { value: LandedCostType; label: string }[] = [
-  { value: 'freight', label: 'ค่าขนส่ง' },
-  { value: 'duty', label: 'ภาษีอากร' },
-  { value: 'insurance', label: 'ค่าประกันภัย' },
-  { value: 'handling', label: 'ค่าจัดการสินค้า' },
-  { value: 'inspection', label: 'ค่าตรวจสอบ' },
-  { value: 'other', label: 'อื่นๆ' },
-];
-
-const allocationBases: { value: AllocationBasis; label: string }[] = [
-  { value: 'value', label: 'ตามมูลค่า' },
-  { value: 'quantity', label: 'ตามปริมาณ' },
-  { value: 'weight', label: 'ตามน้ำหนัก' },
-  { value: 'volume', label: 'ตามปริมาตร' },
-];
+const COST_TYPE_VALUES: LandedCostType[] = ['freight', 'duty', 'insurance', 'handling', 'inspection', 'other'];
+const ALLOCATION_BASIS_VALUES: AllocationBasis[] = ['value', 'quantity', 'weight', 'volume'];
 
 const currencies = ['THB', 'USD', 'EUR', 'JPY', 'CNY'];
 
@@ -166,7 +154,10 @@ const defaultLine: LandedCostLineCreate = {
 
 export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
   const router = useRouter();
+  const t = useTranslations('cost');
   const queryClient = useQueryClient();
+  const costTypes = COST_TYPE_VALUES.map((value) => ({ value, label: t(`landedCosts.form.costTypes.${value}`) }));
+  const allocationBases = ALLOCATION_BASIS_VALUES.map((value) => ({ value, label: t(`landedCosts.form.allocationBases.${value}`) }));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     referenceType: 'po',
@@ -348,14 +339,14 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
   return (
     <div className="space-y-6" data-testid="landed-cost-form">
       <ResponsivePageHeader
-        title={mode === 'create' ? 'เพิ่มต้นทุนนำเข้า' : `ต้นทุนนำเข้า: ${landedCost?.documentNumber}`}
+        title={mode === 'create' ? t('landedCosts.form.createTitle') : t('landedCosts.form.editTitle', { number: landedCost?.documentNumber ?? '' })}
         icon={Truck}
-        subtitle={mode === 'create' ? 'จัดสรรค่าขนส่ง ภาษีอากร และต้นทุนอื่นๆ ให้กับการรับซื้อ' : undefined}
+        subtitle={mode === 'create' ? t('landedCosts.form.createSubtitle') : undefined}
         actions={
           <div className="flex gap-2">
             {canAllocate && (
               <DxButton
-                text="จัดสรร"
+                text={t('landedCosts.form.allocate')}
                 icon="chart"
                 type="default"
                 stylingMode="outlined"
@@ -365,7 +356,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             )}
             {canPost && (
               <DxButton
-                text="ผ่านรายการ"
+                text={t('landedCosts.form.post')}
                 icon="check"
                 type="success"
                 onClick={() => postMutation.mutate()}
@@ -375,13 +366,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             {isEditable && (
               <>
                 <DxButton
-                  text="ยกเลิก"
+                  text={t('landedCosts.form.cancel')}
                   type="normal"
                   stylingMode="outlined"
                   onClick={() => router.push('/cost/landed-costs')}
                 />
                 <DxButton
-                  text={mode === 'create' ? 'สร้าง' : 'บันทึก'}
+                  text={mode === 'create' ? t('landedCosts.form.create') : t('landedCosts.form.save')}
                   type="default"
                   icon="save"
                   onClick={handleSubmit}
@@ -391,7 +382,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             )}
             {mode === 'edit' && landedCost?.status === 'draft' && (
               <DxButton
-                text="ลบ"
+                text={t('landedCosts.form.delete')}
                 type="danger"
                 stylingMode="outlined"
                 icon="trash"
@@ -405,7 +396,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
       {/* Status Badge */}
       {mode === 'edit' && landedCost && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">สถานะ:</span>
+          <span className="text-sm text-gray-500">{t('landedCosts.form.status')}</span>
           <span
             className={`px-3 py-1 rounded-full text-sm font-medium ${
               landedCost.status === 'draft'
@@ -425,13 +416,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            ข้อมูลส่วนหัว
+            {t('landedCosts.form.headerInfo')}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ใบสั่งซื้อ *
+              {t('landedCosts.form.purchaseOrder')} *
             </label>
             <DxSelectBox
               items={purchaseOrders as any[]}
@@ -448,13 +439,13 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               }}
               disabled={!isEditable}
               searchEnabled
-              placeholder="เลือกใบสั่งซื้อ..."
+              placeholder={t('landedCosts.form.selectPo')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ผู้ขาย
+              {t('landedCosts.form.vendor')}
             </label>
             <DxSelectBox
               items={vendors as any[]}
@@ -464,25 +455,25 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               onValueChange={(val: any) => setFormData((prev) => ({ ...prev, vendorId: val }))}
               disabled={!isEditable}
               searchEnabled
-              placeholder="เลือกผู้ขาย..."
+              placeholder={t('landedCosts.form.selectVendor')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              เลขที่ใบแจ้งหนี้
+              {t('landedCosts.form.invoiceNumber')}
             </label>
             <DxTextBox
               value={formData.invoiceNumber}
               onValueChange={(val) => setFormData((prev) => ({ ...prev, invoiceNumber: val }))}
               disabled={!isEditable}
-              placeholder="ระบุเลขที่ใบแจ้งหนี้"
+              placeholder={t('landedCosts.form.invoiceNumberPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              วันที่ใบแจ้งหนี้
+              {t('landedCosts.form.invoiceDate')}
             </label>
             <DxDateBox
               value={formData.invoiceDate || undefined}
@@ -501,7 +492,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              สกุลเงิน
+              {t('landedCosts.form.currency')}
             </label>
             <DxSelectBox
               items={currencies.map(c => ({ value: c, label: c }))}
@@ -515,7 +506,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              อัตราแลกเปลี่ยน
+              {t('landedCosts.form.exchangeRate')}
             </label>
             <DxNumberBox
               value={formData.exchangeRate}
@@ -533,11 +524,11 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            รายการต้นทุน
+            {t('landedCosts.form.costLines')}
           </CardTitle>
           {isEditable && (
             <DxButton
-              text="เพิ่มรายการ"
+              text={t('landedCosts.form.addLine')}
               icon="plus"
               type="default"
               stylingMode="outlined"
@@ -554,7 +545,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
                 data-testid={`cost-line-${index}`}
               >
                 <div className="md:col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1">ประเภทต้นทุน</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('landedCosts.form.costType')}</label>
                   <DxSelectBox
                     items={costTypes}
                     displayExpr="label"
@@ -565,16 +556,16 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <label className="block text-xs text-gray-500 mb-1">รายละเอียด</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('landedCosts.form.description')}</label>
                   <DxTextBox
                     value={line.description || ''}
                     onValueChange={(val) => updateLine(index, 'description', val)}
                     disabled={!isEditable}
-                    placeholder="รายละเอียด"
+                    placeholder={t('landedCosts.form.descriptionPlaceholder')}
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1">จำนวนเงิน</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('landedCosts.form.amount')}</label>
                   <DxNumberBox
                     value={line.amount}
                     onValueChange={(val) => updateLine(index, 'amount', val)}
@@ -584,7 +575,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <label className="block text-xs text-gray-500 mb-1">เกณฑ์การจัดสรร</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('landedCosts.form.allocationBasis')}</label>
                   <DxSelectBox
                     items={allocationBases}
                     displayExpr="label"
@@ -611,7 +602,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
           {/* Total */}
           <div className="mt-4 flex justify-end">
             <div className="bg-blue-50 px-6 py-3 rounded-lg">
-              <span className="text-sm text-gray-600">จำนวนเงินรวม: </span>
+              <span className="text-sm text-gray-600">{t('landedCosts.form.totalAmount')}</span>
               <span className="text-xl font-bold text-blue-600">
                 {new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 }).format(totalAmount)}
               </span>
@@ -627,7 +618,7 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileCheck className="h-5 w-5" />
-              การจัดสรร
+              {t('landedCosts.form.allocationTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -636,10 +627,10 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
               showBorders
               rowAlternationEnabled
               columns={[
-                { dataField: 'itemCode', caption: 'รหัสสินค้า', width: 120 },
-                { dataField: 'itemName', caption: 'ชื่อสินค้า' },
-                { dataField: 'basisValue', caption: 'มูลค่าฐาน', format: '#,##0.00', width: 120 },
-                { dataField: 'allocatedAmount', caption: 'จำนวนที่จัดสรร', format: '#,##0.0000', width: 140 },
+                { dataField: 'itemCode', caption: t('landedCosts.form.columns.itemCode'), width: 120 },
+                { dataField: 'itemName', caption: t('landedCosts.form.columns.itemName') },
+                { dataField: 'basisValue', caption: t('landedCosts.form.columns.basisValue'), format: '#,##0.00', width: 120 },
+                { dataField: 'allocatedAmount', caption: t('landedCosts.form.columns.allocatedAmount'), format: '#,##0.0000', width: 140 },
               ] as DxDataGridColumn[]}
             />
           </CardContent>
@@ -650,19 +641,19 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">ยืนยันการลบ</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('landedCosts.form.deleteConfirm.title')}</h3>
             <p className="text-gray-600 mb-6">
-              คุณแน่ใจหรือไม่ว่าต้องการลบต้นทุนนำเข้านี้? การกระทำนี้ไม่สามารถยกเลิกได้
+              {t('landedCosts.form.deleteConfirm.message')}
             </p>
             <div className="flex justify-end gap-3">
               <DxButton
-                text="ยกเลิก"
+                text={t('landedCosts.form.deleteConfirm.cancel')}
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => setShowDeleteConfirm(false)}
               />
               <DxButton
-                text="ลบ"
+                text={t('landedCosts.form.deleteConfirm.confirm')}
                 type="danger"
                 onClick={() => {
                   setShowDeleteConfirm(false);

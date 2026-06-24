@@ -107,7 +107,7 @@ export default function CreditDebitNotesPage() {
     return (
       <Button
         icon="search"
-        hint="ดู"
+        hint={t('creditDebitNotes.actions.view')}
         stylingMode="text"
         onClick={() => handleViewNote(note.id)}
       />
@@ -129,7 +129,7 @@ export default function CreditDebitNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            สร้างและจัดการใบลดหนี้และใบเพิ่มหนี้สำหรับลูกหนี้และเจ้าหนี้
+            {t('creditDebitNotes.description')}
           </p>
         </div>
 
@@ -137,25 +137,25 @@ export default function CreditDebitNotesPage() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
-              <div className="text-sm text-gray-500">ใบร่าง</div>
+              <div className="text-sm text-gray-500">{t('creditDebitNotes.stats.draft')}</div>
               <div className="text-2xl font-bold text-gray-900">
                 {summary.draftCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">รออนุมัติ</div>
+              <div className="text-sm text-gray-500">{t('creditDebitNotes.stats.pendingApproval')}</div>
               <div className="text-2xl font-bold text-yellow-600">
                 {summary.pendingApprovalCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">ลงบัญชีเดือนนี้</div>
+              <div className="text-sm text-gray-500">{t('creditDebitNotes.stats.postedThisMonth')}</div>
               <div className="text-2xl font-bold text-green-600">
                 {summary.postedThisMonth}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">ยอดรวมเดือนนี้</div>
+              <div className="text-sm text-gray-500">{t('creditDebitNotes.stats.totalThisMonth')}</div>
               <div className="text-2xl font-bold text-blue-600">
                 {summary.totalThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
               </div>
@@ -174,15 +174,15 @@ export default function CreditDebitNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="ค้นหาใบลด/เพิ่มหนี้..." />
+            <SearchPanel visible={true} placeholder={t('creditDebitNotes.filters.searchPlaceholder')} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">ใบลดหนี้/ใบเพิ่มหนี้</span>
+                <span className="text-lg font-medium">{t('creditDebitNotes.title')}</span>
               </Item>
               <Item location="after">
                 <Button
-                  text="สร้างใบใหม่"
+                  text={t('creditDebitNotes.actions.new')}
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -192,38 +192,38 @@ export default function CreditDebitNotesPage() {
               </Item>
             </Toolbar>
 
-            <Column dataField="noteNumber" caption="เลขที่ใบ" width={150} />
+            <Column dataField="noteNumber" caption={t('creditDebitNotes.columns.noteNumber')} width={150} />
             <Column
               dataField="noteType"
-              caption="ประเภท"
+              caption={t('creditDebitNotes.columns.noteType')}
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="วันที่"
+              caption={t('creditDebitNotes.columns.noteDate')}
               width={100}
               cellRender={formatDate}
             />
-            <Column dataField="customerName" caption="ลูกค้า" width={150} />
-            <Column dataField="vendorName" caption="ผู้ขาย" width={150} />
-            <Column dataField="reasonCode" caption="เหตุผล" width={120} />
+            <Column dataField="customerName" caption={t('creditDebitNotes.columns.customer')} width={150} />
+            <Column dataField="vendorName" caption={t('creditDebitNotes.columns.vendor')} width={150} />
+            <Column dataField="reasonCode" caption={t('creditDebitNotes.columns.reason')} width={120} />
             <Column
               dataField="totalAmount"
-              caption="จำนวนเงิน"
+              caption={t('creditDebitNotes.columns.amount')}
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('creditDebitNotes.columns.status')}
               width={100}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('creditDebitNotes.columns.actions')}
               width={80}
               alignment="center"
               cellRender={renderActions}

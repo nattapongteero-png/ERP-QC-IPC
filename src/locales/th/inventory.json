@@ -20,7 +20,243 @@
     "edit": "แก้ไข",
     "clearFilters": "ล้างตัวกรอง",
     "downloadTemplate": "เทมเพลต",
-    "importExcel": "นำเข้า Excel"
+    "importExcel": "นำเข้า Excel",
+    "status": "สถานะ",
+    "from": "ตั้งแต่",
+    "to": "ถึง",
+    "today": "วันนี้",
+    "thisMonth": "เดือนนี้",
+    "noData": "ไม่พบข้อมูล",
+    "clearAll": "ล้างทั้งหมด"
+  },
+  "requisitions": {
+    "page": {
+      "title": "ใบเบิกวัตถุดิบ",
+      "subtitle": "คลังตรวจสอบและปล่อยของ — ทั้งใบเบิกตาม BOM และคำขอเบิกนอก BOM"
+    },
+    "tabs": {
+      "bom": "ใบเบิก BOM",
+      "outOfBom": "เบิกนอก BOM"
+    },
+    "outStatus": {
+      "all": "ทั้งหมด",
+      "awaitingRelease": "รอคลังจ่าย",
+      "released": "จ่ายของแล้ว"
+    },
+    "stats": {
+      "awaitingApproval": "รออนุมัติ",
+      "awaitingRelease": "รอคลังจ่าย",
+      "approved": "อนุมัติแล้ว",
+      "released": "จ่ายของแล้ว",
+      "insufficient": "วัตถุดิบไม่พอ"
+    },
+    "statusOptions": {
+      "requested": "รออนุมัติ (Requested)",
+      "approved": "อนุมัติแล้ว (Approved)",
+      "all": "ทั้งหมด"
+    },
+    "filters": {
+      "status": "สถานะ",
+      "selectRequisition": "เลือกใบเบิก (WO / สินค้า)",
+      "selectRequisitionPlaceholder": "เลือกหรือพิมพ์เพื่อค้นหา WO / สินค้า",
+      "requestedFrom": "ขอเบิกตั้งแต่",
+      "to": "ถึง",
+      "startDate": "วันที่เริ่ม",
+      "endDate": "วันที่สิ้นสุด",
+      "quick": "ด่วน:",
+      "today": "วันนี้",
+      "last7": "7 วันล่าสุด",
+      "last30": "30 วัน",
+      "thisMonth": "เดือนนี้",
+      "insufficientOnly": "เฉพาะ stock ไม่พอ",
+      "activeFilters": "ตัวกรองที่ใช้:",
+      "chipStatus": "สถานะ: {label}",
+      "chipSearch": "ค้นหา: \"{value}\"",
+      "chipDate": "วันที่: {from} ถึง {to}",
+      "chipInsufficient": "Stock ไม่พอ",
+      "clearAll": "ล้างทั้งหมด"
+    },
+    "loading": "กำลังโหลด...",
+    "empty": "ไม่พบใบเบิกในเงื่อนไขที่เลือก",
+    "reason": "เหตุผล: {reason}",
+    "requestedBy": "ขอเบิกโดย: {name}",
+    "badges": {
+      "insufficient": "ไม่พอ",
+      "released": "จ่ายของแล้ว",
+      "awaitingRelease": "รอคลังจ่าย",
+      "approved": "อนุมัติแล้ว",
+      "awaitingApproval": "รออนุมัติ"
+    },
+    "table": {
+      "itemCode": "รหัสสินค้า",
+      "materialName": "ชื่อวัตถุดิบ",
+      "quantityNeeded": "จำนวนที่ต้องการ",
+      "quantityToIssue": "จำนวนที่ต้องจ่าย",
+      "onHand": "คงเหลือในคลัง",
+      "remainderOnSite": "เหลือหน้างาน {qty} {unit}"
+    },
+    "approveBtn": "อนุมัติใบเบิก",
+    "approvingBtn": "กำลังอนุมัติ...",
+    "insufficientCannotApprove": "วัตถุดิบไม่พอ — ไม่สามารถอนุมัติได้",
+    "approvedBy": "อนุมัติโดย {name} · {date}",
+    "approvedBySupervisor": "อนุมัติโดยหัวหน้าผลิต {name} · {date}",
+    "releasedBy": "จ่ายของแล้วโดย {name} · {date}",
+    "releaseBtn": "ปล่อยของ (ตัดสต็อก)",
+    "releasingBtn": "กำลังปล่อยของ...",
+    "insufficientCannotRelease": "วัตถุดิบไม่พอ — ไม่สามารถปล่อยของได้",
+    "reasons": {
+      "machine_setup_loss": "สูญเสียระหว่างตั้งค่าเครื่อง",
+      "equipment_trial_run": "ทดสอบเครื่อง",
+      "parameter_adjustment": "ปรับพารามิเตอร์",
+      "other": "อื่นๆ"
+    },
+    "toast": {
+      "loadFailed": "โหลดข้อมูลใบเบิกไม่สำเร็จ",
+      "approveReleaseSuccess": "อนุมัติและปล่อยของแล้ว",
+      "approveSuccess": "อนุมัติใบเบิกสำเร็จ",
+      "approveFailed": "อนุมัติไม่สำเร็จ",
+      "releaseSuccess": "ปล่อยของเรียบร้อย",
+      "releaseSuccessDetail": "ตัดสต็อกตามคำขอเบิกนอก BOM แล้ว",
+      "releaseFailed": "ปล่อยของไม่สำเร็จ",
+      "issuedLine": "• {code}: ปล่อย {pu} {puUnit} (= {su} {suUnit})"
+    }
+  },
+  "returns": {
+    "page": {
+      "title": "กล่องรับคืนวัตถุดิบ",
+      "subtitle": "คืนวัตถุดิบจากการผลิต — รออนุมัติ/รับเข้า"
+    },
+    "breadcrumbs": {
+      "inventory": "คลังสินค้า",
+      "returns": "การรับคืน"
+    },
+    "refresh": "รีเฟรช",
+    "stats": {
+      "submitted": "รออนุมัติ",
+      "received": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธ",
+      "totalQty": "รวมจำนวน"
+    },
+    "statusOptions": {
+      "all": "ทั้งหมด",
+      "submitted": "รออนุมัติ (Submitted)",
+      "received": "อนุมัติแล้ว (Received)",
+      "rejected": "ปฏิเสธ (Rejected)"
+    },
+    "statusBadge": {
+      "submitted": "รออนุมัติ",
+      "received": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธ"
+    },
+    "allWarehouses": "ทุกคลัง",
+    "searchPlaceholder": "ค้นหา (RET#, WO#, คลัง, ผู้คืน)",
+    "fromDate": "จากวันที่",
+    "toDate": "ถึงวันที่",
+    "columns": {
+      "returnNumber": "RET #",
+      "returnDate": "วันที่คืน",
+      "woNumber": "WO #",
+      "warehouse": "คลังรับ",
+      "lineCount": "รายการ",
+      "totalQty": "จำนวนรวม",
+      "status": "สถานะ",
+      "returnedBy": "ผู้คืน",
+      "actions": "การกระทำ"
+    },
+    "view": "ดู",
+    "loading": "กำลังโหลด...",
+    "empty": {
+      "title": "ไม่พบรายการคืนวัตถุดิบ",
+      "noSubmitted": "ไม่มีรายการที่รอการอนุมัติในขณะนี้",
+      "tryOtherFilters": "ลองเปลี่ยนเงื่อนไขการค้นหาดู"
+    },
+    "noDataText": "ไม่พบข้อมูล",
+    "toast": {
+      "loadFailed": "โหลดข้อมูลไม่สำเร็จ"
+    },
+    "detail": {
+      "title": "การคืนวัตถุดิบ {number}",
+      "subtitleWo": "WO #{wo}",
+      "subtitleNoWo": "ไม่ได้ผูกกับใบสั่งผลิต",
+      "back": "กลับ",
+      "print": "พิมพ์",
+      "reject": "ปฏิเสธ",
+      "approveReceive": "อนุมัติและรับเข้า",
+      "cancelApproval": "ยกเลิกการรับเข้าคลัง",
+      "cancelling": "กำลังยกเลิก...",
+      "invalidId": "รหัสรายการคืนไม่ถูกต้อง",
+      "loadFailed": "ไม่สามารถโหลดรายละเอียดการคืนได้",
+      "loadFailedTitle": "ไม่สามารถโหลดข้อมูลได้",
+      "notFound": "ไม่พบรายการคืนวัตถุดิบ",
+      "statusInfo": {
+        "submitted": "รออนุมัติ",
+        "received": "อนุมัติแล้ว",
+        "rejected": "ปฏิเสธ"
+      },
+      "stepper": {
+        "title": "สถานะการดำเนินงาน",
+        "submitted": "ส่งคำขอ",
+        "rejected": "ปฏิเสธ",
+        "received": "รับคืนแล้ว"
+      },
+      "fields": {
+        "status": "สถานะ",
+        "returnDate": "วันที่คืน",
+        "returnedBy": "ผู้คืน",
+        "warehouse": "คลังรับ",
+        "approvedDate": "วันที่อนุมัติ",
+        "approvedBy": "ผู้อนุมัติ",
+        "notes": "หมายเหตุ",
+        "rejectionReason": "เหตุผลการปฏิเสธ"
+      },
+      "newLotsCreated": "สร้าง lot ใหม่แล้ว",
+      "relatedDeviations": "มี Deviation ที่เกี่ยวข้อง",
+      "linesTitle": "รายการที่คืน ({count})",
+      "noLines": "ไม่มีรายการ",
+      "columns": {
+        "material": "วัตถุดิบ",
+        "sourceLot": "ล็อตต้นทาง",
+        "issued": "เบิกแล้ว",
+        "used": "ใช้ไป",
+        "returned": "คืน",
+        "variance": "ผลต่าง",
+        "variancePct": "ผลต่าง %",
+        "reason": "เหตุผล",
+        "outsideTolerance": "เกินเกณฑ์?",
+        "container": "ภาชนะ"
+      },
+      "outsideTolerance": "เกิน tolerance",
+      "approveConfirm": {
+        "title": "ยืนยันการอนุมัติ",
+        "message": "ระบบจะสร้าง lot ใหม่ตามจำนวนที่คืน และอาจเปิด Deviation อัตโนมัติหาก variance เกิน tolerance ดำเนินการต่อหรือไม่?",
+        "confirm": "อนุมัติ",
+        "confirming": "กำลังอนุมัติ...",
+        "cancel": "ยกเลิก"
+      },
+      "cancelConfirm": "ยืนยันยกเลิกการรับเข้าคลัง?\nลอตที่สร้างจะถูกลบ และสถานะจะกลับเป็น \"รอตรวจสอบ\" ให้ฝ่ายผลิตแก้ไขได้อีกครั้ง",
+      "rejectDialog": {
+        "title": "ปฏิเสธการคืนวัตถุดิบ",
+        "prompt": "กรุณาระบุเหตุผลที่ปฏิเสธ — ผู้ปฏิบัติงานจะเห็นข้อความนี้",
+        "placeholder": "เหตุผลในการปฏิเสธ...",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยันปฏิเสธ",
+        "rejecting": "กำลังปฏิเสธ..."
+      },
+      "toast": {
+        "approveFailed": "อนุมัติไม่สำเร็จ",
+        "approveSuccess": "อนุมัติสำเร็จ",
+        "approveSuccessDetail": "สร้าง lot ใหม่ {lots} รายการ",
+        "approveSuccessDetailWithDev": "สร้าง lot ใหม่ {lots} รายการ · เปิด deviation {devs} รายการ",
+        "cancelFailed": "ยกเลิกไม่สำเร็จ",
+        "cancelSuccess": "ยกเลิกการรับเข้าคลังสำเร็จ",
+        "cancelSuccessDetail": "รายการกลับเป็นสถานะรอตรวจสอบ",
+        "reasonRequired": "กรุณาระบุเหตุผล",
+        "reasonRequiredDetail": "เหตุผลในการปฏิเสธจำเป็นต้องระบุ",
+        "rejectFailed": "ปฏิเสธไม่สำเร็จ",
+        "rejectSuccess": "ปฏิเสธสำเร็จ",
+        "rejectSuccessDetail": "รายการคืนถูกปฏิเสธแล้ว"
+      }
+    }
   },
   "stats": {
     "total": "ทั้งหมด",

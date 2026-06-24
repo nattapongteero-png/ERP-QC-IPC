@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -85,19 +86,6 @@ interface RequisitionRow {
 function rowKey(r: RequisitionRow): string {
   return r.source === 'out_of_bom' ? `wd-${r.requestId}` : `wo-${r.workOrderId}`;
 }
-
-const REASON_LABEL: Record<string, string> = {
-  machine_setup_loss: 'สูญเสียระหว่างตั้งค่าเครื่อง',
-  equipment_trial_run: 'ทดสอบเครื่อง',
-  parameter_adjustment: 'ปรับพารามิเตอร์',
-  other: 'อื่นๆ',
-};
-
-const STATUS_OPTIONS = [
-  { value: 'requested', label: 'รออนุมัติ (Requested)' },
-  { value: 'approved', label: 'อนุมัติแล้ว (Approved)' },
-  { value: 'all', label: 'ทั้งหมด' },
-];
 
 function formatDateTh(value: string | null | undefined) {
   if (!value) return '—';
@@ -203,7 +191,21 @@ function isInsufficient(mat: MaterialRow): boolean {
 }
 
 export default function MaterialRequisitionsInboxPage() {
+  const t = useTranslations('inventory');
   const toast = useToast();
+
+  const STATUS_OPTIONS = useMemo(() => [
+    { value: 'requested', label: t('requisitions.statusOptions.requested') },
+    { value: 'approved', label: t('requisitions.statusOptions.approved') },
+    { value: 'all', label: t('requisitions.statusOptions.all') },
+  ], [t]);
+
+  const reasonLabel = useCallback((reasonType: string) => {
+    const key = `requisitions.reasons.${reasonType}`;
+    const translated = t(key);
+    return translated === key ? reasonType : translated;
+  }, [t]);
+
   const [rows, setRows] = useState<RequisitionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sourceTab, setSourceTab] = useState<'bom' | 'out_of_bom'>('bom');
@@ -267,14 +269,14 @@ export default function MaterialRequisitionsInboxPage() {
       if (data.success) {
         setRows((data.data ?? []) as RequisitionRow[]);
       } else {
-        toast.error('โหลดข้อมูลใบเบิกไม่สำเร็จ', data.error || '');
+        toast.error(t('requisitions.toast.loadFailed'), data.error || '');
       }
     } catch (err) {
-      toast.error('โหลดข้อมูลใบเบิกไม่สำเร็จ', String(err));
+      toast.error(t('requisitions.toast.loadFailed'), String(err));
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchRequisitions();
@@ -380,18 +382,24 @@ export default function MaterialRequisitionsInboxPage() {
         const issued = (data.data?.issued ?? []) as { itemCode: string; puToIssue: number; pu: string; suIssued: number; su: string }[];
         if (issued.length > 0) {
           const lines = issued
-            .map((i) => `• ${i.itemCode}: ปล่อย ${formatNumber(i.puToIssue)} ${i.pu} (= ${formatNumber(i.suIssued)} ${i.su})`)
+            .map((i) => t('requisitions.toast.issuedLine', {
+              code: i.itemCode,
+              pu: formatNumber(i.puToIssue),
+              puUnit: i.pu,
+              su: formatNumber(i.suIssued),
+              suUnit: i.su,
+            }))
             .join('\n');
-          toast.success('อนุมัติและปล่อยของแล้ว', lines);
+          toast.success(t('requisitions.toast.approveReleaseSuccess'), lines);
         } else {
-          toast.success('อนุมัติใบเบิกสำเร็จ');
+          toast.success(t('requisitions.toast.approveSuccess'));
         }
         await fetchRequisitions();
       } else {
-        toast.error('อนุมัติไม่สำเร็จ', data.error || '');
+        toast.error(t('requisitions.toast.approveFailed'), data.error || '');
       }
     } catch (err) {
-      toast.error('อนุมัติไม่สำเร็จ', String(err));
+      toast.error(t('requisitions.toast.approveFailed'), String(err));
     } finally {
       setApproving((prev) => {
         const next = new Set(prev);
@@ -412,13 +420,13 @@ export default function MaterialRequisitionsInboxPage() {
       });
       const data = await res.json();
       if (res.ok && !data.error) {
-        toast.success('ปล่อยของเรียบร้อย', 'ตัดสต็อกตามคำขอเบิกนอก BOM แล้ว');
+        toast.success(t('requisitions.toast.releaseSuccess'), t('requisitions.toast.releaseSuccessDetail'));
         await fetchRequisitions();
       } else {
-        toast.error('ปล่อยของไม่สำเร็จ', data.error || '');
+        toast.error(t('requisitions.toast.releaseFailed'), data.error || '');
       }
     } catch (err) {
-      toast.error('ปล่อยของไม่สำเร็จ', String(err));
+      toast.error(t('requisitions.toast.releaseFailed'), String(err));
     } finally {
       setReleasing((prev) => {
         const next = new Set(prev);
@@ -432,16 +440,16 @@ export default function MaterialRequisitionsInboxPage() {
     <MainLayout>
       <div className="space-y-5">
         <ResponsivePageHeader
-          title="ใบเบิกวัตถุดิบ"
-          subtitle="คลังตรวจสอบและปล่อยของ — ทั้งใบเบิกตาม BOM และคำขอเบิกนอก BOM"
+          title={t('requisitions.page.title')}
+          subtitle={t('requisitions.page.subtitle')}
           icon={ClipboardList}
         />
 
-        {/* Source tabs — ใบเบิก BOM vs เบิกนอก BOM */}
+        {/* Source tabs — BOM vs out-of-BOM */}
         <div className="inline-flex rounded-xl border border-emerald-100 bg-white p-1 shadow-[0_4px_14px_rgba(6,78,59,0.05)]">
           {([
-            { key: 'bom' as const, label: 'ใบเบิก BOM', count: tabCounts.bom },
-            { key: 'out_of_bom' as const, label: 'เบิกนอก BOM', count: tabCounts.out_of_bom },
+            { key: 'bom' as const, label: t('requisitions.tabs.bom'), count: tabCounts.bom },
+            { key: 'out_of_bom' as const, label: t('requisitions.tabs.outOfBom'), count: tabCounts.out_of_bom },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -466,9 +474,9 @@ export default function MaterialRequisitionsInboxPage() {
         {sourceTab === 'out_of_bom' && (
           <div className="flex flex-wrap gap-2">
             {([
-              { key: 'all' as const, label: 'ทั้งหมด' },
-              { key: 'approved' as const, label: 'รอคลังจ่าย' },
-              { key: 'released' as const, label: 'จ่ายของแล้ว' },
+              { key: 'all' as const, label: t('requisitions.outStatus.all') },
+              { key: 'approved' as const, label: t('requisitions.outStatus.awaitingRelease') },
+              { key: 'released' as const, label: t('requisitions.outStatus.released') },
             ]).map((pill) => (
               <button
                 key={pill.key}
@@ -487,7 +495,7 @@ export default function MaterialRequisitionsInboxPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
-            label={sourceTab === 'out_of_bom' ? 'รอคลังจ่าย' : 'รออนุมัติ'}
+            label={sourceTab === 'out_of_bom' ? t('requisitions.stats.awaitingRelease') : t('requisitions.stats.awaitingApproval')}
             value={stats.requested}
             icon={Clock}
             iconColor="text-amber-500"
@@ -499,7 +507,7 @@ export default function MaterialRequisitionsInboxPage() {
             }}
           />
           <StatCard
-            label={sourceTab === 'out_of_bom' ? 'จ่ายของแล้ว' : 'อนุมัติแล้ว'}
+            label={sourceTab === 'out_of_bom' ? t('requisitions.stats.released') : t('requisitions.stats.approved')}
             value={stats.approved}
             icon={CheckCircle2}
             iconColor="text-emerald-500"
@@ -511,7 +519,7 @@ export default function MaterialRequisitionsInboxPage() {
             }}
           />
           <StatCard
-            label="วัตถุดิบไม่พอ"
+            label={t('requisitions.stats.insufficient')}
             value={stats.insufficient}
             icon={AlertTriangle}
             iconColor={stats.insufficient > 0 ? 'text-red-500' : 'text-gray-400'}
@@ -528,7 +536,7 @@ export default function MaterialRequisitionsInboxPage() {
           {/* Row 1: status + search + refresh */}
           <div className="flex flex-wrap gap-3 items-end">
             <div className="w-56">
-              <label className="block text-xs text-gray-500 mb-1">สถานะ</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('requisitions.filters.status')}</label>
               <DxSelectBox
                 items={STATUS_OPTIONS}
                 value={statusFilter}
@@ -538,7 +546,7 @@ export default function MaterialRequisitionsInboxPage() {
               />
             </div>
             <div className="flex-1 min-w-[260px]">
-              <label className="block text-xs text-gray-500 mb-1">เลือกใบเบิก (WO / สินค้า)</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('requisitions.filters.selectRequisition')}</label>
               <DxSelectBox
                 dataSource={woOptions}
                 value={search}
@@ -547,11 +555,11 @@ export default function MaterialRequisitionsInboxPage() {
                 valueExpr="value"
                 searchEnabled
                 showClearButton
-                placeholder="เลือกหรือพิมพ์เพื่อค้นหา WO / สินค้า"
+                placeholder={t('requisitions.filters.selectRequisitionPlaceholder')}
               />
             </div>
             <DxButton
-              text="รีเฟรช"
+              text={t('common.refresh')}
               icon="refresh"
               type="normal"
               stylingMode="outlined"
@@ -562,41 +570,41 @@ export default function MaterialRequisitionsInboxPage() {
           {/* Row 2: date range + quick presets */}
           <div className="flex flex-wrap gap-3 items-end">
             <div className="w-44">
-              <label className="block text-xs text-gray-500 mb-1">ขอเบิกตั้งแต่</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('requisitions.filters.requestedFrom')}</label>
               <DxDateBox
                 value={dateFrom}
                 onValueChange={(v) => setDateFrom(v ?? '')}
-                placeholder="วันที่เริ่ม"
+                placeholder={t('requisitions.filters.startDate')}
                 showClearButton
               />
             </div>
             <div className="w-44">
-              <label className="block text-xs text-gray-500 mb-1">ถึง</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('requisitions.filters.to')}</label>
               <DxDateBox
                 value={dateTo}
                 onValueChange={(v) => setDateTo(v ?? '')}
-                placeholder="วันที่สิ้นสุด"
+                placeholder={t('requisitions.filters.endDate')}
                 showClearButton
               />
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-gray-400">ด่วน:</span>
+              <span className="text-xs text-gray-400">{t('requisitions.filters.quick')}</span>
               <button
                 className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('today')}
-              >วันนี้</button>
+              >{t('requisitions.filters.today')}</button>
               <button
                 className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('last7')}
-              >7 วันล่าสุด</button>
+              >{t('requisitions.filters.last7')}</button>
               <button
                 className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('last30')}
-              >30 วัน</button>
+              >{t('requisitions.filters.last30')}</button>
               <button
                 className="text-xs px-2 py-1 rounded-md border border-emerald-100 bg-[#F6FCF9] hover:bg-[#E6F6EE] text-[#4B7163]"
                 onClick={() => setDatePreset('thisMonth')}
-              >เดือนนี้</button>
+              >{t('requisitions.filters.thisMonth')}</button>
             </div>
             <div className="flex-1" />
             {/* Insufficient toggle */}
@@ -609,7 +617,7 @@ export default function MaterialRequisitionsInboxPage() {
               }`}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
-              เฉพาะ stock ไม่พอ
+              {t('requisitions.filters.insufficientOnly')}
             </button>
           </div>
 
@@ -617,47 +625,47 @@ export default function MaterialRequisitionsInboxPage() {
           {activeFilterCount > 0 && (
             <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-gray-100">
               <Filter className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-xs text-gray-500">ตัวกรองที่ใช้:</span>
+              <span className="text-xs text-gray-500">{t('requisitions.filters.activeFilters')}</span>
               {statusFilter !== 'requested' && (
                 <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  สถานะ: {STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label}
+                  {t('requisitions.filters.chipStatus', { label: STATUS_OPTIONS.find((s) => s.value === statusFilter)?.label ?? '' })}
                   <button onClick={() => setStatusFilter('requested')}><X className="h-3 w-3" /></button>
                 </span>
               )}
               {search.trim() && (
                 <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  ค้นหา: &quot;{search}&quot;
+                  {t('requisitions.filters.chipSearch', { value: search })}
                   <button onClick={() => setSearch('')}><X className="h-3 w-3" /></button>
                 </span>
               )}
               {(dateFrom || dateTo) && (
                 <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  วันที่: {dateFrom || '…'} ถึง {dateTo || '…'}
+                  {t('requisitions.filters.chipDate', { from: dateFrom || '…', to: dateTo || '…' })}
                   <button onClick={() => { setDateFrom(''); setDateTo(''); }}><X className="h-3 w-3" /></button>
                 </span>
               )}
               {insufficientOnly && (
                 <span className="inline-flex items-center gap-1 text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
-                  Stock ไม่พอ
+                  {t('requisitions.filters.chipInsufficient')}
                   <button onClick={() => setInsufficientOnly(false)}><X className="h-3 w-3" /></button>
                 </span>
               )}
               <button
                 onClick={clearAllFilters}
                 className="ml-auto text-xs text-gray-500 hover:text-gray-700 underline"
-              >ล้างทั้งหมด</button>
+              >{t('requisitions.filters.clearAll')}</button>
             </div>
           )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16 text-gray-500">
-            กำลังโหลด...
+            {t('requisitions.loading')}
           </div>
         ) : filteredRows.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-emerald-100 bg-white p-12 text-center text-gray-500">
             <Package className="h-10 w-10 mx-auto mb-3 text-gray-400" />
-            ไม่พบใบเบิกในเงื่อนไขที่เลือก
+            {t('requisitions.empty')}
           </div>
         ) : (
           <div className="space-y-3">
@@ -691,18 +699,18 @@ export default function MaterialRequisitionsInboxPage() {
                         <div className="text-xs text-gray-500">{req.productCode ?? ''}</div>
                         {req.source === 'out_of_bom' && req.reasonType && (
                           <div className="text-xs text-blue-600 mt-0.5">
-                            เหตุผล: {REASON_LABEL[req.reasonType] ?? req.reasonType}
+                            {t('requisitions.reason', { reason: reasonLabel(req.reasonType) })}
                           </div>
                         )}
                       </div>
                       <div className="text-xs text-gray-600">
-                        <div>ขอเบิกโดย: {req.requestedBy ?? '—'}</div>
+                        <div>{t('requisitions.requestedBy', { name: req.requestedBy ?? '—' })}</div>
                         <div>{formatDateTh(req.requestedAt)}</div>
                       </div>
                       <div className="flex items-center gap-2 justify-start md:justify-end">
                         {insufficient && req.workflowStatus !== 'released' && (
                           <Badge variant="danger" dot>
-                            <AlertTriangle className="h-3 w-3 mr-1" /> ไม่พอ
+                            <AlertTriangle className="h-3 w-3 mr-1" /> {t('requisitions.badges.insufficient')}
                           </Badge>
                         )}
                         {req.source === 'out_of_bom' ? (
@@ -710,14 +718,14 @@ export default function MaterialRequisitionsInboxPage() {
                             variant={req.workflowStatus === 'released' ? 'success' : 'warning'}
                             dot
                           >
-                            {req.workflowStatus === 'released' ? 'จ่ายของแล้ว' : 'รอคลังจ่าย'}
+                            {req.workflowStatus === 'released' ? t('requisitions.badges.released') : t('requisitions.badges.awaitingRelease')}
                           </Badge>
                         ) : (
                           <Badge
                             variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'}
                             dot
                           >
-                            {req.requisitionStatus === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}
+                            {req.requisitionStatus === 'approved' ? t('requisitions.badges.approved') : t('requisitions.badges.awaitingApproval')}
                           </Badge>
                         )}
                       </div>
@@ -730,15 +738,15 @@ export default function MaterialRequisitionsInboxPage() {
                         <table className="w-full text-sm">
                           <thead className="text-xs text-gray-500 uppercase">
                             <tr className="border-b border-gray-200">
-                              <th className="text-left py-2 pr-3">รหัสสินค้า</th>
-                              <th className="text-left py-2 px-3">ชื่อวัตถุดิบ</th>
-                              <th className="text-right py-2 px-3">จำนวนที่ต้องการ</th>
+                              <th className="text-left py-2 pr-3">{t('requisitions.table.itemCode')}</th>
+                              <th className="text-left py-2 px-3">{t('requisitions.table.materialName')}</th>
+                              <th className="text-right py-2 px-3">{t('requisitions.table.quantityNeeded')}</th>
                               <th className="text-right py-2 px-3">
                                 <div className="inline-flex items-center gap-1 justify-end">
-                                  <Scale className="h-3.5 w-3.5" /> จำนวนที่ต้องจ่าย
+                                  <Scale className="h-3.5 w-3.5" /> {t('requisitions.table.quantityToIssue')}
                                 </div>
                               </th>
-                              <th className="text-right py-2 pl-3">คงเหลือในคลัง</th>
+                              <th className="text-right py-2 pl-3">{t('requisitions.table.onHand')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -778,8 +786,7 @@ export default function MaterialRequisitionsInboxPage() {
                                         </span>
                                         {plan.remainderSU > 0 && (
                                           <div className="text-xs text-amber-700">
-                                            เหลือหน้างาน{' '}
-                                            {formatNumber(plan.remainderSU)} {plan.su}
+                                            {t('requisitions.table.remainderOnSite', { qty: formatNumber(plan.remainderSU), unit: plan.su })}
                                           </div>
                                         )}
                                       </div>
@@ -817,7 +824,7 @@ export default function MaterialRequisitionsInboxPage() {
                       {req.source === 'bom' && req.requisitionStatus === 'requested' && (
                         <div className="flex items-center justify-end mt-4 gap-2">
                           <DxButton
-                            text={approving.has(req.workOrderId) ? 'กำลังอนุมัติ...' : 'อนุมัติใบเบิก'}
+                            text={approving.has(req.workOrderId) ? t('requisitions.approvingBtn') : t('requisitions.approveBtn')}
                             icon="check"
                             type="success"
                             stylingMode="contained"
@@ -826,7 +833,7 @@ export default function MaterialRequisitionsInboxPage() {
                           />
                           {insufficient && (
                             <span className="text-xs text-red-600">
-                              วัตถุดิบไม่พอ — ไม่สามารถอนุมัติได้
+                              {t('requisitions.insufficientCannotApprove')}
                             </span>
                           )}
                         </div>
@@ -834,7 +841,7 @@ export default function MaterialRequisitionsInboxPage() {
 
                       {req.source === 'bom' && req.requisitionStatus === 'approved' && (
                         <div className="flex items-center justify-end mt-4 text-xs text-gray-500">
-                          อนุมัติโดย {req.approvedBy ?? '—'} · {formatDateTh(req.approvedAt)}
+                          {t('requisitions.approvedBy', { name: req.approvedBy ?? '—', date: formatDateTh(req.approvedAt) })}
                         </div>
                       )}
 
@@ -844,16 +851,16 @@ export default function MaterialRequisitionsInboxPage() {
                       {req.source === 'out_of_bom' && (
                         <div className="flex flex-col items-end mt-4 gap-2">
                           <div className="text-xs text-gray-500">
-                            อนุมัติโดยหัวหน้าผลิต {req.approvedBy ?? '—'} · {formatDateTh(req.approvedAt)}
+                            {t('requisitions.approvedBySupervisor', { name: req.approvedBy ?? '—', date: formatDateTh(req.approvedAt) })}
                           </div>
                           {req.workflowStatus === 'released' ? (
                             <div className="text-xs text-emerald-700 font-medium">
-                              จ่ายของแล้วโดย {req.releasedBy ?? '—'} · {formatDateTh(req.releasedAt)}
+                              {t('requisitions.releasedBy', { name: req.releasedBy ?? '—', date: formatDateTh(req.releasedAt) })}
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
                               <DxButton
-                                text={releasing.has(req.requestId!) ? 'กำลังปล่อยของ...' : 'ปล่อยของ (ตัดสต็อก)'}
+                                text={releasing.has(req.requestId!) ? t('requisitions.releasingBtn') : t('requisitions.releaseBtn')}
                                 icon="box"
                                 type="success"
                                 stylingMode="contained"
@@ -862,7 +869,7 @@ export default function MaterialRequisitionsInboxPage() {
                               />
                               {insufficient && (
                                 <span className="text-xs text-red-600">
-                                  วัตถุดิบไม่พอ — ไม่สามารถปล่อยของได้
+                                  {t('requisitions.insufficientCannotRelease')}
                                 </span>
                               )}
                             </div>

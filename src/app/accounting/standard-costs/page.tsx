@@ -89,7 +89,7 @@ export default function StandardCostsPage() {
 
   const handleCreate = async () => {
     if (!formData.itemId) {
-      notify('กรุณาเลือกสินค้า', 'error', 3000);
+      notify(t('standardCosts.validation.selectItem'), 'error', 3000);
       return;
     }
 
@@ -103,16 +103,16 @@ export default function StandardCostsPage() {
 
       const result = await response.json();
       if (result.success) {
-        notify('สร้างต้นทุนมาตรฐานสำเร็จ', 'success', 3000);
+        notify(t('standardCosts.toast.createSuccess'), 'success', 3000);
         setShowCreateDialog(false);
         setFormData(defaultFormData);
         await fetchCosts();
       } else {
-        notify(result.error || 'ไม่สามารถสร้างต้นทุนมาตรฐานได้', 'error', 3000);
+        notify(result.error || t('standardCosts.toast.createFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error creating standard cost:', error);
-      notify('ไม่สามารถสร้างต้นทุนมาตรฐานได้', 'error', 3000);
+      notify(t('standardCosts.toast.createFailed'), 'error', 3000);
     } finally {
       setSubmitting(false);
     }
@@ -130,17 +130,20 @@ export default function StandardCostsPage() {
       const result = await response.json();
       if (result.success) {
         notify(
-          `รวมต้นทุนสำเร็จ: ปรับปรุงสินค้า ${result.data.itemsUpdated} จาก ${result.data.itemsProcessed} รายการ`,
+          t('standardCosts.toast.rollupSuccess', {
+            updated: result.data.itemsUpdated,
+            processed: result.data.itemsProcessed,
+          }),
           'success',
           3000
         );
         await fetchCosts();
       } else {
-        notify(result.error || 'รวมต้นทุนไม่สำเร็จ', 'error', 3000);
+        notify(result.error || t('standardCosts.toast.rollupFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error during roll-up:', error);
-      notify('รวมต้นทุนไม่สำเร็จ', 'error', 3000);
+      notify(t('standardCosts.toast.rollupFailed'), 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -150,11 +153,11 @@ export default function StandardCostsPage() {
     const isCurrent = cellData.value;
     return isCurrent ? (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        ปัจจุบัน
+        {t('standardCosts.status.current')}
       </span>
     ) : (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-        ประวัติ
+        {t('standardCosts.status.history')}
       </span>
     );
   };
@@ -171,10 +174,10 @@ export default function StandardCostsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            {t('page.title')}
+            {t('standardCosts.title')}
           </h1>
           <p className="text-gray-600">
-            จัดการต้นทุนมาตรฐานสำหรับการวิเคราะห์ผลต่างการผลิต
+            {t('standardCosts.subtitle')}
           </p>
         </div>
 
@@ -190,12 +193,12 @@ export default function StandardCostsPage() {
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">ต้นทุนมาตรฐาน</span>
+                <span className="text-lg font-medium">{t('standardCosts.gridTitle')}</span>
               </Item>
               <Item location="after">
                 <Button
                   icon="add"
-                  text="เพิ่มต้นทุน"
+                  text={t('standardCosts.actions.add')}
                   onClick={() => setShowCreateDialog(true)}
                   data-testid="new-cost-btn"
                 />
@@ -203,47 +206,47 @@ export default function StandardCostsPage() {
               <Item location="after">
                 <Button
                   icon="refresh"
-                  text="รวมต้นทุนจาก BOM"
+                  text={t('standardCosts.actions.rollup')}
                   onClick={handleRollup}
                   data-testid="rollup-btn"
                 />
               </Item>
             </Toolbar>
 
-            <Column dataField="itemCode" caption="รหัสสินค้า" width={120} />
-            <Column dataField="itemName" caption="ชื่อสินค้า" />
-            <Column dataField="effectiveDate" caption="วันที่มีผล" dataType="date" width={120} />
+            <Column dataField="itemCode" caption={t('standardCosts.columns.itemCode')} width={120} />
+            <Column dataField="itemName" caption={t('standardCosts.columns.itemName')} />
+            <Column dataField="effectiveDate" caption={t('standardCosts.columns.effectiveDate')} dataType="date" width={120} />
             <Column
               dataField="materialCost"
-              caption="วัตถุดิบ"
+              caption={t('standardCosts.columns.materialCost')}
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="laborCost"
-              caption="ค่าแรง"
+              caption={t('standardCosts.columns.laborCost')}
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="overheadCost"
-              caption="ค่าโสหุ้ย"
+              caption={t('standardCosts.columns.overheadCost')}
               dataType="number"
               format="#,##0.00"
               width={100}
             />
             <Column
               dataField="totalCost"
-              caption="ต้นทุนรวม"
+              caption={t('standardCosts.columns.totalCost')}
               dataType="number"
               format="#,##0.00"
               width={120}
             />
             <Column
               dataField="isCurrent"
-              caption="สถานะ"
+              caption={t('standardCosts.columns.status')}
               width={100}
               cellRender={renderCurrentBadge}
             />
@@ -254,7 +257,7 @@ export default function StandardCostsPage() {
         <Popup
           visible={showCreateDialog}
           onHiding={() => setShowCreateDialog(false)}
-          title="สร้างต้นทุนมาตรฐาน"
+          title={t('standardCosts.dialog.createTitle')}
           width={500}
           height="auto"
           showCloseButton={true}
@@ -266,7 +269,7 @@ export default function StandardCostsPage() {
                 setFormData((prev) => ({ ...prev, [e.dataField as string]: e.value }))
               }
             >
-              <GroupItem caption="ข้อมูลสินค้า">
+              <GroupItem caption={t('standardCosts.dialog.itemInfo')}>
                 <SimpleItem
                   dataField="itemId"
                   editorType="dxSelectBox"
@@ -275,10 +278,10 @@ export default function StandardCostsPage() {
                     displayExpr: (item: any) => (item ? `${item.code} - ${item.name}` : ''),
                     valueExpr: 'id',
                     searchEnabled: true,
-                    placeholder: 'เลือกสินค้า',
+                    placeholder: t('standardCosts.dialog.selectItem'),
                   }}
                 >
-                  <RequiredRule message="กรุณาเลือกสินค้า" />
+                  <RequiredRule message={t('standardCosts.validation.selectItem')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="effectiveDate"
@@ -287,11 +290,11 @@ export default function StandardCostsPage() {
                     displayFormat: 'yyyy-MM-dd',
                   }}
                 >
-                  <RequiredRule message="กรุณาระบุวันที่มีผล" />
+                  <RequiredRule message={t('standardCosts.validation.effectiveDate')} />
                 </SimpleItem>
               </GroupItem>
 
-              <GroupItem caption="ต้นทุน">
+              <GroupItem caption={t('standardCosts.dialog.costGroup')}>
                 <SimpleItem
                   dataField="materialCost"
                   editorType="dxNumberBox"
@@ -309,7 +312,7 @@ export default function StandardCostsPage() {
                 />
               </GroupItem>
 
-              <GroupItem caption="มาตรฐานค่าแรง">
+              <GroupItem caption={t('standardCosts.dialog.laborStandardGroup')}>
                 <SimpleItem
                   dataField="standardHours"
                   editorType="dxNumberBox"
@@ -327,9 +330,9 @@ export default function StandardCostsPage() {
             </Form>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="ยกเลิก" onClick={() => setShowCreateDialog(false)} />
+              <Button text={t('common.cancel')} onClick={() => setShowCreateDialog(false)} />
               <Button
-                text={submitting ? 'กำลังบันทึก...' : 'บันทึก'}
+                text={submitting ? t('common.saving') : t('common.save')}
                 type="success"
                 stylingMode="contained"
                 onClick={handleCreate}

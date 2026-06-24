@@ -14,6 +14,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
@@ -57,13 +58,6 @@ interface WarehouseOption {
   name: string;
 }
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'ทั้งหมด' },
-  { value: 'submitted', label: 'รออนุมัติ (Submitted)' },
-  { value: 'received', label: 'อนุมัติแล้ว (Received)' },
-  { value: 'rejected', label: 'ปฏิเสธ (Rejected)' },
-];
-
 function formatDateTh(dateStr: string | null | undefined): string {
   if (!dateStr) return '—';
   try {
@@ -82,19 +76,27 @@ function formatDateTh(dateStr: string | null | undefined): string {
 function statusBadge(status: string) {
   switch (status) {
     case 'submitted':
-      return { variant: 'warning' as const, label: 'รออนุมัติ', icon: <Clock className="h-3 w-3" /> };
+      return { variant: 'warning' as const, labelKey: 'statusBadge.submitted', icon: <Clock className="h-3 w-3" /> };
     case 'received':
-      return { variant: 'success' as const, label: 'อนุมัติแล้ว', icon: <CheckCircle2 className="h-3 w-3" /> };
+      return { variant: 'success' as const, labelKey: 'statusBadge.received', icon: <CheckCircle2 className="h-3 w-3" /> };
     case 'rejected':
-      return { variant: 'danger' as const, label: 'ปฏิเสธ', icon: <XCircle className="h-3 w-3" /> };
+      return { variant: 'danger' as const, labelKey: 'statusBadge.rejected', icon: <XCircle className="h-3 w-3" /> };
     default:
-      return { variant: 'default' as const, label: status, icon: null };
+      return { variant: 'default' as const, labelKey: null, icon: null };
   }
 }
 
 export default function MaterialReturnsInboxPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('inventory');
+
+  const STATUS_OPTIONS = useMemo(() => [
+    { value: '', label: t('returns.statusOptions.all') },
+    { value: 'submitted', label: t('returns.statusOptions.submitted') },
+    { value: 'received', label: t('returns.statusOptions.received') },
+    { value: 'rejected', label: t('returns.statusOptions.rejected') },
+  ], [t]);
 
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,15 +124,15 @@ export default function MaterialReturnsInboxPage() {
         setRows(data.data?.items || []);
       } else {
         setRows([]);
-        toast.error('โหลดข้อมูลไม่สำเร็จ', data.error || 'Unknown error');
+        toast.error(t('returns.toast.loadFailed'), data.error || 'Unknown error');
       }
     } catch (e) {
       setRows([]);
-      toast.error('โหลดข้อมูลไม่สำเร็จ', e instanceof Error ? e.message : 'Network error');
+      toast.error(t('returns.toast.loadFailed'), e instanceof Error ? e.message : 'Network error');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, dateFrom, dateTo, warehouseFilter, toast]);
+  }, [statusFilter, dateFrom, dateTo, warehouseFilter, toast, t]);
 
   useEffect(() => {
     fetchReturns();
@@ -175,7 +177,7 @@ export default function MaterialReturnsInboxPage() {
   const columns: DxDataGridColumn[] = [
     {
       dataField: 'returnNumber',
-      caption: 'RET #',
+      caption: t('returns.columns.returnNumber'),
       width: 180,
       cellRender: (cell) => (
         <span className="font-mono font-semibold text-gray-900">{cell.data.returnNumber}</span>
@@ -183,13 +185,13 @@ export default function MaterialReturnsInboxPage() {
     },
     {
       dataField: 'returnDate',
-      caption: 'วันที่คืน',
+      caption: t('returns.columns.returnDate'),
       width: 160,
       cellRender: (cell) => <span className="text-sm">{formatDateTh(cell.data.returnDate)}</span>,
     },
     {
       dataField: 'woNumber',
-      caption: 'WO #',
+      caption: t('returns.columns.woNumber'),
       width: 140,
       cellRender: (cell) =>
         cell.data.woNumber ? (
@@ -200,7 +202,7 @@ export default function MaterialReturnsInboxPage() {
     },
     {
       dataField: 'warehouseName',
-      caption: 'คลังรับ',
+      caption: t('returns.columns.warehouse'),
       minWidth: 160,
       cellRender: (cell) => (
         <span className="text-sm">{cell.data.warehouseName || '—'}</span>
@@ -208,13 +210,13 @@ export default function MaterialReturnsInboxPage() {
     },
     {
       dataField: 'lineCount',
-      caption: 'รายการ',
+      caption: t('returns.columns.lineCount'),
       width: 80,
       alignment: 'center',
     },
     {
       dataField: 'totalReturnQty',
-      caption: 'จำนวนรวม',
+      caption: t('returns.columns.totalQty'),
       width: 130,
       alignment: 'right',
       cellRender: (cell) => (
@@ -225,7 +227,7 @@ export default function MaterialReturnsInboxPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t('returns.columns.status'),
       width: 130,
       cellRender: (cell) => {
         const s = statusBadge(cell.data.status);
@@ -233,7 +235,7 @@ export default function MaterialReturnsInboxPage() {
           <Badge variant={s.variant}>
             <span className="inline-flex items-center gap-1">
               {s.icon}
-              {s.label}
+              {s.labelKey ? t(`returns.${s.labelKey}`) : cell.data.status}
             </span>
           </Badge>
         );
@@ -241,20 +243,20 @@ export default function MaterialReturnsInboxPage() {
     },
     {
       dataField: 'returnedByName',
-      caption: 'ผู้คืน',
+      caption: t('returns.columns.returnedBy'),
       minWidth: 140,
       hideOnMobile: true,
     },
     {
       dataField: '_actions',
-      caption: 'การกระทำ',
+      caption: t('returns.columns.actions'),
       width: 110,
       alignment: 'center',
       allowFiltering: false,
       allowSorting: false,
       cellRender: (cell) => (
         <DxButton
-          text="ดู"
+          text={t('returns.view')}
           stylingMode="outlined"
           type="default"
           onClick={() => router.push(`/inventory/returns/${cell.data.id}`)}
@@ -264,7 +266,7 @@ export default function MaterialReturnsInboxPage() {
   ];
 
   const warehouseSelectItems = [
-    { value: '', label: 'ทุกคลัง' },
+    { value: '', label: t('returns.allWarehouses') },
     ...warehouses.map((w) => ({ value: String(w.id), label: `${w.code} — ${w.name}` })),
   ];
 
@@ -272,19 +274,19 @@ export default function MaterialReturnsInboxPage() {
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="กล่องรับคืนวัตถุดิบ"
-          subtitle="คืนวัตถุดิบจากการผลิต — รออนุมัติ/รับเข้า"
+          title={t('returns.page.title')}
+          subtitle={t('returns.page.subtitle')}
           icon={ArrowDownToLine}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
           breadcrumbs={[
-            { label: 'คลังสินค้า', href: '/inventory' },
-            { label: 'การรับคืน' },
+            { label: t('returns.breadcrumbs.inventory'), href: '/inventory' },
+            { label: t('returns.breadcrumbs.returns') },
           ]}
           actions={
             <DxButton
               icon="refresh"
-              text="รีเฟรช"
+              text={t('returns.refresh')}
               stylingMode="outlined"
               onClick={fetchReturns}
             />
@@ -294,28 +296,28 @@ export default function MaterialReturnsInboxPage() {
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            label="รออนุมัติ"
+            label={t('returns.stats.submitted')}
             value={stats.submitted}
             icon={Clock}
             iconColor="text-amber-500"
             accentColor="border-amber-500"
           />
           <StatCard
-            label="อนุมัติแล้ว"
+            label={t('returns.stats.received')}
             value={stats.received}
             icon={CheckCircle2}
             iconColor="text-emerald-500"
             accentColor="border-emerald-500"
           />
           <StatCard
-            label="ปฏิเสธ"
+            label={t('returns.stats.rejected')}
             value={stats.rejected}
             icon={XCircle}
             iconColor="text-red-500"
             accentColor="border-red-500"
           />
           <StatCard
-            label="รวมจำนวน"
+            label={t('returns.stats.totalQty')}
             value={formatNumber(stats.totalQty, 2)}
             icon={Inbox}
             iconColor="text-emerald-500"
@@ -328,7 +330,7 @@ export default function MaterialReturnsInboxPage() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2">
               <DxTextBox
-                placeholder="ค้นหา (RET#, WO#, คลัง, ผู้คืน)"
+                placeholder={t('returns.searchPlaceholder')}
                 value={search}
                 onValueChange={setSearch}
                 showClearButton
@@ -356,12 +358,12 @@ export default function MaterialReturnsInboxPage() {
               <DxDateBox
                 value={dateFrom}
                 onValueChange={(v) => setDateFrom(v || '')}
-                placeholder="จากวันที่"
+                placeholder={t('returns.fromDate')}
               />
               <DxDateBox
                 value={dateTo}
                 onValueChange={(v) => setDateTo(v || '')}
-                placeholder="ถึงวันที่"
+                placeholder={t('returns.toDate')}
               />
             </div>
           </div>
@@ -370,19 +372,19 @@ export default function MaterialReturnsInboxPage() {
         {/* Data grid */}
         <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-6 text-center text-gray-500">{t('returns.loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="h-16 w-16 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
                 <AlertTriangle className="h-8 w-8 text-purple-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                ไม่พบรายการคืนวัตถุดิบ
+                {t('returns.empty.title')}
               </h3>
               <p className="text-sm text-gray-500 max-w-sm">
                 {statusFilter === 'submitted'
-                  ? 'ไม่มีรายการที่รอการอนุมัติในขณะนี้'
-                  : 'ลองเปลี่ยนเงื่อนไขการค้นหาดู'}
+                  ? t('returns.empty.noSubmitted')
+                  : t('returns.empty.tryOtherFilters')}
               </p>
             </div>
           ) : (
@@ -393,7 +395,7 @@ export default function MaterialReturnsInboxPage() {
               sorting
               pageSize={20}
               height="auto"
-              noDataText="ไม่พบข้อมูล"
+              noDataText={t('returns.noDataText')}
               onRowClick={(e) => {
                 if (e?.data?.id) {
                   router.push(`/inventory/returns/${e.data.id}`);

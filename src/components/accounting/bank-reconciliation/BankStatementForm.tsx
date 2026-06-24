@@ -7,6 +7,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -124,6 +125,7 @@ export function BankStatementForm({
   onSuccess,
   onCancel,
 }: BankStatementFormProps) {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [formData, setFormData] = React.useState<FormData>(defaultFormData);
@@ -180,7 +182,7 @@ export function BankStatementForm({
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-statement', statementId] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('แก้ไขรายการเดินบัญชีสำเร็จ', 'success', 3000);
+      notify(t('bankReconciliation.statementForm.toast.updated'), 'success', 3000);
       if (onSuccess) {
         onSuccess(statement);
       } else {
@@ -198,7 +200,7 @@ export function BankStatementForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliation-summary'] });
-      notify('ลบรายการเดินบัญชีสำเร็จ', 'success', 3000);
+      notify(t('bankReconciliation.statementForm.toast.deleted'), 'success', 3000);
       router.push('/accounting/bank-reconciliation');
     },
     onError: (error: Error) => {
@@ -208,7 +210,7 @@ export function BankStatementForm({
 
   const handleSubmit = () => {
     if (!formData.bankAccountId || !formData.statementDate) {
-      notify('กรุณากรอกข้อมูลในช่องที่จำเป็น', 'warning', 3000);
+      notify(t('bankReconciliation.statementForm.toast.requiredFields'), 'warning', 3000);
       return;
     }
 
@@ -256,7 +258,7 @@ export function BankStatementForm({
 
     const result = await response.json();
     if (result.success) {
-      notify('นำเข้ารายการสำเร็จ', 'success', 3000);
+      notify(t('bankReconciliation.statementForm.toast.linesImported'), 'success', 3000);
       router.push(`/accounting/bank-reconciliation/reconcile/${createdStatementId}`);
     } else {
       throw new Error(result.error || 'Import failed');
@@ -266,7 +268,7 @@ export function BankStatementForm({
   const handleSkipImport = () => {
     setShowImportDialog(false);
     if (createdStatementId) {
-      notify('สร้างรายการเดินบัญชีสำเร็จ', 'success', 3000);
+      notify(t('bankReconciliation.statementForm.toast.created'), 'success', 3000);
       router.push(`/accounting/bank-reconciliation/reconcile/${createdStatementId}`);
     }
   };
@@ -281,7 +283,7 @@ export function BankStatementForm({
         <CardContent className="py-12">
           <div className="flex items-center justify-center gap-3 text-gray-500">
             <LoadIndicator height={24} width={24} />
-            <span>กำลังโหลดรายการเดินบัญชี...</span>
+            <span>{t('bankReconciliation.statementForm.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -294,20 +296,22 @@ export function BankStatementForm({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
-            text="ย้อนกลับ"
+            text={t('bankReconciliation.statementForm.actions.back')}
             icon="back"
             stylingMode="text"
             onClick={handleCancel}
           />
           <div className="h-6 w-px bg-gray-200" />
           <h1 className="text-xl font-semibold text-gray-900" data-testid="page-title">
-            {mode === 'create' ? 'นำเข้ารายการเดินบัญชีธนาคาร' : `แก้ไข: ${existingStatement?.statementNumber}`}
+            {mode === 'create'
+              ? t('bankReconciliation.statementForm.titleCreate')
+              : t('bankReconciliation.statementForm.titleEdit', { number: existingStatement?.statementNumber ?? '' })}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'edit' && !isLocked && (
             <Button
-              text="ลบ"
+              text={t('bankReconciliation.statementForm.actions.delete')}
               icon={isDeleting ? 'spindown' : 'trash'}
               type="danger"
               stylingMode="outlined"
@@ -316,14 +320,14 @@ export function BankStatementForm({
             />
           )}
           <Button
-            text="ยกเลิก"
+            text={t('bankReconciliation.statementForm.actions.cancel')}
             icon="close"
             stylingMode="outlined"
             onClick={handleCancel}
             disabled={isSubmitting}
           />
           <Button
-            text={mode === 'create' ? 'สร้างและนำเข้า CSV' : 'บันทึกการแก้ไข'}
+            text={mode === 'create' ? t('bankReconciliation.statementForm.actions.createAndImport') : t('bankReconciliation.statementForm.actions.saveEdit')}
             icon={isSubmitting ? 'spindown' : 'save'}
             type="success"
             onClick={handleSubmit}
@@ -338,7 +342,7 @@ export function BankStatementForm({
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="py-4">
             <p className="text-yellow-800">
-              รายการเดินบัญชีนี้อยู่ในสถานะ {existingStatement?.status} จึงไม่สามารถแก้ไขได้
+              {t('bankReconciliation.statementForm.lockedWarning', { status: existingStatement?.status ?? '' })}
             </p>
           </CardContent>
         </Card>
@@ -350,19 +354,19 @@ export function BankStatementForm({
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('bankReconciliation.statementForm.deleteConfirm.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณต้องการลบรายการเดินบัญชีนี้ใช่หรือไม่? ระบบจะลบรายการที่เกี่ยวข้องทั้งหมดด้วย
+                  {t('bankReconciliation.statementForm.deleteConfirm.message')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('bankReconciliation.statementForm.actions.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text="ลบ"
+                  text={t('bankReconciliation.statementForm.actions.delete')}
                   icon="trash"
                   type="danger"
                   onClick={handleDelete}
@@ -379,12 +383,12 @@ export function BankStatementForm({
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">รายละเอียดรายการเดินบัญชี</CardTitle>
+              <CardTitle className="text-base">{t('bankReconciliation.statementForm.sections.details')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  บัญชีธนาคาร <span className="text-red-500">*</span>
+                  {t('bankReconciliation.statementForm.fields.bankAccount')} <span className="text-red-500">*</span>
                 </label>
                 <SelectBox
                   items={bankAccounts}
@@ -396,7 +400,7 @@ export function BankStatementForm({
                   onValueChanged={(e) =>
                     setFormData({ ...formData, bankAccountId: e.value })
                   }
-                  placeholder="เลือกบัญชีธนาคาร"
+                  placeholder={t('bankReconciliation.statementForm.fields.bankAccountPlaceholder')}
                   searchEnabled
                   disabled={mode === 'edit' || isLocked}
                   data-testid="bank-account-select"
@@ -406,7 +410,7 @@ export function BankStatementForm({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่รายการเดินบัญชี <span className="text-red-500">*</span>
+                    {t('bankReconciliation.statementForm.fields.statementDate')} <span className="text-red-500">*</span>
                   </label>
                   <DateBox
                     value={parseDateValue(formData.statementDate)}
@@ -424,7 +428,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่เริ่มต้น
+                    {t('bankReconciliation.statementForm.fields.startDate')}
                   </label>
                   <DateBox
                     value={parseDateValue(formData.startDate)}
@@ -441,7 +445,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่สิ้นสุด
+                    {t('bankReconciliation.statementForm.fields.endDate')}
                   </label>
                   <DateBox
                     value={parseDateValue(formData.endDate)}
@@ -460,14 +464,14 @@ export function BankStatementForm({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  อ้างอิง
+                  {t('bankReconciliation.statementForm.fields.reference')}
                 </label>
                 <TextBox
                   value={formData.reference}
                   onValueChanged={(e) =>
                     setFormData({ ...formData, reference: e.value || '' })
                   }
-                  placeholder="อ้างอิง (ไม่บังคับ)"
+                  placeholder={t('bankReconciliation.statementForm.fields.referencePlaceholder')}
                   disabled={isLocked}
                 />
               </div>
@@ -476,13 +480,13 @@ export function BankStatementForm({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">ยอดคงเหลือ</CardTitle>
+              <CardTitle className="text-base">{t('bankReconciliation.statementForm.sections.balances')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ยอดยกมา
+                    {t('bankReconciliation.statementForm.fields.openingBalance')}
                   </label>
                   <NumberBox
                     value={formData.openingBalance}
@@ -496,7 +500,7 @@ export function BankStatementForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ยอดคงเหลือ
+                    {t('bankReconciliation.statementForm.fields.closingBalance')}
                   </label>
                   <NumberBox
                     value={formData.closingBalance}
@@ -514,7 +518,7 @@ export function BankStatementForm({
               {(formData.openingBalance !== 0 || formData.closingBalance !== 0) && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">ยอดเปลี่ยนแปลงสุทธิ:</span>
+                    <span className="text-gray-500">{t('bankReconciliation.statementForm.netChange')}</span>
                     <span className={`font-mono font-medium ${
                       formData.closingBalance - formData.openingBalance >= 0
                         ? 'text-green-600'
@@ -537,19 +541,19 @@ export function BankStatementForm({
           {mode === 'edit' && existingStatement && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">ข้อมูลรายการเดินบัญชี</CardTitle>
+                <CardTitle className="text-base">{t('bankReconciliation.statementForm.info.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">รหัส</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.id')}</span>
                   <span className="font-mono text-gray-900">{existingStatement.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">เลขที่รายการเดินบัญชี</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.statementNumber')}</span>
                   <span className="font-mono text-gray-900">{existingStatement.statementNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">สถานะ</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.status')}</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     existingStatement.status === 'reconciled'
                       ? 'bg-green-100 text-green-700'
@@ -563,21 +567,21 @@ export function BankStatementForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">บัญชีธนาคาร</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.bankAccount')}</span>
                   <span className="text-gray-900">{existingStatement.bankAccountName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">เลขที่บัญชี</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.accountNumber')}</span>
                   <span className="font-mono text-gray-900">{existingStatement.bankAccountNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">สร้างเมื่อ</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.createdAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingStatement.createdAt).toLocaleDateString('th-TH')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">แก้ไขล่าสุด</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.info.updatedAt')}</span>
                   <span className="text-gray-900">
                     {new Date(existingStatement.updatedAt).toLocaleDateString('th-TH')}
                   </span>
@@ -589,21 +593,21 @@ export function BankStatementForm({
           {mode === 'edit' && existingStatement && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">สรุปการกระทบยอด</CardTitle>
+                <CardTitle className="text-base">{t('bankReconciliation.statementForm.summary.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">จำนวนรายการทั้งหมด</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.summary.totalLines')}</span>
                   <span className="font-semibold text-gray-900">
                     {(existingStatement.matchedCount || 0) + (existingStatement.unmatchedCount || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">จับคู่แล้ว</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.summary.matched')}</span>
                   <span className="font-semibold text-green-600">{existingStatement.matchedCount || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">ยังไม่จับคู่</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.summary.unmatched')}</span>
                   <span className={`font-semibold ${
                     (existingStatement.unmatchedCount || 0) > 0 ? 'text-red-600' : 'text-gray-600'
                   }`}>
@@ -611,20 +615,20 @@ export function BankStatementForm({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">รวมเดบิต</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.summary.totalDebits')}</span>
                   <span className="font-mono text-red-600">
                     -{Number(existingStatement.totalDebits || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">รวมเครดิต</span>
+                  <span className="text-gray-500">{t('bankReconciliation.statementForm.summary.totalCredits')}</span>
                   <span className="font-mono text-green-600">
                     +{Number(existingStatement.totalCredits || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="pt-3 border-t">
                   <Button
-                    text="ไปยังการกระทบยอด"
+                    text={t('bankReconciliation.statementForm.summary.goToReconciliation')}
                     icon="check"
                     type="default"
                     stylingMode="outlined"

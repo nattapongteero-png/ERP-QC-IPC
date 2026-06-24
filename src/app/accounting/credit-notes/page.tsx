@@ -117,7 +117,7 @@ export default function CreditNotesPage() {
       <div className="flex gap-1">
         <Button
           icon="search"
-          hint="ดู"
+          hint={t('creditNotes.actions.view')}
           stylingMode="text"
           onClick={() => handleViewNote(note.id)}
         />
@@ -140,7 +140,7 @@ export default function CreditNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            จัดการใบลดหนี้สำหรับลูกค้าและผู้ขาย
+            {t('creditNotes.description')}
           </p>
         </div>
 
@@ -148,25 +148,25 @@ export default function CreditNotesPage() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
-              <div className="text-sm text-gray-500">ใบร่าง</div>
+              <div className="text-sm text-gray-500">{t('creditNotes.stats.draft')}</div>
               <div className="text-2xl font-bold text-gray-900">
                 {summary.draftCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">รออนุมัติ</div>
+              <div className="text-sm text-gray-500">{t('creditNotes.stats.pendingApproval')}</div>
               <div className="text-2xl font-bold text-yellow-600">
                 {summary.pendingApprovalCount}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">ลงบัญชีเดือนนี้</div>
+              <div className="text-sm text-gray-500">{t('creditNotes.stats.postedThisMonth')}</div>
               <div className="text-2xl font-bold text-green-600">
                 {summary.postedThisMonth}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">ยอดลดหนี้รวม (เดือนนี้)</div>
+              <div className="text-sm text-gray-500">{t('creditNotes.stats.totalCreditedThisMonth')}</div>
               <div className="text-2xl font-bold text-blue-600">
                 {summary.totalCreditedThisMonth.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
               </div>
@@ -185,17 +185,17 @@ export default function CreditNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="ค้นหาใบลดหนี้..." />
+            <SearchPanel visible={true} placeholder={t('creditNotes.filters.searchPlaceholder')} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">ใบลดหนี้</span>
+                <span className="text-lg font-medium">{t('creditNotes.title')}</span>
               </Item>
               <Item location="before">
                 <SelectBox
                   items={[
-                    { id: 'ar_credit', text: 'ใบลดหนี้ลูกหนี้' },
-                    { id: 'ap_credit', text: 'ใบลดหนี้เจ้าหนี้' },
+                    { id: 'ar_credit', text: t('creditNotes.filters.arCredit') },
+                    { id: 'ap_credit', text: t('creditNotes.filters.apCredit') },
                   ]}
                   displayExpr="text"
                   valueExpr="id"
@@ -206,7 +206,7 @@ export default function CreditNotesPage() {
               </Item>
               <Item location="after">
                 <Button
-                  text="สร้างใบลดหนี้"
+                  text={t('creditNotes.actions.new')}
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -218,55 +218,55 @@ export default function CreditNotesPage() {
 
             <Column
               dataField="noteNumber"
-              caption="เลขที่ใบ"
+              caption={t('creditNotes.columns.noteNumber')}
               width={160}
             />
             <Column
               dataField="noteType"
-              caption="ประเภท"
+              caption={t('creditNotes.columns.noteType')}
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="วันที่"
+              caption={t('creditNotes.columns.noteDate')}
               dataType="date"
               width={100}
               cellRender={formatDate}
             />
             <Column
               dataField="customerName"
-              caption="ลูกค้า"
+              caption={t('creditNotes.columns.customer')}
               minWidth={150}
               visible={noteTypeFilter === 'ar_credit'}
             />
             <Column
               dataField="vendorName"
-              caption="ผู้ขาย"
+              caption={t('creditNotes.columns.vendor')}
               minWidth={150}
               visible={noteTypeFilter === 'ap_credit'}
             />
             <Column
               dataField="referenceInvoiceNumber"
-              caption="อ้างอิงใบแจ้งหนี้"
+              caption={t('creditNotes.columns.referenceInvoice')}
               width={140}
             />
             <Column
               dataField="totalAmount"
-              caption="จำนวนเงิน"
+              caption={t('creditNotes.columns.amount')}
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('creditNotes.columns.status')}
               width={110}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('creditNotes.columns.actions')}
               width={80}
               alignment="center"
               cellRender={renderActions}

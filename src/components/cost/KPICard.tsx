@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { KPIValue } from '@/types/unit-cost';
@@ -35,6 +36,7 @@ function formatValue(value: number, format: 'currency' | 'percent' | 'number'): 
 }
 
 export function KPICard({ title, icon, kpi, format = 'currency', expandable = false, children }: KPICardProps) {
+  const t = useTranslations('cost');
   const [expanded, setExpanded] = useState(false);
 
   const bgColors = {
@@ -64,7 +66,7 @@ export function KPICard({ title, icon, kpi, format = 'currency', expandable = fa
             <div className="flex items-center gap-2 text-sm">
               <TrendIcon className={`h-4 w-4 ${trendColor}`} />
               <span className={trendColor}>
-                {kpi.changePercent > 0 ? '+' : ''}{kpi.changePercent.toFixed(1)}% เทียบกับงวดก่อน
+                {kpi.changePercent > 0 ? '+' : ''}{kpi.changePercent.toFixed(1)}% {t('executiveDashboard.vsPriorPeriod')}
               </span>
             </div>
           </div>

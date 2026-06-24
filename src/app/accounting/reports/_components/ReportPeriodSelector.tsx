@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button } from '@/components/ui/button';
 import { useReportLanguage } from '@/contexts/report-language-context';
@@ -33,20 +34,21 @@ type ReportPeriodSelectorProps = (AsOfDateProps | PeriodRangeProps) & {
 };
 
 export function ReportPeriodSelector(props: ReportPeriodSelectorProps) {
-  const { t, language } = useReportLanguage();
+  const { t } = useReportLanguage();
+  const tt = useTranslations('accounting');
 
-  const presets: { label: string; labelTh: string; type: PresetType }[] = props.mode === 'asOfDate'
+  const presets: { type: PresetType }[] = props.mode === 'asOfDate'
     ? [
-        { label: 'Today', labelTh: 'วันนี้', type: 'today' },
-        { label: 'Month End', labelTh: 'สิ้นเดือน', type: 'monthEnd' },
-        { label: 'Quarter End', labelTh: 'สิ้นไตรมาส', type: 'quarterEnd' },
-        { label: 'Year End', labelTh: 'สิ้นปี', type: 'yearEnd' },
+        { type: 'today' },
+        { type: 'monthEnd' },
+        { type: 'quarterEnd' },
+        { type: 'yearEnd' },
       ]
     : [
-        { label: 'This Month', labelTh: 'เดือนนี้', type: 'thisMonth' },
-        { label: 'Last Month', labelTh: 'เดือนที่แล้ว', type: 'lastMonth' },
-        { label: 'This Quarter', labelTh: 'ไตรมาสนี้', type: 'thisQuarter' },
-        { label: 'YTD', labelTh: 'ตั้งแต่ต้นปี', type: 'ytd' },
+        { type: 'thisMonth' },
+        { type: 'lastMonth' },
+        { type: 'thisQuarter' },
+        { type: 'ytd' },
       ];
 
   function applyPreset(type: PresetType) {
@@ -132,14 +134,14 @@ export function ReportPeriodSelector(props: ReportPeriodSelectorProps) {
 
       {props.showPresets && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Quick:</span>
+          <span className="text-sm text-gray-500">{tt('reports.periodSelector.quick')}</span>
           {presets.map((preset) => (
             <button
               key={preset.type}
               onClick={() => applyPreset(preset.type)}
               className="px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
             >
-              {language === 'th' ? preset.labelTh : preset.label}
+              {tt(`reports.periodSelector.presets.${preset.type}`)}
             </button>
           ))}
         </div>
@@ -151,7 +153,7 @@ export function ReportPeriodSelector(props: ReportPeriodSelectorProps) {
           disabled={props.isLoading}
           data-testid="generate-button"
         >
-          Generate Report
+          {tt('reports.periodSelector.generate')}
         </Button>
       )}
     </div>

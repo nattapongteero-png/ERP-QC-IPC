@@ -148,10 +148,10 @@ export default function VarianceReportsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            {t('page.title')}
+            {t('varianceReports.title')}
           </h1>
           <p className="text-gray-600">
-            รายงานวิเคราะห์ผลต่างการผลิตและการควบคุมต้นทุน
+            {t('varianceReports.subtitle')}
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export default function VarianceReportsPage() {
           <div className="flex flex-wrap items-end gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ตั้งแต่วันที่
+                {t('varianceReports.filters.dateFrom')}
               </label>
               <DateBox
                 value={dateFrom}
@@ -172,7 +172,7 @@ export default function VarianceReportsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ถึงวันที่
+                {t('varianceReports.filters.dateTo')}
               </label>
               <DateBox
                 value={dateTo}
@@ -185,16 +185,16 @@ export default function VarianceReportsPage() {
             {activeTab === 'summary' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  จัดกลุ่มตาม
+                  {t('varianceReports.filters.groupBy')}
                 </label>
                 <SelectBox
                   value={groupBy}
                   onValueChanged={(e) => setGroupBy(e.value)}
                   items={[
-                    { value: 'variance_type', label: 'ประเภทผลต่าง' },
-                    { value: 'item', label: 'สินค้า' },
-                    { value: 'work_order', label: 'ใบสั่งผลิต' },
-                    { value: 'month', label: 'เดือน' },
+                    { value: 'variance_type', label: t('varianceReports.filters.groupOptions.varianceType') },
+                    { value: 'item', label: t('varianceReports.filters.groupOptions.item') },
+                    { value: 'work_order', label: t('varianceReports.filters.groupOptions.workOrder') },
+                    { value: 'month', label: t('varianceReports.filters.groupOptions.month') },
                   ]}
                   displayExpr="label"
                   valueExpr="value"
@@ -205,7 +205,7 @@ export default function VarianceReportsPage() {
             )}
             <Button
               icon="refresh"
-              text="รีเฟรช"
+              text={t('varianceReports.filters.refresh')}
               onClick={handleRefresh}
               data-testid="refresh-btn"
             />
@@ -217,9 +217,9 @@ export default function VarianceReportsPage() {
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px" data-testid="report-tabs">
               {[
-                { id: 'summary', label: 'สรุป' },
-                { id: 'material', label: 'ผลต่างวัตถุดิบ' },
-                { id: 'labor', label: 'ผลต่างค่าแรง' },
+                { id: 'summary', label: t('varianceReports.tabs.summary') },
+                { id: 'material', label: t('varianceReports.tabs.material') },
+                { id: 'labor', label: t('varianceReports.tabs.labor') },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -244,19 +244,19 @@ export default function VarianceReportsPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างรวม</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.totalVariances')}</h3>
                 <p className="text-2xl font-bold text-gray-900" data-testid="total-variances">
                   {formatCurrency(summaryReport.totalVariances)}
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">เป็นผลดี</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.favorable')}</h3>
                 <p className="text-2xl font-bold text-green-600" data-testid="favorable-variances">
                   {formatCurrency(summaryReport.favorableVariances)}
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">เป็นผลเสีย</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.unfavorable')}</h3>
                 <p className="text-2xl font-bold text-red-600" data-testid="unfavorable-variances">
                   {formatCurrency(summaryReport.unfavorableVariances)}
                 </p>
@@ -266,7 +266,7 @@ export default function VarianceReportsPage() {
             {/* Variance Chart */}
             <VarianceChart
               data={summaryReport.byType}
-              title="ผลต่างตามประเภท"
+              title={t('varianceReports.chart.byType')}
               height={350}
             />
 
@@ -280,16 +280,16 @@ export default function VarianceReportsPage() {
                 data-testid="summary-grid"
               >
                 <Paging defaultPageSize={10} />
-                <Column dataField="groupName" caption="กลุ่ม" />
-                <Column dataField="mpv" caption="MPV" dataType="number" format="#,##0.00" />
-                <Column dataField="muv" caption="MUV" dataType="number" format="#,##0.00" />
-                <Column dataField="lrv" caption="LRV" dataType="number" format="#,##0.00" />
-                <Column dataField="lev" caption="LEV" dataType="number" format="#,##0.00" />
-                <Column dataField="vohVar" caption="VOH" dataType="number" format="#,##0.00" />
-                <Column dataField="fohVol" caption="FOH" dataType="number" format="#,##0.00" />
+                <Column dataField="groupName" caption={t('varianceReports.columns.group')} />
+                <Column dataField="mpv" caption={t('varianceReports.columns.mpv')} dataType="number" format="#,##0.00" />
+                <Column dataField="muv" caption={t('varianceReports.columns.muv')} dataType="number" format="#,##0.00" />
+                <Column dataField="lrv" caption={t('varianceReports.columns.lrv')} dataType="number" format="#,##0.00" />
+                <Column dataField="lev" caption={t('varianceReports.columns.lev')} dataType="number" format="#,##0.00" />
+                <Column dataField="vohVar" caption={t('varianceReports.columns.voh')} dataType="number" format="#,##0.00" />
+                <Column dataField="fohVol" caption={t('varianceReports.columns.foh')} dataType="number" format="#,##0.00" />
                 <Column
                   dataField="total"
-                  caption="รวม"
+                  caption={t('varianceReports.columns.total')}
                   dataType="number"
                   format="#,##0.00"
                   cellRender={(cell: any) => renderVarianceBadge(cell.value, cell.data.isFavorable)}
@@ -314,13 +314,13 @@ export default function VarianceReportsPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างวัตถุดิบรวม</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.totalMaterialVariance')}</h3>
                 <p className="text-2xl font-bold text-gray-900" data-testid="total-material-variance">
                   {formatCurrency(materialReport.summary.totalMaterialVariance)}
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างราคา (MPV)</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.mpv')}</h3>
                 <p
                   className={`text-2xl font-bold ${
                     materialReport.summary.totalMpv <= 0 ? 'text-green-600' : 'text-red-600'
@@ -331,7 +331,7 @@ export default function VarianceReportsPage() {
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างการใช้ (MUV)</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.muv')}</h3>
                 <p
                   className={`text-2xl font-bold ${
                     materialReport.summary.totalMuv <= 0 ? 'text-green-600' : 'text-red-600'
@@ -353,29 +353,29 @@ export default function VarianceReportsPage() {
                 data-testid="material-grid"
               >
                 <Paging defaultPageSize={10} />
-                <Column dataField="itemCode" caption="รหัสสินค้า" width={100} />
-                <Column dataField="itemName" caption="ชื่อสินค้า" />
-                <Column dataField="standardPrice" caption="ราคามาตรฐาน" dataType="number" format="#,##0.00" width={100} />
-                <Column dataField="actualPrice" caption="ราคาจริง" dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="itemCode" caption={t('varianceReports.columns.itemCode')} width={100} />
+                <Column dataField="itemName" caption={t('varianceReports.columns.itemName')} />
+                <Column dataField="standardPrice" caption={t('varianceReports.columns.standardPrice')} dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="actualPrice" caption={t('varianceReports.columns.actualPrice')} dataType="number" format="#,##0.00" width={100} />
                 <Column
                   dataField="priceVariance"
-                  caption="ผลต่างราคา"
+                  caption={t('varianceReports.columns.priceVariance')}
                   dataType="number"
                   width={120}
                   cellRender={(cell: any) => renderVarianceBadge(cell.value)}
                 />
-                <Column dataField="standardQty" caption="ปริมาณมาตรฐาน" dataType="number" format="#,##0.00" width={100} />
-                <Column dataField="actualQty" caption="ปริมาณจริง" dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="standardQty" caption={t('varianceReports.columns.standardQty')} dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="actualQty" caption={t('varianceReports.columns.actualQty')} dataType="number" format="#,##0.00" width={100} />
                 <Column
                   dataField="usageVariance"
-                  caption="ผลต่างการใช้"
+                  caption={t('varianceReports.columns.usageVariance')}
                   dataType="number"
                   width={120}
                   cellRender={(cell: any) => renderVarianceBadge(cell.value)}
                 />
                 <Column
                   dataField="totalVariance"
-                  caption="รวม"
+                  caption={t('varianceReports.columns.total')}
                   dataType="number"
                   width={120}
                   cellRender={(cell: any) => renderVarianceBadge(cell.value)}
@@ -396,13 +396,13 @@ export default function VarianceReportsPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างค่าแรงรวม</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.totalLaborVariance')}</h3>
                 <p className="text-2xl font-bold text-gray-900" data-testid="total-labor-variance">
                   {formatCurrency(laborReport.summary.totalLaborVariance)}
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างอัตรา (LRV)</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.lrv')}</h3>
                 <p
                   className={`text-2xl font-bold ${
                     laborReport.summary.totalLrv <= 0 ? 'text-green-600' : 'text-red-600'
@@ -413,7 +413,7 @@ export default function VarianceReportsPage() {
                 </p>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-sm font-medium text-gray-500">ผลต่างประสิทธิภาพ (LEV)</h3>
+                <h3 className="text-sm font-medium text-gray-500">{t('varianceReports.stats.lev')}</h3>
                 <p
                   className={`text-2xl font-bold ${
                     laborReport.summary.totalLev <= 0 ? 'text-green-600' : 'text-red-600'
@@ -435,22 +435,22 @@ export default function VarianceReportsPage() {
                 data-testid="labor-grid"
               >
                 <Paging defaultPageSize={10} />
-                <Column dataField="workOrderNumber" caption="ใบสั่งผลิต" width={120} />
-                <Column dataField="itemCode" caption="สินค้า" width={100} />
-                <Column dataField="standardHours" caption="ชั่วโมงมาตรฐาน" dataType="number" format="#,##0.00" width={100} />
-                <Column dataField="actualHours" caption="ชั่วโมงจริง" dataType="number" format="#,##0.00" width={100} />
-                <Column dataField="standardRate" caption="อัตรามาตรฐาน" dataType="number" format="#,##0.00" width={100} />
-                <Column dataField="actualRate" caption="อัตราจริง" dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="workOrderNumber" caption={t('varianceReports.columns.workOrderNumber')} width={120} />
+                <Column dataField="itemCode" caption={t('varianceReports.columns.item')} width={100} />
+                <Column dataField="standardHours" caption={t('varianceReports.columns.standardHours')} dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="actualHours" caption={t('varianceReports.columns.actualHours')} dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="standardRate" caption={t('varianceReports.columns.standardRate')} dataType="number" format="#,##0.00" width={100} />
+                <Column dataField="actualRate" caption={t('varianceReports.columns.actualRate')} dataType="number" format="#,##0.00" width={100} />
                 <Column
                   dataField="rateVariance"
-                  caption="ผลต่างอัตรา"
+                  caption={t('varianceReports.columns.rateVariance')}
                   dataType="number"
                   width={120}
                   cellRender={(cell: any) => renderVarianceBadge(cell.value)}
                 />
                 <Column
                   dataField="efficiencyVariance"
-                  caption="ผลต่างประสิทธิภาพ"
+                  caption={t('varianceReports.columns.efficiencyVariance')}
                   dataType="number"
                   width={120}
                   cellRender={(cell: any) => renderVarianceBadge(cell.value)}

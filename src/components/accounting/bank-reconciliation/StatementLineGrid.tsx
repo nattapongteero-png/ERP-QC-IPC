@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -45,6 +46,7 @@ export function StatementLineGrid({
   onSelectionChanged,
   readOnly = false,
 }: StatementLineGridProps) {
+  const t = useTranslations('accounting');
   const handleSelectionChanged = useCallback(
     (e: any) => {
       const selectedRows = e.selectedRowsData as BankStatementLine[];
@@ -60,7 +62,7 @@ export function StatementLineGrid({
     const colorClass = statusColors[status] || 'bg-gray-100 text-gray-800';
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-        {status.replace('_', ' ')}
+        {t(`bankReconciliation.statementLines.status.${status}`)}
       </span>
     );
   };
@@ -89,7 +91,7 @@ export function StatementLineGrid({
         {isUnmatched && onMatch && (
           <Button
             icon="link"
-            hint="จับคู่"
+            hint={t('bankReconciliation.statementLines.actions.match')}
             stylingMode="text"
             onClick={() => onMatch(line.id)}
           />
@@ -97,7 +99,7 @@ export function StatementLineGrid({
         {isUnmatched && onCreateJournal && (
           <Button
             icon="doc"
-            hint="สร้างรายการบันทึก"
+            hint={t('bankReconciliation.statementLines.actions.createJournal')}
             stylingMode="text"
             onClick={() => onCreateJournal(line.id)}
           />
@@ -105,7 +107,7 @@ export function StatementLineGrid({
         {isUnmatched && onIgnore && (
           <Button
             icon="remove"
-            hint="ละเว้น"
+            hint={t('bankReconciliation.statementLines.actions.ignore')}
             stylingMode="text"
             onClick={() => onIgnore(line.id)}
           />
@@ -113,7 +115,7 @@ export function StatementLineGrid({
         {isMatched && onUnmatch && (
           <Button
             icon="revert"
-            hint="ยกเลิกการจับคู่"
+            hint={t('bankReconciliation.statementLines.actions.unmatch')}
             stylingMode="text"
             onClick={() => onUnmatch(line.id)}
           />
@@ -152,44 +154,44 @@ export function StatementLineGrid({
       />
       <Column
         dataField="transactionDate"
-        caption="วันที่"
+        caption={t('bankReconciliation.statementLines.columns.date')}
         dataType="date"
         width={100}
         cellRender={formatDate}
       />
       <Column
         dataField="description"
-        caption="รายละเอียด"
+        caption={t('bankReconciliation.statementLines.columns.description')}
         minWidth={200}
       />
       <Column
         dataField="reference"
-        caption="อ้างอิง"
+        caption={t('bankReconciliation.statementLines.columns.reference')}
         width={120}
       />
       <Column
         dataField="amount"
-        caption="จำนวนเงิน"
+        caption={t('bankReconciliation.statementLines.columns.amount')}
         width={120}
         alignment="right"
         cellRender={renderAmount}
       />
       <Column
         dataField="transactionType"
-        caption="ประเภท"
+        caption={t('bankReconciliation.statementLines.columns.type')}
         width={80}
         alignment="center"
       />
       <Column
         dataField="status"
-        caption="สถานะ"
+        caption={t('bankReconciliation.statementLines.columns.status')}
         width={120}
         alignment="center"
         cellRender={renderStatus}
       />
       <Column
         dataField="matchConfidence"
-        caption="ความเชื่อมั่น"
+        caption={t('bankReconciliation.statementLines.columns.confidence')}
         width={90}
         alignment="center"
         cellRender={(cellData: any) =>
@@ -198,7 +200,7 @@ export function StatementLineGrid({
       />
       {!readOnly && (
         <Column
-          caption="การดำเนินการ"
+          caption={t('bankReconciliation.statementLines.columns.actions')}
           width={120}
           alignment="center"
           cellRender={renderActions}

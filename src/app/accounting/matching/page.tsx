@@ -44,21 +44,24 @@ const statusColors: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
 };
 
-const exceptionTypeLabels: Record<string, string> = {
-  over_quantity: 'ปริมาณเกิน',
-  under_quantity: 'ปริมาณขาด',
-  over_price: 'ราคาเกิน',
-  under_price: 'ราคาต่ำกว่า',
-  quantity_variance: 'ผลต่างปริมาณ',
-  price_variance: 'ผลต่างราคา',
-  amount_variance: 'ผลต่างจำนวนเงิน',
-  missing_grn: 'ไม่มีใบรับสินค้า',
-  missing_po: 'ไม่มีใบสั่งซื้อ',
-  partial_receipt: 'รับสินค้าบางส่วน',
-};
+const exceptionTypeKeys = [
+  'over_quantity',
+  'under_quantity',
+  'over_price',
+  'under_price',
+  'quantity_variance',
+  'price_variance',
+  'amount_variance',
+  'missing_grn',
+  'missing_po',
+  'partial_receipt',
+];
 
 export default function MatchingExceptionsPage() {
   const t = useTranslations('accounting');
+
+  const exceptionTypeLabel = (type: string) =>
+    exceptionTypeKeys.includes(type) ? t(`matching.exceptionTypes.${type}`) : type;
   const [exceptions, setExceptions] = useState<Exception[]>([]);
   const [summary, setSummary] = useState<MatchingSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,7 +147,7 @@ export default function MatchingExceptionsPage() {
 
   const renderExceptionType = (cellData: any) => {
     const type = cellData.value as string;
-    return exceptionTypeLabels[type] || type;
+    return exceptionTypeLabel(type);
   };
 
   const renderVariance = (cellData: any) => {
@@ -165,14 +168,14 @@ export default function MatchingExceptionsPage() {
       <div className="flex gap-1">
         <Button
           icon="check"
-          hint="อนุมัติ"
+          hint={t('matching.actions.approve')}
           stylingMode="text"
           type="success"
           onClick={() => handleReview(exception, 'approve')}
         />
         <Button
           icon="close"
-          hint="ปฏิเสธ"
+          hint={t('matching.actions.reject')}
           stylingMode="text"
           type="danger"
           onClick={() => handleReview(exception, 'reject')}
@@ -193,10 +196,10 @@ export default function MatchingExceptionsPage() {
       <div className="p-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-            {t('page.title')}
+            {t('matching.title')}
           </h1>
           <p className="text-gray-600">
-            ตรวจสอบและแก้ไขรายการผิดปกติจากการจับคู่ 3 ทาง
+            {t('matching.subtitle')}
           </p>
         </div>
 
@@ -204,25 +207,25 @@ export default function MatchingExceptionsPage() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-              <div className="text-sm text-gray-500">จับคู่วันนี้</div>
+              <div className="text-sm text-gray-500">{t('matching.stats.matchedToday')}</div>
               <div className="text-2xl font-bold text-green-600">
                 {summary.totalMatchedToday}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-              <div className="text-sm text-gray-500">รายการผิดปกติวันนี้</div>
+              <div className="text-sm text-gray-500">{t('matching.stats.exceptionsToday')}</div>
               <div className="text-2xl font-bold text-red-600">
                 {summary.totalExceptionsToday}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-              <div className="text-sm text-gray-500">รอตรวจสอบ</div>
+              <div className="text-sm text-gray-500">{t('matching.stats.pending')}</div>
               <div className="text-2xl font-bold text-yellow-600">
                 {summary.pendingExceptions}
               </div>
             </div>
             <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-              <div className="text-sm text-gray-500">จับคู่เดือนนี้</div>
+              <div className="text-sm text-gray-500">{t('matching.stats.matchedThisMonth')}</div>
               <div className="text-2xl font-bold text-blue-600">
                 {summary.matchedThisMonth}
               </div>
@@ -240,15 +243,15 @@ export default function MatchingExceptionsPage() {
             allowColumnResizing={true}
             data-testid="exceptions-grid"
           >
-            <SearchPanel visible={true} placeholder="ค้นหารายการผิดปกติ..." />
+            <SearchPanel visible={true} placeholder={t('matching.filters.search')} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">รายการผิดปกติ</span>
+                <span className="text-lg font-medium">{t('matching.gridTitle')}</span>
               </Item>
               <Item location="after">
                 <Button
-                  text="รีเฟรช"
+                  text={t('matching.actions.refresh')}
                   icon="refresh"
                   stylingMode="outlined"
                   onClick={fetchData}
@@ -256,64 +259,64 @@ export default function MatchingExceptionsPage() {
               </Item>
             </Toolbar>
 
-            <Column dataField="id" caption="รหัส" width={80} />
+            <Column dataField="id" caption={t('matching.columns.id')} width={80} />
             <Column
               dataField="invoiceNumber"
-              caption="เลขใบแจ้งหนี้"
+              caption={t('matching.columns.invoiceNumber')}
               width={150}
               cellRender={(cell: any) => cell.value || '-'}
             />
             <Column
               dataField="poNumber"
-              caption="เลขใบสั่งซื้อ"
+              caption={t('matching.columns.poNumber')}
               width={150}
               cellRender={(cell: any) => cell.value || '-'}
             />
             <Column
               dataField="vendorName"
-              caption="ผู้ขาย"
+              caption={t('matching.columns.vendor')}
               width={180}
               cellRender={(cell: any) => cell.value || '-'}
             />
             <Column
               dataField="exceptionType"
-              caption="ประเภท"
+              caption={t('matching.columns.type')}
               width={150}
               cellRender={renderExceptionType}
             />
             <Column
               dataField="varianceAmount"
-              caption="ผลต่าง"
+              caption={t('matching.columns.variance')}
               width={120}
               alignment="right"
               cellRender={renderVariance}
             />
             <Column
               dataField="variancePct"
-              caption="ผลต่าง %"
+              caption={t('matching.columns.variancePct')}
               width={100}
               alignment="right"
               format="#0.00'%'"
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('matching.columns.status')}
               width={100}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
               dataField="resolvedByName"
-              caption="แก้ไขโดย"
+              caption={t('matching.columns.resolvedBy')}
               width={150}
             />
             <Column
               dataField="resolutionNotes"
-              caption="หมายเหตุ"
+              caption={t('matching.columns.notes')}
               width={200}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('matching.columns.actions')}
               width={100}
               alignment="center"
               cellRender={renderActions}
@@ -325,7 +328,7 @@ export default function MatchingExceptionsPage() {
         <Popup
           visible={showReviewDialog}
           onHiding={() => setShowReviewDialog(false)}
-          title={reviewAction === 'approve' ? 'อนุมัติรายการผิดปกติ' : 'ปฏิเสธรายการผิดปกติ'}
+          title={reviewAction === 'approve' ? t('matching.dialog.approveTitle') : t('matching.dialog.rejectTitle')}
           width={400}
           height="auto"
           showCloseButton={true}
@@ -336,27 +339,26 @@ export default function MatchingExceptionsPage() {
                 {(selectedException.invoiceNumber || selectedException.poNumber) && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div>
-                      <div className="text-sm text-gray-500">เลขใบแจ้งหนี้</div>
+                      <div className="text-sm text-gray-500">{t('matching.columns.invoiceNumber')}</div>
                       <div className="font-medium">{selectedException.invoiceNumber || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">เลขใบสั่งซื้อ</div>
+                      <div className="text-sm text-gray-500">{t('matching.columns.poNumber')}</div>
                       <div className="font-medium">{selectedException.poNumber || '-'}</div>
                     </div>
                     {selectedException.vendorName && (
                       <div className="col-span-2">
-                        <div className="text-sm text-gray-500">ผู้ขาย</div>
+                        <div className="text-sm text-gray-500">{t('matching.columns.vendor')}</div>
                         <div className="font-medium">{selectedException.vendorName}</div>
                       </div>
                     )}
                   </div>
                 )}
-                <div className="text-sm text-gray-500">ประเภทรายการผิดปกติ</div>
+                <div className="text-sm text-gray-500">{t('matching.dialog.exceptionType')}</div>
                 <div className="font-medium">
-                  {exceptionTypeLabels[selectedException.exceptionType] ||
-                    selectedException.exceptionType}
+                  {exceptionTypeLabel(selectedException.exceptionType)}
                 </div>
-                <div className="text-sm text-gray-500 mt-2">ผลต่าง</div>
+                <div className="text-sm text-gray-500 mt-2">{t('matching.dialog.variance')}</div>
                 <div className="font-medium">
                   {Number(selectedException.varianceAmount || 0).toLocaleString('th-TH', {
                     minimumFractionDigits: 2,
@@ -368,26 +370,26 @@ export default function MatchingExceptionsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ความคิดเห็น
+                {t('matching.dialog.comments')}
               </label>
               <TextArea
                 value={reviewComments}
                 onValueChanged={(e) => setReviewComments(e.value || '')}
                 height={100}
-                placeholder="กรอกความคิดเห็น..."
+                placeholder={t('matching.dialog.commentsPlaceholder')}
                 data-testid="review-comments-input"
               />
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button text="ยกเลิก" onClick={() => setShowReviewDialog(false)} />
+              <Button text={t('common.cancel')} onClick={() => setShowReviewDialog(false)} />
               <Button
                 text={
                   actionLoading
-                    ? 'กำลังดำเนินการ...'
+                    ? t('common.processing')
                     : reviewAction === 'approve'
-                    ? 'อนุมัติ'
-                    : 'ปฏิเสธ'
+                    ? t('matching.actions.approve')
+                    : t('matching.actions.reject')
                 }
                 type={reviewAction === 'approve' ? 'success' : 'danger'}
                 stylingMode="contained"

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ export function AccountingPageHeader({
   actions,
   className = '',
 }: AccountingPageHeaderProps) {
+  const t = useTranslations('accounting');
   const IconComponent = iconMap[icon] || Icons.Calculator;
 
   const periodStatusColors = {
@@ -110,7 +112,7 @@ export function AccountingPageHeader({
               <span className="text-sm font-medium text-gray-700">{currentPeriod}</span>
               {periodStatus && (
                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${periodStatusColors[periodStatus]}`}>
-                  {periodStatus === 'open' ? 'เปิด' : periodStatus === 'closed' ? 'ปิด' : 'ปิดชั่วคราว'}
+                  {periodStatus === 'open' ? t('common.statusBadge.open') : periodStatus === 'closed' ? t('common.statusBadge.closed') : t('common.statusBadge.softClosed')}
                 </span>
               )}
             </div>
@@ -124,7 +126,7 @@ export function AccountingPageHeader({
               className="gap-2 bg-white/80 backdrop-blur-sm"
             >
               <RefreshCcw className="h-4 w-4" />
-              รีเฟรช
+              {t('common.refresh')}
             </Button>
           )}
 

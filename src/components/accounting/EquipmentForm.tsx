@@ -4,6 +4,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'devextreme-react/button';
@@ -89,6 +90,7 @@ interface FormData {
 }
 
 export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
+  const t = useTranslations('accounting');
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -135,7 +137,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
     mutationFn: (data: EquipmentCreate) => createEquipment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      notify('Equipment created successfully', 'success', 3000);
+      notify(t('equipment.form.toast.createSuccess'), 'success', 3000);
       router.push('/accounting/equipment');
     },
     onError: (error: Error) => {
@@ -148,7 +150,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['equipment', equipmentId] });
-      notify('Equipment updated successfully', 'success', 3000);
+      notify(t('equipment.form.toast.updateSuccess'), 'success', 3000);
       router.push('/accounting/equipment');
     },
     onError: (error: Error) => {
@@ -160,7 +162,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
     mutationFn: () => deleteEquipment(equipmentId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      notify('Equipment deleted successfully', 'success', 3000);
+      notify(t('equipment.deleteSuccess'), 'success', 3000);
       router.push('/accounting/equipment');
     },
     onError: (error: Error) => {
@@ -170,7 +172,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
 
   const handleSubmit = () => {
     if (mode === 'create' && !formData.fixedAssetId) {
-      notify('Please select a Fixed Asset', 'error', 3000);
+      notify(t('equipment.form.validation.selectFixedAsset'), 'error', 3000);
       return;
     }
 
@@ -204,7 +206,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
   if (mode === 'edit' && isLoadingEquipment) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500">กำลังโหลดอุปกรณ์...</p>
+        <p className="text-gray-500">{t('equipment.form.loading')}</p>
       </div>
     );
   }
@@ -212,26 +214,26 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
   return (
     <div className="space-y-6">
       <ResponsivePageHeader
-        title={mode === 'create' ? 'เพิ่มอุปกรณ์' : 'แก้ไขอุปกรณ์'}
-        subtitle={mode === 'create' ? 'เพิ่มอุปกรณ์ใหม่' : `แก้ไข: ${existingEquipment?.asset?.assetCode || ''}`}
+        title={mode === 'create' ? t('equipment.form.title.create') : t('equipment.form.title.edit')}
+        subtitle={mode === 'create' ? t('equipment.form.subtitle.create') : t('equipment.form.subtitle.edit', { code: existingEquipment?.asset?.assetCode || '' })}
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
         breadcrumbs={[
-          { label: 'บัญชี', href: '/accounting' },
-          { label: 'อุปกรณ์', href: '/accounting/equipment' },
-          { label: mode === 'create' ? 'เพิ่มใหม่' : 'แก้ไข' },
+          { label: t('equipment.breadcrumbAccounting'), href: '/accounting' },
+          { label: t('equipment.breadcrumbEquipment'), href: '/accounting/equipment' },
+          { label: mode === 'create' ? t('equipment.form.breadcrumbCreate') : t('equipment.form.breadcrumbEdit') },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Button
-              text="ย้อนกลับ"
+              text={t('equipment.form.back')}
               icon="back"
               stylingMode="outlined"
               onClick={() => router.push('/accounting/equipment')}
             />
             <Button
-              text={isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={isSubmitting ? t('equipment.form.saving') : t('equipment.form.save')}
               icon="save"
               type="success"
               onClick={handleSubmit}
@@ -247,19 +249,19 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-red-800">ยืนยันการลบ</p>
+                <p className="font-medium text-red-800">{t('equipment.delete.title')}</p>
                 <p className="text-sm text-red-600">
-                  คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์นี้? การกระทำนี้ไม่สามารถยกเลิกได้
+                  {t('equipment.form.deleteConfirm.message')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  text="ยกเลิก"
+                  text={t('equipment.delete.cancel')}
                   stylingMode="outlined"
                   onClick={() => setShowDeleteConfirm(false)}
                 />
                 <Button
-                  text={deleteMutation.isPending ? 'กำลังลบ...' : 'ลบ'}
+                  text={deleteMutation.isPending ? t('equipment.delete.deleting') : t('equipment.delete.confirm')}
                   icon="trash"
                   type="danger"
                   onClick={() => deleteMutation.mutate()}
@@ -276,13 +278,13 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
+              <CardTitle>{t('equipment.form.sections.basic')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {mode === 'create' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    สินทรัพย์ถาวร <span className="text-red-500">*</span>
+                    {t('equipment.form.fields.fixedAsset')} <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     dataSource={fixedAssets}
@@ -290,7 +292,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
                     valueExpr="id"
                     value={formData.fixedAssetId}
                     onValueChanged={(e) => setFormData({ ...formData, fixedAssetId: e.value })}
-                    placeholder="เลือกสินทรัพย์ถาวร"
+                    placeholder={t('equipment.form.fields.fixedAssetPlaceholder')}
                     searchEnabled
                   />
                 </div>
@@ -299,45 +301,45 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    หมายเลขซีเรียล
+                    {t('equipment.form.fields.serialNumber')}
                   </label>
                   <TextBox
                     value={formData.serialNumber}
                     onValueChanged={(e) => setFormData({ ...formData, serialNumber: e.value || '' })}
-                    placeholder="หมายเลขซีเรียล"
+                    placeholder={t('equipment.form.fields.serialNumber')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ผู้ผลิต
+                    {t('equipment.form.fields.manufacturer')}
                   </label>
                   <TextBox
                     value={formData.manufacturer}
                     onValueChanged={(e) => setFormData({ ...formData, manufacturer: e.value || '' })}
-                    placeholder="ผู้ผลิต"
+                    placeholder={t('equipment.form.fields.manufacturer')}
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  รุ่น
+                  {t('equipment.form.fields.model')}
                 </label>
                 <TextBox
                   value={formData.model}
                   onValueChanged={(e) => setFormData({ ...formData, model: e.value || '' })}
-                  placeholder="รุ่น"
+                  placeholder={t('equipment.form.fields.model')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ข้อมูลจำเพาะ
+                  {t('equipment.form.fields.specifications')}
                 </label>
                 <TextArea
                   value={formData.specifications}
                   onValueChanged={(e) => setFormData({ ...formData, specifications: e.value || '' })}
-                  placeholder="ข้อมูลจำเพาะของอุปกรณ์..."
+                  placeholder={t('equipment.form.fields.specificationsPlaceholder')}
                   height={100}
                 />
               </div>
@@ -346,13 +348,13 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>ข้อมูลการรับประกัน</CardTitle>
+              <CardTitle>{t('equipment.form.sections.warranty')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่เริ่มรับประกัน
+                    {t('equipment.form.fields.warrantyStartDate')}
                   </label>
                   <DxDateBox
                     value={formData.warrantyStartDate}
@@ -361,7 +363,7 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    วันที่สิ้นสุดรับประกัน
+                    {t('equipment.form.fields.warrantyEndDate')}
                   </label>
                   <DxDateBox
                     value={formData.warrantyEndDate}
@@ -373,14 +375,14 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               {mode === 'edit' && (
                 <div className="flex items-center gap-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    พร้อมใช้งาน
+                    {t('equipment.form.fields.isAvailable')}
                   </label>
                   <Switch
                     value={formData.isAvailable}
                     onValueChanged={(e) => setFormData({ ...formData, isAvailable: e.value })}
                   />
                   <span className="text-sm text-gray-500">
-                    {formData.isAvailable ? 'อุปกรณ์พร้อมใช้งาน' : 'อุปกรณ์ไม่พร้อมใช้งาน'}
+                    {formData.isAvailable ? t('equipment.form.status.available') : t('equipment.form.status.unavailable')}
                   </span>
                 </div>
               )}
@@ -393,31 +395,31 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           {mode === 'edit' && existingEquipment && (
             <Card>
               <CardHeader>
-                <CardTitle>รายละเอียดอุปกรณ์</CardTitle>
+                <CardTitle>{t('equipment.form.detail.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-500">รหัสสินทรัพย์</span>
+                  <span className="text-sm text-gray-500">{t('equipment.form.detail.assetCode')}</span>
                   <p className="font-medium">{existingEquipment.asset?.assetCode || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">ชื่อสินทรัพย์</span>
+                  <span className="text-sm text-gray-500">{t('equipment.form.detail.assetName')}</span>
                   <p className="font-medium">{existingEquipment.asset?.nameTh || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">ชั่วโมงการทำงาน</span>
-                  <p className="font-medium">{existingEquipment.operatingHours?.toLocaleString() || 0} ชม.</p>
+                  <span className="text-sm text-gray-500">{t('equipment.form.detail.operatingHours')}</span>
+                  <p className="font-medium">{t('equipment.form.detail.operatingHoursValue', { hours: existingEquipment.operatingHours?.toLocaleString() || 0 })}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">บำรุงรักษาล่าสุด</span>
+                  <span className="text-sm text-gray-500">{t('equipment.form.detail.lastMaintenance')}</span>
                   <p className="font-medium">
-                    {existingEquipment.lastMaintenanceDate || 'ไม่เคย'}
+                    {existingEquipment.lastMaintenanceDate || t('equipment.form.detail.never')}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">สถานะ</span>
+                  <span className="text-sm text-gray-500">{t('equipment.form.detail.status')}</span>
                   <p className={`font-medium ${existingEquipment.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                    {existingEquipment.isAvailable ? 'พร้อมใช้งาน' : 'ไม่พร้อมใช้งาน'}
+                    {existingEquipment.isAvailable ? t('equipment.form.detail.statusAvailable') : t('equipment.form.detail.statusUnavailable')}
                   </p>
                 </div>
               </CardContent>
@@ -429,15 +431,15 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-4 w-4" />
-                  ประวัติการตรวจสอบ
+                  {t('equipment.form.audit.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  ดูการเปลี่ยนแปลงทั้งหมดที่เกิดขึ้นกับอุปกรณ์นี้
+                  {t('equipment.form.audit.description')}
                 </p>
                 <Button
-                  text="ดูประวัติ"
+                  text={t('equipment.form.audit.viewHistory')}
                   icon="clock"
                   stylingMode="outlined"
                   onClick={() => setAuditDialogOpen(true)}
@@ -450,14 +452,14 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           {mode === 'edit' && (
             <Card className="border-red-100">
               <CardHeader>
-                <CardTitle className="text-red-600">โซนอันตราย</CardTitle>
+                <CardTitle className="text-red-600">{t('equipment.form.dangerZone.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  การลบอุปกรณ์นี้จะลบบันทึกการบำรุงรักษาที่เกี่ยวข้องทั้งหมด
+                  {t('equipment.form.dangerZone.description')}
                 </p>
                 <Button
-                  text="ลบอุปกรณ์"
+                  text={t('equipment.form.dangerZone.deleteButton')}
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -478,19 +480,19 @@ export function EquipmentForm({ mode, equipmentId }: EquipmentFormProps) {
           visible={auditDialogOpen}
           onClose={() => setAuditDialogOpen(false)}
           fieldLabels={{
-            fixedAssetId: 'สินทรัพย์ถาวร',
-            serialNumber: 'หมายเลขซีเรียล',
-            manufacturer: 'ผู้ผลิต',
-            model: 'รุ่น',
-            specifications: 'ข้อมูลจำเพาะ',
-            warrantyStartDate: 'วันที่เริ่มรับประกัน',
-            warrantyEndDate: 'วันที่สิ้นสุดรับประกัน',
-            operatingHours: 'ชั่วโมงการทำงาน',
-            operatingUnits: 'หน่วยการทำงาน',
-            lastMeterReading: 'ค่ามิเตอร์ล่าสุด',
-            isAvailable: 'พร้อมใช้งาน',
-            lastMaintenanceDate: 'วันที่บำรุงรักษาล่าสุด',
-            nextMaintenanceDue: 'กำหนดบำรุงรักษาครั้งถัดไป',
+            fixedAssetId: t('equipment.form.fields.fixedAsset'),
+            serialNumber: t('equipment.form.fields.serialNumber'),
+            manufacturer: t('equipment.form.fields.manufacturer'),
+            model: t('equipment.form.fields.model'),
+            specifications: t('equipment.form.fields.specifications'),
+            warrantyStartDate: t('equipment.form.fields.warrantyStartDate'),
+            warrantyEndDate: t('equipment.form.fields.warrantyEndDate'),
+            operatingHours: t('equipment.form.audit.fields.operatingHours'),
+            operatingUnits: t('equipment.form.audit.fields.operatingUnits'),
+            lastMeterReading: t('equipment.form.audit.fields.lastMeterReading'),
+            isAvailable: t('equipment.form.fields.isAvailable'),
+            lastMaintenanceDate: t('equipment.form.audit.fields.lastMaintenanceDate'),
+            nextMaintenanceDue: t('equipment.form.audit.fields.nextMaintenanceDue'),
           }}
         />
       )}

@@ -27,6 +27,7 @@ async function fetchBalanceSheet(asOfDate: string): Promise<BalanceSheetReport> 
 
 function SectionTable({ section, title }: { section: BalanceSheetSection; title: string }) {
   const { formatCurrency } = useReportLanguage();
+  const t = useTranslations('accounting');
 
   return (
     <div className="mb-4">
@@ -41,7 +42,7 @@ function SectionTable({ section, title }: { section: BalanceSheetSection; title:
             </tr>
           ))}
           <tr className="font-bold border-t border-gray-300">
-            <td className="py-2 px-2" colSpan={2}>รวม{title}</td>
+            <td className="py-2 px-2" colSpan={2}>{t('reports.incomeStatement.totalPrefix')}{title}</td>
             <td className="py-2 px-2 text-right">{formatCurrency(section.subtotal)}</td>
           </tr>
         </tbody>
@@ -165,7 +166,7 @@ function BalanceSheetContent() {
         {data && pieData.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">องค์ประกอบสินทรัพย์</CardTitle>
+              <CardTitle className="text-base">{t('reports.balanceSheet.assetCompositionTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-48">
@@ -240,11 +241,11 @@ function BalanceSheetContent() {
               </div>
               <div className="mt-4 p-3 bg-gray-100 rounded-lg">
                 <div className="flex justify-between font-bold text-lg">
-                  <span>รวมหนี้สินและส่วนของเจ้าของ</span>
+                  <span>{t('reports.common.totalLiabilitiesAndEquity')}</span>
                   <span>{formatCurrency(data.totalLiabilitiesAndEquity)}</span>
                 </div>
                 <div className={`text-sm mt-1 ${data.isBalanced ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {data.isBalanced ? '✓ สมดุล' : '✗ ไม่สมดุล'}
+                  {data.isBalanced ? `✓ ${t('reports.common.balancedYes')}` : `✗ ${t('reports.common.balancedNo')}`}
                 </div>
               </div>
             </CardContent>

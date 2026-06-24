@@ -21,15 +21,14 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const chargeTypes = [
-  { value: 'bank_fee', label: 'ค่าธรรมเนียมธนาคาร' },
-  { value: 'interest_expense', label: 'ดอกเบี้ยจ่าย' },
-  { value: 'interest_income', label: 'ดอกเบี้ยรับ' },
-  { value: 'other', label: 'อื่น ๆ' },
-];
-
 export default function ReconciliationPage({ params }: PageProps) {
   const t = useTranslations('accounting');
+  const chargeTypes = [
+    { value: 'bank_fee', label: t('bankReconciliation.reconcile.chargeTypes.bankFee') },
+    { value: 'interest_expense', label: t('bankReconciliation.reconcile.chargeTypes.interestExpense') },
+    { value: 'interest_income', label: t('bankReconciliation.reconcile.chargeTypes.interestIncome') },
+    { value: 'other', label: t('bankReconciliation.reconcile.chargeTypes.other') },
+  ];
   const { id } = use(params);
   const router = useRouter();
   const [statement, setStatement] = useState<BankStatementWithLines | null>(null);
@@ -88,10 +87,10 @@ export default function ReconciliationPage({ params }: PageProps) {
       );
       const result = await response.json();
       if (result.success) {
-        alert(`จับคู่อัตโนมัติเสร็จสิ้น: จับคู่แล้ว ${result.matchedCount} จาก ${result.totalProcessed} รายการ`);
+        alert(t('bankReconciliation.reconcile.autoMatchResult', { matched: result.matchedCount, total: result.totalProcessed }));
         fetchData();
       } else {
-        alert(result.error || 'จับคู่อัตโนมัติไม่สำเร็จ');
+        alert(result.error || t('bankReconciliation.reconcile.autoMatchFailed'));
       }
     } catch (error) {
       console.error('Auto-match error:', error);
@@ -133,7 +132,7 @@ export default function ReconciliationPage({ params }: PageProps) {
   };
 
   const handleUnmatch = async (lineId: number) => {
-    if (!confirm('คุณต้องการยกเลิกการจับคู่รายการนี้ใช่หรือไม่?')) return;
+    if (!confirm(t('bankReconciliation.reconcile.unmatchConfirm'))) return;
 
     try {
       const response = await fetch('/api/accounting/bank-reconciliation/unmatch', {
@@ -146,7 +145,7 @@ export default function ReconciliationPage({ params }: PageProps) {
       if (result.success) {
         fetchData();
       } else {
-        alert(result.error || 'ยกเลิกการจับคู่ไม่สำเร็จ');
+        alert(result.error || t('bankReconciliation.reconcile.unmatchFailed'));
       }
     } catch (error) {
       console.error('Unmatch error:', error);
@@ -154,7 +153,7 @@ export default function ReconciliationPage({ params }: PageProps) {
   };
 
   const handleIgnore = async (lineId: number) => {
-    const notes = prompt('ระบุเหตุผลที่ละเว้น (ไม่บังคับ):');
+    const notes = prompt(t('bankReconciliation.reconcile.ignorePrompt'));
 
     try {
       const response = await fetch('/api/accounting/bank-reconciliation/unmatch', {
@@ -167,7 +166,7 @@ export default function ReconciliationPage({ params }: PageProps) {
       if (result.success) {
         fetchData();
       } else {
-        alert(result.error || 'ละเว้นรายการไม่สำเร็จ');
+        alert(result.error || t('bankReconciliation.reconcile.ignoreFailed'));
       }
     } catch (error) {
       console.error('Ignore error:', error);
@@ -181,7 +180,7 @@ export default function ReconciliationPage({ params }: PageProps) {
       setJournalData({
         chargeType: 'bank_fee',
         accountId: 0,
-        description: `ค่าธรรมเนียมธนาคาร: ${line.description}`,
+        description: t('bankReconciliation.reconcile.defaultChargeDescription', { description: line.description }),
       });
       setShowJournalDialog(true);
     }
@@ -208,7 +207,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         setShowJournalDialog(false);
         fetchData();
       } else {
-        alert(result.error || 'ไม่สามารถสร้างรายการบันทึกบัญชีได้');
+        alert(result.error || t('bankReconciliation.reconcile.createJournalFailed'));
       }
     } catch (error) {
       console.error('Journal error:', error);
@@ -219,7 +218,7 @@ export default function ReconciliationPage({ params }: PageProps) {
 
   const handleFinalize = async () => {
     if (!summary?.isBalanced) {
-      if (!confirm('ยอดกระทบยังไม่สมดุล ต้องการบังคับปิดหรือไม่?')) return;
+      if (!confirm(t('bankReconciliation.reconcile.finalizeUnbalancedConfirm'))) return;
     }
 
     setProcessing(true);
@@ -235,10 +234,10 @@ export default function ReconciliationPage({ params }: PageProps) {
 
       const result = await response.json();
       if (result.success) {
-        alert('ปิดการกระทบยอดเรียบร้อยแล้ว');
+        alert(t('bankReconciliation.reconcile.finalizeSuccess'));
         router.push('/accounting/bank-reconciliation');
       } else {
-        alert(result.error || 'ไม่สามารถปิดการกระทบยอดได้');
+        alert(result.error || t('bankReconciliation.reconcile.finalizeFailed'));
       }
     } catch (error) {
       console.error('Finalize error:', error);
@@ -259,13 +258,13 @@ export default function ReconciliationPage({ params }: PageProps) {
     return (
       <div className="p-4">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          ไม่พบรายการเดินบัญชี
+          {t('bankReconciliation.notFound')}
         </div>
         <button
           className="mt-4 text-blue-600 hover:underline"
           onClick={() => router.push('/accounting/bank-reconciliation')}
         >
-          ← กลับไปหน้าการกระทบยอดธนาคาร
+          ← {t('bankReconciliation.backToList')}
         </button>
       </div>
     );
@@ -278,7 +277,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         <div className="mb-4 flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              {t('page.title')}: {statement.statementNumber}
+              {t('bankReconciliation.title')}: {statement.statementNumber}
             </h1>
             <p className="text-gray-600">
               {statement.bankAccountName} | {statement.bankAccountNumber}
@@ -286,14 +285,14 @@ export default function ReconciliationPage({ params }: PageProps) {
           </div>
           <div className="flex gap-2">
             <Button
-              text="ย้อนกลับ"
+              text={t('bankReconciliation.reconcile.back')}
               icon="back"
               onClick={() => router.push('/accounting/bank-reconciliation')}
             />
             {!isReconciled && (
               <>
                 <Button
-                  text="จับคู่อัตโนมัติ"
+                  text={t('bankReconciliation.reconcile.autoMatch')}
                   icon="refresh"
                   type="default"
                   onClick={handleAutoMatch}
@@ -301,7 +300,7 @@ export default function ReconciliationPage({ params }: PageProps) {
                   data-testid="auto-match-btn"
                 />
                 <Button
-                  text="ปิดการกระทบยอด"
+                  text={t('bankReconciliation.reconcile.finalize')}
                   icon="check"
                   type="success"
                   stylingMode="contained"
@@ -317,7 +316,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         {/* Statement Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">ยอดยกมา</div>
+            <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.openingBalance')}</div>
             <div className="text-lg font-bold">
               {Number(statement.openingBalance).toLocaleString('th-TH', {
                 minimumFractionDigits: 2,
@@ -325,7 +324,7 @@ export default function ReconciliationPage({ params }: PageProps) {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">ยอดคงเหลือ</div>
+            <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.closingBalance')}</div>
             <div className="text-lg font-bold">
               {Number(statement.closingBalance).toLocaleString('th-TH', {
                 minimumFractionDigits: 2,
@@ -333,7 +332,7 @@ export default function ReconciliationPage({ params }: PageProps) {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">รวมเดบิต</div>
+            <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.totalDebits')}</div>
             <div className="text-lg font-bold text-red-600">
               -{Number(statement.totalDebits).toLocaleString('th-TH', {
                 minimumFractionDigits: 2,
@@ -341,7 +340,7 @@ export default function ReconciliationPage({ params }: PageProps) {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">รวมเครดิต</div>
+            <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.totalCredits')}</div>
             <div className="text-lg font-bold text-green-600">
               +{Number(statement.totalCredits).toLocaleString('th-TH', {
                 minimumFractionDigits: 2,
@@ -354,17 +353,17 @@ export default function ReconciliationPage({ params }: PageProps) {
                 summary.isBalanced ? 'bg-green-50' : 'bg-yellow-50'
               }`}
             >
-              <div className="text-sm text-gray-500">สถานะ</div>
+              <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.status')}</div>
               <div
                 className={`text-lg font-bold ${
                   summary.isBalanced ? 'text-green-600' : 'text-yellow-600'
                 }`}
               >
-                {summary.isBalanced ? 'สมดุล' : 'ไม่สมดุล'}
+                {summary.isBalanced ? t('bankReconciliation.reconcile.balanced') : t('bankReconciliation.reconcile.unbalanced')}
               </div>
               {!summary.isBalanced && (
                 <div className="text-xs text-gray-500">
-                  ผลต่าง: {summary.difference.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  {t('bankReconciliation.reconcile.difference', { amount: summary.difference.toLocaleString('th-TH', { minimumFractionDigits: 2 }) })}
                 </div>
               )}
             </div>
@@ -376,9 +375,9 @@ export default function ReconciliationPage({ params }: PageProps) {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex justify-between text-sm mb-1">
-                <span>ความคืบหน้าการจับคู่</span>
+                <span>{t('bankReconciliation.reconcile.matchingProgress')}</span>
                 <span>
-                  จับคู่แล้ว {statement.matchedCount} / {statement.lines.length} รายการ
+                  {t('bankReconciliation.reconcile.matchedProgress', { matched: statement.matchedCount, total: statement.lines.length })}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -407,7 +406,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         {/* Statement Lines */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b">
-            <h2 className="text-lg font-medium">รายการในใบแจ้งยอด</h2>
+            <h2 className="text-lg font-medium">{t('bankReconciliation.reconcile.statementLines')}</h2>
           </div>
           <StatementLineGrid
             lines={statement.lines}
@@ -432,7 +431,7 @@ export default function ReconciliationPage({ params }: PageProps) {
         <Popup
           visible={showJournalDialog}
           onHiding={() => setShowJournalDialog(false)}
-          title="สร้างรายการบันทึกค่าธรรมเนียมธนาคาร"
+          title={t('bankReconciliation.reconcile.journalDialogTitle')}
           width={500}
           height={350}
           showCloseButton={true}
@@ -440,7 +439,7 @@ export default function ReconciliationPage({ params }: PageProps) {
           <div className="p-4">
             {selectedLine && (
               <div className="bg-gray-50 rounded p-3 mb-4">
-                <div className="text-sm text-gray-500">จำนวนเงิน</div>
+                <div className="text-sm text-gray-500">{t('bankReconciliation.reconcile.amount')}</div>
                 <div className="text-lg font-bold text-red-600">
                   -{selectedLine.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                 </div>
@@ -450,7 +449,7 @@ export default function ReconciliationPage({ params }: PageProps) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ประเภทค่าธรรมเนียม
+                  {t('bankReconciliation.reconcile.chargeTypeLabel')}
                 </label>
                 <SelectBox
                   items={chargeTypes}
@@ -465,7 +464,7 @@ export default function ReconciliationPage({ params }: PageProps) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  บัญชีค่าใช้จ่าย
+                  {t('bankReconciliation.reconcile.expenseAccountLabel')}
                 </label>
                 <SelectBox
                   items={expenseAccounts}
@@ -478,13 +477,13 @@ export default function ReconciliationPage({ params }: PageProps) {
                     setJournalData({ ...journalData, accountId: e.value })
                   }
                   searchEnabled={true}
-                  placeholder="เลือกบัญชีค่าใช้จ่าย"
+                  placeholder={t('bankReconciliation.reconcile.expenseAccountPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  รายละเอียด
+                  {t('bankReconciliation.reconcile.descriptionLabel')}
                 </label>
                 <TextBox
                   value={journalData.description}
@@ -496,9 +495,9 @@ export default function ReconciliationPage({ params }: PageProps) {
             </div>
 
             <div className="flex justify-end gap-2 mt-6">
-              <Button text="ยกเลิก" onClick={() => setShowJournalDialog(false)} />
+              <Button text={t('bankReconciliation.reconcile.cancel')} onClick={() => setShowJournalDialog(false)} />
               <Button
-                text={processing ? 'กำลังสร้าง...' : 'สร้างรายการบันทึก'}
+                text={processing ? t('bankReconciliation.reconcile.creating') : t('bankReconciliation.reconcile.createJournal')}
                 type="success"
                 stylingMode="contained"
                 onClick={handleSubmitJournal}

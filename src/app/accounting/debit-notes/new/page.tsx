@@ -44,15 +44,14 @@ interface NoteLine {
   lineTotal: number;
 }
 
-const reasonCodes: { id: ReasonCode; text: string }[] = [
-  { id: 'price_adjustment', text: 'ปรับราคา' },
-  { id: 'quantity_adjustment', text: 'ปรับจำนวน' },
-  { id: 'other', text: 'อื่นๆ' },
-];
-
 function NewDebitNoteContent() {
   const t = useTranslations('accounting');
   const router = useRouter();
+  const reasonCodes: { id: ReasonCode; text: string }[] = [
+    { id: 'price_adjustment', text: t('debitNotes.reasons.price_adjustment') },
+    { id: 'quantity_adjustment', text: t('debitNotes.reasons.quantity_adjustment') },
+    { id: 'other', text: t('debitNotes.reasons.other') },
+  ];
   const searchParams = useSearchParams();
   const noteType = (searchParams.get('type') || 'ar_debit') as NoteType;
 
@@ -121,12 +120,12 @@ function NewDebitNoteContent() {
 
   const handleSave = async () => {
     if (!invoiceId) {
-      notify('กรุณาเลือกใบแจ้งหนี้', 'error', 3000);
+      notify(t('debitNotes.toast.selectInvoice'), 'error', 3000);
       return;
     }
 
     if (lines.length === 0) {
-      notify('กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ', 'error', 3000);
+      notify(t('debitNotes.toast.atLeastOneLine'), 'error', 3000);
       return;
     }
 
@@ -155,14 +154,14 @@ function NewDebitNoteContent() {
       const data = await response.json();
 
       if (data.success) {
-        notify('สร้างใบเพิ่มหนี้สำเร็จ', 'success', 3000);
+        notify(t('debitNotes.toast.createSuccess'), 'success', 3000);
         router.push(`/accounting/debit-notes/${data.id}`);
       } else {
-        notify(data.error || 'ไม่สามารถสร้างใบเพิ่มหนี้ได้', 'error', 3000);
+        notify(data.error || t('debitNotes.toast.createFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error creating debit note:', error);
-      notify('ไม่สามารถสร้างใบเพิ่มหนี้ได้', 'error', 3000);
+      notify(t('debitNotes.toast.createFailed'), 'error', 3000);
     } finally {
       setSaving(false);
     }
@@ -181,23 +180,23 @@ function NewDebitNoteContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รหัสใบแจ้งหนี้{noteType.startsWith('ar_') ? 'ลูกค้า' : 'ผู้ขาย'} *
+                {noteType.startsWith('ar_') ? t('debitNotes.form.arInvoiceId') : t('debitNotes.form.apInvoiceId')} *
               </label>
               <NumberBox
                 value={invoiceId || undefined}
                 onValueChanged={(e) => setInvoiceId(e.value)}
-                placeholder="กรอกรหัสใบแจ้งหนี้"
+                placeholder={t('debitNotes.form.invoiceIdPlaceholder')}
                 width="100%"
               />
               {invoiceInfo && (
                 <div className="mt-1 text-sm text-gray-600">
-                  ใบแจ้งหนี้: {invoiceInfo.invoiceNumber}
+                  {t('debitNotes.form.invoiceInfo', { invoiceNumber: invoiceInfo.invoiceNumber })}
                 </div>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                วันที่ *
+                {t('debitNotes.form.date')} *
               </label>
               <DateBox
                 value={noteDate}
@@ -208,7 +207,7 @@ function NewDebitNoteContent() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                เหตุผล *
+                {t('debitNotes.form.reason')} *
               </label>
               <SelectBox
                 items={reasonCodes}
@@ -224,23 +223,23 @@ function NewDebitNoteContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รายละเอียดเหตุผล
+                {t('debitNotes.form.reasonDescription')}
               </label>
               <TextBox
                 value={reasonDescription}
                 onValueChanged={(e) => setReasonDescription(e.value || '')}
-                placeholder="กรอกคำอธิบายเหตุผล"
+                placeholder={t('debitNotes.form.reasonDescriptionPlaceholder')}
                 width="100%"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                หมายเหตุ
+                {t('debitNotes.form.notes')}
               </label>
               <TextArea
                 value={notes}
                 onValueChanged={(e) => setNotes(e.value || '')}
-                placeholder="หมายเหตุเพิ่มเติม"
+                placeholder={t('debitNotes.form.notesPlaceholder')}
                 width="100%"
                 height={60}
               />
@@ -250,9 +249,9 @@ function NewDebitNoteContent() {
           {/* Lines */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-medium text-gray-800">รายการ</h3>
+              <h3 className="text-lg font-medium text-gray-800">{t('debitNotes.form.lines')}</h3>
               <Button
-                text="เพิ่มรายการ"
+                text={t('debitNotes.form.addLine')}
                 icon="plus"
                 stylingMode="outlined"
                 onClick={addLine}
@@ -262,10 +261,10 @@ function NewDebitNoteContent() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">จำนวน</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">ราคาต่อหน่วย</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">รวมรายการ</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.description')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('debitNotes.columns.quantity')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('debitNotes.columns.unitPrice')}</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">{t('debitNotes.columns.lineTotal')}</th>
                     <th className="px-4 py-2 w-16"></th>
                   </tr>
                 </thead>
@@ -276,7 +275,7 @@ function NewDebitNoteContent() {
                         <TextBox
                           value={line.description}
                           onValueChanged={(e) => updateLine(index, 'description', e.value || '')}
-                          placeholder="รายละเอียด"
+                          placeholder={t('debitNotes.columns.description')}
                           width="100%"
                         />
                       </td>
@@ -314,21 +313,21 @@ function NewDebitNoteContent() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-gray-50">
-                    <td colSpan={3} className="px-4 py-2 text-right font-medium">ยอดรวมย่อย:</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-medium">{t('debitNotes.form.subtotal')}:</td>
                     <td className="px-4 py-2 text-right font-medium">
                       {calculateTotal().toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-gray-50">
-                    <td colSpan={3} className="px-4 py-2 text-right font-medium">ภาษีมูลค่าเพิ่ม (7%):</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-medium">{t('debitNotes.form.vatFixed')}:</td>
                     <td className="px-4 py-2 text-right font-medium">
                       {(calculateTotal() * 0.07).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-gray-100">
-                    <td colSpan={3} className="px-4 py-2 text-right font-bold">รวมทั้งสิ้น:</td>
+                    <td colSpan={3} className="px-4 py-2 text-right font-bold">{t('debitNotes.form.grandTotal')}:</td>
                     <td className="px-4 py-2 text-right font-bold text-lg">
                       {(calculateTotal() * 1.07).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </td>
@@ -342,12 +341,12 @@ function NewDebitNoteContent() {
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button
-              text="ยกเลิก"
+              text={t('debitNotes.actions.cancel')}
               stylingMode="outlined"
               onClick={() => router.push('/accounting/debit-notes')}
             />
             <Button
-              text="บันทึกใบร่าง"
+              text={t('debitNotes.actions.saveDraft')}
               type="default"
               stylingMode="contained"
               onClick={handleSave}

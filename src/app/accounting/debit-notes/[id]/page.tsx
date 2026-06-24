@@ -45,11 +45,11 @@ export default function DebitNoteDetailPage({
       if (data.success) {
         setNote(data.data);
       } else {
-        notify(data.error || 'ไม่สามารถโหลดใบเพิ่มหนี้ได้', 'error', 3000);
+        notify(data.error || t('debitNotes.toast.loadFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error fetching note:', error);
-      notify('ไม่สามารถโหลดใบเพิ่มหนี้ได้', 'error', 3000);
+      notify(t('debitNotes.toast.loadFailed'), 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -68,14 +68,14 @@ export default function DebitNoteDetailPage({
       const data = await response.json();
 
       if (data.success) {
-        notify(`ลงบัญชีใบเพิ่มหนี้แล้ว เลขที่รายการบันทึกบัญชี: ${data.journalEntryNumber}`, 'success', 3000);
+        notify(t('debitNotes.toast.postSuccess', { journalEntryNumber: data.journalEntryNumber }), 'success', 3000);
         fetchNote();
       } else {
-        notify(data.error || 'ไม่สามารถลงบัญชีได้', 'error', 3000);
+        notify(data.error || t('debitNotes.toast.postFailed'), 'error', 3000);
       }
     } catch (error) {
       console.error('Error posting:', error);
-      notify('ไม่สามารถลงบัญชีได้', 'error', 3000);
+      notify(t('debitNotes.toast.postFailed'), 'error', 3000);
     } finally {
       setActionLoading(false);
     }
@@ -93,7 +93,7 @@ export default function DebitNoteDetailPage({
     return (
         <div className="p-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            ไม่พบใบเพิ่มหนี้
+            {t('debitNotes.empty.notFound')}
           </div>
         </div>
     );
@@ -117,13 +117,13 @@ export default function DebitNoteDetailPage({
               {t('page.title')}: {note.noteNumber}
             </h1>
             <span className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[note.status]}`}>
-              {note.status}
+              {t(`debitNotes.status.${note.status}`)}
             </span>
           </div>
           <div className="flex gap-2">
             {note.status === 'approved' && (
               <Button
-                text="ลงบัญชีแยกประเภท"
+                text={t('debitNotes.actions.post')}
                 type="success"
                 stylingMode="contained"
                 onClick={handlePost}
@@ -131,7 +131,7 @@ export default function DebitNoteDetailPage({
               />
             )}
             <Button
-              text="กลับสู่รายการ"
+              text={t('debitNotes.actions.backToList')}
               stylingMode="outlined"
               onClick={() => router.push('/accounting/debit-notes')}
             />
@@ -141,11 +141,11 @@ export default function DebitNoteDetailPage({
         {/* Status Stepper */}
         <div className="mb-6">
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t('debitNotes.stepper.title')}
             steps={[
-              { key: 'draft', label: 'ร่าง' },
-              { key: 'submitted', label: 'ส่งอนุมัติ' },
-              { key: 'approved', label: 'อนุมัติแล้ว' },
+              { key: 'draft', label: t('debitNotes.status.draft') },
+              { key: 'submitted', label: t('debitNotes.status.submitted') },
+              { key: 'approved', label: t('debitNotes.status.approved') },
             ]}
             current={String(note.status).toLowerCase()}
           />
@@ -153,48 +153,48 @@ export default function DebitNoteDetailPage({
 
         {/* Note Details */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">รายละเอียดใบ</h2>
+          <h2 className="text-lg font-medium text-gray-800 mb-4">{t('debitNotes.detail.noteDetails')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <span className="text-sm text-gray-500">ประเภทใบ:</span>
-              <p className="font-medium">{note.noteType === 'ar_debit' ? 'ใบเพิ่มหนี้ลูกหนี้' : 'ใบเพิ่มหนี้เจ้าหนี้'}</p>
+              <span className="text-sm text-gray-500">{t('debitNotes.form.noteType')}:</span>
+              <p className="font-medium">{note.noteType === 'ar_debit' ? t('debitNotes.filters.arDebit') : t('debitNotes.filters.apDebit')}</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">วันที่:</span>
+              <span className="text-sm text-gray-500">{t('debitNotes.form.date')}:</span>
               <p className="font-medium">{formatDate(note.noteDate)}</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">ใบแจ้งหนี้อ้างอิง:</span>
+              <span className="text-sm text-gray-500">{t('debitNotes.form.referenceInvoice')}:</span>
               <p className="font-medium">{note.referenceInvoiceNumber || '-'}</p>
             </div>
             {note.noteType.startsWith('ar_') ? (
               <div>
-                <span className="text-sm text-gray-500">ลูกค้า:</span>
+                <span className="text-sm text-gray-500">{t('debitNotes.form.customer')}:</span>
                 <p className="font-medium">{note.customerName || '-'}</p>
               </div>
             ) : (
               <div>
-                <span className="text-sm text-gray-500">ผู้ขาย:</span>
+                <span className="text-sm text-gray-500">{t('debitNotes.form.vendor')}:</span>
                 <p className="font-medium">{note.vendorName || '-'}</p>
               </div>
             )}
             <div>
-              <span className="text-sm text-gray-500">เหตุผล:</span>
+              <span className="text-sm text-gray-500">{t('debitNotes.form.reason')}:</span>
               <p className="font-medium">{note.reasonCode}</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">รายละเอียดเหตุผล:</span>
+              <span className="text-sm text-gray-500">{t('debitNotes.form.reasonDescription')}:</span>
               <p className="font-medium">{note.reasonDescription || '-'}</p>
             </div>
             {note.journalEntryNumber && (
               <div>
-                <span className="text-sm text-gray-500">รายการบัญชี:</span>
+                <span className="text-sm text-gray-500">{t('debitNotes.detail.journalEntry')}:</span>
                 <p className="font-medium">{note.journalEntryNumber}</p>
               </div>
             )}
             {note.postedAt && (
               <div>
-                <span className="text-sm text-gray-500">ลงบัญชีเมื่อ:</span>
+                <span className="text-sm text-gray-500">{t('debitNotes.detail.postedAt')}:</span>
                 <p className="font-medium">{formatDate(note.postedAt)}</p>
               </div>
             )}
@@ -203,17 +203,17 @@ export default function DebitNoteDetailPage({
 
         {/* Lines */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">รายการ</h2>
+          <h2 className="text-lg font-medium text-gray-800 mb-4">{t('debitNotes.form.lines')}</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">รายละเอียด</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">บัญชีแยกประเภท</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">จำนวน</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">ราคาต่อหน่วย</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">รวมรายการ</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.description')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.glAccount')}</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.quantity')}</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.unitPrice')}</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t('debitNotes.columns.lineTotal')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -230,15 +230,15 @@ export default function DebitNoteDetailPage({
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
-                  <td colSpan={5} className="px-4 py-2 text-right font-medium">ยอดรวมย่อย:</td>
+                  <td colSpan={5} className="px-4 py-2 text-right font-medium">{t('debitNotes.form.subtotal')}:</td>
                   <td className="px-4 py-2 text-right font-medium">{formatAmount(note.subtotal)}</td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td colSpan={5} className="px-4 py-2 text-right font-medium">ภาษีมูลค่าเพิ่ม ({(note.vatRate * 100).toFixed(0)}%):</td>
+                  <td colSpan={5} className="px-4 py-2 text-right font-medium">{t('debitNotes.form.vat', { rate: (note.vatRate * 100).toFixed(0) })}</td>
                   <td className="px-4 py-2 text-right font-medium">{formatAmount(note.vatAmount)}</td>
                 </tr>
                 <tr className="bg-gray-100">
-                  <td colSpan={5} className="px-4 py-2 text-right font-bold">รวมทั้งสิ้น:</td>
+                  <td colSpan={5} className="px-4 py-2 text-right font-bold">{t('debitNotes.form.grandTotal')}:</td>
                   <td className="px-4 py-2 text-right font-bold text-lg">{formatAmount(note.totalAmount)}</td>
                 </tr>
               </tfoot>

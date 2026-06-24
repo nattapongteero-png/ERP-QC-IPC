@@ -100,7 +100,7 @@ export default function DebitNotesPage() {
       <div className="flex gap-1">
         <Button
           icon="search"
-          hint="ดู"
+          hint={t('debitNotes.actions.view')}
           stylingMode="text"
           onClick={() => handleViewNote(note.id)}
         />
@@ -123,7 +123,7 @@ export default function DebitNotesPage() {
             {t('page.title')}
           </h1>
           <p className="text-gray-600">
-            จัดการใบเพิ่มหนี้สำหรับลูกค้าและผู้ขาย
+            {t('debitNotes.description')}
           </p>
         </div>
 
@@ -138,17 +138,17 @@ export default function DebitNotesPage() {
             columnAutoWidth={true}
             data-testid="notes-grid"
           >
-            <SearchPanel visible={true} placeholder="ค้นหาใบเพิ่มหนี้..." />
+            <SearchPanel visible={true} placeholder={t('debitNotes.filters.searchPlaceholder')} />
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">ใบเพิ่มหนี้</span>
+                <span className="text-lg font-medium">{t('debitNotes.title')}</span>
               </Item>
               <Item location="before">
                 <SelectBox
                   items={[
-                    { id: 'ar_debit', text: 'ใบเพิ่มหนี้ลูกหนี้' },
-                    { id: 'ap_debit', text: 'ใบเพิ่มหนี้เจ้าหนี้' },
+                    { id: 'ar_debit', text: t('debitNotes.filters.arDebit') },
+                    { id: 'ap_debit', text: t('debitNotes.filters.apDebit') },
                   ]}
                   displayExpr="text"
                   valueExpr="id"
@@ -159,7 +159,7 @@ export default function DebitNotesPage() {
               </Item>
               <Item location="after">
                 <Button
-                  text="สร้างใบเพิ่มหนี้"
+                  text={t('debitNotes.actions.new')}
                   icon="plus"
                   type="default"
                   stylingMode="contained"
@@ -171,55 +171,55 @@ export default function DebitNotesPage() {
 
             <Column
               dataField="noteNumber"
-              caption="เลขที่ใบ"
+              caption={t('debitNotes.columns.noteNumber')}
               width={160}
             />
             <Column
               dataField="noteType"
-              caption="ประเภท"
+              caption={t('debitNotes.columns.noteType')}
               width={100}
               cellRender={renderNoteType}
             />
             <Column
               dataField="noteDate"
-              caption="วันที่"
+              caption={t('debitNotes.columns.noteDate')}
               dataType="date"
               width={100}
               cellRender={formatDate}
             />
             <Column
               dataField="customerName"
-              caption="ลูกค้า"
+              caption={t('debitNotes.columns.customer')}
               minWidth={150}
               visible={noteTypeFilter === 'ar_debit'}
             />
             <Column
               dataField="vendorName"
-              caption="ผู้ขาย"
+              caption={t('debitNotes.columns.vendor')}
               minWidth={150}
               visible={noteTypeFilter === 'ap_debit'}
             />
             <Column
               dataField="referenceInvoiceNumber"
-              caption="อ้างอิงใบแจ้งหนี้"
+              caption={t('debitNotes.columns.referenceInvoice')}
               width={140}
             />
             <Column
               dataField="totalAmount"
-              caption="จำนวนเงิน"
+              caption={t('debitNotes.columns.amount')}
               width={120}
               alignment="right"
               cellRender={renderAmount}
             />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t('debitNotes.columns.status')}
               width={110}
               alignment="center"
               cellRender={renderStatus}
             />
             <Column
-              caption="การดำเนินการ"
+              caption={t('debitNotes.columns.actions')}
               width={80}
               alignment="center"
               cellRender={renderActions}

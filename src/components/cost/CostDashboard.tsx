@@ -7,6 +7,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { FinancialHealthSection } from './FinancialHealthSection';
 import { MaterialCostSection } from './MaterialCostSection';
@@ -33,6 +34,7 @@ async function fetchDashboardKPIs(periodType: string, fromDate?: string, toDate?
 }
 
 export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: CostDashboardProps) {
+  const t = useTranslations('cost');
   const { data, isLoading, error } = useQuery({
     queryKey: ['executive-dashboard-kpis', periodType, fromDate, toDate],
     queryFn: () => fetchDashboardKPIs(periodType, fromDate, toDate),
@@ -43,7 +45,7 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
     return (
       <div className="flex items-center justify-center p-8" data-testid="cost-dashboard-loading">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">กำลังโหลดแดชบอร์ด...</span>
+        <span className="ml-2 text-gray-500">{t('executiveDashboard.loading')}</span>
       </div>
     );
   }
@@ -51,7 +53,7 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
   if (error) {
     return (
       <div className="p-4 text-red-500 bg-red-50 rounded-lg" data-testid="cost-dashboard-error">
-        ไม่สามารถโหลดข้อมูลแดชบอร์ดได้ กรุณาลองใหม่อีกครั้ง
+        {t('executiveDashboard.loadError')}
       </div>
     );
   }
@@ -64,8 +66,8 @@ export function CostDashboard({ periodType = 'this_month', fromDate, toDate }: C
     <div className="space-y-6" data-testid="cost-dashboard">
       {/* Period Info */}
       <div className="text-sm text-gray-500">
-        แสดงข้อมูลของ: <span className="font-medium">{data.period.label}</span>
-        {' '}(เทียบกับ {data.priorPeriod.label})
+        {t('executiveDashboard.periodInfo')} <span className="font-medium">{data.period.label}</span>
+        {' '}{t('executiveDashboard.comparedTo', { label: data.priorPeriod.label })}
       </div>
 
       {/* Section 1: Financial Health KPIs */}

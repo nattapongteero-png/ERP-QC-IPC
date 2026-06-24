@@ -246,12 +246,12 @@ export default function ARInvoicesPage() {
     mutationFn: createARInvoice,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify(`สร้างใบแจ้งหนี้สำเร็จ (Tax Invoice: ${data.taxInvoiceNumber})`, 'success', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.createSuccess', { taxInvoiceNumber: data.taxInvoiceNumber }), 'success', 3000);
       setIsDialogOpen(false);
       resetForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถสร้างใบแจ้งหนี้ได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.createError'), 'error', 4000);
     },
   });
 
@@ -259,10 +259,10 @@ export default function ARInvoicesPage() {
     mutationFn: confirmInvoice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify('ยืนยันใบแจ้งหนี้และบันทึกรายการบัญชีแล้ว', 'success', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.confirmSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถยืนยันใบแจ้งหนี้ได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.confirmError'), 'error', 4000);
     },
   });
 
@@ -271,12 +271,12 @@ export default function ARInvoicesPage() {
       receivePayment(invoiceId, data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify(`รับชำระเงินสำเร็จ (Receipt: ${result.payment.paymentNumber})`, 'success', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.paymentSuccess', { receiptNumber: result.payment.paymentNumber }), 'success', 3000);
       setIsPaymentDialogOpen(false);
       setSelectedInvoice(null);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถรับชำระเงินได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.paymentError'), 'error', 4000);
     },
   });
 
@@ -290,10 +290,10 @@ export default function ARInvoicesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify('ลบใบแจ้งหนี้สำเร็จ', 'success', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.deleteSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถลบใบแจ้งหนี้ได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.deleteError'), 'error', 4000);
     },
   });
 
@@ -312,13 +312,13 @@ export default function ARInvoicesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify('แก้ไขใบแจ้งหนี้สำเร็จ', 'success', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.updateSuccess'), 'success', 3000);
       setIsDialogOpen(false);
       setEditingInvoiceId(null);
       resetForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถแก้ไขใบแจ้งหนี้ได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.updateError'), 'error', 4000);
     },
   });
 
@@ -349,7 +349,7 @@ export default function ARInvoicesPage() {
 
   const handleSave = useCallback(() => {
     if (!formData.customerId || !formData.invoiceNumber) {
-      notify('กรุณากรอกข้อมูลให้ครบ', 'warning', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.fillRequired'), 'warning', 3000);
       return;
     }
 
@@ -358,7 +358,7 @@ export default function ARInvoicesPage() {
     );
 
     if (validLines.length === 0) {
-      notify('กรุณาเพิ่มรายการอย่างน้อย 1 รายการ', 'warning', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.addAtLeastOneLine'), 'warning', 3000);
       return;
     }
 
@@ -383,21 +383,22 @@ export default function ARInvoicesPage() {
     } else {
       createMutation.mutate(payload);
     }
-  }, [formData, createMutation, updateMutation, editingInvoiceId]);
+  }, [formData, createMutation, updateMutation, editingInvoiceId, t]);
 
   const handleConfirm = useCallback(
     async (invoice: ARInvoice) => {
       const result = await confirm(
-        `คุณต้องการยืนยันใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?<br/>` +
-          `<strong>Tax Invoice: ${invoice.taxInvoiceNumber}</strong><br/>` +
-          `ระบบจะสร้างรายการบันทึกบัญชีและ Output VAT อัตโนมัติ`,
-        'ยืนยันใบแจ้งหนี้'
+        t('accountsReceivable.invoicesPage.confirmInvoice.message', {
+          invoiceNumber: invoice.invoiceNumber,
+          taxInvoiceNumber: invoice.taxInvoiceNumber,
+        }),
+        t('accountsReceivable.invoicesPage.confirmInvoice.title')
       );
       if (result) {
         confirmMutation.mutate(invoice.id);
       }
     },
-    [confirmMutation]
+    [confirmMutation, t]
   );
 
   const handleEdit = useCallback(async (invoice: ARInvoice) => {
@@ -436,21 +437,21 @@ export default function ARInvoicesPage() {
       setEditingInvoiceId(invoice.id);
       setIsDialogOpen(true);
     } catch (err: any) {
-      notify(err.message || 'ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้', 'error', 4000);
+      notify(err.message || t('accountsReceivable.invoicesPage.toast.loadError'), 'error', 4000);
     }
-  }, []);
+  }, [t]);
 
   const handleDelete = useCallback(
     async (invoice: ARInvoice) => {
       const result = await confirm(
-        `คุณต้องการลบใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
-        'ยืนยันการลบ'
+        t('accountsReceivable.invoicesPage.confirmDelete.message', { invoiceNumber: invoice.invoiceNumber }),
+        t('accountsReceivable.invoicesPage.confirmDelete.title')
       );
       if (result) {
         deleteMutation.mutate(invoice.id);
       }
     },
-    [deleteMutation]
+    [deleteMutation, t]
   );
 
   const handleOpenPaymentDialog = useCallback((invoice: ARInvoice) => {
@@ -474,12 +475,12 @@ export default function ARInvoicesPage() {
 
   const handleReceivePayment = useCallback(() => {
     if (!selectedInvoice || !paymentFormData.bankAccountId) {
-      notify('กรุณาเลือกบัญชีรับชำระ', 'warning', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.selectPaymentAccount'), 'warning', 3000);
       return;
     }
 
     if (paymentFormData.amount <= 0) {
-      notify('จำนวนเงินต้องมากกว่า 0', 'warning', 3000);
+      notify(t('accountsReceivable.invoicesPage.toast.amountMustBePositive'), 'warning', 3000);
       return;
     }
 
@@ -494,7 +495,7 @@ export default function ARInvoicesPage() {
         description: paymentFormData.description || undefined,
       },
     });
-  }, [selectedInvoice, paymentFormData, paymentMutation]);
+  }, [selectedInvoice, paymentFormData, paymentMutation, t]);
 
   const addLine = useCallback(() => {
     setFormData((prev) => ({
@@ -555,20 +556,20 @@ export default function ARInvoicesPage() {
             <>
               <Button
                 icon="edit"
-                hint="แก้ไข"
+                hint={t('accountsReceivable.invoicesPage.actions.edit')}
                 stylingMode="text"
                 height={28}
                 onClick={() => handleEdit(invoice)}
               />
               <Button
                 icon="trash"
-                hint="ลบ"
+                hint={t('accountsReceivable.invoicesPage.actions.delete')}
                 stylingMode="text"
                 height={28}
                 onClick={() => handleDelete(invoice)}
               />
               <Button
-                text="ยืนยัน"
+                text={t('accountsReceivable.invoicesPage.actions.confirm')}
                 type="success"
                 stylingMode="outlined"
                 height={24}
@@ -578,7 +579,7 @@ export default function ARInvoicesPage() {
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
-              text="รับชำระ"
+              text={t('accountsReceivable.invoicesPage.actions.receivePayment')}
               type="default"
               stylingMode="outlined"
               height={24}
@@ -588,7 +589,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog]
+    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, t]
   );
 
   // Calculate stats
@@ -620,13 +621,13 @@ export default function ARInvoicesPage() {
         icon="dollar-sign"
         onBack={() => window.location.href = '/accounting/ar'}
         breadcrumbs={[
-          { label: 'ลูกหนี้การค้า', href: '/accounting/ar' },
+          { label: t('accountsReceivable.title'), href: '/accounting/ar' },
           { label: t('accountsReceivable.invoices.title') },
         ]}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['ar-invoices'] })}
         actions={
           <Button
-            text="เพิ่มใบแจ้งหนี้"
+            text={t('accountsReceivable.invoicesPage.addInvoice')}
             icon="plus"
             type="success"
             onClick={handleOpenDialog}
@@ -639,30 +640,30 @@ export default function ARInvoicesPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <AccountingKPICard
-            label="รายการทั้งหมด"
+            label={t('accountsReceivable.invoicesPage.kpi.total')}
             value={stats.total.toLocaleString('th-TH')}
             subtitle={`฿${stats.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
             icon="file-text"
             variant="info"
           />
           <AccountingKPICard
-            label="รอดำเนินการ"
+            label={t('accountsReceivable.invoicesPage.kpi.pending')}
             value={stats.pending.toLocaleString('th-TH')}
-            subtitle="รอการยืนยัน"
+            subtitle={t('accountsReceivable.invoicesPage.kpi.pendingSubtitle')}
             icon="clock"
             variant="warning"
           />
           <AccountingKPICard
-            label="ค้างรับ"
+            label={t('accountsReceivable.invoicesPage.kpi.outstanding')}
             value={stats.outstanding.toLocaleString('th-TH')}
             subtitle={`฿${stats.outstandingAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}
             icon="dollar-sign"
             variant="danger"
           />
           <AccountingKPICard
-            label="ชำระแล้ว"
+            label={t('accountsReceivable.invoicesPage.kpi.paid')}
             value={stats.paid.toLocaleString('th-TH')}
-            subtitle="เสร็จสมบูรณ์"
+            subtitle={t('accountsReceivable.invoicesPage.kpi.paidSubtitle')}
             icon="check-circle"
             variant="success"
           />
@@ -673,21 +674,21 @@ export default function ARInvoicesPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                สถานะ
+                {t('accountsReceivable.invoicesPage.filters.statusLabel')}
               </label>
               <SelectBox
                 dataSource={[
-                  { value: '', label: 'ทั้งหมด' },
-                  { value: 'draft', label: 'ร่าง' },
-                  { value: 'posted', label: 'ลงบัญชี' },
-                  { value: 'partial', label: 'รับบางส่วน' },
-                  { value: 'paid', label: 'ชำระแล้ว' },
+                  { value: '', label: t('accountsReceivable.invoicesPage.filters.all') },
+                  { value: 'draft', label: t('accountsReceivable.invoicesPage.statusLabels.draft') },
+                  { value: 'posted', label: t('accountsReceivable.invoicesPage.statusLabels.posted') },
+                  { value: 'partial', label: t('accountsReceivable.invoicesPage.statusLabels.partial') },
+                  { value: 'paid', label: t('accountsReceivable.invoicesPage.statusLabels.paid') },
                 ]}
                 displayExpr="label"
                 valueExpr="value"
                 value={statusFilter}
                 onValueChanged={(e) => setStatusFilter(e.value)}
-                placeholder="กรองสถานะ"
+                placeholder={t('accountsReceivable.invoicesPage.filters.statusPlaceholder')}
                 width={200}
               />
             </div>
@@ -715,7 +716,7 @@ export default function ARInvoicesPage() {
             allowedPageSizes={[10, 20, 50]}
             showInfo={true}
           />
-          <SearchPanel visible={true} placeholder="ค้นหา..." />
+          <SearchPanel visible={true} placeholder={t('accountsReceivable.invoicesPage.searchPlaceholder')} />
           <Sorting mode="multiple" />
 
           <Toolbar>
@@ -736,15 +737,15 @@ export default function ARInvoicesPage() {
               </span>
             )}
           />
-          <Column dataField="invoiceNumber" caption="เลขที่ใบแจ้งหนี้" width={150} />
-          <Column dataField="taxInvoiceNumber" caption="เลขที่ใบกำกับภาษี" width={160} />
-          <Column dataField="customerId" caption="ลูกค้า" width={150} visible={false} />
-          <Column dataField="invoiceDate" caption="วันที่" dataType="date" width={110} />
-          <Column dataField="dueDate" caption="วันครบกำหนด" dataType="date" width={110} />
-          <Column dataField="description" caption="รายละเอียด" minWidth={150} />
+          <Column dataField="invoiceNumber" caption={t('accountsReceivable.invoices.table.columns.invoiceNumber')} width={150} />
+          <Column dataField="taxInvoiceNumber" caption={t('accountsReceivable.invoicesPage.columns.taxInvoiceNumber')} width={160} />
+          <Column dataField="customerId" caption={t('accountsReceivable.invoices.table.columns.customer')} width={150} visible={false} />
+          <Column dataField="invoiceDate" caption={t('accountsReceivable.invoicesPage.columns.date')} dataType="date" width={110} />
+          <Column dataField="dueDate" caption={t('accountsReceivable.invoices.table.columns.dueDate')} dataType="date" width={110} />
+          <Column dataField="description" caption={t('accountsReceivable.invoicesPage.columns.description')} minWidth={150} />
           <Column
             dataField="totalAmount"
-            caption="ยอดรวม"
+            caption={t('accountsReceivable.invoicesPage.columns.totalAmount')}
             dataType="number"
             width={120}
             alignment="right"
@@ -753,7 +754,7 @@ export default function ARInvoicesPage() {
           </Column>
           <Column
             dataField="paidAmount"
-            caption="รับแล้ว"
+            caption={t('accountsReceivable.invoicesPage.columns.paidAmount')}
             dataType="number"
             width={120}
             alignment="right"
@@ -762,12 +763,12 @@ export default function ARInvoicesPage() {
           </Column>
           <Column
             dataField="status"
-            caption="สถานะ"
+            caption={t('accountsReceivable.invoices.table.columns.status')}
             width={120}
             cellRender={statusCellRender}
           />
           <Column
-            caption="การดำเนินการ"
+            caption={t('accountsReceivable.invoicesPage.columns.actions')}
             width={200}
             cellRender={actionsCellRender}
             allowFiltering={false}
@@ -775,7 +776,7 @@ export default function ARInvoicesPage() {
           />
 
           <Summary>
-            <TotalItem column="totalAmount" summaryType="sum" displayFormat="รวม: {0}">
+            <TotalItem column="totalAmount" summaryType="sum" displayFormat={t('accountsReceivable.invoicesPage.summaryTotal')}>
               <Format type="fixedPoint" precision={2} />
             </TotalItem>
           </Summary>
@@ -786,7 +787,7 @@ export default function ARInvoicesPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseDialog}
-          title={editingInvoiceId ? 'แก้ไขใบแจ้งหนี้ขาย' : 'สร้างใบแจ้งหนี้ขาย'}
+          title={editingInvoiceId ? t('accountsReceivable.invoicesPage.dialog.editTitle') : t('accountsReceivable.invoicesPage.dialog.createTitle')}
           width={800}
           height="auto"
           showCloseButton={true}
@@ -797,15 +798,15 @@ export default function ARInvoicesPage() {
             <GroupItem colCount={3}>
               <SimpleItem
                 dataField="invoiceNumber"
-                label={{ text: 'เลขที่ใบแจ้งหนี้' }}
+                label={{ text: t('accountsReceivable.invoicesPage.form.invoiceNumber') }}
                 editorOptions={{ placeholder: 'AR-YYYYMM-NNNNNN' }}
               >
-                <RequiredRule message="กรุณากรอกเลขที่ใบแจ้งหนี้" />
+                <RequiredRule message={t('accountsReceivable.invoicesPage.form.invoiceNumberRequired')} />
               </SimpleItem>
               <SimpleItem
                 dataField="customerId"
                 editorType="dxSelectBox"
-                label={{ text: 'ลูกค้า' }}
+                label={{ text: t('accountsReceivable.invoicesPage.form.customer') }}
                 editorOptions={{
                   dataSource: customers,
                   displayExpr: 'name',
@@ -813,31 +814,31 @@ export default function ARInvoicesPage() {
                   searchEnabled: true,
                 }}
               >
-                <RequiredRule message="กรุณาเลือกลูกค้า" />
+                <RequiredRule message={t('accountsReceivable.invoicesPage.form.customerRequired')} />
               </SimpleItem>
             </GroupItem>
             <GroupItem colCount={2}>
               <SimpleItem
                 dataField="invoiceDate"
                 editorType="dxDateBox"
-                label={{ text: 'วันที่ใบแจ้งหนี้' }}
+                label={{ text: t('accountsReceivable.invoicesPage.form.invoiceDate') }}
                 editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
               >
-                <RequiredRule message="กรุณาเลือกวันที่" />
+                <RequiredRule message={t('accountsReceivable.invoicesPage.form.dateRequired')} />
               </SimpleItem>
               <SimpleItem
                 dataField="dueDate"
                 editorType="dxDateBox"
-                label={{ text: 'วันครบกำหนดชำระ' }}
+                label={{ text: t('accountsReceivable.invoicesPage.form.dueDate') }}
                 editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
               >
-                <RequiredRule message="กรุณาเลือกวันครบกำหนด" />
+                <RequiredRule message={t('accountsReceivable.invoicesPage.form.dueDateRequired')} />
               </SimpleItem>
             </GroupItem>
             <SimpleItem
               dataField="description"
               editorType="dxTextArea"
-              label={{ text: 'รายละเอียด' }}
+              label={{ text: t('accountsReceivable.invoicesPage.form.description') }}
               editorOptions={{ height: 60 }}
             />
             </Form>
@@ -845,24 +846,24 @@ export default function ARInvoicesPage() {
             {/* Line Items */}
             <div className="mt-6">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold">รายการ</h3>
-              <Button text="เพิ่มรายการ" icon="plus" type="default" onClick={addLine} />
+              <h3 className="font-semibold">{t('accountsReceivable.invoicesPage.lineItems.title')}</h3>
+              <Button text={t('accountsReceivable.invoicesPage.lineItems.addLine')} icon="plus" type="default" onClick={addLine} />
             </div>
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border p-2 text-left">รายละเอียด</th>
+                  <th className="border p-2 text-left">{t('accountsReceivable.invoicesPage.lineItems.description')}</th>
                   <th className="border p-2 text-left" style={{ width: 200 }}>
-                    บัญชีรายได้
+                    {t('accountsReceivable.invoicesPage.lineItems.revenueAccount')}
                   </th>
                   <th className="border p-2 text-right" style={{ width: 80 }}>
-                    จำนวน
+                    {t('accountsReceivable.invoicesPage.lineItems.quantity')}
                   </th>
                   <th className="border p-2 text-right" style={{ width: 120 }}>
-                    ราคา/หน่วย
+                    {t('accountsReceivable.invoicesPage.lineItems.unitPrice')}
                   </th>
                   <th className="border p-2 text-right" style={{ width: 120 }}>
-                    รวม
+                    {t('accountsReceivable.invoicesPage.lineItems.lineTotal')}
                   </th>
                   <th className="border p-2" style={{ width: 50 }}></th>
                 </tr>
@@ -876,7 +877,7 @@ export default function ARInvoicesPage() {
                         className="w-full p-1 border rounded"
                         value={line.description}
                         onChange={(e) => updateLine(index, 'description', e.target.value)}
-                        placeholder="รายละเอียด"
+                        placeholder={t('accountsReceivable.invoicesPage.lineItems.description')}
                       />
                     </td>
                     <td className="border p-1">
@@ -887,7 +888,7 @@ export default function ARInvoicesPage() {
                           updateLine(index, 'glAccountId', e.target.value ? Number(e.target.value) : null)
                         }
                       >
-                        <option value="">เลือกบัญชี</option>
+                        <option value="">{t('accountsReceivable.invoicesPage.lineItems.selectAccount')}</option>
                         {glAccounts.map((acc) => (
                           <option key={acc.id} value={acc.id}>
                             {acc.code} - {acc.nameTh}
@@ -929,7 +930,7 @@ export default function ARInvoicesPage() {
               <tfoot>
                 <tr className="bg-gray-50">
                   <td colSpan={4} className="border p-2 text-right font-semibold">
-                    ยอดก่อน VAT
+                    {t('accountsReceivable.invoicesPage.lineItems.subtotalBeforeVat')}
                   </td>
                   <td className="border p-2 text-right font-semibold">
                     {lineTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
@@ -971,7 +972,7 @@ export default function ARInvoicesPage() {
                 </tr>
                 <tr className="bg-gray-100">
                   <td colSpan={4} className="border p-2 text-right font-bold">
-                    ยอดรวมสุทธิ
+                    {t('accountsReceivable.invoicesPage.lineItems.grandTotal')}
                   </td>
                   <td className="border p-2 text-right font-bold text-lg">
                     {(lineTotal + vatAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
@@ -984,9 +985,9 @@ export default function ARInvoicesPage() {
 
             {/* Dialog Actions */}
             <div className="mt-6 flex justify-end gap-2">
-              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ar-cancel-btn' }} />
+              <Button text={t('accountsReceivable.invoicesPage.dialog.cancel')} type="normal" stylingMode="outlined" onClick={handleCloseDialog} elementAttr={{ 'data-testid': 'ar-cancel-btn' }} />
               <Button
-                text={editingInvoiceId ? 'บันทึกการแก้ไข' : 'บันทึก'}
+                text={editingInvoiceId ? t('accountsReceivable.invoicesPage.dialog.saveEdit') : t('accountsReceivable.invoicesPage.dialog.save')}
                 type="success"
                 onClick={handleSave}
                 disabled={createMutation.isPending || updateMutation.isPending}
@@ -1000,7 +1001,7 @@ export default function ARInvoicesPage() {
         <Popup
           visible={isPaymentDialogOpen}
           onHiding={handleClosePaymentDialog}
-          title={`รับชำระเงิน - ${selectedInvoice?.invoiceNumber || ''}`}
+          title={t('accountsReceivable.invoicesPage.paymentDialog.title', { invoiceNumber: selectedInvoice?.invoiceNumber || '' })}
           width={500}
           height="auto"
           showCloseButton={true}
@@ -1011,22 +1012,22 @@ export default function ARInvoicesPage() {
               <>
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>เลขที่ใบกำกับภาษี:</div>
+                    <div>{t('accountsReceivable.invoicesPage.paymentDialog.taxInvoiceNumber')}:</div>
                     <div className="font-semibold">{selectedInvoice.taxInvoiceNumber}</div>
-                    <div>ยอดรวม:</div>
+                    <div>{t('accountsReceivable.invoicesPage.paymentDialog.totalAmount')}:</div>
                     <div className="font-semibold">
-                      {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                      {selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsReceivable.invoicesPage.paymentDialog.baht')}
                     </div>
-                    <div>รับแล้ว:</div>
+                    <div>{t('accountsReceivable.invoicesPage.paymentDialog.received')}:</div>
                     <div className="font-semibold">
-                      {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                      {selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} {t('accountsReceivable.invoicesPage.paymentDialog.baht')}
                     </div>
-                    <div>ค้างรับ:</div>
+                    <div>{t('accountsReceivable.invoicesPage.paymentDialog.outstanding')}:</div>
                     <div className="font-bold text-orange-600">
                       {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', {
                         minimumFractionDigits: 2,
                       })}{' '}
-                      บาท
+                      {t('accountsReceivable.invoicesPage.paymentDialog.baht')}
                     </div>
                   </div>
                 </div>
@@ -1035,15 +1036,15 @@ export default function ARInvoicesPage() {
                   <SimpleItem
                     dataField="paymentDate"
                     editorType="dxDateBox"
-                    label={{ text: 'วันที่รับชำระ' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.paymentDate') }}
                     editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
                   >
-                    <RequiredRule message="กรุณาเลือกวันที่" />
+                    <RequiredRule message={t('accountsReceivable.invoicesPage.form.dateRequired')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="bankAccountId"
                     editorType="dxSelectBox"
-                    label={{ text: 'บัญชีรับเงิน' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.bankAccount') }}
                     editorOptions={{
                       dataSource: bankAccounts,
                       displayExpr: (item: BankAccount) => item ? `${item.code} - ${item.nameTh}` : '',
@@ -1051,18 +1052,18 @@ export default function ARInvoicesPage() {
                       searchEnabled: true,
                     }}
                   >
-                    <RequiredRule message="กรุณาเลือกบัญชี" />
+                    <RequiredRule message={t('accountsReceivable.invoicesPage.paymentDialog.bankAccountRequired')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="paymentMethod"
                     editorType="dxSelectBox"
-                    label={{ text: 'วิธีการรับชำระ' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.paymentMethod') }}
                     editorOptions={{
                       dataSource: [
-                        { value: 'transfer', label: 'โอนเงิน' },
-                        { value: 'cash', label: 'เงินสด' },
-                        { value: 'check', label: 'เช็ค' },
-                        { value: 'other', label: 'อื่นๆ' },
+                        { value: 'transfer', label: t('accountsReceivable.paymentMethods.transfer') },
+                        { value: 'cash', label: t('accountsReceivable.paymentMethods.cash') },
+                        { value: 'check', label: t('accountsReceivable.paymentMethods.check') },
+                        { value: 'other', label: t('accountsReceivable.paymentMethods.other') },
                       ],
                       displayExpr: 'label',
                       valueExpr: 'value',
@@ -1070,33 +1071,33 @@ export default function ARInvoicesPage() {
                   />
                   <SimpleItem
                     dataField="referenceNumber"
-                    label={{ text: 'เลขที่อ้างอิง' }}
-                    editorOptions={{ placeholder: 'เลขที่เช็ค / Ref. No.' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.referenceNumber') }}
+                    editorOptions={{ placeholder: t('accountsReceivable.invoicesPage.paymentDialog.referencePlaceholder') }}
                   />
                   <SimpleItem
                     dataField="amount"
                     editorType="dxNumberBox"
-                    label={{ text: 'จำนวนเงิน (บาท)' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.amountBaht') }}
                     editorOptions={{
                       format: '#,##0.00',
                       min: 0.01,
                       max: selectedInvoice.totalAmount - selectedInvoice.paidAmount,
                     }}
                   >
-                    <RequiredRule message="กรุณากรอกจำนวนเงิน" />
+                    <RequiredRule message={t('accountsReceivable.invoicesPage.paymentDialog.amountRequired')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="description"
                     editorType="dxTextArea"
-                    label={{ text: 'หมายเหตุ' }}
+                    label={{ text: t('accountsReceivable.invoicesPage.paymentDialog.note') }}
                     editorOptions={{ height: 60 }}
                   />
                 </Form>
 
                 <div className="mt-6 flex justify-end gap-2">
-                  <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleClosePaymentDialog} />
+                  <Button text={t('accountsReceivable.invoicesPage.dialog.cancel')} type="normal" stylingMode="outlined" onClick={handleClosePaymentDialog} />
                   <Button
-                    text="รับชำระ"
+                    text={t('accountsReceivable.invoicesPage.actions.receivePayment')}
                     type="success"
                     onClick={handleReceivePayment}
                     disabled={paymentMutation.isPending}

@@ -5,6 +5,7 @@
  * Feature: 014-unit-cost (Executive Dashboard)
  */
 
+import { useTranslations } from 'next-intl';
 import { KPICard } from './KPICard';
 import { Package, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import type { FinancialHealthKPIs } from '@/types/unit-cost';
@@ -14,10 +15,11 @@ interface FinancialHealthSectionProps {
 }
 
 export function FinancialHealthSection({ data }: FinancialHealthSectionProps) {
+  const t = useTranslations('cost');
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="financial-health-section">
       <KPICard
-        title="มูลค่าสินค้าคงคลัง"
+        title={t('executiveDashboard.financialHealth.inventoryValue')}
         icon={<Package className="h-6 w-6 text-blue-600" />}
         kpi={data.inventoryValue}
         format="currency"
@@ -36,21 +38,21 @@ export function FinancialHealthSection({ data }: FinancialHealthSectionProps) {
       </KPICard>
 
       <KPICard
-        title="ต้นทุนขายเดือนนี้"
+        title={t('executiveDashboard.financialHealth.cogsMTD')}
         icon={<DollarSign className="h-6 w-6 text-orange-600" />}
         kpi={data.cogsMTD}
         format="currency"
       />
 
       <KPICard
-        title="อัตรากำไรขั้นต้น"
+        title={t('executiveDashboard.financialHealth.grossMargin')}
         icon={<TrendingUp className="h-6 w-6 text-green-600" />}
         kpi={data.grossMarginPercent}
         format="percent"
       />
 
       <KPICard
-        title="ผลต่างต้นทุน"
+        title={t('executiveDashboard.financialHealth.costVariance')}
         icon={<AlertTriangle className="h-6 w-6 text-yellow-600" />}
         kpi={data.netCostVariance}
         format="currency"

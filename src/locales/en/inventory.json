@@ -20,7 +20,243 @@
     "edit": "Edit",
     "clearFilters": "Clear filters",
     "downloadTemplate": "Template",
-    "importExcel": "Import Excel"
+    "importExcel": "Import Excel",
+    "status": "Status",
+    "from": "From",
+    "to": "To",
+    "today": "Today",
+    "thisMonth": "This Month",
+    "noData": "No data",
+    "clearAll": "Clear All"
+  },
+  "requisitions": {
+    "page": {
+      "title": "Material Requisitions",
+      "subtitle": "Warehouse review and release — both BOM requisitions and out-of-BOM requests"
+    },
+    "tabs": {
+      "bom": "BOM Requisitions",
+      "outOfBom": "Out-of-BOM"
+    },
+    "outStatus": {
+      "all": "All",
+      "awaitingRelease": "Awaiting Release",
+      "released": "Released"
+    },
+    "stats": {
+      "awaitingApproval": "Awaiting Approval",
+      "awaitingRelease": "Awaiting Release",
+      "approved": "Approved",
+      "released": "Released",
+      "insufficient": "Insufficient Material"
+    },
+    "statusOptions": {
+      "requested": "Awaiting Approval (Requested)",
+      "approved": "Approved",
+      "all": "All"
+    },
+    "filters": {
+      "status": "Status",
+      "selectRequisition": "Select Requisition (WO / Product)",
+      "selectRequisitionPlaceholder": "Select or type to search WO / product",
+      "requestedFrom": "Requested From",
+      "to": "To",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "quick": "Quick:",
+      "today": "Today",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisMonth": "This Month",
+      "insufficientOnly": "Insufficient stock only",
+      "activeFilters": "Active filters:",
+      "chipStatus": "Status: {label}",
+      "chipSearch": "Search: \"{value}\"",
+      "chipDate": "Date: {from} to {to}",
+      "chipInsufficient": "Insufficient stock",
+      "clearAll": "Clear All"
+    },
+    "loading": "Loading...",
+    "empty": "No requisitions match the selected criteria",
+    "reason": "Reason: {reason}",
+    "requestedBy": "Requested by: {name}",
+    "badges": {
+      "insufficient": "Insufficient",
+      "released": "Released",
+      "awaitingRelease": "Awaiting Release",
+      "approved": "Approved",
+      "awaitingApproval": "Awaiting Approval"
+    },
+    "table": {
+      "itemCode": "Item Code",
+      "materialName": "Material Name",
+      "quantityNeeded": "Quantity Needed",
+      "quantityToIssue": "Quantity to Issue",
+      "onHand": "On Hand",
+      "remainderOnSite": "Remainder on site {qty} {unit}"
+    },
+    "approveBtn": "Approve Requisition",
+    "approvingBtn": "Approving...",
+    "insufficientCannotApprove": "Insufficient material — cannot approve",
+    "approvedBy": "Approved by {name} · {date}",
+    "approvedBySupervisor": "Approved by production supervisor {name} · {date}",
+    "releasedBy": "Released by {name} · {date}",
+    "releaseBtn": "Release (deduct stock)",
+    "releasingBtn": "Releasing...",
+    "insufficientCannotRelease": "Insufficient material — cannot release",
+    "reasons": {
+      "machine_setup_loss": "Loss during machine setup",
+      "equipment_trial_run": "Equipment trial run",
+      "parameter_adjustment": "Parameter adjustment",
+      "other": "Other"
+    },
+    "toast": {
+      "loadFailed": "Failed to load requisitions",
+      "approveReleaseSuccess": "Approved and released",
+      "approveSuccess": "Requisition approved successfully",
+      "approveFailed": "Approval failed",
+      "releaseSuccess": "Released successfully",
+      "releaseSuccessDetail": "Stock deducted per out-of-BOM request",
+      "releaseFailed": "Release failed",
+      "issuedLine": "• {code}: released {pu} {puUnit} (= {su} {suUnit})"
+    }
+  },
+  "returns": {
+    "page": {
+      "title": "Returns Inbox",
+      "subtitle": "Material returns from production — awaiting approval/receipt"
+    },
+    "breadcrumbs": {
+      "inventory": "Inventory",
+      "returns": "Returns"
+    },
+    "refresh": "Refresh",
+    "stats": {
+      "submitted": "Awaiting Approval",
+      "received": "Approved",
+      "rejected": "Rejected",
+      "totalQty": "Total Quantity"
+    },
+    "statusOptions": {
+      "all": "All",
+      "submitted": "Awaiting Approval (Submitted)",
+      "received": "Approved (Received)",
+      "rejected": "Rejected"
+    },
+    "statusBadge": {
+      "submitted": "Awaiting Approval",
+      "received": "Approved",
+      "rejected": "Rejected"
+    },
+    "allWarehouses": "All Warehouses",
+    "searchPlaceholder": "Search (RET#, WO#, warehouse, returned by)",
+    "fromDate": "From date",
+    "toDate": "To date",
+    "columns": {
+      "returnNumber": "RET #",
+      "returnDate": "Return Date",
+      "woNumber": "WO #",
+      "warehouse": "Receiving Warehouse",
+      "lineCount": "Lines",
+      "totalQty": "Total Qty",
+      "status": "Status",
+      "returnedBy": "Returned By",
+      "actions": "Actions"
+    },
+    "view": "View",
+    "loading": "Loading...",
+    "empty": {
+      "title": "No material returns found",
+      "noSubmitted": "No items awaiting approval at this time",
+      "tryOtherFilters": "Try changing the search criteria"
+    },
+    "noDataText": "No data",
+    "toast": {
+      "loadFailed": "Failed to load data"
+    },
+    "detail": {
+      "title": "Material Return {number}",
+      "subtitleWo": "WO #{wo}",
+      "subtitleNoWo": "Not linked to a work order",
+      "back": "Back",
+      "print": "Print",
+      "reject": "Reject",
+      "approveReceive": "Approve and Receive",
+      "cancelApproval": "Cancel Warehouse Receipt",
+      "cancelling": "Cancelling...",
+      "invalidId": "Invalid return ID",
+      "loadFailed": "Failed to load return details",
+      "loadFailedTitle": "Failed to load data",
+      "notFound": "Material return not found",
+      "statusInfo": {
+        "submitted": "Awaiting Approval",
+        "received": "Approved",
+        "rejected": "Rejected"
+      },
+      "stepper": {
+        "title": "Workflow Status",
+        "submitted": "Submitted",
+        "rejected": "Rejected",
+        "received": "Received"
+      },
+      "fields": {
+        "status": "Status",
+        "returnDate": "Return Date",
+        "returnedBy": "Returned By",
+        "warehouse": "Receiving Warehouse",
+        "approvedDate": "Approval Date",
+        "approvedBy": "Approved By",
+        "notes": "Notes",
+        "rejectionReason": "Rejection Reason"
+      },
+      "newLotsCreated": "New lots created",
+      "relatedDeviations": "Related Deviations",
+      "linesTitle": "Returned Items ({count})",
+      "noLines": "No items",
+      "columns": {
+        "material": "Material",
+        "sourceLot": "Source Lot",
+        "issued": "Issued",
+        "used": "Used",
+        "returned": "Returned",
+        "variance": "Variance",
+        "variancePct": "Variance %",
+        "reason": "Reason",
+        "outsideTolerance": "Outside Tolerance?",
+        "container": "Container"
+      },
+      "outsideTolerance": "Outside tolerance",
+      "approveConfirm": {
+        "title": "Confirm Approval",
+        "message": "The system will create new lots for the returned quantities and may automatically open a Deviation if variance exceeds tolerance. Continue?",
+        "confirm": "Approve",
+        "confirming": "Approving...",
+        "cancel": "Cancel"
+      },
+      "cancelConfirm": "Confirm cancellation of warehouse receipt?\nCreated lots will be deleted and the status will revert to \"awaiting review\" so production can edit it again.",
+      "rejectDialog": {
+        "title": "Reject Material Return",
+        "prompt": "Please provide a reason for rejection — the operator will see this message.",
+        "placeholder": "Rejection reason...",
+        "cancel": "Cancel",
+        "confirm": "Confirm Rejection",
+        "rejecting": "Rejecting..."
+      },
+      "toast": {
+        "approveFailed": "Approval failed",
+        "approveSuccess": "Approved successfully",
+        "approveSuccessDetail": "Created {lots} new lot(s)",
+        "approveSuccessDetailWithDev": "Created {lots} new lot(s) · opened {devs} deviation(s)",
+        "cancelFailed": "Cancellation failed",
+        "cancelSuccess": "Warehouse receipt cancelled",
+        "cancelSuccessDetail": "Item reverted to awaiting review status",
+        "reasonRequired": "Reason required",
+        "reasonRequiredDetail": "A rejection reason is required",
+        "rejectFailed": "Rejection failed",
+        "rejectSuccess": "Rejected successfully",
+        "rejectSuccessDetail": "The return has been rejected"
+      }
+    }
   },
   "stats": {
     "total": "Total",

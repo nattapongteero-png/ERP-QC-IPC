@@ -82,6 +82,63 @@
     },
     "errors": {
       "loadFailed": "ไม่สามารถโหลดข้อมูลต้นทุนนำเข้าได้"
+    },
+    "form": {
+      "createTitle": "เพิ่มต้นทุนนำเข้า",
+      "editTitle": "ต้นทุนนำเข้า: {number}",
+      "createSubtitle": "จัดสรรค่าขนส่ง ภาษีอากร และต้นทุนอื่นๆ ให้กับการรับซื้อ",
+      "allocate": "จัดสรร",
+      "post": "ผ่านรายการ",
+      "cancel": "ยกเลิก",
+      "create": "สร้าง",
+      "save": "บันทึก",
+      "delete": "ลบ",
+      "status": "สถานะ:",
+      "headerInfo": "ข้อมูลส่วนหัว",
+      "purchaseOrder": "ใบสั่งซื้อ",
+      "selectPo": "เลือกใบสั่งซื้อ...",
+      "vendor": "ผู้ขาย",
+      "selectVendor": "เลือกผู้ขาย...",
+      "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+      "invoiceNumberPlaceholder": "ระบุเลขที่ใบแจ้งหนี้",
+      "invoiceDate": "วันที่ใบแจ้งหนี้",
+      "currency": "สกุลเงิน",
+      "exchangeRate": "อัตราแลกเปลี่ยน",
+      "costLines": "รายการต้นทุน",
+      "addLine": "เพิ่มรายการ",
+      "costType": "ประเภทต้นทุน",
+      "description": "รายละเอียด",
+      "descriptionPlaceholder": "รายละเอียด",
+      "amount": "จำนวนเงิน",
+      "allocationBasis": "เกณฑ์การจัดสรร",
+      "totalAmount": "จำนวนเงินรวม: ",
+      "allocationTitle": "การจัดสรร",
+      "columns": {
+        "itemCode": "รหัสสินค้า",
+        "itemName": "ชื่อสินค้า",
+        "basisValue": "มูลค่าฐาน",
+        "allocatedAmount": "จำนวนที่จัดสรร"
+      },
+      "deleteConfirm": {
+        "title": "ยืนยันการลบ",
+        "message": "คุณแน่ใจหรือไม่ว่าต้องการลบต้นทุนนำเข้านี้? การกระทำนี้ไม่สามารถยกเลิกได้",
+        "cancel": "ยกเลิก",
+        "confirm": "ลบ"
+      },
+      "costTypes": {
+        "freight": "ค่าขนส่ง",
+        "duty": "ภาษีอากร",
+        "insurance": "ค่าประกันภัย",
+        "handling": "ค่าจัดการสินค้า",
+        "inspection": "ค่าตรวจสอบ",
+        "other": "อื่นๆ"
+      },
+      "allocationBases": {
+        "value": "ตามมูลค่า",
+        "quantity": "ตามปริมาณ",
+        "weight": "ตามน้ำหนัก",
+        "volume": "ตามปริมาตร"
+      }
     }
   },
   "workCenters": {
@@ -143,6 +200,38 @@
       "loadFailed": "ไม่สามารถโหลดข้อมูลศูนย์งานได้",
       "loading": "กำลังโหลดศูนย์งาน...",
       "retry": "ลองใหม่อีกครั้ง"
+    },
+    "form": {
+      "loading": "กำลังโหลดศูนย์งาน...",
+      "createTitle": "เพิ่มศูนย์งาน",
+      "editTitle": "แก้ไขศูนย์งาน: {code}",
+      "subtitle": "กำหนดอัตราค่าแรงและค่าโสหุ้ยสำหรับการคำนวณต้นทุนการผลิต",
+      "basicInfo": "ข้อมูลพื้นฐาน",
+      "code": "รหัส",
+      "codePlaceholder": "เช่น WC-MIX-01",
+      "nameEn": "ชื่อ (ภาษาอังกฤษ)",
+      "nameEnPlaceholder": "เช่น Mixing Station 1",
+      "nameTh": "ชื่อ (ภาษาไทย)",
+      "nameThPlaceholder": "เช่น สถานีผสม 1",
+      "orgUnit": "หน่วยงาน",
+      "orgUnitPlaceholder": "เลือกหน่วยงาน...",
+      "active": "เปิดใช้งาน",
+      "ratesTitle": "อัตราต่อชั่วโมง (บาท/ชั่วโมง)",
+      "laborRate": "อัตราค่าแรง",
+      "laborRateHint": "ต้นทุนค่าแรงทางตรงต่อชั่วโมง",
+      "overheadRate": "อัตราค่าโสหุ้ย",
+      "overheadRateHint": "ต้นทุนทางอ้อม (ค่าสาธารณูปโภค การควบคุมงาน ฯลฯ)",
+      "machineRate": "อัตราค่าเครื่องจักร",
+      "machineRateHint": "ค่าเสื่อมราคาและค่าบำรุงรักษาอุปกรณ์",
+      "totalRate": "อัตรารวมต่อชั่วโมง:",
+      "baht": "บาท",
+      "capacityTitle": "กำลังการผลิต",
+      "capacityHours": "ชั่วโมงทำงานต่อวัน",
+      "capacityHint": "ชั่วโมงทำงานที่ใช้ได้ต่อวัน (สูงสุด 24)",
+      "cancel": "ยกเลิก",
+      "saving": "กำลังบันทึก...",
+      "create": "สร้างศูนย์งาน",
+      "save": "บันทึกการเปลี่ยนแปลง"
     }
   },
   "reports": {
@@ -209,6 +298,79 @@
       "columns": {
         "rowNum": "#"
       }
+    }
+  },
+  "executiveDashboard": {
+    "loading": "กำลังโหลดแดชบอร์ด...",
+    "loadError": "ไม่สามารถโหลดข้อมูลแดชบอร์ดได้ กรุณาลองใหม่อีกครั้ง",
+    "periodInfo": "แสดงข้อมูลของ:",
+    "comparedTo": "(เทียบกับ {label})",
+    "noData": "ไม่มีข้อมูล",
+    "vsPriorPeriod": "เทียบกับงวดก่อน",
+    "daysUnit": "วัน",
+    "financialHealth": {
+      "inventoryValue": "มูลค่าสินค้าคงคลัง",
+      "cogsMTD": "ต้นทุนขายเดือนนี้",
+      "grossMargin": "อัตรากำไรขั้นต้น",
+      "costVariance": "ผลต่างต้นทุน"
+    },
+    "material": {
+      "title": "วิเคราะห์ต้นทุนวัตถุดิบ",
+      "purchasesMTD": "ยอดซื้อเดือนนี้",
+      "landedCostPercent": "ต้นทุนสินค้าถึงคลัง %",
+      "avgCostChange": "การเปลี่ยนแปลงต้นทุนเฉลี่ย",
+      "inventoryTurnover": "อัตราหมุนเวียนสินค้า",
+      "daysInventory": "จำนวนวันสินค้าคงคลัง",
+      "topCostIncreases": "ต้นทุนที่เพิ่มสูงสุด",
+      "noCostIncreases": "ไม่มีการเพิ่มที่มีนัยสำคัญ",
+      "purchasesBySupplier": "ยอดซื้อตามผู้ขาย",
+      "noPurchases": "ไม่มีข้อมูลการซื้อ"
+    },
+    "production": {
+      "title": "วิเคราะห์ต้นทุนการผลิต",
+      "wipValue": "มูลค่างานระหว่างทำ",
+      "productionCostMTD": "ต้นทุนการผลิตเดือนนี้",
+      "laborEfficiency": "ประสิทธิภาพแรงงาน %",
+      "overheadAbsorption": "การปันส่วนค่าโสหุ้ย",
+      "avgUnitCost": "ต้นทุนต่อหน่วยเฉลี่ย",
+      "variance": "ผลต่าง",
+      "costBreakdown": "รายละเอียดต้นทุน (เดือนนี้)",
+      "material": "วัตถุดิบ",
+      "labor": "ค่าแรง",
+      "overhead": "ค่าโสหุ้ย",
+      "byWorkCenter": "ตามศูนย์งาน",
+      "noWorkCenterData": "ไม่มีข้อมูลศูนย์งาน"
+    },
+    "margin": {
+      "title": "วิเคราะห์อัตรากำไร",
+      "revenueMTD": "รายได้เดือนนี้",
+      "grossProfitMTD": "กำไรขั้นต้นเดือนนี้",
+      "marginByCategory": "อัตรากำไรตามหมวดหมู่",
+      "category": "หมวดหมู่",
+      "revenue": "รายได้",
+      "cogs": "ต้นทุนขาย",
+      "marginPercent": "อัตรากำไร %",
+      "noCategoryData": "ไม่มีข้อมูลหมวดหมู่",
+      "marginErosion": "การลดลงของอัตรากำไร",
+      "noMarginErosion": "ไม่มีการลดลงของอัตรากำไร",
+      "topMarginProducts": "สินค้าที่มีอัตรากำไรสูงสุด",
+      "noProductData": "ไม่มีข้อมูลสินค้า"
+    },
+    "alerts": {
+      "activeAlerts": "การแจ้งเตือนที่ใช้งานอยู่ ({count})",
+      "critical": "วิกฤต ({count})",
+      "warning": "คำเตือน ({count})",
+      "noActiveAlerts": "ไม่มีการแจ้งเตือนที่ใช้งานอยู่",
+      "trend6Month": "แนวโน้ม 6 เดือน",
+      "noTrendData": "ไม่มีข้อมูลแนวโน้ม",
+      "grossMarginLine": "อัตรากำไรขั้นต้น %",
+      "avgUnitCostLine": "ต้นทุนต่อหน่วยเฉลี่ย",
+      "momComparison": "เปรียบเทียบเดือนต่อเดือน",
+      "metric": "ตัวชี้วัด",
+      "thisMonth": "เดือนนี้",
+      "lastMonth": "เดือนที่แล้ว",
+      "change": "เปลี่ยนแปลง",
+      "noComparisonData": "ไม่มีข้อมูลเปรียบเทียบ"
     }
   }
 }

@@ -72,13 +72,17 @@ interface ReceiptSummary {
   receiptsByMethod: Record<string, { count: number; amount: number }>;
 }
 
-const paymentMethodOptions = [
-  { value: '', text: 'ทุกวิธี' },
-  { value: 'cash', text: 'เงินสด' },
-  { value: 'bank_transfer', text: 'โอนเงินผ่านธนาคาร' },
-  { value: 'cheque', text: 'เช็ค' },
-  { value: 'credit_card', text: 'บัตรเครดิต' },
-];
+type TFn = (key: string, values?: Record<string, string | number | Date>) => string;
+
+function buildPaymentMethodOptions(t: TFn) {
+  return [
+    { value: '', text: t('accountsReceivable.receiptsPage.methodFilter.all') },
+    { value: 'cash', text: t('accountsReceivable.paymentMethods.cash') },
+    { value: 'bank_transfer', text: t('accountsReceivable.paymentMethods.bankTransfer') },
+    { value: 'cheque', text: t('accountsReceivable.paymentMethods.cheque') },
+    { value: 'credit_card', text: t('accountsReceivable.paymentMethods.creditCard') },
+  ];
+}
 
 interface ARInvoice {
   id: number;
@@ -106,13 +110,15 @@ interface ReceiptFormData {
   description: string;
 }
 
-const statusOptions = [
-  { value: '', text: 'ทุกสถานะ' },
-  { value: 'pending', text: 'รอดำเนินการ' },
-  { value: 'cleared', text: 'เคลียร์แล้ว' },
-  { value: 'bounced', text: 'เช็คเด้ง' },
-  { value: 'cancelled', text: 'ยกเลิก' },
-];
+function buildStatusOptions(t: TFn) {
+  return [
+    { value: '', text: t('accountsReceivable.receiptsPage.statusFilter.all') },
+    { value: 'pending', text: t('accountsReceivable.receiptsPage.statusFilter.pending') },
+    { value: 'cleared', text: t('accountsReceivable.receiptsPage.statusFilter.cleared') },
+    { value: 'bounced', text: t('accountsReceivable.receiptsPage.statusFilter.bounced') },
+    { value: 'cancelled', text: t('accountsReceivable.receiptsPage.statusFilter.cancelled') },
+  ];
+}
 
 async function fetchReceipts(params: {
   paymentMethod?: string;
@@ -234,12 +240,12 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-function getPaymentMethodLabel(method: string): string {
+function getPaymentMethodLabel(method: string, t: TFn): string {
   const labels: Record<string, string> = {
-    cash: 'เงินสด',
-    bank_transfer: 'โอนเงินผ่านธนาคาร',
-    cheque: 'เช็ค',
-    credit_card: 'บัตรเครดิต',
+    cash: t('accountsReceivable.paymentMethods.cash'),
+    bank_transfer: t('accountsReceivable.paymentMethods.bankTransfer'),
+    cheque: t('accountsReceivable.paymentMethods.cheque'),
+    credit_card: t('accountsReceivable.paymentMethods.creditCard'),
   };
   return labels[method] || method;
 }
@@ -247,6 +253,8 @@ function getPaymentMethodLabel(method: string): string {
 export default function ARReceiptsPage() {
   const t = useTranslations('accounting');
   const queryClient = useQueryClient();
+  const paymentMethodOptions = useMemo(() => buildPaymentMethodOptions(t), [t]);
+  const statusOptions = useMemo(() => buildStatusOptions(t), [t]);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -303,13 +311,13 @@ export default function ARReceiptsPage() {
       queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
       queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
-      notify(`บันทึกการรับชำระเงินสำเร็จ (${result.payment.paymentNumber})`, 'success', 3000);
+      notify(t('accountsReceivable.receiptsPage.toast.recordSuccess', { receiptNumber: result.payment.paymentNumber }), 'success', 3000);
       setIsDialogOpen(false);
       setSelectedInvoice(null);
       resetReceiptForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถบันทึกการรับชำระเงินได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.receiptsPage.toast.recordError'), 'error', 4000);
     },
   });
 
@@ -366,10 +374,10 @@ export default function ARReceiptsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
-      notify('ลบรายการรับชำระสำเร็จ', 'success', 3000);
+      notify(t('accountsReceivable.receiptsPage.toast.deleteSuccess'), 'success', 3000);
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถลบรายการรับชำระได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.receiptsPage.toast.deleteError'), 'error', 4000);
     },
   });
 
@@ -388,27 +396,27 @@ export default function ARReceiptsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ar-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['ar-receipts-summary'] });
-      notify('แก้ไขรายการรับชำระสำเร็จ', 'success', 3000);
+      notify(t('accountsReceivable.receiptsPage.toast.updateSuccess'), 'success', 3000);
       setIsDialogOpen(false);
       setEditingReceiptId(null);
       resetReceiptForm();
     },
     onError: (error: Error) => {
-      notify(error.message || 'ไม่สามารถแก้ไขรายการรับชำระได้', 'error', 4000);
+      notify(error.message || t('accountsReceivable.receiptsPage.toast.updateError'), 'error', 4000);
     },
   });
 
   const handleDelete = useCallback(
     async (receipt: Receipt) => {
       const result = await confirm(
-        `คุณต้องการลบรายการรับชำระ ${receipt.receiptNumber || receipt.id} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้`,
-        'ยืนยันการลบ'
+        t('accountsReceivable.receiptsPage.confirmDelete.message', { receiptNumber: receipt.receiptNumber || receipt.id }),
+        t('accountsReceivable.receiptsPage.confirmDelete.title')
       );
       if (result) {
         deleteMutation.mutate(receipt.id);
       }
     },
-    [deleteMutation]
+    [deleteMutation, t]
   );
 
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null);
@@ -444,11 +452,11 @@ export default function ARReceiptsPage() {
     }
 
     if (!formData.arInvoiceId || !formData.bankAccountId) {
-      notify('กรุณาเลือกใบแจ้งหนี้และบัญชีรับชำระ', 'warning', 3000);
+      notify(t('accountsReceivable.receiptsPage.toast.selectInvoiceAndAccount'), 'warning', 3000);
       return;
     }
     if (formData.amount <= 0) {
-      notify('จำนวนเงินต้องมากกว่า 0', 'warning', 3000);
+      notify(t('accountsReceivable.receiptsPage.toast.amountMustBePositive'), 'warning', 3000);
       return;
     }
     receiptMutation.mutate({
@@ -462,7 +470,7 @@ export default function ARReceiptsPage() {
         description: formData.description || undefined,
       },
     });
-  }, [formData, receiptMutation, updateMutation, editingReceiptId]);
+  }, [formData, receiptMutation, updateMutation, editingReceiptId, t]);
 
   const handleExportJSON = useCallback(() => {
     if (!receipts || receipts.length === 0) return;
@@ -473,8 +481,8 @@ export default function ARReceiptsPage() {
     a.download = `ar-receipts-${toLocalDateStr(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    notify('ส่งออกใบเสร็จรับเงินสำเร็จ', 'success', 3000);
-  }, [receipts]);
+    notify(t('accountsReceivable.receiptsPage.toast.exportSuccess'), 'success', 3000);
+  }, [receipts, t]);
 
   const statusCellRender = useCallback((cellData: { value: string }) => {
     return <AccountingStatusBadge status={cellData.value as 'pending' | 'cleared' | 'bounced' | 'cancelled'} />;
@@ -491,10 +499,10 @@ export default function ARReceiptsPage() {
     return (
       <div className="flex items-center gap-2">
         {icons[cellData.value]}
-        <span>{getPaymentMethodLabel(cellData.value)}</span>
+        <span>{getPaymentMethodLabel(cellData.value, t)}</span>
       </div>
     );
-  }, []);
+  }, [t]);
 
   // Add row sequence numbers for the grid
   const receiptsWithRowNumber = useMemo(
@@ -511,13 +519,13 @@ export default function ARReceiptsPage() {
         icon="file-text"
         onBack={() => window.location.href = '/accounting/ar'}
         breadcrumbs={[
-          { label: 'ลูกหนี้การค้า', href: '/accounting/ar' },
+          { label: t('accountsReceivable.title'), href: '/accounting/ar' },
           { label: t('accountsReceivable.receipts.title') },
         ]}
         onRefresh={handleRefresh}
         actions={
           <Button
-            text="บันทึกใบเสร็จรับเงิน"
+            text={t('accountsReceivable.receiptsPage.recordReceipt')}
             icon="plus"
             type="success"
             onClick={handleOpenReceiptDialog}
@@ -538,30 +546,30 @@ export default function ARReceiptsPage() {
           ) : (
             <>
               <AccountingKPICard
-                label="ใบเสร็จทั้งหมด"
+                label={t('accountsReceivable.receiptsPage.kpi.totalReceipts')}
                 value={summary?.totalReceipts || 0}
-                subtitle="ทั้งหมด"
+                subtitle={t('accountsReceivable.receiptsPage.kpi.totalReceiptsSubtitle')}
                 icon="file-text"
                 variant="info"
               />
               <AccountingKPICard
-                label="จำนวนเงินรวม"
+                label={t('accountsReceivable.receiptsPage.kpi.totalAmount')}
                 value={formatCurrency(summary?.totalAmount || 0)}
-                subtitle="ยอดรับชำระทั้งหมด"
+                subtitle={t('accountsReceivable.receiptsPage.kpi.totalAmountSubtitle')}
                 icon="trending-up"
                 variant="success"
               />
               <AccountingKPICard
-                label="เคลียร์แล้ว"
+                label={t('accountsReceivable.receiptsPage.kpi.cleared')}
                 value={formatCurrency(summary?.clearedAmount || 0)}
-                subtitle="การชำระที่ยืนยันแล้ว"
+                subtitle={t('accountsReceivable.receiptsPage.kpi.clearedSubtitle')}
                 icon="check-circle"
                 variant="success"
               />
               <AccountingKPICard
-                label="รอดำเนินการ"
+                label={t('accountsReceivable.receiptsPage.kpi.pending')}
                 value={formatCurrency(summary?.pendingAmount || 0)}
-                subtitle="รอการเคลียร์"
+                subtitle={t('accountsReceivable.receiptsPage.kpi.pendingSubtitle')}
                 icon="clock"
                 variant="warning"
               />
@@ -574,7 +582,7 @@ export default function ARReceiptsPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
-              วิธีชำระเงิน
+              {t('accountsReceivable.receiptsPage.filters.paymentMethod')}
             </label>
             <SelectBox
               items={paymentMethodOptions}
@@ -586,7 +594,7 @@ export default function ARReceiptsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">สถานะ</label>
+            <label className="text-sm font-medium text-gray-700">{t('accountsReceivable.receiptsPage.filters.status')}</label>
             <SelectBox
               items={statusOptions}
               value={status}
@@ -599,7 +607,7 @@ export default function ARReceiptsPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              ตั้งแต่วันที่
+              {t('accountsReceivable.receiptsPage.filters.dateFrom')}
             </label>
             <DateBox
               value={dateFrom}
@@ -610,7 +618,7 @@ export default function ARReceiptsPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">ถึงวันที่</label>
+            <label className="text-sm font-medium text-gray-700">{t('accountsReceivable.receiptsPage.filters.dateTo')}</label>
             <DateBox
               value={dateTo}
               onValueChanged={(e) => setDateTo(e.value)}
@@ -621,7 +629,7 @@ export default function ARReceiptsPage() {
           </div>
           <div className="flex gap-2 items-end">
             <Button
-              text="ล้างตัวกรอง"
+              text={t('common.clearFilters')}
               stylingMode="outlined"
               onClick={() => {
                 setPaymentMethod('');
@@ -632,7 +640,7 @@ export default function ARReceiptsPage() {
             />
             {receipts.length > 0 && (
               <Button
-                text="ส่งออก"
+                text={t('accountsReceivable.receiptsPage.export')}
                 icon="export"
                 stylingMode="outlined"
                 onClick={handleExportJSON}
@@ -650,10 +658,10 @@ export default function ARReceiptsPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Receipt List
+                  {t('accountsReceivable.receiptsPage.grid.title')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {receipts.length} receipt(s) found
+                  {t('accountsReceivable.receiptsPage.grid.found', { count: receipts.length })}
                 </p>
               </div>
             </div>
@@ -663,7 +671,7 @@ export default function ARReceiptsPage() {
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-green-500 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading receipts...</p>
+                <p className="mt-4 text-gray-600">{t('accountsReceivable.receiptsPage.grid.loading')}</p>
               </div>
             ) : (
               <DataGrid
@@ -679,7 +687,7 @@ export default function ARReceiptsPage() {
                 hoverStateEnabled
               >
                 <Paging defaultPageSize={20} />
-                <SearchPanel visible placeholder="ค้นหาใบเสร็จรับเงิน..." />
+                <SearchPanel visible placeholder={t('accountsReceivable.receiptsPage.grid.searchPlaceholder')} />
 
                 <Toolbar>
                   <ToolbarItem name="searchPanel" location="before" />
@@ -699,39 +707,39 @@ export default function ARReceiptsPage() {
                     </span>
                   )}
                 />
-                <Column dataField="receiptNumber" caption="เลขที่ใบเสร็จ" width={150} />
+                <Column dataField="receiptNumber" caption={t('accountsReceivable.receipts.table.columns.receiptNumber')} width={150} />
                 <Column
                   dataField="receiptDate"
-                  caption="วันที่"
+                  caption={t('accountsReceivable.receipts.table.columns.date')}
                   dataType="date"
                   width={120}
                   cellRender={(data) => formatDate(data.value)}
                 />
-                <Column dataField="customerName" caption="ลูกค้า" minWidth={200} />
+                <Column dataField="customerName" caption={t('accountsReceivable.receipts.table.columns.customer')} minWidth={200} />
                 <Column
                   dataField="paymentMethod"
-                  caption="วิธีการ"
+                  caption={t('accountsReceivable.receiptsPage.columns.method')}
                   width={150}
                   cellRender={paymentMethodCellRender}
                 />
                 <Column
                   dataField="amount"
-                  caption="จำนวนเงิน"
+                  caption={t('accountsReceivable.receipts.table.columns.amount')}
                   dataType="number"
                   format="#,##0.00"
                   width={130}
                   alignment="right"
                 />
-                <Column dataField="reference" caption="อ้างอิง" width={150} />
-                <Column dataField="bankAccountName" caption="บัญชีธนาคาร" width={150} />
+                <Column dataField="reference" caption={t('accountsReceivable.receiptsPage.columns.reference')} width={150} />
+                <Column dataField="bankAccountName" caption={t('accountsReceivable.receiptsPage.columns.bankAccount')} width={150} />
                 <Column
                   dataField="status"
-                  caption="สถานะ"
+                  caption={t('accountsReceivable.receiptsPage.columns.status')}
                   width={120}
                   cellRender={statusCellRender}
                 />
                 <Column
-                  caption="การดำเนินการ"
+                  caption={t('accountsReceivable.receiptsPage.columns.actions')}
                   width={120}
                   allowFiltering={false}
                   allowSorting={false}
@@ -740,8 +748,8 @@ export default function ARReceiptsPage() {
                     if (receipt.status === 'cancelled') return null;
                     return (
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <Button icon="edit" hint="แก้ไข" stylingMode="text" height={28} onClick={() => handleEdit(receipt)} />
-                        <Button icon="trash" hint="ลบ" stylingMode="text" height={28} onClick={() => handleDelete(receipt)} />
+                        <Button icon="edit" hint={t('accountsReceivable.receiptsPage.actions.edit')} stylingMode="text" height={28} onClick={() => handleEdit(receipt)} />
+                        <Button icon="trash" hint={t('accountsReceivable.receiptsPage.actions.delete')} stylingMode="text" height={28} onClick={() => handleDelete(receipt)} />
                       </div>
                     );
                   }}
@@ -752,12 +760,12 @@ export default function ARReceiptsPage() {
                     column="amount"
                     summaryType="sum"
                     valueFormat="#,##0.00"
-                    displayFormat="Total: {0}"
+                    displayFormat={t('accountsReceivable.receiptsPage.summary.total')}
                   />
                   <TotalItem
                     column="receiptNumber"
                     summaryType="count"
-                    displayFormat="{0} receipts"
+                    displayFormat={t('accountsReceivable.receiptsPage.summary.count')}
                   />
                 </Summary>
               </DataGrid>
@@ -769,7 +777,7 @@ export default function ARReceiptsPage() {
         <Popup
           visible={isDialogOpen}
           onHiding={handleCloseReceiptDialog}
-          title={editingReceiptId ? 'แก้ไขรายการรับชำระ' : 'บันทึกการรับชำระเงิน'}
+          title={editingReceiptId ? t('accountsReceivable.receiptsPage.dialog.editTitle') : t('accountsReceivable.receiptsPage.dialog.createTitle')}
           width={600}
           height="auto"
           showCloseButton={true}
@@ -779,15 +787,15 @@ export default function ARReceiptsPage() {
             {selectedInvoice && (
               <div className="mb-4 p-3 bg-green-50 rounded-lg">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>Invoice Number:</div>
+                  <div>{t('accountsReceivable.receiptsPage.invoiceInfo.invoiceNumber')}:</div>
                   <div className="font-semibold">{selectedInvoice.invoiceNumber}</div>
-                  <div>Customer:</div>
+                  <div>{t('accountsReceivable.receiptsPage.invoiceInfo.customer')}:</div>
                   <div className="font-semibold">{selectedInvoice.customerName || '-'}</div>
-                  <div>Total Amount:</div>
+                  <div>{t('accountsReceivable.receiptsPage.invoiceInfo.totalAmount')}:</div>
                   <div className="font-semibold">{selectedInvoice.totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
-                  <div>Paid Amount:</div>
+                  <div>{t('accountsReceivable.receiptsPage.invoiceInfo.paidAmount')}:</div>
                   <div className="font-semibold">{selectedInvoice.paidAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
-                  <div>Outstanding:</div>
+                  <div>{t('accountsReceivable.receiptsPage.invoiceInfo.outstanding')}:</div>
                   <div className="font-bold text-orange-600">
                     {(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB
                   </div>
@@ -799,11 +807,11 @@ export default function ARReceiptsPage() {
             {editingReceipt && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-gray-600">Receipt Number:</div>
+                  <div className="text-gray-600">{t('accountsReceivable.receiptsPage.receiptInfo.receiptNumber')}:</div>
                   <div className="font-semibold">{editingReceipt.receiptNumber || '-'}</div>
-                  <div className="text-gray-600">Customer:</div>
+                  <div className="text-gray-600">{t('accountsReceivable.receiptsPage.invoiceInfo.customer')}:</div>
                   <div className="font-semibold">{editingReceipt.customerName || '-'}</div>
-                  <div className="text-gray-600">Amount (THB):</div>
+                  <div className="text-gray-600">{t('accountsReceivable.receiptsPage.receiptInfo.amountThb')}:</div>
                   <div className="font-semibold">{Number(editingReceipt.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} THB</div>
                 </div>
               </div>
@@ -814,38 +822,38 @@ export default function ARReceiptsPage() {
                 <SimpleItem
                   dataField="arInvoiceId"
                   editorType="dxSelectBox"
-                  label={{ text: 'ใบแจ้งหนี้ (AR Invoice)' }}
+                  label={{ text: t('accountsReceivable.receiptsPage.form.arInvoice') }}
                   editorOptions={{
                     dataSource: arInvoices,
                     displayExpr: (item: ARInvoice) =>
-                      item ? `${item.invoiceNumber} - ${item.customerName || 'Unknown'} (ค้าง: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
+                      item ? `${item.invoiceNumber} - ${item.customerName || t('accountsReceivable.receiptsPage.form.unknownCustomer')} (${t('accountsReceivable.receiptsPage.form.outstandingShort')}: ${(item.totalAmount - item.paidAmount).toFixed(2)})` : '',
                     valueExpr: 'id',
                     searchEnabled: true,
                     onValueChanged: (e: { value: number | null }) => handleInvoiceChange(e.value),
                   }}
                 >
-                  <RequiredRule message="กรุณาเลือกใบแจ้งหนี้" />
+                  <RequiredRule message={t('accountsReceivable.receiptsPage.form.arInvoiceRequired')} />
                 </SimpleItem>
               )}
               <GroupItem colCount={2}>
                 <SimpleItem
                   dataField="paymentDate"
                   editorType="dxDateBox"
-                  label={{ text: 'วันที่รับชำระ' }}
+                  label={{ text: t('accountsReceivable.receiptsPage.form.paymentDate') }}
                   editorOptions={{ type: 'date', displayFormat: 'dd/MM/yyyy' }}
                 >
-                  <RequiredRule message="กรุณาเลือกวันที่" />
+                  <RequiredRule message={t('accountsReceivable.receiptsPage.form.dateRequired')} />
                 </SimpleItem>
                 <SimpleItem
                   dataField="paymentMethod"
                   editorType="dxSelectBox"
-                  label={{ text: 'วิธีชำระ' }}
+                  label={{ text: t('accountsReceivable.receiptsPage.form.paymentMethod') }}
                   editorOptions={{
                     dataSource: [
-                      { value: 'transfer', label: 'โอนเงิน' },
-                      { value: 'cash', label: 'เงินสด' },
-                      { value: 'check', label: 'เช็ค' },
-                      { value: 'other', label: 'อื่นๆ' },
+                      { value: 'transfer', label: t('accountsReceivable.paymentMethods.transfer') },
+                      { value: 'cash', label: t('accountsReceivable.paymentMethods.cash') },
+                      { value: 'check', label: t('accountsReceivable.paymentMethods.check') },
+                      { value: 'other', label: t('accountsReceivable.paymentMethods.other') },
                     ],
                     displayExpr: 'label',
                     valueExpr: 'value',
@@ -855,7 +863,7 @@ export default function ARReceiptsPage() {
               <SimpleItem
                 dataField="bankAccountId"
                 editorType="dxSelectBox"
-                label={{ text: 'บัญชีรับเงิน' }}
+                label={{ text: t('accountsReceivable.receiptsPage.form.bankAccount') }}
                 editorOptions={{
                   dataSource: bankAccounts,
                   displayExpr: (item: GLAccount) => item ? `${item.code} - ${item.nameTh}` : '',
@@ -863,48 +871,48 @@ export default function ARReceiptsPage() {
                   searchEnabled: true,
                 }}
               >
-                <RequiredRule message="กรุณาเลือกบัญชีรับเงิน" />
+                <RequiredRule message={t('accountsReceivable.receiptsPage.form.bankAccountRequired')} />
               </SimpleItem>
               {!editingReceiptId && (
                 <GroupItem colCount={2}>
                   <SimpleItem
                     dataField="amount"
                     editorType="dxNumberBox"
-                    label={{ text: 'จำนวนเงิน (THB)' }}
+                    label={{ text: t('accountsReceivable.receiptsPage.form.amountThb') }}
                     editorOptions={{
                       format: '#,##0.00',
                       min: 0.01,
                       max: selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : undefined,
                     }}
                   >
-                    <RequiredRule message="กรุณาระบุจำนวนเงิน" />
+                    <RequiredRule message={t('accountsReceivable.receiptsPage.form.amountRequired')} />
                   </SimpleItem>
                   <SimpleItem
                     dataField="referenceNumber"
-                    label={{ text: 'เลขอ้างอิง' }}
-                    editorOptions={{ placeholder: 'เลขที่เช็ค / Ref.' }}
+                    label={{ text: t('accountsReceivable.receiptsPage.form.referenceNumber') }}
+                    editorOptions={{ placeholder: t('accountsReceivable.receiptsPage.form.referencePlaceholder') }}
                   />
                 </GroupItem>
               )}
               {editingReceiptId && (
                 <SimpleItem
                   dataField="referenceNumber"
-                  label={{ text: 'เลขอ้างอิง' }}
-                  editorOptions={{ placeholder: 'เลขที่เช็ค / Ref.' }}
+                  label={{ text: t('accountsReceivable.receiptsPage.form.referenceNumber') }}
+                  editorOptions={{ placeholder: t('accountsReceivable.receiptsPage.form.referencePlaceholder') }}
                 />
               )}
               <SimpleItem
                 dataField="description"
                 editorType="dxTextArea"
-                label={{ text: 'รายละเอียด' }}
+                label={{ text: t('accountsReceivable.receiptsPage.form.description') }}
                 editorOptions={{ height: 60 }}
               />
             </Form>
 
             <div className="mt-6 flex justify-end gap-2">
-              <Button text="ยกเลิก" type="normal" stylingMode="outlined" onClick={handleCloseReceiptDialog} />
+              <Button text={t('accountsReceivable.receiptsPage.dialog.cancel')} type="normal" stylingMode="outlined" onClick={handleCloseReceiptDialog} />
               <Button
-                text={editingReceiptId ? 'บันทึกการแก้ไข' : 'บันทึกการรับชำระ'}
+                text={editingReceiptId ? t('accountsReceivable.receiptsPage.dialog.saveEdit') : t('accountsReceivable.receiptsPage.dialog.save')}
                 type="success"
                 onClick={handleRecordReceipt}
                 disabled={receiptMutation.isPending || updateMutation.isPending}

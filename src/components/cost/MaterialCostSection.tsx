@@ -5,6 +5,7 @@
  * Feature: 014-unit-cost (Executive Dashboard)
  */
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KPICard } from './KPICard';
 import { ShoppingCart, Truck, TrendingUp, RotateCcw, Clock } from 'lucide-react';
@@ -15,23 +16,24 @@ interface MaterialCostSectionProps {
 }
 
 export function MaterialCostSection({ data }: MaterialCostSectionProps) {
+  const t = useTranslations('cost');
   return (
     <Card data-testid="material-cost-section">
       <CardHeader>
-        <CardTitle>วิเคราะห์ต้นทุนวัตถุดิบ</CardTitle>
+        <CardTitle>{t('executiveDashboard.material.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <KPICard title="ยอดซื้อเดือนนี้" icon={<ShoppingCart className="h-5 w-5 text-blue-600" />} kpi={data.purchasesMTD} format="currency" />
-          <KPICard title="ต้นทุนสินค้าถึงคลัง %" icon={<Truck className="h-5 w-5 text-purple-600" />} kpi={data.landedCostPercent} format="percent" />
-          <KPICard title="การเปลี่ยนแปลงต้นทุนเฉลี่ย" icon={<TrendingUp className="h-5 w-5 text-red-600" />} kpi={data.avgMaterialCostChange} format="percent" />
-          <KPICard title="อัตราหมุนเวียนสินค้า" icon={<RotateCcw className="h-5 w-5 text-green-600" />} kpi={data.inventoryTurnover} format="number" />
-          <KPICard title="จำนวนวันสินค้าคงคลัง" icon={<Clock className="h-5 w-5 text-orange-600" />} kpi={data.daysInventoryOutstanding} format="number" />
+          <KPICard title={t('executiveDashboard.material.purchasesMTD')} icon={<ShoppingCart className="h-5 w-5 text-blue-600" />} kpi={data.purchasesMTD} format="currency" />
+          <KPICard title={t('executiveDashboard.material.landedCostPercent')} icon={<Truck className="h-5 w-5 text-purple-600" />} kpi={data.landedCostPercent} format="percent" />
+          <KPICard title={t('executiveDashboard.material.avgCostChange')} icon={<TrendingUp className="h-5 w-5 text-red-600" />} kpi={data.avgMaterialCostChange} format="percent" />
+          <KPICard title={t('executiveDashboard.material.inventoryTurnover')} icon={<RotateCcw className="h-5 w-5 text-green-600" />} kpi={data.inventoryTurnover} format="number" />
+          <KPICard title={t('executiveDashboard.material.daysInventory')} icon={<Clock className="h-5 w-5 text-orange-600" />} kpi={data.daysInventoryOutstanding} format="number" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <CardHeader><CardTitle className="text-sm">ต้นทุนที่เพิ่มสูงสุด</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">{t('executiveDashboard.material.topCostIncreases')}</CardTitle></CardHeader>
             <CardContent>
               {data.topCostIncreases.length > 0 ? (
                 <div className="space-y-2">
@@ -42,12 +44,12 @@ export function MaterialCostSection({ data }: MaterialCostSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">ไม่มีการเพิ่มที่มีนัยสำคัญ</p>}
+              ) : <p className="text-gray-500 text-sm">{t('executiveDashboard.material.noCostIncreases')}</p>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-sm">ยอดซื้อตามผู้ขาย</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm">{t('executiveDashboard.material.purchasesBySupplier')}</CardTitle></CardHeader>
             <CardContent>
               {data.purchasesBySupplier.length > 0 ? (
                 <div className="space-y-2">
@@ -58,7 +60,7 @@ export function MaterialCostSection({ data }: MaterialCostSectionProps) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-gray-500 text-sm">ไม่มีข้อมูลการซื้อ</p>}
+              ) : <p className="text-gray-500 text-sm">{t('executiveDashboard.material.noPurchases')}</p>}
             </CardContent>
           </Card>
         </div>
