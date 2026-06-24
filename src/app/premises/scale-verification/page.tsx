@@ -366,6 +366,12 @@ export default function ScaleVerificationPage() {
         height="auto"
       >
         <div className="p-4 space-y-3">
+          {/* Decoy fields absorb browser credential autofill so it doesn't land
+              on the reading / password inputs. */}
+          <input type="text" name="fake-username" autoComplete="username" tabIndex={-1} aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} readOnly />
+          <input type="password" name="fake-password" autoComplete="new-password" tabIndex={-1} aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} readOnly />
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.standardWeight.label')} *</label>
             {/* Only weights that fit this scale's range are offered, so the

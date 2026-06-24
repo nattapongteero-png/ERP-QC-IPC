@@ -106,6 +106,26 @@ export function ElectronicSignatureDialog({
 
   const renderContent = () => (
     <div className="flex flex-col gap-4 py-2">
+      {/* Decoy fields absorb browser credential autofill so it doesn't land on
+          the real password input (Chrome/Edge ignore autocomplete=off here). */}
+      <input
+        type="text"
+        name="fake-username"
+        autoComplete="username"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+        readOnly
+      />
+      <input
+        type="password"
+        name="fake-password"
+        autoComplete="new-password"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+        readOnly
+      />
       {/* Security Notice */}
       <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />

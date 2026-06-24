@@ -74,9 +74,26 @@ export default function InspectionsPage() {
     mutationFn: async () => {
       const res = await fetch('/api/environmental/inspections/scan', { method: 'POST' });
       if (!res.ok) throw new Error('Scan failed');
-      return res.json();
+      return res.json() as Promise<{ created?: number }>;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-unread-count'] }),
+    // Give the user clear feedback — the button previously ran silently, so it
+    // looked like "nothing happened" even though it sent due-item notifications.
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      const created = result?.created ?? 0;
+      if (created > 0) {
+        toast.success(
+          tp('environmental.inspections.scanDoneTitle'),
+          tp('environmental.inspections.scanDoneBody', { count: created }),
+        );
+      } else {
+        toast.success(
+          tp('environmental.inspections.scanNoneTitle'),
+          tp('environmental.inspections.scanNoneBody'),
+        );
+      }
+    },
+    onError: () => toast.error(tp('environmental.inspections.scanFailedTitle')),
   });
 
   const inspectMut = useMutation({
@@ -299,9 +316,6 @@ export default function InspectionsPage() {
           cellRender={(c) => {
             const row = c.data as ScheduleRow;
             return (
-              // Only the "Inspect" action — viewing/editing past records lives on
-              // the "ประวัติผลตรวจ" page (header button), so a per-row history link
-              // here would be redundant.
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -318,6 +332,17 @@ export default function InspectionsPage() {
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" /> {t('actions.inspect')}
                 </button>
+                {/* View/edit the records already saved for THIS location — opens
+                    the history filtered to this exact (targetType, targetId).
+                    Only shown once at least one inspection has been recorded. */}
+                {row.lastDone && (
+                  <Link
+                    href={`/premises/environmental/inspections/history?targetType=${row.targetType}&targetId=${row.targetId}`}
+                    className="inline-flex items-center gap-1 h-8 px-3 text-xs font-medium border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 transition-colors whitespace-nowrap"
+                  >
+                    <History className="w-3.5 h-3.5" /> {tp('environmental.inspectionsHistory.viewAction')}/{tp('environmental.common.edit')}
+                  </Link>
+                )}
               </div>
             );
           }}
@@ -333,6 +358,35 @@ export default function InspectionsPage() {
         height="auto"
       >
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          {/* Decoy username+password fields. Chrome/Edge insist on offering
+              credential autofill in any form containing a password input, and
+              ignore autocomplete="off" on the real fields. Two hidden decoy
+              inputs placed FIRST absorb that autofill so it never lands on the
+              real measured-value / password fields. */}
+          <input
+            type="text"
+            name="fake-username"
+            autoComplete="username"
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+            readOnly
+          />
+          <input
+            type="password"
+            name="fake-password"
+            autoComplete="new-password"
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }}
+            readOnly
+          />
+          {/* Clarify this is a NEW measurement each time, so a blank form is
+              expected (previous readings live in "ประวัติผลตรวจ"). */}
+          <div className="bg-sky-50 border border-sky-200 rounded p-2.5 text-xs text-sky-900">
+            บันทึกการตรวจ <span className="font-semibold">ครั้งใหม่</span> — กรอกค่าที่วัดได้ ณ วันนี้
+            (ค่าครั้งก่อนดูได้ที่ &quot;ประวัติผลตรวจ&quot;)
+          </div>
           {(activeTemplate?.items ?? []).map((item: InspectionTemplateItem) => {
             // Live pass/fail as the operator types — compare the entered value
             // against the item's spec (same rule the server uses to record).

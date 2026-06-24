@@ -317,6 +317,12 @@ export default function WaterQualityRecordsPage() {
       {/* ===== Record new ===== */}
       <Popup visible={testOpen} onHiding={() => setTestOpen(false)} showCloseButton title={tp('waterQuality.index.popup.recordTitle')} width={580} height="auto">
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          {/* Decoy fields absorb browser credential autofill so it doesn't land
+              on the reading / password inputs. */}
+          <input type="text" name="fake-username" autoComplete="username" tabIndex={-1} aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} readOnly />
+          <input type="password" name="fake-password" autoComplete="new-password" tabIndex={-1} aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} readOnly />
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.samplePoint')} *</label>
             <SelectBox
