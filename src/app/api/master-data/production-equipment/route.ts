@@ -87,6 +87,9 @@ export async function POST(request: NextRequest) {
         const updated = await updateProductionEquipment(existing.id as number, {
           name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
           capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
+          calibrationCertNumber: data.calibrationCertNumber ?? null,
+          calibrationDate: data.calibrationDate || null,
+          calibrationExpiryDate: data.calibrationExpiryDate || null,
         });
         return successResponse(updated, 'Production equipment updated (code existed)');
       }
@@ -94,6 +97,9 @@ export async function POST(request: NextRequest) {
       const equipment = await createProductionEquipment({
         code: data.code, name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
         capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
+        calibrationCertNumber: data.calibrationCertNumber ?? null,
+        calibrationDate: data.calibrationDate || null,
+        calibrationExpiryDate: data.calibrationExpiryDate || null,
       });
 
       return successResponse(equipment, 'Production equipment created successfully');
@@ -128,6 +134,9 @@ export async function PUT(request: NextRequest) {
         roomId: data.roomId,
         description: data.description,
         isActive: data.isActive,
+        calibrationCertNumber: data.calibrationCertNumber ?? null,
+        calibrationDate: data.calibrationDate || null,
+        calibrationExpiryDate: data.calibrationExpiryDate || null,
       });
 
       return successResponse(equipment, 'Production equipment updated successfully');

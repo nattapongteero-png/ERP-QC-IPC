@@ -1318,6 +1318,11 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   maxVerificationWeightG: real('max_verification_weight_g'),
   tolerancePercent: real('tolerance_percent').notNull().default(0.1),
   scaleStatus: text('scale_status').notNull().default('active'), // 'active' | 'out_of_service' | 'maintenance'
+  // Calibration certificate of the SCALE itself (the scale, not the standard
+  // weight, carries its calibration cert — per shop-floor requirement).
+  calibrationCertNumber: text('calibration_cert_number'),
+  calibrationDate: text('calibration_date'),
+  calibrationExpiryDate: text('calibration_expiry_date'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -4867,6 +4872,10 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   maxVerificationWeightG: decimal('max_verification_weight_g', { precision: 15, scale: 4 }),
   tolerancePercent: decimal('tolerance_percent', { precision: 6, scale: 4 }).notNull().default('0.1'),
   scaleStatus: varchar('scale_status', { length: 20 }).notNull().default('active'),
+  // Calibration certificate of the SCALE itself (per shop-floor requirement).
+  calibrationCertNumber: varchar('calibration_cert_number', { length: 100 }),
+  calibrationDate: varchar('calibration_date', { length: 10 }),
+  calibrationExpiryDate: varchar('calibration_expiry_date', { length: 10 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

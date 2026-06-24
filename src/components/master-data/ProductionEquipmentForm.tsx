@@ -13,6 +13,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSwitch } from '@/components/ui/dx-switch';
+import { DateBox } from 'devextreme-react/date-box';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Wrench } from 'lucide-react';
@@ -28,6 +29,10 @@ interface ProductionEquipment {
   roomId?: number;
   description?: string;
   isActive: boolean;
+  // Calibration certificate of the scale itself (shown for equipmentType 'scale').
+  calibrationCertNumber?: string | null;
+  calibrationDate?: string | null;
+  calibrationExpiryDate?: string | null;
 }
 
 interface ProductionRoom {
@@ -86,8 +91,11 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
         roomId: existingEquipment.roomId,
         description: existingEquipment.description || '',
         isActive: existingEquipment.isActive ?? true,
+        calibrationCertNumber: existingEquipment.calibrationCertNumber ?? '',
+        calibrationDate: existingEquipment.calibrationDate ?? '',
+        calibrationExpiryDate: existingEquipment.calibrationExpiryDate ?? '',
       }
-    : { code: '', name: '', nameTh: '', equipmentType: '', capacity: '', roomId: undefined, description: '', isActive: true };
+    : { code: '', name: '', nameTh: '', equipmentType: '', capacity: '', roomId: undefined, description: '', isActive: true, calibrationCertNumber: '', calibrationDate: '', calibrationExpiryDate: '' };
 
   return <ProductionEquipmentFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingEquipment={existingEquipment} />;
 }
@@ -266,6 +274,50 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
             />
           </div>
+
+          {/* Calibration certificate — only relevant for scales. The scale (not
+              the standard weight) carries its calibration cert. */}
+          {formData.equipmentType === 'scale' && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+              <h4 className="text-sm font-semibold text-emerald-900">ใบรับรองการสอบเทียบเครื่องชั่ง (Calibration Certificate)</h4>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่ใบรับรอง</label>
+                <DxTextBox
+                  value={formData.calibrationCertNumber || ''}
+                  onValueChanged={(e) => setFormData({ ...formData, calibrationCertNumber: e.value })}
+                  placeholder="เช่น CAL-2026-001"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">วันที่สอบเทียบ</label>
+                  <DateBox
+                    type="date"
+                    displayFormat="dd/MM/yyyy"
+                    value={formData.calibrationDate || null}
+                    onValueChanged={(e) =>
+                      setFormData({ ...formData, calibrationDate: e.value ? new Date(e.value).toISOString().slice(0, 10) : '' })
+                    }
+                    showClearButton
+                    width="100%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">วันหมดอายุใบรับรอง</label>
+                  <DateBox
+                    type="date"
+                    displayFormat="dd/MM/yyyy"
+                    value={formData.calibrationExpiryDate || null}
+                    onValueChanged={(e) =>
+                      setFormData({ ...formData, calibrationExpiryDate: e.value ? new Date(e.value).toISOString().slice(0, 10) : '' })
+                    }
+                    showClearButton
+                    width="100%"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 pt-2">
             <DxSwitch
