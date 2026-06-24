@@ -470,11 +470,15 @@
       "manageSchedules": "Manage Schedules",
       "scanButton": "Notify Due Items",
       "scanHint": "Creates a notification (bell) for items that are due/overdue right now — this is not recording an inspection. The system normally sends these reminders automatically.",
-      "infoTitle": "What is this page for?",
+      "infoTitle": "How to record an environmental inspection (3 steps)",
+      "step1": "First set up an \"Inspection Template\" — define what to measure and the limits, at",
+      "step2": "Set up an \"Inspection Schedule\" — define the location/frequency; due items then appear in the table below automatically, at",
+      "step3Part1": "When a due item appears in the table below, click the",
+      "step3Part2": "button on that row → enter the measured values → confirm with your password → the system shows Pass/Fail instantly (on fail, a Deviation is created automatically).",
       "infoBodyPart1": "It automatically shows \"due inspection schedules\" — when the time comes, items appear on their own (no button needed), then click the",
       "infoBodyPart2": "button on each row to",
       "infoBodyRecord": "record the inspection result",
-      "infoHintPart1": "• The \"Notify Due Items\" button = only sends a notification (bell), not a recording · Edit/delete already-recorded results on the",
+      "infoHintPart1": "Edit/delete already-recorded results on the",
       "infoHintPart2": "· If a schedule is set up wrong, edit/disable it on",
       "recordOkTitle": "Recorded — Result: Pass",
       "recordOkBody": "All values within spec",
@@ -598,9 +602,14 @@
     },
     "ack": {
       "title": "Acknowledge Alert",
+      "notesLabel": "Notes / action taken",
       "notesPlaceholder": "Notes / action taken",
       "cancel": "Cancel",
-      "confirm": "Confirm acknowledgement"
+      "confirm": "Confirm acknowledgement",
+      "nextStepsTitle": "Next steps after acknowledging:",
+      "nextStep1": "Investigate why the reading was out of range and the impact on stored stock (quarantine / re-test required?)",
+      "nextStep2": "Take corrective action (e.g. adjust temperature / request cooler repair) and record it in the notes field",
+      "nextStep3": "If product quality is affected, open a Deviation/CAPA under GMP Compliance to investigate and track follow-up"
     },
     "delete": {
       "title": "Delete record",

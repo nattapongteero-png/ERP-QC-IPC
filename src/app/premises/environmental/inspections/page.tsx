@@ -177,15 +177,38 @@ export default function InspectionsPage() {
         </div>
       </header>
 
-      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 text-sm text-sky-900 space-y-1">
-        <div>
-          <span className="font-medium">{tp('environmental.inspections.infoTitle')}</span> {tp('environmental.inspections.infoBodyPart1')}{' '}
-          <span className="font-medium">"{t('actions.inspect')}"</span> {tp('environmental.inspections.infoBodyPart2')} <span className="font-medium">{tp('environmental.inspections.infoBodyRecord')}</span>
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 text-sm text-sky-900 space-y-3">
+        <div className="font-semibold flex items-center gap-1.5">
+          <Thermometer className="w-4 h-4" /> {tp('environmental.inspections.infoTitle')}
         </div>
-        <div className="text-xs text-sky-800">
+        {/* Clear 1-2-3 prerequisite + recording steps so first-time users know
+            what to set up before a row appears to inspect. */}
+        <ol className="space-y-1.5">
+          <li className="flex gap-2">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-sky-200 text-sky-900 text-xs font-bold flex items-center justify-center">1</span>
+            <span>
+              {tp('environmental.inspections.step1')}{' '}
+              <Link href="/premises/environmental/templates" className="underline font-medium">{tp('environmental.inspections.manageTemplates')}</Link>
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-sky-200 text-sky-900 text-xs font-bold flex items-center justify-center">2</span>
+            <span>
+              {tp('environmental.inspections.step2')}{' '}
+              <Link href="/premises/environmental/schedules" className="underline font-medium">{tp('environmental.inspections.manageSchedules')}</Link>
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-center">3</span>
+            <span>
+              {tp('environmental.inspections.step3Part1')}{' '}
+              <span className="font-medium">"{t('actions.inspect')}"</span> {tp('environmental.inspections.step3Part2')}
+            </span>
+          </li>
+        </ol>
+        <div className="text-xs text-sky-800 border-t border-sky-200 pt-2">
           {tp('environmental.inspections.infoHintPart1')}{' '}
-          <Link href="/premises/environmental/inspections/history" className="underline font-medium">{tp('environmental.inspections.historyLink')}</Link> {tp('environmental.inspections.infoHintPart2')}{' '}
-          <Link href="/premises/environmental/schedules" className="underline font-medium">{tp('environmental.inspections.manageSchedules')}</Link>
+          <Link href="/premises/environmental/inspections/history" className="underline font-medium">{tp('environmental.inspections.historyLink')}</Link>
         </div>
       </div>
 

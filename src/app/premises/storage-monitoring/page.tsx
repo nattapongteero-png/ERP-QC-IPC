@@ -553,6 +553,19 @@ export default function StorageMonitoringPage() {
             <div className="bg-amber-50 border border-amber-200 p-2 rounded text-sm">
               {ackDialog?.message}
             </div>
+            {/* Next-step guidance so the operator knows acknowledging is not the
+                end — they must investigate the excursion per GMP. */}
+            <div className="bg-sky-50 border border-sky-200 rounded p-2.5 text-xs text-sky-900">
+              <p className="font-semibold mb-1">{t('storageMonitoring.ack.nextStepsTitle')}</p>
+              <ol className="list-decimal ml-4 space-y-0.5">
+                <li>{t('storageMonitoring.ack.nextStep1')}</li>
+                <li>{t('storageMonitoring.ack.nextStep2')}</li>
+                <li>{t('storageMonitoring.ack.nextStep3')}</li>
+              </ol>
+            </div>
+            <label className="block text-xs font-medium text-gray-600">
+              {t('storageMonitoring.ack.notesLabel')}
+            </label>
             <DxTextBox
               placeholder={t('storageMonitoring.ack.notesPlaceholder')}
               value={ackNotes}
