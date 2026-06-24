@@ -305,6 +305,64 @@
   "lineClearance": {
     "title": "Line Clearance",
     "description": "Complete line clearance verification before production start (FR-062)",
+    "checklistTitle": "Line Clearance Checklist",
+    "workOrderLabel": "Work Order",
+    "items": {
+      "previousProductCleared": {
+        "label": "Previous Product Cleared",
+        "description": "All materials from the previous batch have been removed from the production area"
+      },
+      "areaClean": {
+        "label": "Area Clean",
+        "description": "The production area has been cleaned according to SOP and is free of debris"
+      },
+      "equipmentClean": {
+        "label": "Equipment Clean",
+        "description": "All equipment has been cleaned and verified as ready for the next batch"
+      },
+      "noContaminationRisk": {
+        "label": "No Contamination Risk",
+        "description": "No risk of cross-contamination has been identified in the production area"
+      },
+      "labelsRemoved": {
+        "label": "Labels Removed",
+        "description": "All labels from the previous batch have been removed or covered"
+      },
+      "docsReady": {
+        "label": "Documents Ready",
+        "description": "All required batch record documents are present and ready"
+      }
+    },
+    "status": {
+      "not_started": "Not Started",
+      "pending": "In Progress",
+      "performed": "Awaiting Verification",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
+    "notesLabel": "Notes (Optional)",
+    "notesPlaceholder": "Add any additional notes or observations...",
+    "signaturesTitle": "Electronic Signatures",
+    "performedBy": "Performed by:",
+    "verifiedBy": "Verified by:",
+    "verifyNotesLabel": "Verification Notes (Required for rejection)",
+    "verifyNotesPlaceholder": "Add notes for the verification decision...",
+    "allItemsRequired": "All items must be checked before signing",
+    "reviewHint": "Review the checklist and approve or reject",
+    "signing": "Signing...",
+    "signComplete": "Sign & Complete",
+    "reject": "Reject",
+    "approve": "Approve",
+    "signDialogTitle": {
+      "perform": "Sign Line Clearance",
+      "verify_approve": "Approve Line Clearance",
+      "verify_reject": "Reject Line Clearance"
+    },
+    "meaning": {
+      "perform": "I confirm that I have personally verified all line clearance checklist items and the production area is ready for operation.",
+      "verify_approve": "I confirm that I have reviewed and verified the line clearance checklist and approve production to proceed.",
+      "verify_reject": "I have reviewed the line clearance checklist and reject it."
+    },
     "toast": {
       "performed": "Line clearance performed successfully",
       "verified": "Line clearance verified successfully",

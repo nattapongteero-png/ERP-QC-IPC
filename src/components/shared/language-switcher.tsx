@@ -182,31 +182,43 @@ export function SidebarLanguageToggle({
   }, [currentLocale, onLanguageChange, router]);
 
   const nextLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
 
   return (
-    <button
-      type="button"
-      onClick={handleToggle}
-      aria-label={`Switch to ${localeNames[nextLocale]}`}
-      title={`Switch to ${localeNames[nextLocale]}`}
-      data-testid="sidebar-language-toggle"
-      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-200 bg-slate-700/40 hover:bg-slate-600/60 border border-slate-600/40 transition-colors ${className || ''}`}
-    >
-      <span className="flex items-center gap-2 min-w-0">
-        <span className="inline-flex items-center justify-center min-w-[1.75rem] px-1.5 py-0.5 rounded bg-slate-600 text-[11px] font-bold leading-none text-white">
-          {localeBadges[currentLocale]}
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={handleToggle}
+        aria-label={`Switch to ${localeNames[nextLocale]}`}
+        title={`Switch to ${localeNames[nextLocale]}`}
+        data-testid="sidebar-language-toggle"
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium text-emerald-50 bg-emerald-600/20 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors ${className || ''}`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="inline-flex items-center justify-center min-w-[1.75rem] px-1.5 py-0.5 rounded bg-emerald-500 text-[11px] font-bold leading-none text-white">
+            {localeBadges[currentLocale]}
+          </span>
+          <span className="truncate">{localeNames[currentLocale]}</span>
         </span>
-        <span className="truncate">{localeNames[currentLocale]}</span>
-      </span>
-      <span className="flex items-center gap-1 text-xs text-slate-400">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M17 1l4 4-4 4" />
-          <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-          <path d="M7 23l-4-4 4-4" />
-          <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-        </svg>
-        <span className="font-semibold">{localeBadges[nextLocale]}</span>
-      </span>
-    </button>
+        <span className="flex items-center gap-1 text-xs text-emerald-300/80">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M17 1l4 4-4 4" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <path d="M7 23l-4-4 4-4" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg>
+          <span className="font-semibold">{localeBadges[nextLocale]}</span>
+        </span>
+      </button>
+      {appVersion && (
+        <p
+          className="text-center text-[10px] font-medium text-slate-400/80 tracking-wide"
+          data-testid="sidebar-app-version"
+        >
+          v{appVersion}{buildDate ? ` · ${buildDate}` : ''}
+        </p>
+      )}
+    </div>
   );
 }

@@ -542,8 +542,12 @@ export default function WorkOrdersPage() {
   // Cell renderers
   const renderWOCell = useCallback((data: { data: WorkOrder }) => (
     <div className="min-w-0">
-      <p className="font-mono font-semibold text-emerald-600">{data.data.woNumber || '-'}</p>
-      <p className="text-xs text-gray-500 font-mono">{data.data.batchNumber || '-'}</p>
+      <p className="font-mono font-semibold text-emerald-600 whitespace-nowrap">{data.data.woNumber || '-'}</p>
+      {/* Batch numbers can be long (e.g. FG-0001-MORE-260622-000) — wrap so
+          the second line is never clipped by the grid cell. */}
+      <p className="text-xs text-gray-500 font-mono whitespace-normal break-all leading-tight">
+        {data.data.batchNumber || '-'}
+      </p>
     </div>
   ), []);
 
@@ -991,7 +995,7 @@ export default function WorkOrdersPage() {
           hoverStateEnabled={true}
           height="auto"
           columnAutoWidth={true}
-          wordWrapEnabled={false}
+          wordWrapEnabled={true}
           onRowClick={(e) => {
             if (e.data && e.rowType === 'data') {
               router.push(`/production/work-orders/${e.data.id}`);
@@ -1026,7 +1030,8 @@ export default function WorkOrdersPage() {
           <Column
             dataField="woNumber"
             caption={t('workOrders.grid.columns.woBatch')}
-            width={150}
+            minWidth={190}
+            allowResizing={true}
             cellRender={renderWOCell}
           />
           <Column

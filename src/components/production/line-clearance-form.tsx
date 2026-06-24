@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ElectronicSignatureDialog } from '@/components/shared/ElectronicSignatureDialog';
+import { useTranslations } from 'next-intl';
 
 export interface LineClearanceChecklistData {
   previousProductCleared: boolean;
@@ -47,43 +48,15 @@ export interface LineClearanceFormProps {
   readOnly?: boolean;
 }
 
+// Checklist item keys + icons. Labels/descriptions are pulled from i18n
+// (lineClearance.items.<key>) at render time so they switch with the locale.
 const CHECKLIST_ITEMS = [
-  {
-    key: 'previousProductCleared' as const,
-    label: 'Previous Product Cleared',
-    description: 'All materials from the previous batch have been removed from the production area',
-    icon: Trash2,
-  },
-  {
-    key: 'areaClean' as const,
-    label: 'Area Clean',
-    description: 'The production area has been cleaned according to SOP and is free of debris',
-    icon: Sparkles,
-  },
-  {
-    key: 'equipmentClean' as const,
-    label: 'Equipment Clean',
-    description: 'All equipment has been cleaned and verified as ready for the next batch',
-    icon: Wrench,
-  },
-  {
-    key: 'noContaminationRisk' as const,
-    label: 'No Contamination Risk',
-    description: 'No risk of cross-contamination has been identified in the production area',
-    icon: ShieldAlert,
-  },
-  {
-    key: 'labelsRemoved' as const,
-    label: 'Labels Removed',
-    description: 'All labels from the previous batch have been removed or covered',
-    icon: Tag,
-  },
-  {
-    key: 'docsReady' as const,
-    label: 'Documents Ready',
-    description: 'All required batch record documents are present and ready',
-    icon: FileText,
-  },
+  { key: 'previousProductCleared' as const, icon: Trash2 },
+  { key: 'areaClean' as const, icon: Sparkles },
+  { key: 'equipmentClean' as const, icon: Wrench },
+  { key: 'noContaminationRisk' as const, icon: ShieldAlert },
+  { key: 'labelsRemoved' as const, icon: Tag },
+  { key: 'docsReady' as const, icon: FileText },
 ];
 
 /**
@@ -112,6 +85,7 @@ export function LineClearanceForm({
   isVerifier = false,
   readOnly = false,
 }: LineClearanceFormProps) {
+  const t = useTranslations('production.lineClearance');
   const [checklistData, setChecklistData] = useState<LineClearanceChecklistData>({
     previousProductCleared: initialData?.previousProductCleared ?? false,
     areaClean: initialData?.areaClean ?? false,
@@ -169,11 +143,11 @@ export function LineClearanceForm({
   const getSignatureMeaning = () => {
     switch (signAction) {
       case 'perform':
-        return 'I confirm that I have personally verified all line clearance checklist items and the production area is ready for operation.';
+        return t('meaning.perform');
       case 'verify_approve':
-        return 'I confirm that I have reviewed and verified the line clearance checklist and approve production to proceed.';
+        return t('meaning.verify_approve');
       case 'verify_reject':
-        return `I have reviewed the line clearance checklist and reject it. ${verifyNotes ? `Reason: ${verifyNotes}` : ''}`;
+        return `${t('meaning.verify_reject')}${verifyNotes ? ` (${verifyNotes})` : ''}`;
     }
   };
 
@@ -183,35 +157,36 @@ export function LineClearanceForm({
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
             <Clock className="h-4 w-4" />
-            Not Started
+            {t('status.not_started')}
           </span>
         );
       case 'pending':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
             <Clock className="h-4 w-4" />
-            In Progress
+            {t('status.pending')}
           </span>
         );
       case 'performed':
+        // Awaiting verification — amber, NOT green (green is reserved for verified).
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
             <UserCheck className="h-4 w-4" />
-            Awaiting Verification
+            {t('status.performed')}
           </span>
         );
       case 'verified':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
             <CheckCircle2 className="h-4 w-4" />
-            Verified
+            {t('status.verified')}
           </span>
         );
       case 'rejected':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
             <AlertCircle className="h-4 w-4" />
-            Rejected
+            {t('status.rejected')}
           </span>
         );
     }
@@ -230,9 +205,9 @@ export function LineClearanceForm({
               <ClipboardCheck className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Line Clearance Checklist</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('checklistTitle')}</h3>
               <p className="text-sm text-gray-600">
-                Work Order: <span className="font-medium">{workOrderNumber}</span>
+                {t('workOrderLabel')}: <span className="font-medium">{workOrderNumber}</span>
                 {productName && <span className="ml-2">• {productName}</span>}
               </p>
             </div>
@@ -273,9 +248,9 @@ export function LineClearanceForm({
                         onValueChange={(value) => handleChecklistChange(item.key, value ?? false)}
                         disabled={isDisabled}
                       />
-                      <label className="font-medium text-gray-900">{item.label}</label>
+                      <label className="font-medium text-gray-900">{t(`items.${item.key}.label`)}</label>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 ml-7">{item.description}</p>
+                    <p className="text-sm text-gray-600 mt-1 ml-7">{t(`items.${item.key}.description`)}</p>
                   </div>
                   {isChecked && (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
@@ -288,11 +263,11 @@ export function LineClearanceForm({
 
         {/* Notes Section */}
         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesLabel')}</label>
           <TextArea
             value={checklistData.notes}
             onValueChange={(value) => setChecklistData((prev) => ({ ...prev, notes: value }))}
-            placeholder="Add any additional notes or observations..."
+            placeholder={t('notesPlaceholder')}
             height={80}
             disabled={readOnly || !canPerform}
           />
@@ -301,12 +276,18 @@ export function LineClearanceForm({
         {/* Signature Info */}
         {(performerName || verifierName) && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Electronic Signatures</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">{t('signaturesTitle')}</h4>
             <div className="space-y-2 text-sm">
               {performerName && (
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-emerald-600" />
-                  <span className="text-gray-600">Performed by:</span>
+                  {/* Stays amber (awaiting verification) until a verifier signs;
+                      only the full clearance turns green once verified. */}
+                  {status === 'verified' ? (
+                    <UserCheck className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-amber-500" />
+                  )}
+                  <span className="text-gray-600">{t('performedBy')}</span>
                   <span className="font-medium text-gray-900">{performerName}</span>
                   {performedAt && (
                     <span className="text-gray-500">
@@ -318,7 +299,7 @@ export function LineClearanceForm({
               {verifierName && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-gray-600">Verified by:</span>
+                  <span className="text-gray-600">{t('verifiedBy')}</span>
                   <span className="font-medium text-gray-900">{verifierName}</span>
                   {verifiedAt && (
                     <span className="text-gray-500">
@@ -335,12 +316,12 @@ export function LineClearanceForm({
         {canVerify && (
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Verification Notes (Required for rejection)
+              {t('verifyNotesLabel')}
             </label>
             <TextArea
               value={verifyNotes}
               onValueChange={setVerifyNotes}
-              placeholder="Add notes for the verification decision..."
+              placeholder={t('verifyNotesPlaceholder')}
               height={80}
             />
           </div>
@@ -354,13 +335,13 @@ export function LineClearanceForm({
             {canPerform && !allItemsChecked && (
               <span className="flex items-center gap-1.5 text-amber-600">
                 <AlertCircle className="h-4 w-4" />
-                All items must be checked before signing
+                {t('allItemsRequired')}
               </span>
             )}
             {canVerify && (
               <span className="flex items-center gap-1.5 text-emerald-600">
                 <UserCheck className="h-4 w-4" />
-                Review the checklist and approve or reject
+                {t('reviewHint')}
               </span>
             )}
           </div>
@@ -368,7 +349,7 @@ export function LineClearanceForm({
           <div className="flex gap-3">
             {canPerform && (
               <Button
-                text={isLoading ? 'Signing...' : 'Sign & Complete'}
+                text={isLoading ? t('signing') : t('signComplete')}
                 type="success"
                 stylingMode="contained"
                 icon="check"
@@ -379,7 +360,7 @@ export function LineClearanceForm({
             {canVerify && (
               <>
                 <Button
-                  text="Reject"
+                  text={t('reject')}
                   type="danger"
                   stylingMode="outlined"
                   icon="close"
@@ -387,7 +368,7 @@ export function LineClearanceForm({
                   disabled={isLoading}
                 />
                 <Button
-                  text="Approve"
+                  text={t('approve')}
                   type="success"
                   stylingMode="contained"
                   icon="check"
@@ -403,13 +384,7 @@ export function LineClearanceForm({
       {/* Electronic Signature Dialog */}
       <ElectronicSignatureDialog
         visible={showSignDialog}
-        title={
-          signAction === 'perform'
-            ? 'Sign Line Clearance'
-            : signAction === 'verify_approve'
-            ? 'Approve Line Clearance'
-            : 'Reject Line Clearance'
-        }
+        title={t(`signDialogTitle.${signAction}`)}
         action={signAction}
         meaning={getSignatureMeaning()}
         onSign={handleSign}
