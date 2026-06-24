@@ -32,6 +32,20 @@ import {
 
 type DeleteTarget = { kind: 'system' | 'point' | 'spec'; id: number; label: string } | null;
 
+// Standard water-quality parameters operators pick from a dropdown instead of
+// typing a free-text key (which led to inconsistent values like "ph" vs "pH"
+// vs "p h"). Choosing one auto-fills a sensible default unit (still editable).
+const WATER_PARAM_PRESETS: Array<{ value: string; label: string; unit: string }> = [
+  { value: 'pH', label: 'pH', unit: '' },
+  { value: 'conductivity', label: 'Conductivity (ค่าการนำไฟฟ้า)', unit: 'µS/cm' },
+  { value: 'TOC', label: 'TOC (สารอินทรีย์รวม)', unit: 'ppb' },
+  { value: 'microbial', label: 'Microbial (จุลินทรีย์)', unit: 'CFU/100ml' },
+  { value: 'endotoxin', label: 'Endotoxin', unit: 'EU/ml' },
+  { value: 'nitrate', label: 'Nitrate (ไนเตรต)', unit: 'ppm' },
+  { value: 'heavy_metals', label: 'Heavy metals (โลหะหนัก)', unit: 'ppm' },
+  { value: 'custom', label: 'กำหนดเอง...', unit: '' },
+];
+
 export default function WaterQualitySettingsPage() {
   const t = useTranslations('premises');
   const qc = useQueryClient();
@@ -140,13 +154,23 @@ export default function WaterQualitySettingsPage() {
     specMin: '' as number | '',
     specMax: '' as number | '',
   });
+  // Whether the parameter field is in "custom" (free-text) mode.
+  const [paramCustom, setParamCustom] = useState(false);
+  // Value shown in the parameter <select>: the preset value, "custom" if in
+  // custom mode or the saved param isn't a known preset, else empty.
+  const paramSelectValue = WATER_PARAM_PRESETS.some((p) => p.value === specForm.parameter)
+    ? specForm.parameter
+    : (paramCustom || specForm.parameter ? 'custom' : '');
   const openSpecCreate = () => {
     setSpecEdit(null);
+    setParamCustom(false);
     setSpecForm({ waterSystemId: 0, samplePointId: null, parameter: '', unit: '', specMin: '', specMax: '' });
     setSpecOpen(true);
   };
   const openSpecEdit = (s: WaterQualitySpec) => {
     setSpecEdit(s);
+    // If the saved parameter isn't a known preset, open in custom mode.
+    setParamCustom(!WATER_PARAM_PRESETS.some((p) => p.value === s.parameter));
     setSpecForm({
       waterSystemId: s.waterSystemId,
       samplePointId: s.samplePointId,
@@ -428,8 +452,43 @@ export default function WaterQualitySettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">{t('waterQuality.settings.specPopup.parameterLabel')}</label>
-              <input className="w-full border rounded px-3 py-2" value={specForm.parameter}
-                onChange={(e) => setSpecForm({ ...specForm, parameter: e.target.value })} placeholder="ph / conductivity / toc" />
+              {/* Dropdown of standard parameters (auto-fills unit). "custom" keeps
+                  free entry for anything not listed. */}
+              <select
+                className="w-full border rounded px-3 py-2 bg-white"
+                value={paramSelectValue}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') {
+                    setParamCustom(true);
+                    setSpecForm({ ...specForm, parameter: '' });
+                    return;
+                  }
+                  setParamCustom(false);
+                  const preset = WATER_PARAM_PRESETS.find((p) => p.value === e.target.value);
+                  setSpecForm({
+                    ...specForm,
+                    parameter: e.target.value,
+                    unit: specForm.unit || preset?.unit || specForm.unit,
+                  });
+                }}
+              >
+                <option value="" disabled>— เลือกพารามิเตอร์ —</option>
+                {WATER_PARAM_PRESETS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+              {/* Free-text box appears only when "custom" is selected. */}
+              {paramSelectValue === 'custom' && (
+                <input
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  value={specForm.parameter}
+                  onChange={(e) => setSpecForm({ ...specForm, parameter: e.target.value })}
+                  placeholder="ชื่อพารามิเตอร์"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('waterQuality.settings.specPopup.unitLabel')}</label>

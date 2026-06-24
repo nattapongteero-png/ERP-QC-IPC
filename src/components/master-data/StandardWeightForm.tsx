@@ -31,7 +31,21 @@ interface StandardWeightFormProps {
 const DENOMINATION_UNITS = ['g', 'kg', 'mg'] as const;
 type DenominationUnit = (typeof DENOMINATION_UNITS)[number];
 
-const ACCURACY_CLASS_OPTIONS = ACCURACY_CLASSES.map((c) => ({ value: c, label: c }));
+// OIML accuracy classes with a plain-language hint per class (most→least
+// precise) so users who don't know the metrology codes understand what to pick.
+const ACCURACY_CLASS_DESCRIPTIONS: Record<string, string> = {
+  E1: 'เที่ยงตรงสูงสุด — สอบเทียบลูกตุ้มมาตรฐานอื่น',
+  E2: 'เที่ยงตรงสูง — สอบเทียบเครื่องชั่งความละเอียดสูง',
+  F1: 'เที่ยงตรงปานกลาง — เครื่องชั่งในห้องปฏิบัติการ',
+  F2: 'เที่ยงตรงทั่วไป — เครื่องชั่งงานผลิต',
+  M1: 'งานทั่วไป — เครื่องชั่งการค้า/อุตสาหกรรม',
+  M2: 'งานหยาบ — เครื่องชั่งทั่วไป',
+  M3: 'งานหยาบที่สุด',
+};
+const ACCURACY_CLASS_OPTIONS = ACCURACY_CLASSES.map((c) => ({
+  value: c,
+  label: ACCURACY_CLASS_DESCRIPTIONS[c] ? `${c} — ${ACCURACY_CLASS_DESCRIPTIONS[c]}` : c,
+}));
 const UNIT_OPTIONS = DENOMINATION_UNITS.map((u) => ({ value: u, label: u }));
 
 const TODAY = new Date().toISOString().slice(0, 10);
