@@ -181,34 +181,60 @@ export function SidebarLanguageToggle({
     router.refresh();
   }, [currentLocale, onLanguageChange, router]);
 
-  const nextLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
   const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
+
+  // Switch directly to a chosen locale (no-op if already active).
+  const selectLocale = useCallback(
+    async (loc: Locale) => {
+      if (loc === currentLocale) return;
+      setStoredLocale(loc);
+      await initDevExtremeLocale(loc);
+      if (onLanguageChange) onLanguageChange(loc);
+      router.refresh();
+    },
+    [currentLocale, onLanguageChange, router],
+  );
+
+  // Slider switch: TH on the left, EN on the right, a white knob slides to the
+  // active side. Pure text (TH/EN) + CSS only — renders identically across
+  // Chrome / Firefox / Safari / Edge (no flag emoji, which break on Windows).
+  const isEn = currentLocale === 'en';
 
   return (
     <div className="flex flex-col gap-1.5">
       <button
         type="button"
-        onClick={handleToggle}
-        aria-label={`Switch to ${localeNames[nextLocale]}`}
-        title={`Switch to ${localeNames[nextLocale]}`}
+        onClick={() => void selectLocale(isEn ? 'th' : 'en')}
+        role="switch"
+        aria-checked={isEn}
+        aria-label="Toggle language"
         data-testid="sidebar-language-toggle"
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium text-emerald-50 bg-emerald-600/20 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors ${className || ''}`}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/60 border border-emerald-500/20 hover:border-emerald-500/40 transition-colors ${className || ''}`}
       >
-        <span className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center justify-center min-w-[1.75rem] px-1.5 py-0.5 rounded bg-emerald-500 text-[11px] font-bold leading-none text-white">
-            {localeBadges[currentLocale]}
-          </span>
-          <span className="truncate">{localeNames[currentLocale]}</span>
+        <span
+          className={`text-[13px] font-bold w-8 text-center transition-colors ${
+            !isEn ? 'text-white' : 'text-slate-500'
+          }`}
+          data-testid="sidebar-language-th"
+        >
+          {localeBadges.th}
         </span>
-        <span className="flex items-center gap-1 text-xs text-emerald-300/80">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M17 1l4 4-4 4" />
-            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-            <path d="M7 23l-4-4 4-4" />
-            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-          </svg>
-          <span className="font-semibold">{localeBadges[nextLocale]}</span>
+        {/* Track + sliding knob */}
+        <span className="relative inline-block w-[54px] h-[26px] rounded-full bg-emerald-500 flex-shrink-0">
+          <span
+            className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${
+              isEn ? 'left-[31px]' : 'left-[3px]'
+            }`}
+          />
+        </span>
+        <span
+          className={`text-[13px] font-bold w-8 text-center transition-colors ${
+            isEn ? 'text-white' : 'text-slate-500'
+          }`}
+          data-testid="sidebar-language-en"
+        >
+          {localeBadges.en}
         </span>
       </button>
       {appVersion && (
