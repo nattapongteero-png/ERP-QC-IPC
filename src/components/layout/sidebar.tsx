@@ -703,12 +703,10 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
           ))}
         </div>
         </nav>
-        {/* Bottom fade — softens any partially-cut last visible item, hints
-            that more content is below the scrollable area. */}
-        <div
-          className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"
-          aria-hidden="true"
-        />
+        {/* Bottom fade removed — its 64px gradient overlapped the LAST menu item
+            (VMI Portal), dimming its text so it looked greyed-out/unclickable.
+            The nav's pb-28 already gives enough room to scroll every item into
+            full view, so no fade is needed. */}
       </div>
 
       {/* User Section — flex-shrink-0 prevents it from compressing the nav */}
