@@ -602,7 +602,7 @@ export default function CapaDashboardPage() {
               type="doughnut"
               innerRadius={0.65}
               palette={statusChartData.map(d => d.color)}
-              size={{ height: 200 }}
+              size={{ height: 240 }}
             >
               <Series argumentField="status" valueField="count">
                 <Label visible={true} position="inside" customizeText={(e: { valueText: string }) => e.valueText}>
@@ -611,8 +611,8 @@ export default function CapaDashboardPage() {
               </Series>
               <Legend
                 visible={true}
-                horizontalAlignment="right"
-                verticalAlignment="top"
+                horizontalAlignment="center"
+                verticalAlignment="bottom"
                 itemTextPosition="right"
                 font={{ size: 11 }}
                 customizeText={(info: { pointName?: string; pointIndex?: number }) => {
