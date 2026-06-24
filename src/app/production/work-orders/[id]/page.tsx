@@ -21,7 +21,7 @@ import {
   CheckCircle2,
   Users,
   Info,
-  Footprints,
+  Cog,
   Boxes,
   FileText,
   type LucideIcon,
@@ -301,7 +301,7 @@ export default function WorkOrderDetailPage() {
 
   const tabs: { text: string; Icon: LucideIcon }[] = [
     { text: t('workOrderDetail.tabs.overview'), Icon: Info },
-    { text: t('workOrderDetail.tabs.execution'), Icon: Footprints },
+    { text: t('workOrderDetail.tabs.execution'), Icon: Cog },
     { text: t('workOrderDetail.tabs.materials'), Icon: Boxes },
     { text: t('workOrderDetail.tabs.qc'), Icon: CheckCircle2 },
     { text: t('workOrderDetail.tabs.deviations'), Icon: AlertCircle },
@@ -1779,11 +1779,14 @@ export default function WorkOrderDetailPage() {
           <Card className="hidden"><CardContent /></Card>
         )}
 
-        {/* Feature 018: Material Withdrawal Approval panel */}
-        <WithdrawalPanel
-          workOrderId={Number(workOrder.id)}
-          workOrderNumber={workOrder.woNumber}
-        />
+        {/* Feature 018: Material Withdrawal Approval panel — screen-only,
+            must never appear in the printed eBMR document. */}
+        <div className="no-print">
+          <WithdrawalPanel
+            workOrderId={Number(workOrder.id)}
+            workOrderNumber={workOrder.woNumber}
+          />
+        </div>
 
         {/* Tabs — lightweight underline bar matching the dashboard's module-KPI
             tabs (clean blue underline on the active tab, no DevExtreme box or

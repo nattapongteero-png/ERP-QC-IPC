@@ -6,7 +6,7 @@
  * Form Sections: 7, 10.2
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -115,10 +115,15 @@ export default function EnvironmentalMonitoringPage() {
   const phaseParam = searchParams.get('phase');
   const initialPhase = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
   const [activeTab, setActiveTab] = useState(initialPhase);
+  // Once the user (or an explicit ?phase= URL) picks a tab, stop auto-jumping
+  // to the active phase so manual navigation isn't overridden.
+  const tabManuallySet = useRef<boolean>(!!phaseParam);
 
   // Keep tab in sync with URL ?phase= when navigating via back/forward
   useEffect(() => {
+    if (!phaseParam) return;
     const idx = phaseParam === 'packaging' ? 2 : phaseParam === 'production' ? 1 : 0;
+    tabManuallySet.current = true;
     setActiveTab(idx);
   }, [phaseParam]);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -183,6 +188,17 @@ export default function EnvironmentalMonitoringPage() {
   });
 
   const currentPhaseInfo = phaseStatus?.[currentPhase];
+
+  // Auto-focus the phase that's actively recording: on first load (no explicit
+  // ?phase= and the user hasn't switched tabs yet), jump to the active phase so
+  // the user sees only the data for the phase currently being recorded.
+  useEffect(() => {
+    if (tabManuallySet.current) return;
+    const active = phaseStatus?.activePhase;
+    if (!active) return;
+    const idx = PHASE_MAP.indexOf(active as typeof PHASE_MAP[number]);
+    if (idx >= 0) setActiveTab(idx);
+  }, [phaseStatus]);
 
   // Build dynamic tab items with status badges (Active/Frozen/Pending)
   // next to each phase label. Status reflects computed phase state.
@@ -407,7 +423,7 @@ export default function EnvironmentalMonitoringPage() {
           <DxTabs
             items={tabItems}
             selectedIndex={activeTab}
-            onSelectedIndexChange={(idx) => setActiveTab(idx)}
+            onSelectedIndexChange={(idx) => { tabManuallySet.current = true; setActiveTab(idx); }}
           />
 
           {/* Per-phase status banner (Active / Frozen / Pending / Missing mapping) */}
