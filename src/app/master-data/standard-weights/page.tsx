@@ -16,6 +16,16 @@ import { DxButton } from '@/components/ui/dx-button';
 import { useToast } from '@/hooks/use-toast';
 import { type StandardWeight } from '@/types/scale-verification';
 
+// Distinct neutral colour per OIML accuracy class so the column is scannable.
+// Ordered most-precise (E1) to least (M1); these are type categories, not pass/fail.
+const ACCURACY_CLASS_BADGE: Record<string, string> = {
+  E1: 'bg-violet-100 text-violet-800',
+  E2: 'bg-indigo-100 text-indigo-800',
+  F1: 'bg-sky-100 text-sky-800',
+  F2: 'bg-teal-100 text-teal-800',
+  M1: 'bg-amber-100 text-amber-800',
+};
+
 export default function StandardWeightsPage() {
   const t = useTranslations('scaleVerification');
   const router = useRouter();
@@ -135,7 +145,7 @@ export default function StandardWeightsPage() {
             caption={t('table.columns.accuracyClass')}
             width={110}
             cellRender={(cell) => (
-              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 whitespace-nowrap">
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${ACCURACY_CLASS_BADGE[cell.value as string] ?? 'bg-gray-100 text-gray-700'}`}>
                 {cell.value}
               </span>
             )}

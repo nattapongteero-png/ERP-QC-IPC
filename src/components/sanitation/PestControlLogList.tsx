@@ -11,8 +11,15 @@ import { useMemo } from 'react';
 import { DxDataGrid } from '@/components/ui/dx-data-grid';
 import { DxColumn, type DxColumnProps } from '@/components/ui/dx-column';
 import { DxButton } from '@/components/ui/dx-button';
-import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import type { PestControlLog, PestControlServiceType } from '@/types/sanitation';
+
+// Distinct colour + label per service type so the column is scannable at a glance.
+// emergency = urgent (rose), follow_up = pending (amber), routine = neutral (sky).
+const SERVICE_TYPE_BADGE: Record<PestControlServiceType, { label: string; cls: string }> = {
+  routine: { label: 'ตามรอบ', cls: 'bg-sky-100 text-sky-800' },
+  emergency: { label: 'ฉุกเฉิน', cls: 'bg-rose-100 text-rose-800' },
+  follow_up: { label: 'ติดตามผล', cls: 'bg-amber-100 text-amber-800' },
+};
 
 interface PestControlLogListProps {
   logs: PestControlLog[];
@@ -48,9 +55,19 @@ export function PestControlLogList({
         dataField: 'serviceType',
         caption: 'ประเภท',
         width: 100,
-        cellRender: (data: { value: PestControlServiceType }) => (
-          <WorkflowStatusBadge status={data.value} />
-        ),
+        cellRender: (data: { value: PestControlServiceType }) => {
+          const cfg = SERVICE_TYPE_BADGE[data.value] ?? {
+            label: data.value,
+            cls: 'bg-gray-100 text-gray-700',
+          };
+          return (
+            <span
+              className={`inline-flex items-center font-medium rounded-full text-xs px-2 py-0.5 ${cfg.cls}`}
+            >
+              {cfg.label}
+            </span>
+          );
+        },
       },
       {
         dataField: 'contractorName',

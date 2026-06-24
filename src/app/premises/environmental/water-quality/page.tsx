@@ -243,16 +243,23 @@ export default function WaterQualityRecordsPage() {
             {tp('waterQuality.index.subtitle')}
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        {/* Header actions — unified as native pill buttons (same height, padding,
+            border, icon size) so the settings link and record button line up. */}
+        <div className="flex gap-2 flex-wrap items-center">
           <Link
             href="/premises/environmental/water-quality/settings"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors"
           >
             <Settings className="w-4 h-4" /> {tp('waterQuality.index.settingsLink')}
           </Link>
-          <Button type="default" stylingMode="contained" onClick={() => setTestOpen(true)} data-testid="wq-record-btn">
-            <span className="inline-flex items-center gap-1"><Plus className="w-4 h-4" /> {tp('waterQuality.index.recordButton')}</span>
-          </Button>
+          <button
+            type="button"
+            onClick={() => setTestOpen(true)}
+            data-testid="wq-record-btn"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-emerald-200 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> {tp('waterQuality.index.recordButton')}
+          </button>
         </div>
       </header>
 

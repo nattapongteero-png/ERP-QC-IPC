@@ -18,7 +18,7 @@ import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { NumberBox } from 'devextreme-react/number-box';
-import { Bell, AlertTriangle, CheckCircle2, Clock, AlertCircle, List, CalendarDays } from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle2, Clock, AlertCircle, List, CalendarDays, RefreshCw } from 'lucide-react';
 import { Breadcrumbs } from '@/components/shared';
 import type {
   EquipmentNotification,
@@ -183,10 +183,18 @@ export default function MaintenanceAlertsPage() {
             {tp('notifications.common.title')}
           </h1>
         </div>
+        {/* Header actions — the refresh button is rendered as a native pill to
+            match the view-toggle buttons (same height/padding/border). */}
         <div className="flex items-center gap-2">
           {tabBtn('list', tp('notifications.list.tab'), List)}
           {tabBtn('calendar', tp('notifications.calendar.tab'), CalendarDays)}
-          <Button text={t('actions.refresh')} onClick={() => refetch()} />
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" /> {t('actions.refresh')}
+          </button>
         </div>
       </header>
 

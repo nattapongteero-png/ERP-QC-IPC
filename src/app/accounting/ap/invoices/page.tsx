@@ -325,6 +325,23 @@ export default function APInvoicesPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.message);
       const detail = json.data;
+      const editLines = (detail.lines || []).map((l: any) => ({
+        description: l.description || '',
+        glAccountId: l.glAccountId || null,
+        quantity: l.quantity || 1,
+        unitPrice: l.unitPrice || 0,
+      }));
+      const editVatRate = detail.vatAmount > 0 ? 7 : 0;
+      const editLineTotal = editLines.reduce(
+        (sum: number, l: { quantity: number; unitPrice: number }) => sum + l.quantity * l.unitPrice,
+        0
+      );
+      const autoVat = Math.round(editLineTotal * (editVatRate / 100) * 100) / 100;
+      // Preserve a manual VAT override when the stored VAT differs from the auto-calculated value
+      const editVatOverride =
+        detail.vatAmount != null && Math.abs(Number(detail.vatAmount) - autoVat) > 0.005
+          ? Number(detail.vatAmount)
+          : null;
       setFormData({
         invoiceNumber: detail.invoiceNumber || '',
         vendorId: detail.vendorId || null,
@@ -332,14 +349,9 @@ export default function APInvoicesPage() {
         dueDate: detail.dueDate ? detail.dueDate.split('T')[0] : '',
         receivedDate: detail.receivedDate ? detail.receivedDate.split('T')[0] : '',
         description: detail.description || '',
-        vatRate: detail.vatAmount > 0 ? 7 : 0,
-        vatAmountOverride: null,
-        lines: (detail.lines || []).map((l: any) => ({
-          description: l.description || '',
-          glAccountId: l.glAccountId || null,
-          quantity: l.quantity || 1,
-          unitPrice: l.unitPrice || 0,
-        })),
+        vatRate: editVatRate,
+        vatAmountOverride: editVatOverride,
+        lines: editLines,
       });
       setEditingInvoiceId(invoice.id);
       setIsDialogOpen(true);

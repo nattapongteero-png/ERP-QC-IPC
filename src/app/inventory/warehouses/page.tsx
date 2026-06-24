@@ -494,7 +494,7 @@ export default function WarehousesPage() {
                   XLSX.utils.book_append_sheet(wb, ws, t('warehouses.excelSheetName'));
                   XLSX.writeFile(wb, `warehouses-${new Date().toISOString().slice(0, 10)}.xlsx`);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm hover:-translate-y-0.5 hover:bg-emerald-100 transition-all"
+                className="inline-flex items-center gap-1.5 h-9 px-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors"
               >
                 <Download className="h-4 w-4" /> {t('warehouses.downloadExcel')}
               </button>

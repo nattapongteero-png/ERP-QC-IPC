@@ -227,10 +227,24 @@ export function DocumentForm({ document, onSave, onCancel }: DocumentFormProps) 
             ประเภทเอกสาร <span className="text-destructive">*</span>
           </label>
           <DxSelectBox
-            items={(documentTypes || []).map((t: DocumentType) => ({
-              value: t.id,
-              label: t.name,
-            }))}
+            items={(() => {
+              const opts = (documentTypes || []).map((t: DocumentType) => ({
+                value: t.id,
+                label: t.name,
+              }));
+              // Ensure the selected type is present so the value displays on edit
+              // even while the list is loading / if the type is filtered out.
+              if (
+                formData.typeId != null &&
+                !opts.some((o) => o.value === formData.typeId)
+              ) {
+                return [
+                  { value: formData.typeId, label: document?.typeName || '' },
+                  ...opts,
+                ];
+              }
+              return opts;
+            })()}
             value={formData.typeId}
             valueExpr="value"
             displayExpr="label"

@@ -402,10 +402,24 @@ export function DocumentFormDialog({
               ประเภทเอกสาร <span className="text-destructive">*</span>
             </label>
             <DxSelectBox
-              items={(documentTypes || []).map((t: DocumentType) => ({
-                value: t.id,
-                label: `${t.code} - ${t.name}`,
-              }))}
+              items={(() => {
+                const opts = (documentTypes || []).map((t: DocumentType) => ({
+                  value: t.id,
+                  label: `${t.code} - ${t.name}`,
+                }));
+                // Ensure the selected type is present so the value displays on edit
+                // even while the (open-gated) list is still loading or filtered.
+                if (
+                  formData.typeId != null &&
+                  !opts.some((o) => o.value === formData.typeId)
+                ) {
+                  return [
+                    { value: formData.typeId, label: document?.typeName || '' },
+                    ...opts,
+                  ];
+                }
+                return opts;
+              })()}
               value={formData.typeId}
               valueExpr="value"
               displayExpr="label"

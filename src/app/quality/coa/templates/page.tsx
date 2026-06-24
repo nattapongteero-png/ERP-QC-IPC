@@ -42,6 +42,33 @@ const LANG_LABEL: Record<string, string> = {
   bilingual: 'TH/EN',
 };
 
+// Distinct colour per language so the column is scannable at a glance.
+const LANG_BADGE: Record<string, string> = {
+  th: 'bg-sky-100 text-sky-800 ring-sky-500/10',
+  en: 'bg-violet-100 text-violet-800 ring-violet-500/10',
+  bilingual: 'bg-teal-100 text-teal-800 ring-teal-500/10',
+};
+
+// productCategory is free-form (no fixed enum), so assign a stable neutral colour
+// per distinct category string by hashing it into a small palette. Same category
+// always gets the same colour, so users can still scan the column by colour.
+const CATEGORY_PALETTE = [
+  'bg-indigo-100 text-indigo-800 ring-indigo-500/10',
+  'bg-amber-100 text-amber-800 ring-amber-500/10',
+  'bg-rose-100 text-rose-800 ring-rose-500/10',
+  'bg-cyan-100 text-cyan-800 ring-cyan-500/10',
+  'bg-lime-100 text-lime-800 ring-lime-500/10',
+  'bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-500/10',
+  'bg-blue-100 text-blue-800 ring-blue-500/10',
+];
+function categoryBadgeClass(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  }
+  return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
+}
+
 export default function CoaTemplatesPage() {
   const router = useRouter();
   const toast = useToast();
@@ -156,7 +183,9 @@ export default function CoaTemplatesPage() {
       width: 180,
       cellRender: (cell) =>
         cell.data.productCategory ? (
-          <Badge variant="info">{cell.data.productCategory}</Badge>
+          <Badge className={categoryBadgeClass(String(cell.data.productCategory))}>
+            {cell.data.productCategory}
+          </Badge>
         ) : (
           <Badge variant="default">Global</Badge>
         ),
@@ -167,7 +196,7 @@ export default function CoaTemplatesPage() {
       width: 100,
       alignment: 'center',
       cellRender: (cell) => (
-        <Badge variant="default">
+        <Badge className={LANG_BADGE[String(cell.data.language)] ?? 'bg-gray-100 text-gray-800 ring-gray-500/10'}>
           {LANG_LABEL[String(cell.data.language)] ?? cell.data.language}
         </Badge>
       ),

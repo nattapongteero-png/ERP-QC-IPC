@@ -1168,7 +1168,7 @@ export default function LotsPage() {
                   });
                 }}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all disabled:opacity-50 min-h-[40px]"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50 min-h-[40px]"
                 aria-label={t('common.refresh')}
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
@@ -1178,7 +1178,7 @@ export default function LotsPage() {
               </button>
               <button
                 onClick={() => router.push('/inventory/items')}
-                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-xl shadow-sm hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow transition-all min-h-[40px]"
+                className="hidden md:inline-flex items-center gap-2 px-3 py-2 text-sm text-emerald-800 bg-white border border-emerald-100 rounded-lg hover:bg-emerald-50 transition-colors min-h-[40px]"
               >
                 <Package className="h-4 w-4" />
                 {t('lots.viewItems')}

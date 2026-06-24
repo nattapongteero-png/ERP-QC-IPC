@@ -68,7 +68,7 @@ interface WorkOrderBasic {
 // 15-point checklist items organized by category
 const checklistCategories = [
   {
-    name: 'Product Identity',
+    name: 'การระบุตัวสินค้า',
     icon: Package,
     items: [
       { key: 'medicineCorrect', label: 'ยาตรงตามที่ระบุ (Medicine matches specification)' },
@@ -77,7 +77,7 @@ const checklistCategories = [
     ],
   },
   {
-    name: 'Label Verification',
+    name: 'การตรวจฉลาก',
     icon: FileText,
     items: [
       { key: 'labelComplete', label: 'ฉลากครบถ้วน (Label complete)' },
@@ -87,7 +87,7 @@ const checklistCategories = [
     ],
   },
   {
-    name: 'Physical Appearance',
+    name: 'ลักษณะภายนอก',
     icon: Eye,
     items: [
       { key: 'colorNormal', label: 'สีปกติ (Normal color)' },
@@ -97,7 +97,7 @@ const checklistCategories = [
     ],
   },
   {
-    name: 'Container Integrity',
+    name: 'ความสมบูรณ์ของภาชนะ',
     icon: FlaskConical,
     items: [
       { key: 'containerIntact', label: 'ภาชนะบรรจุสมบูรณ์ (Container intact)' },
@@ -186,11 +186,11 @@ export default function FinishedInspectionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-finished-inspection', workOrderId] });
-      toast.success('Inspection Created', 'Finished product inspection has been created.');
+      toast.success('สร้างการตรวจแล้ว', 'สร้างการตรวจสินค้าสำเร็จรูปเรียบร้อย');
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('เกิดข้อผิดพลาด', error.message);
     },
   });
 
@@ -208,11 +208,11 @@ export default function FinishedInspectionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-finished-inspection', workOrderId] });
-      toast.success('Inspection Saved', 'Inspection checklist has been saved.');
+      toast.success('บันทึกแล้ว', 'บันทึกรายการตรวจเรียบร้อย');
       setIsEditing(false);
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('เกิดข้อผิดพลาด', error.message);
     },
   });
 
@@ -233,7 +233,7 @@ export default function FinishedInspectionPage() {
       toast.success('Re-inspection Recorded', 'Re-inspection has been recorded.');
     },
     onError: (error: Error) => {
-      toast.error('Error', error.message);
+      toast.error('เกิดข้อผิดพลาด', error.message);
     },
   });
 
@@ -302,11 +302,11 @@ export default function FinishedInspectionPage() {
 
   const getStatusInfo = (status: FinishedInspection['status']) => {
     const statusMap = {
-      pending: { label: 'Pending', color: 'bg-gray-100 text-gray-600', icon: Clock },
-      in_progress: { label: 'In Progress', color: 'bg-amber-100 text-amber-700', icon: Clock },
-      passed: { label: 'Passed', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
-      failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: XCircle },
-      re_inspected: { label: 'Re-inspected', color: 'bg-emerald-100 text-emerald-700', icon: UserCheck },
+      pending: { label: 'รอดำเนินการ', color: 'bg-gray-100 text-gray-600', icon: Clock },
+      in_progress: { label: 'กำลังตรวจ', color: 'bg-amber-100 text-amber-700', icon: Clock },
+      passed: { label: 'ผ่าน', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
+      failed: { label: 'ไม่ผ่าน', color: 'bg-red-100 text-red-700', icon: XCircle },
+      re_inspected: { label: 'ตรวจซ้ำแล้ว', color: 'bg-emerald-100 text-emerald-700', icon: UserCheck },
     };
     return statusMap[status];
   };
@@ -322,9 +322,9 @@ export default function FinishedInspectionPage() {
   if (!workOrder) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Work Order not found</p>
+        <p className="text-gray-500">ไม่พบใบสั่งผลิต</p>
         <DxButton
-          text="Back to Work Orders"
+          text="กลับไปใบสั่งผลิต"
           type="normal"
           stylingMode="outlined"
           className="mt-4"
@@ -338,7 +338,7 @@ export default function FinishedInspectionPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="Finished Product Inspection"
+        title="ตรวจสินค้าสำเร็จรูป"
         subtitle={`${workOrder.woNumber} | Batch: ${workOrder.batchNumber}`}
         icon={ClipboardCheck}
         iconBgColor="bg-teal-100"
@@ -352,7 +352,7 @@ export default function FinishedInspectionPage() {
         ]}
         actions={
           <DxButton
-            text="Back to Execution"
+            text="กลับไปการดำเนินการ"
             icon="back"
             stylingMode="outlined"
             onClick={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
@@ -369,12 +369,12 @@ export default function FinishedInspectionPage() {
         <Card>
           <CardContent className="p-8 text-center">
             <ClipboardCheck className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No Inspection Started</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">ยังไม่ได้เริ่มตรวจสินค้าสำเร็จรูป</h3>
             <p className="text-gray-500 mb-6">
-              Create a finished product inspection to start the 15-point quality checklist.
+              กดปุ่ม &quot;เริ่มตรวจสินค้า&quot; เพื่อเริ่มรายการตรวจคุณภาพ 15 ข้อ และจะแนบรูปถ่ายสินค้าได้หลังจากนั้น
             </p>
             <DxButton
-              text="Start Inspection"
+              text="เริ่มตรวจสินค้า"
               type="success"
               onClick={() => setShowCreateDialog(true)}
             />
@@ -416,16 +416,16 @@ export default function FinishedInspectionPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Samples</p>
+                    <p className="text-sm text-gray-600">ตัวอย่าง</p>
                     <p className="text-lg font-medium">
-                      Test: {inspection.sampleQtyForTest} | Retention: {inspection.sampleQtyForRetention}
+                      ทดสอบ: {inspection.sampleQtyForTest} | สำรอง: {inspection.sampleQtyForRetention}
                     </p>
                   </div>
                   {!isEditing && inspection.status !== 'passed' && (
-                    <DxButton text="Edit Checklist" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
+                    <DxButton text="แก้ไขรายการตรวจ" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
                   )}
                   {!isEditing && inspection.status === 'passed' && workOrder.status !== 'completed' && (
-                    <DxButton text="Re-edit" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
+                    <DxButton text="แก้ไขอีกครั้ง" icon="edit" stylingMode="outlined" onClick={handleStartEditing} />
                   )}
                 </div>
               </div>
@@ -474,9 +474,9 @@ export default function FinishedInspectionPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {passCount === allChecklistItems.length ? (
-                        <><CheckCircle2 className="h-5 w-5 text-green-600" /><span className="font-medium text-green-800">All 15 checks passed</span></>
+                        <><CheckCircle2 className="h-5 w-5 text-green-600" /><span className="font-medium text-green-800">ผ่านครบ 15 ข้อ</span></>
                       ) : (
-                        <><AlertCircle className="h-5 w-5 text-amber-600" /><span className="font-medium text-amber-800">{passCount}/{allChecklistItems.length} passed — {allChecklistItems.length - passCount} item(s) need attention</span></>
+                        <><AlertCircle className="h-5 w-5 text-amber-600" /><span className="font-medium text-amber-800">ผ่าน {passCount}/{allChecklistItems.length} ข้อ — มี {allChecklistItems.length - passCount} ข้อที่ต้องตรวจสอบ</span></>
                       )}
                     </div>
                   </div>
@@ -511,7 +511,7 @@ export default function FinishedInspectionPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`text-xs font-medium ${checklistResults[item.key] ? 'text-green-700' : 'text-red-700'}`}>
-                                  {checklistResults[item.key] ? 'Pass' : 'Fail'}
+                                  {checklistResults[item.key] ? 'ผ่าน' : 'ไม่ผ่าน'}
                                 </span>
                                 <DxSwitch
                                   value={checklistResults[item.key] ?? true}
@@ -541,7 +541,7 @@ export default function FinishedInspectionPage() {
                 {/* General notes */}
                 <Card>
                   <CardContent className="p-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">General Notes</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุทั่วไป</label>
                     <DxTextArea
                       value={inspectNotes}
                       onValueChanged={(e) => setInspectNotes(e.value)}
@@ -558,16 +558,16 @@ export default function FinishedInspectionPage() {
                       Inspector digital signature will be recorded automatically (user login + timestamp).
                     </p>
                     <div className="flex gap-2">
-                      <DxButton text="Cancel" stylingMode="outlined" onClick={() => setIsEditing(false)} />
+                      <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setIsEditing(false)} />
                       <DxButton
-                        text="Save Draft"
+                        text="บันทึกร่าง"
                         type="normal"
                         stylingMode="outlined"
                         onClick={handleSaveDraft}
                         disabled={updateInspectionMutation.isPending}
                       />
                       <DxButton
-                        text="Confirm Inspection"
+                        text="ยืนยันผลตรวจ"
                         type="success"
                         onClick={handleConfirmInspection}
                         disabled={updateInspectionMutation.isPending}
@@ -583,9 +583,9 @@ export default function FinishedInspectionPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Inspection Results</h3>
+                    <h3 className="text-lg font-medium">ผลการตรวจ</h3>
                     <div className="text-sm text-gray-600">
-                      {getPassCount(inspection.checklistResults)}/{allChecklistItems.length} Passed
+                      ผ่าน {getPassCount(inspection.checklistResults)}/{allChecklistItems.length} ข้อ
                     </div>
                   </div>
 
@@ -620,7 +620,7 @@ export default function FinishedInspectionPage() {
 
                   {inspection.notes && (
                     <div className="mt-4 p-3 bg-[#F6FCF9] rounded-lg">
-                      <p className="text-sm text-gray-700 whitespace-pre-line"><strong>Notes:</strong> {inspection.notes}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-line"><strong>หมายเหตุ:</strong> {inspection.notes}</p>
                     </div>
                   )}
 
@@ -645,9 +645,9 @@ export default function FinishedInspectionPage() {
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-amber-800">
                       <AlertCircle className="h-5 w-5" />
-                      <span>Inspection failed. Re-inspection may be required.</span>
+                      <span>ผลตรวจไม่ผ่าน อาจต้องตรวจซ้ำ</span>
                     </div>
-                    <DxButton text="Record Re-inspection" type="default" onClick={() => reInspectMutation.mutate(inspection.id)} disabled={reInspectMutation.isPending} />
+                    <DxButton text="บันทึกการตรวจซ้ำ" type="default" onClick={() => reInspectMutation.mutate(inspection.id)} disabled={reInspectMutation.isPending} />
                   </CardContent>
                 </Card>
               )}
@@ -660,7 +660,7 @@ export default function FinishedInspectionPage() {
       <DxPopup
         visible={showCreateDialog}
         onHiding={() => setShowCreateDialog(false)}
-        title="Create Finished Product Inspection"
+        title="สร้างการตรวจสินค้าสำเร็จรูป"
         width={450}
         height="auto"
         showCloseButton
@@ -668,17 +668,17 @@ export default function FinishedInspectionPage() {
       >
         <div className="p-4 space-y-4">
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-            <strong>Product:</strong> {workOrder?.productName}
+            <strong>สินค้า:</strong> {workOrder?.productName}
             <br />
-            <strong>Batch:</strong> {workOrder?.batchNumber}
+            <strong>แบตช์:</strong> {workOrder?.batchNumber}
             <br />
-            <strong>Date:</strong> {new Date().toLocaleDateString()}
+            <strong>วันที่:</strong> {new Date().toLocaleDateString('th-TH')}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sample for Testing
+                จำนวนตัวอย่างเพื่อทดสอบ
               </label>
               <DxNumberBox
                 value={createForm.sampleQtyForTest}
@@ -689,7 +689,7 @@ export default function FinishedInspectionPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sample for Retention
+                จำนวนตัวอย่างเก็บสำรอง
               </label>
               <DxNumberBox
                 value={createForm.sampleQtyForRetention}
@@ -701,9 +701,9 @@ export default function FinishedInspectionPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <DxButton text="Cancel" stylingMode="outlined" onClick={() => setShowCreateDialog(false)} />
+            <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowCreateDialog(false)} />
             <DxButton
-              text="Create Inspection"
+              text="สร้างการตรวจ"
               type="success"
               onClick={() => createInspectionMutation.mutate(createForm)}
               disabled={createInspectionMutation.isPending}
