@@ -27,6 +27,15 @@
     "po": "Purchase Order (วัตถุดิบ)",
     "wo": "Work Order (สินค้าสำเร็จรูป)"
   },
+  "filters": {
+    "sourceType": "แหล่งที่มา",
+    "allSources": "ทั้งหมด",
+    "dateFrom": "ตั้งแต่วันที่",
+    "dateTo": "ถึงวันที่",
+    "search": "ค้นหา",
+    "searchPlaceholder": "เลข GRN / ผู้ขาย / WO...",
+    "clear": "ล้างตัวกรอง"
+  },
   "sourceTypeShort": {
     "po": "ใบสั่งซื้อ",
     "wo": "ใบสั่งผลิต"

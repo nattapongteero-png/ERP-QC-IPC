@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { DataGrid, Column, FilterRow, HeaderFilter, Paging } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
+import { DateBox } from 'devextreme-react/date-box';
 import { TextBox } from 'devextreme-react/text-box';
 import { Layers, CheckCircle2, Clock, XCircle, Ban, PackageCheck } from 'lucide-react';
 import { MaterialWithdrawalDetailDialog } from '@/components/production/material-withdrawal-detail-dialog';
@@ -42,6 +43,8 @@ export default function MaterialWithdrawalListPage() {
     STATUS_OPTIONS.some((o) => o.value === initialStatus) ? initialStatus : '',
   );
   const [searchText, setSearchText] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = useQuery<PaginatedRequests>({
@@ -58,13 +61,21 @@ export default function MaterialWithdrawalListPage() {
   });
 
   const filteredItems = useMemo(() => {
-    const items = data?.items ?? [];
+    let items = data?.items ?? [];
+    // Received-date range filter (inclusive), applied client-side on requestedAt.
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : -Infinity;
+      const to = dateTo ? new Date(dateTo).setHours(23, 59, 59, 999) : Infinity;
+      items = items.filter((i) => {
+        if (!i.requestedAt) return false;
+        const ts = new Date(i.requestedAt).getTime();
+        return ts >= from && ts <= to;
+      });
+    }
     const q = searchText.trim().toLowerCase();
     if (!q) return items;
-    return items.filter((i) =>
-      JSON.stringify(i).toLowerCase().includes(q)
-    );
-  }, [data, searchText]);
+    return items.filter((i) => JSON.stringify(i).toLowerCase().includes(q));
+  }, [data, searchText, dateFrom, dateTo]);
 
   const counts = useMemo(() => {
     const items = data?.items ?? [];
@@ -142,6 +153,26 @@ export default function MaterialWithdrawalListPage() {
           value={statusFilter}
           width={220}
           onValueChanged={(e) => setStatusFilter(e.value as WithdrawalStatus | '')}
+        />
+        <span className="text-sm font-medium text-[#064E3B]">{t('filters.dateRange')}</span>
+        <DateBox
+          type="date"
+          displayFormat="dd/MM/yyyy"
+          value={dateFrom}
+          width={150}
+          placeholder={t('filters.dateFrom')}
+          showClearButton
+          onValueChanged={(e) => setDateFrom(e.value ? new Date(e.value) : null)}
+        />
+        <span className="text-sm text-gray-400">–</span>
+        <DateBox
+          type="date"
+          displayFormat="dd/MM/yyyy"
+          value={dateTo}
+          width={150}
+          placeholder={t('filters.dateTo')}
+          showClearButton
+          onValueChanged={(e) => setDateTo(e.value ? new Date(e.value) : null)}
         />
         <div className="ml-auto w-full sm:w-64">
           <TextBox

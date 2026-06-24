@@ -155,11 +155,11 @@ const navigation: NavItem[] = [
     children: [
       { name: 'Premises Overview', href: '/premises', icon: Building2 },
       { name: 'Storage Monitoring', href: '/premises/storage-monitoring', icon: Thermometer },
-      { name: 'ตรวจสภาพแวดล้อม', href: '/premises/environmental/inspections', icon: Thermometer },
-      { name: 'ตรวจเครื่องชั่ง (ลูกตุ้ม)', href: '/premises/scale-verification', icon: Scale },
-      { name: 'การจัดการสุขาภิบาล', href: '/premises/sanitation', icon: Sparkles },
-      { name: 'ระบบน้ำ (Water Quality)', href: '/premises/environmental/water-quality', icon: Droplets },
-      { name: 'แจ้งเตือนบำรุงรักษา', href: '/premises/notifications', icon: Bell },
+      { name: 'Environmental Inspection', href: '/premises/environmental/inspections', icon: Thermometer },
+      { name: 'Scale Verification', href: '/premises/scale-verification', icon: Scale },
+      { name: 'Sanitation', href: '/premises/sanitation', icon: Sparkles },
+      { name: 'Water Quality', href: '/premises/environmental/water-quality', icon: Droplets },
+      { name: 'Maintenance Alerts', href: '/premises/notifications', icon: Bell },
     ],
   },
   {

@@ -80,6 +80,11 @@
     "rejected": "ปฏิเสธ",
     "cancelled": "ยกเลิก"
   },
+  "filters": {
+    "dateRange": "ช่วงวันที่",
+    "dateFrom": "ตั้งแต่วันที่",
+    "dateTo": "ถึงวันที่"
+  },
   "buttons": {
     "request": "ขอเบิกวัตถุดิบเพิ่ม",
     "approve": "อนุมัติ",

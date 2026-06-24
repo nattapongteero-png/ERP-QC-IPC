@@ -143,6 +143,11 @@
     "home": "Home"
   },
   "premises": {
-    "overview": "Overview"
+    "overview": "Overview",
+    "storageMonitoring": "Storage Monitoring",
+    "environmentalInspection": "Environmental Inspection",
+    "scaleVerification": "Scale Verification",
+    "waterQuality": "Water Quality",
+    "maintenanceAlerts": "Maintenance Alerts"
   }
 }

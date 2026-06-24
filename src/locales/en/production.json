@@ -472,17 +472,18 @@
     "columns": {
       "workOrder": "Work Order",
       "product": "Product",
-      "executionRecords": "Execution Records",
+      "executionRecords": "Production Record Progress",
       "startDate": "Start Date",
       "endDate": "End Date",
       "status": "Status"
     },
     "execution": {
-      "sopPrefix": "SOP:",
-      "cleanPrefix": "Clean:",
-      "envPrefix": "Env:",
-      "fiPrefix": "FI:",
-      "totalSuffix": " total"
+      "sopPrefix": "SOP steps:",
+      "cleanPrefix": "Cleaning:",
+      "envPrefix": "Environment:",
+      "fiPrefix": "Finished inspection:",
+      "totalSuffix": " records",
+      "hint": "Count of production records logged so far by type (SOP steps · cleaning · environment · finished-product inspection)"
     },
     "mobile": {
       "startPrefix": "Start:",

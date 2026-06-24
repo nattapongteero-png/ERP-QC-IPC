@@ -14,7 +14,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import {
   Database, Building2, Wrench, Thermometer, FileText, Scale, FlaskConical,
   ChevronRight, Download, Upload, X, CheckSquare, Square,
-  Sliders, ListChecks, ClipboardCheck, Hash, Tag,
+  Sliders, ListChecks, ClipboardCheck, Hash, Tag, Info,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -324,21 +324,39 @@ export default function MasterDataPage() {
         ))}
       </div>
 
-      {/* Info Card — loop through ALL modules so the about section stays in sync with the cards above */}
-      <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-100">
-        <h3 className="text-sm font-semibold text-emerald-800 mb-2">{t('about.title')}</h3>
-        <p className="text-sm text-emerald-700">{t('about.description')}</p>
-        <ul className="mt-3 text-sm text-emerald-700 space-y-2">
-          {masterDataModules.map((module) => (
-            <li key={module.key}>
-              • <strong>{t(`modules.${module.key}.title`)}</strong>
-              {' '}— {t(`about.items.${module.key}`)}
-              <span className="ml-1 text-xs text-emerald-600">
-                ({t('about.usedInLabel')}: {t(`modules.${module.key}.usedIn`)})
-              </span>
-            </li>
-          ))}
-        </ul>
+      {/* About section — a clean 2-column grid of mini reference cards (icon +
+          title + description + "used in" tag). Replaces the dense single bullet
+          list so users can scan each master-data type at a glance. */}
+      <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 border border-emerald-100">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <Info className="h-4 w-4 text-emerald-600" />
+          </div>
+          <h3 className="text-base font-semibold text-emerald-900">{t('about.title')}</h3>
+        </div>
+        <p className="text-sm text-emerald-700/90 mb-4">{t('about.description')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {masterDataModules.map((module) => {
+            const Icon = module.icon;
+            return (
+              <div
+                key={module.key}
+                className="flex items-start gap-3 rounded-xl bg-white border border-emerald-100/70 p-3 hover:border-emerald-300 hover:shadow-sm transition"
+              >
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${module.iconBgColor}`}>
+                  <Icon className={`h-4 w-4 ${module.iconColor}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{t(`modules.${module.key}.title`)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{t(`about.items.${module.key}`)}</p>
+                  <span className="inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    {t('about.usedInLabel')}: {t(`modules.${module.key}.usedIn`)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Import Dialog */}

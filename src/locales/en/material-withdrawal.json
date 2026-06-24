@@ -80,6 +80,11 @@
     "rejected": "Rejected",
     "cancelled": "Cancelled"
   },
+  "filters": {
+    "dateRange": "Date range",
+    "dateFrom": "From date",
+    "dateTo": "To date"
+  },
   "buttons": {
     "request": "Request Extra Withdrawal",
     "approve": "Approve",

@@ -27,6 +27,15 @@
     "po": "Purchase Order (Raw Material)",
     "wo": "Work Order (Finished Goods)"
   },
+  "filters": {
+    "sourceType": "Source",
+    "allSources": "All",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "search": "Search",
+    "searchPlaceholder": "GRN no. / vendor / WO...",
+    "clear": "Clear filters"
+  },
   "sourceTypeShort": {
     "po": "Purchase Order",
     "wo": "Work Order"

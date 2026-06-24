@@ -18,6 +18,9 @@ import {
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
+import { DateBox } from 'devextreme-react/date-box';
+import { SelectBox } from 'devextreme-react/select-box';
+import { TextBox } from 'devextreme-react/text-box';
 import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import type { IncomingDashboardCounts, GrnWorkflowStatus } from '@/types/goods-receipt';
@@ -38,14 +41,42 @@ interface GrnListItem {
 
 type WorkflowFilter = GrnWorkflowStatus | 'all';
 
-// Pill / column colours per derived workflow status.
+// Pill / column colours per derived workflow status. Green (emerald) is
+// reserved ONLY for the final "released / ผ่านแล้ว" state — every in-progress
+// stage uses a distinct non-green colour so a green badge always means "done".
 const WORKFLOW_BADGE: Record<GrnWorkflowStatus, string> = {
   pending_checklist: 'bg-amber-100 text-amber-800',
-  pending_qc: 'bg-blue-100 text-blue-800',
+  pending_qc: 'bg-sky-100 text-sky-800',
   pending_qa: 'bg-violet-100 text-violet-800',
   released: 'bg-emerald-100 text-emerald-800',
   rejected: 'bg-rose-100 text-rose-800',
   cancelled: 'bg-gray-200 text-gray-600',
+};
+
+// Per-filter pill colours — active (filled) + inactive (tinted) variants so
+// each workflow tab visually carries its own status colour. Keyed by the
+// WorkflowFilter values; 'all' stays neutral.
+const PILL_COLORS: Record<string, { active: string; inactive: string }> = {
+  all: {
+    active: 'bg-gray-700 text-white border-gray-700',
+    inactive: 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+  },
+  pending_checklist: {
+    active: 'bg-amber-500 text-white border-amber-500',
+    inactive: 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400',
+  },
+  pending_qc: {
+    active: 'bg-sky-500 text-white border-sky-500',
+    inactive: 'bg-sky-50 text-sky-700 border-sky-200 hover:border-sky-400',
+  },
+  pending_qa: {
+    active: 'bg-violet-500 text-white border-violet-500',
+    inactive: 'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-400',
+  },
+  released: {
+    active: 'bg-emerald-600 text-white border-emerald-600',
+    inactive: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400',
+  },
 };
 
 export default function GoodsReceiptListPage() {
@@ -66,17 +97,48 @@ export default function GoodsReceiptListPage() {
 
   // Active workflow-status filter — driven by the KPI cards + pill bar.
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>('all');
+  // Extra register filters (server-side via existing API params).
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'po' | 'wo'>('all');
+  const [dateFrom, setDateFrom] = useState<string | null>(null);
+  const [dateTo, setDateTo] = useState<string | null>(null);
+  // Free-text search over GRN number / vendor / WO (client-side).
+  const [searchText, setSearchText] = useState('');
 
   const { data, refetch } = useQuery<{ items: GrnListItem[]; total: number }>({
-    queryKey: ['grn-list', workflowFilter],
+    queryKey: ['grn-list', workflowFilter, sourceFilter, dateFrom, dateTo],
     queryFn: async () => {
       const qs = new URLSearchParams({ pageSize: '100' });
       if (workflowFilter !== 'all') qs.set('workflowStatus', workflowFilter);
+      if (sourceFilter !== 'all') qs.set('sourceType', sourceFilter);
+      if (dateFrom) qs.set('dateFrom', dateFrom);
+      if (dateTo) qs.set('dateTo', dateTo);
       const res = await fetch(`/api/inventory/goods-receipts?${qs}`);
       if (!res.ok) throw new Error('Failed');
       return res.json();
     },
   });
+
+  // Client-side text filter applied on top of the server-filtered list.
+  const visibleItems = (data?.items ?? []).filter((row) => {
+    if (!searchText.trim()) return true;
+    const q = searchText.trim().toLowerCase();
+    return (
+      row.grnNumber?.toLowerCase().includes(q) ||
+      (row.vendorName ?? '').toLowerCase().includes(q) ||
+      (row.woNumber ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  const hasActiveFilters =
+    sourceFilter !== 'all' || !!dateFrom || !!dateTo || !!searchText.trim() || workflowFilter !== 'all';
+
+  const clearFilters = () => {
+    setSourceFilter('all');
+    setDateFrom(null);
+    setDateTo(null);
+    setSearchText('');
+    setWorkflowFilter('all');
+  };
 
   // Cancel a GRN straight from the register (so a cancelled PO/WO can be
   // re-selected via "+ สร้าง GRN"). Backend enforces creator + 24h window +
@@ -216,15 +278,14 @@ export default function GoodsReceiptListPage() {
       <div className="flex flex-wrap gap-2">
         {pills.map((pill) => {
           const active = workflowFilter === pill.key;
+          const colors = PILL_COLORS[pill.key] ?? PILL_COLORS.all;
           return (
             <button
               key={pill.key}
               type="button"
               onClick={() => setWorkflowFilter(pill.key)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                active
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                active ? colors.active : colors.inactive
               }`}
             >
               {pill.label}
@@ -233,9 +294,74 @@ export default function GoodsReceiptListPage() {
         })}
       </div>
 
+      {/* Filter bar — source type, received-date range, free-text search.
+          sourceType/dateFrom/dateTo go to the server (existing API params);
+          the search box filters the returned rows client-side. */}
+      <div className="flex flex-wrap items-end gap-3 bg-white rounded-lg border border-gray-200 p-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">{t('filters.sourceType')}</label>
+          <SelectBox
+            width={170}
+            value={sourceFilter}
+            onValueChanged={(e) => setSourceFilter(e.value)}
+            valueExpr="value"
+            displayExpr="text"
+            items={[
+              { value: 'all', text: t('filters.allSources') },
+              { value: 'po', text: t('sourceType.po') },
+              { value: 'wo', text: t('sourceType.wo') },
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">{t('filters.dateFrom')}</label>
+          <DateBox
+            width={150}
+            type="date"
+            displayFormat="dd/MM/yyyy"
+            value={dateFrom}
+            onValueChanged={(e) =>
+              setDateFrom(e.value ? new Date(e.value).toISOString().slice(0, 10) : null)
+            }
+            showClearButton
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">{t('filters.dateTo')}</label>
+          <DateBox
+            width={150}
+            type="date"
+            displayFormat="dd/MM/yyyy"
+            value={dateTo}
+            onValueChanged={(e) =>
+              setDateTo(e.value ? new Date(e.value).toISOString().slice(0, 10) : null)
+            }
+            showClearButton
+          />
+        </div>
+        <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <label className="text-xs text-gray-500">{t('filters.search')}</label>
+          <TextBox
+            value={searchText}
+            onValueChanged={(e) => setSearchText(e.value ?? '')}
+            placeholder={t('filters.searchPlaceholder')}
+            showClearButton
+            mode="search"
+          />
+        </div>
+        {hasActiveFilters && (
+          <Button
+            text={t('filters.clear')}
+            icon="clear"
+            stylingMode="outlined"
+            onClick={clearFilters}
+          />
+        )}
+      </div>
+
       {/* List */}
       <DxDataGrid
-        dataSource={data?.items ?? []}
+        dataSource={visibleItems}
         keyExpr="id"
         showBorders
         showRowLines
@@ -255,10 +381,11 @@ export default function GoodsReceiptListPage() {
           width={160}
           cellRender={(c) => {
             const v = c.value as 'po' | 'wo';
+            // Distinct colours: ใบสั่งซื้อ (po) = teal, ใบสั่งผลิต (wo) = indigo.
             const cls =
               v === 'po'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                ? 'bg-teal-50 text-teal-700 border-teal-200'
+                : 'bg-indigo-50 text-indigo-700 border-indigo-200';
             return (
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}

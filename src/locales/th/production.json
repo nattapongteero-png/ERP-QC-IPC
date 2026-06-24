@@ -482,17 +482,18 @@
     "columns": {
       "workOrder": "ใบสั่งผลิต",
       "product": "สินค้า",
-      "executionRecords": "บันทึกการทำงาน",
+      "executionRecords": "ความคืบหน้าการบันทึกผลิต",
       "startDate": "วันเริ่มต้น",
       "endDate": "วันสิ้นสุด",
       "status": "สถานะ"
     },
     "execution": {
-      "sopPrefix": "SOP:",
+      "sopPrefix": "ขั้นตอน SOP:",
       "cleanPrefix": "ทำความสะอาด:",
       "envPrefix": "สภาพแวดล้อม:",
-      "fiPrefix": "ตรวจปลาย:",
-      "totalSuffix": " รวม"
+      "fiPrefix": "ตรวจสินค้าสำเร็จรูป:",
+      "totalSuffix": " รายการ",
+      "hint": "จำนวนบันทึกการผลิตแต่ละประเภทที่ทำไปแล้ว (ขั้นตอน SOP · ทำความสะอาด · สภาพแวดล้อม · ตรวจสินค้า)"
     },
     "mobile": {
       "startPrefix": "เริ่ม:",

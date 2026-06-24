@@ -690,6 +690,15 @@ export default function BatchRecordsDashboardPage() {
                 dataField="totalExecutionRecords"
                 caption={t('batchRecords.columns.executionRecords')}
                 minWidth={200}
+                headerCellRender={() => (
+                  <span
+                    className="inline-flex items-center gap-1"
+                    title={t('batchRecords.execution.hint')}
+                  >
+                    {t('batchRecords.columns.executionRecords')}
+                    <span className="text-gray-400 cursor-help text-xs">ⓘ</span>
+                  </span>
+                )}
                 cellRender={(cell) => {
                   const d = cell.data as BatchRecordRow;
                   return (

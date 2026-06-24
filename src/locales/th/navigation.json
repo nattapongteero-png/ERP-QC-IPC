@@ -143,6 +143,11 @@
     "home": "หน้าหลัก"
   },
   "premises": {
-    "overview": "ภาพรวม"
+    "overview": "ภาพรวม",
+    "storageMonitoring": "ติดตามสภาพคลังจัดเก็บ",
+    "environmentalInspection": "ตรวจสภาพแวดล้อม",
+    "scaleVerification": "ตรวจเครื่องชั่ง (ลูกตุ้ม)",
+    "waterQuality": "ระบบน้ำ (Water Quality)",
+    "maintenanceAlerts": "แจ้งเตือนบำรุงรักษา"
   }
 }
