@@ -52,7 +52,7 @@ const ROLE_COLOR: Record<string, string> = {
 import { useToast } from '@/components/ui/toast';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
 import { formatSpecSummary, getCriteriaTypeLabel } from '@/lib/master-data/ipc-spec-payload';
-import { computeIPCStats, computePercentDeviation, groupIPCByPhase } from '@/lib/utils/ipc-statistics';
+import { computeIPCStats, computePercentDeviation } from '@/lib/utils/ipc-statistics';
 // Feature 018: material withdrawal approval
 import { WithdrawalPanel } from '@/components/production/withdrawal-panel';
 import { SectionErrorBoundary } from '@/components/shared/SectionErrorBoundary';
@@ -826,6 +826,804 @@ export default function WorkOrderDetailPage() {
     assignees: asArr(ebmrRaw?.assignees),
     healthChecks: asArr(ebmrRaw?.healthChecks),
     gowning: asArr(ebmrRaw?.gowning),
+  };
+
+  // ════════ Section 7 phase grouping (eBMR Production Records) ════════
+  // Records are bucketed under one of 5 phases. Some records carry an explicit
+  // phase field; others are hardcoded to a phase by their nature.
+  const PHASE_ORDER = ['pre_production', 'production', 'post_production', 'packaging', 'inspection'] as const;
+  type Phase = typeof PHASE_ORDER[number];
+  // Normalize a raw phase string: 'pre_packaging' → 'packaging'; unknown/missing → fallback.
+  const normPhase = (p: unknown, fallback: Phase): Phase => {
+    const raw = String(p || '').toLowerCase();
+    if (raw === 'pre_packaging') return 'packaging';
+    return (PHASE_ORDER as readonly string[]).includes(raw) ? (raw as Phase) : fallback;
+  };
+  const phaseLabel = (phase: Phase): string => {
+    const map: Record<Phase, string> = {
+      pre_production: t('workOrderDetail.ebmr.ipcPhasePreProduction'),
+      production: t('workOrderDetail.ebmr.ipcPhaseProduction'),
+      post_production: t('workOrderDetail.ebmr.ipcPhasePostProduction'),
+      packaging: t('workOrderDetail.ebmr.ipcPhasePackaging'),
+      inspection: t('workOrderDetail.ebmr.ipcPhaseInspection'),
+    };
+    return map[phase];
+  };
+
+  // ── Per-card render helpers (return null when their array is empty) ──
+
+  const renderOperationsCard = (ops: typeof ebmr.operations) => {
+    if (!ops || ops.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.operations')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={6}>{t('workOrderDetail.ebmr.operations')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-center text-gray-700 w-16">{t('workOrderDetail.ebmr.opSeq')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opName')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opDescription')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opStandardTime')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opSetupTime')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opCleaningTime')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ops.map((op) => (
+                <tr key={op.id}>
+                  <td className="border p-2 text-center text-gray-900 font-medium">{op.sequence}</td>
+                  <td className="border p-2 text-gray-900 font-medium">{op.name}</td>
+                  <td className="border p-2 text-gray-900">{op.description || '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.standardTime ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.setupTime ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.cleaningTime ?? '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderBatchRecordsCard = (brs: typeof ebmr.batchRecords) => {
+    if (!brs || brs.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.batchRecords')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {brs.map((br) => (
+              <div key={br.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-medium">
+                      {br.sequence}
+                    </span>
+                    <h4 className="font-medium text-gray-900">{br.stepName}</h4>
+                  </div>
+                  <Badge variant={
+                    br.status === 'completed' ? 'primary' :
+                    br.status === 'in_progress' ? 'secondary' :
+                    br.status === 'deviation' ? 'danger' : 'default'
+                  }>
+                    {getStepStatusLabel(br.status)}
+                  </Badge>
+                </div>
+                {br.instructions && (
+                  <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{br.instructions}</p>
+                )}
+                {br.actualValues && Object.keys(br.actualValues).length > 0 && (
+                  <div className="bg-gray-50 rounded p-2 mb-2">
+                    <p className="text-xs font-medium text-gray-500 mb-1">{t('workOrderDetail.ebmr.recordedValues')}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {Object.entries(br.actualValues).map(([key, value]) => (
+                        <div key={key} className="text-sm">
+                          <span className="text-gray-500">{key.replace(/_/g, ' ')}:</span>{' '}
+                          <span className="font-medium text-gray-900">{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  {br.performerName && <span>{t('workOrderDetail.ebmr.performedBy', { name: br.performerName })}</span>}
+                  {br.verifierName && <span>{t('workOrderDetail.ebmr.verifiedBy', { name: br.verifierName })}</span>}
+                  {br.startTime && <span>{t('workOrderDetail.ebmr.stepStart', { value: new Date(br.startTime).toLocaleString('th-TH') })}</span>}
+                  {br.endTime && <span>{t('workOrderDetail.ebmr.stepEnd', { value: new Date(br.endTime).toLocaleString('th-TH') })}</span>}
+                </div>
+                {br.notes && (
+                  <p className="text-sm text-gray-600 mt-1 italic">{t('workOrderDetail.ebmr.stepNotes', { value: br.notes })}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderWeighingCard = (rows: typeof ebmr.materialWeighing) => {
+    if (!rows || rows.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.weighing')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={7}>{t('workOrderDetail.ebmr.weighing')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighItem')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighLot')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighPlanned')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighWeighed')}</th>
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.weighStatus')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighWeigher')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighVerifier')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((mat: any) => (
+                <tr key={mat.id}>
+                  <td className="border p-2 text-gray-900">
+                    <div>{mat.itemNameTh || mat.itemName}</div>
+                    <div className="text-xs text-gray-500">{mat.itemCode}</div>
+                  </td>
+                  <td className="border p-2 text-gray-900 text-sm">{mat.lotNumber || '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.unit}</td>
+                  <td className="border p-2 text-right text-gray-900">{mat.weighedQty ?? '-'}</td>
+                  <td className="border p-2 text-center">
+                    <Badge variant={
+                      mat.verifiedAt ? 'primary' :
+                      mat.weighedAt ? 'secondary' : 'default'
+                    }>
+                      {mat.verifiedAt ? t('workOrderDetail.stepStatus.verified') : mat.weighedAt ? t('workOrderDetail.stepStatus.weighed') : t('workOrderDetail.stepStatus.pending')}
+                    </Badge>
+                  </td>
+                  <td className="border p-2 text-gray-900 text-sm">
+                    {mat.weighedByName || (mat.weighedBy ? `User#${mat.weighedBy}` : '-')}
+                    {mat.weighedAt && <div className="text-xs text-gray-500">{new Date(mat.weighedAt).toLocaleString('th-TH')}</div>}
+                  </td>
+                  <td className="border p-2 text-gray-900 text-sm">
+                    {mat.verifiedByName || (mat.verifiedBy ? `User#${mat.verifiedBy}` : '-')}
+                    {mat.verifiedAt && <div className="text-xs text-gray-500">{new Date(mat.verifiedAt).toLocaleString('th-TH')}</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderMaterialsCard = (mats: typeof ebmr.materials) => {
+    if (!mats || mats.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.materialConsumption')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border text-xs">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={9}>{t('workOrderDetail.ebmr.materialConsumption')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemCode')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemName')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matLot')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matPlanned')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matIssued')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matWeighed')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matReturned')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matNetUsed')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matVariance')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mats.map((mat: any, index: number) => {
+                const displayUnit = mat.unit || mat.itemUnit;
+                const weighed = mat.weighedQty;
+                const hasWeighed = weighed !== null && weighed !== undefined;
+                const plannedNum = Number(mat.plannedQty);
+                const variance = hasWeighed ? Number(weighed) - plannedNum : null;
+                const variancePct =
+                  hasWeighed && plannedNum > 0 ? (variance! / plannedNum) * 100 : null;
+                const issued = mat.issuedQty;
+                const returned = mat.returnedQty || 0;
+                const netUsed = mat.netUsedQty;
+
+                return (
+                  <tr key={index}>
+                    <td className="border p-2 text-gray-900">{mat.itemCode}</td>
+                    <td className="border p-2 text-gray-900">{mat.itemName}</td>
+                    <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
+                    <td className="border p-2 text-right text-gray-900">
+                      {mat.plannedQty} {displayUnit}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900">
+                      {issued != null ? <>{issued} {displayUnit}</> : '-'}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900">
+                      {hasWeighed ? (
+                        <>{weighed} {displayUnit}</>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900">
+                      {returned > 0 ? (
+                        <span className="text-amber-700">{returned} {displayUnit}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900 font-semibold">
+                      {netUsed != null ? <>{netUsed} {displayUnit}</> : '-'}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900">
+                      {hasWeighed ? (
+                        <>
+                          <span
+                            className={
+                              variance! > 0
+                                ? 'text-red-600'
+                                : variance! < 0
+                                  ? 'text-green-600'
+                                  : ''
+                            }
+                          >
+                            {variance! > 0 ? '+' : ''}
+                            {variance} {displayUnit}
+                          </span>
+                          {variancePct !== null && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              ({variancePct.toFixed(2)}%)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderCleaningCard = (logs: typeof ebmr.cleaningLogs) => {
+    if (!logs || logs.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.cleaning')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border text-xs">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={8}>{t('workOrderDetail.ebmr.cleaning')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPhase')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanType')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanTarget')}</th>
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.cleanIsClean')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanOperator')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPerformedAt')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanVerified')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanNotes')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log: any) => {
+                // eBMR audit gap #5 — show equipment / room code + name.
+                const targetCode = log.equipmentCode || log.roomCode;
+                const targetName = log.equipmentName || log.roomName;
+                return (
+                  <tr key={log.id}>
+                    <td className="border p-2 text-gray-900 capitalize">
+                      {(log.phase || '').replace(/_/g, ' ')}
+                    </td>
+                    <td className="border p-2 text-gray-900 capitalize">
+                      {log.itemType || '-'}
+                    </td>
+                    <td className="border p-2 text-gray-900">
+                      {targetCode || targetName ? (
+                        <>
+                          {targetCode && (
+                            <span className="font-medium">{targetCode}</span>
+                          )}
+                          {targetName && (
+                            <span className="text-gray-600">
+                              {targetCode ? ' — ' : ''}
+                              {targetName}
+                            </span>
+                          )}
+                        </>
+                      ) : log.equipmentId ? (
+                        `EQP#${log.equipmentId}`
+                      ) : log.roomId ? (
+                        `ROOM#${log.roomId}`
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="border p-2 text-center">
+                      {log.isClean ? (
+                        <span className="text-green-600 font-bold">✓</span>
+                      ) : (
+                        <span className="text-red-600 font-bold">✗</span>
+                      )}
+                    </td>
+                    <td className="border p-2 text-gray-900">
+                      {log.operatorName || (log.operatorId ? `User#${log.operatorId}` : '-')}
+                    </td>
+                    <td className="border p-2 text-gray-900">
+                      {log.performedAt
+                        ? new Date(log.performedAt).toLocaleString('th-TH')
+                        : '-'}
+                    </td>
+                    <td className="border p-2 text-gray-900">
+                      {log.verifierName || (log.verifierId ? `User#${log.verifierId}` : '-')}
+                      {log.verifiedAt && (
+                        <div className="text-xs text-gray-500">
+                          {new Date(log.verifiedAt).toLocaleString('th-TH')}
+                        </div>
+                      )}
+                    </td>
+                    <td className="border p-2 text-gray-900">{log.notes || '-'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderEnvCard = (logs: typeof ebmr.environmentalLogs) => {
+    if (!logs || logs.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.environmental')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={7}>{t('workOrderDetail.ebmr.environmental')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envPhase')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envDate')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envTime')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envTemperature')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envHumidity')}</th>
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.envNormal')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envNotes')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log: any) => (
+                <tr key={log.id}>
+                  <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
+                  <td className="border p-2 text-gray-900">{log.recordedDate || '-'}</td>
+                  <td className="border p-2 text-gray-900">{log.recordedTime || '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{log.temperature ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{log.humidity ?? '-'}</td>
+                  <td className="border p-2 text-center">
+                    {log.isNormal ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
+                  </td>
+                  <td className="border p-2 text-gray-900 text-sm">{log.notes || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderSopCard = (steps: typeof ebmr.sopExecution) => {
+    if (!steps || steps.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.sopExecution')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border table-fixed">
+            <colgroup>
+              <col style={{ width: '6%' }} />{/* Step (fits "Step" label on one line) */}
+              <col style={{ width: '28%' }} />{/* Step Name + sub-steps */}
+              <col style={{ width: '9%' }} />{/* Status */}
+              <col style={{ width: '16%' }} />{/* Parameters */}
+              <col style={{ width: '13%' }} />{/* Notes */}
+              <col style={{ width: '14%' }} />{/* Operator */}
+              <col style={{ width: '14%' }} />{/* Verified */}
+            </colgroup>
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={7}>{t('workOrderDetail.ebmr.sopExecution')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStep')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopStepName')}</th>
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStatus')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopParameters')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopNotes')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopOperator')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopVerified')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {steps.map((step: any) => {
+                const lang = (typeof navigator !== 'undefined' && navigator.language?.startsWith('th')) ? 'th' : 'en';
+                const instructions = lang === 'th' ? (step.instructionsTh || step.instructions) : (step.instructions || step.instructionsTh);
+                const subSteps: Array<{ id: number; sequence: number; stepName: string; stepNameTh?: string; instructions?: string; instructionsTh?: string }> =
+                  Array.isArray(step.templateSteps) ? step.templateSteps : [];
+                return (
+                  <tr key={step.id}>
+                    <td className="border p-2 text-center text-gray-900 font-medium align-top">{step.sequence}</td>
+                    <td className="border p-2 text-gray-900 align-top">
+                      <div className="font-medium">{step.stepNameTh || step.stepName}</div>
+                      {instructions && (
+                        <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">
+                          <span className="font-semibold">{t('workOrderDetail.ebmr.sopInstructions')}</span>{instructions}
+                        </div>
+                      )}
+                      {subSteps.length > 0 && (
+                        <ol className="text-xs text-gray-700 mt-1.5 ml-3 list-decimal space-y-0.5">
+                          {subSteps.map((ss) => (
+                            <li key={ss.id}>
+                              <span className="font-medium">{lang === 'th' ? (ss.stepNameTh || ss.stepName) : (ss.stepName || ss.stepNameTh)}</span>
+                              {(ss.instructionsTh || ss.instructions) && (
+                                <span className="text-gray-500"> — {lang === 'th' ? (ss.instructionsTh || ss.instructions) : (ss.instructions || ss.instructionsTh)}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </td>
+                    <td className="border p-2 text-center align-top">
+                      <Badge variant={
+                        step.verifiedAt ? 'primary' :
+                        step.isCompleted ? 'secondary' :
+                        step.status === 'in_progress' ? 'warning' : 'default'
+                      }>
+                        {step.verifiedAt ? t('workOrderDetail.stepStatus.verified') : step.isCompleted ? t('workOrderDetail.stepStatus.completed') : step.status || t('workOrderDetail.stepStatus.pending')}
+                      </Badge>
+                    </td>
+                    <td className="border p-2 text-gray-900 text-sm align-top">
+                      {(() => {
+                        // eBMR audit gap #4 — render actual parameters, falling back
+                        // to the expected (BOM template) parameters with a marker so
+                        // the reader sees what was supposed to be captured.
+                        let actual: Record<string, unknown> | null = null;
+                        try {
+                          if (step.actualParameters) {
+                            actual =
+                              typeof step.actualParameters === 'string'
+                                ? JSON.parse(step.actualParameters)
+                                : step.actualParameters;
+                          }
+                        } catch {
+                          /* keep null */
+                        }
+                        const cleanedActual: Array<[string, unknown]> = actual
+                          ? Object.entries(actual).filter(([k]) => !k.startsWith('_'))
+                          : [];
+                        let expected: Record<string, unknown> | null = null;
+                        try {
+                          if (step.expectedParameters) {
+                            expected =
+                              typeof step.expectedParameters === 'string'
+                                ? JSON.parse(step.expectedParameters)
+                                : step.expectedParameters;
+                          }
+                        } catch {
+                          /* keep null */
+                        }
+                        if (cleanedActual.length > 0) {
+                          return (
+                            <div className="space-y-0.5">
+                              {cleanedActual.map(([k, v]) => (
+                                <div key={k}>
+                                  <span className="text-gray-600">{k}:</span>{' '}
+                                  <span className="font-medium">{String(v)}</span>
+                                  {expected && expected[k] != null && (
+                                    <span className="text-xs text-gray-400 ml-1">
+                                      {t('workOrderDetail.ebmr.sopTarget', { value: String(expected[k]) })}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                        if (expected && Object.keys(expected).length > 0) {
+                          return (
+                            <div className="text-xs text-amber-700">
+                              <div className="font-semibold mb-0.5">
+                                {t('workOrderDetail.ebmr.sopNotRecorded')}
+                              </div>
+                              {Object.entries(expected)
+                                .filter(([k]) => !k.startsWith('_'))
+                                .map(([k, v]) => (
+                                  <div key={k} className="text-gray-500">
+                                    {t('workOrderDetail.ebmr.sopTargetLine', { key: k, value: String(v) })}
+                                  </div>
+                                ))}
+                            </div>
+                          );
+                        }
+                        return <span className="text-gray-400">-</span>;
+                      })()}
+                    </td>
+                    <td className="border p-2 text-gray-900 text-sm align-top">{step.notes || '-'}</td>
+                    <td className="border p-2 text-gray-900 text-sm align-top">
+                      {step.operatorName || (step.operatorId ? `User#${step.operatorId}` : '-')}
+                      {step.completedAt && <div className="text-xs text-gray-500">{new Date(step.completedAt).toLocaleString('th-TH')}</div>}
+                    </td>
+                    <td className="border p-2 text-gray-900 text-sm align-top">
+                      {step.verifierName || (step.verifierId ? `User#${step.verifierId}` : '-')}
+                      {step.verifiedAt && <div className="text-xs text-gray-500">{new Date(step.verifiedAt).toLocaleString('th-TH')}</div>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Readable IPC status text (raw values are 'pass'/'fail'/'pending').
+  const ipcStatusLabel = (s: string): string => {
+    const key = String(s || 'pending').toLowerCase();
+    return t(`workOrderDetail.ebmr.ipcStatusValue.${key}` as Parameters<typeof t>[0]);
+  };
+
+  // Single-phase IPC card: the outer phase heading already provides grouping,
+  // so this renders just the stats row + one table for the tests passed in.
+  const renderIpcCard = (tests: any[]) => {
+    if (!tests || tests.length === 0) return null;
+    const stats = computeIPCStats(tests.map((t: any) => ({ numericResult: t.numericResult })));
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.ipcTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-1 text-sm">
+              <div className="font-semibold text-gray-800">
+                <span className="text-xs text-gray-500">{t('workOrderDetail.ebmr.ipcTestCount', { count: tests.length })}</span>
+              </div>
+              {stats.count >= 1 && (
+                <div className="text-xs text-gray-600 flex gap-3">
+                  <span>n={stats.count}</span>
+                  {stats.mean != null && (
+                    <span>mean={stats.mean.toFixed(2)}</span>
+                  )}
+                  {stats.stdDev != null && (
+                    <span>SD={stats.stdDev.toFixed(3)}</span>
+                  )}
+                  {stats.min != null && (
+                    <span>
+                      range={stats.min.toFixed(2)}…{stats.max!.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <table className="w-full border-collapse border text-xs">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTest')}</th>
+                  <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcSpec')}</th>
+                  <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcValue')}</th>
+                  <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcDeviation')}</th>
+                  <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.ipcStatus')}</th>
+                  <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTestedBy')}</th>
+                  <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcApprovedBy')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tests.map((test: any) => {
+                  const dev = computePercentDeviation(
+                    test.numericResult,
+                    test.specMinValue,
+                    test.specMaxValue,
+                  );
+                  return (
+                    <tr key={test.id}>
+                      <td className="border p-2 text-gray-900">
+                        {test.testName || `IPC-${test.id}`}
+                      </td>
+                      <td className="border p-2 text-gray-900">
+                        {test.specMinValue != null && test.specMaxValue != null
+                          ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`
+                          : formatQcSpec(test.specSpecification)}
+                      </td>
+                      <td className="border p-2 text-right text-gray-900 font-medium">
+                        {test.numericResult ?? test.result ?? '-'}{' '}
+                        {test.specUnit || ''}
+                      </td>
+                      <td className="border p-2 text-right text-gray-900">
+                        {dev != null ? (
+                          <span
+                            className={
+                              Math.abs(dev) > 5
+                                ? 'text-amber-600 font-semibold'
+                                : 'text-gray-700'
+                            }
+                          >
+                            {dev > 0 ? '+' : ''}
+                            {dev.toFixed(2)}%
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className="border p-2 text-center">
+                        <Badge
+                          variant={
+                            test.status === 'pass'
+                              ? 'primary'
+                              : test.status === 'fail'
+                                ? 'danger'
+                                : 'default'
+                          }
+                        >
+                          {ipcStatusLabel(test.status)}
+                        </Badge>
+                      </td>
+                      <td className="border p-2 text-gray-900 text-sm">
+                        {test.testedByName || '-'}
+                      </td>
+                      <td className="border p-2 text-gray-900 text-sm">
+                        {test.approvedByName || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderQcCard = (tests: typeof ebmr.qcTests) => {
+    if (!tests || tests.length === 0) return null;
+    return (
+      <Card className="ebmr-section-with-table" data-has-table="true">
+        <CardHeader>
+          <CardTitle>{t('workOrderDetail.ebmr.qcSummary')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full border-collapse border text-xs">
+            <thead>
+              <tr className="ebmr-print-title-row">
+                <th colSpan={7}>{t('workOrderDetail.ebmr.qcSummary')}</th>
+              </tr>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcCode')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestName')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcType')}</th>
+                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.qcValue')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcSpecRange')}</th>
+                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.qcResult')}</th>
+                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestedAt')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tests.map((test: any, index: number) => {
+                const value =
+                  test.numericResult != null
+                    ? `${test.numericResult} ${test.specUnit || ''}`.trim()
+                    : test.result || '-';
+                const specRange =
+                  test.specMinValue != null && test.specMaxValue != null
+                    ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`.trim()
+                    : formatQcSpec(test.specSpecification);
+                return (
+                  <tr key={index}>
+                    <td className="border p-2 text-gray-900">{test.testCode}</td>
+                    <td className="border p-2 text-gray-900">
+                      {test.testName || '-'}
+                    </td>
+                    <td className="border p-2 text-gray-900 capitalize">
+                      {test.testType?.replace(/_/g, ' ') || '-'}
+                    </td>
+                    <td className="border p-2 text-right text-gray-900 font-medium">
+                      {value}
+                    </td>
+                    <td className="border p-2 text-gray-900">{specRange}</td>
+                    <td className="border p-2 text-center">
+                      <Badge variant={getStatusVariant(test.result)}>
+                        {test.result || test.status}
+                      </Badge>
+                    </td>
+                    <td className="border p-2 text-gray-900">
+                      {test.testedAt
+                        ? new Date(test.testedAt).toLocaleString('th-TH')
+                        : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Build per-phase datasets, then render a heading + its cards for each phase
+  // that has any data. Records without an explicit phase are hardcoded.
+  const renderPhaseGroups = () => {
+    const byPhase = (phase: Phase) => ({
+      cleaning: ebmr.cleaningLogs.filter((l: any) => normPhase(l.phase, 'production') === phase),
+      env: ebmr.environmentalLogs.filter((l: any) => normPhase(l.phase, 'production') === phase),
+      sop: ebmr.sopExecution.filter((s: any) => normPhase(s.phase, 'production') === phase),
+      ipc: ebmr.ipcTests.filter((tst: any) => normPhase(tst.ipcPhase, 'production') === phase),
+      operations: phase === 'production' ? ebmr.operations : [],
+      batchRecords: phase === 'production' ? ebmr.batchRecords : [],
+      weighing: phase === 'pre_production' ? ebmr.materialWeighing : [],
+      materials: phase === 'pre_production' ? ebmr.materials : [],
+      qc: phase === 'inspection' ? ebmr.qcTests : [],
+    });
+
+    return PHASE_ORDER.map((phase) => {
+      const d = byPhase(phase);
+      const hasData =
+        d.operations.length > 0 || d.batchRecords.length > 0 || d.weighing.length > 0 ||
+        d.materials.length > 0 || d.cleaning.length > 0 || d.env.length > 0 ||
+        d.sop.length > 0 || d.ipc.length > 0 || d.qc.length > 0;
+      if (!hasData) return null;
+      return (
+        <div key={phase} className="ebmr-phase-group space-y-6">
+          <h3 className="text-lg font-bold text-gray-800 border-l-4 border-emerald-500 pl-3 py-1 mt-2">
+            {phaseLabel(phase)}
+          </h3>
+          {renderOperationsCard(d.operations)}
+          {renderBatchRecordsCard(d.batchRecords)}
+          {renderWeighingCard(d.weighing)}
+          {renderMaterialsCard(d.materials)}
+          {renderCleaningCard(d.cleaning)}
+          {renderEnvCard(d.env)}
+          {renderSopCard(d.sop)}
+          {renderIpcCard(d.ipc)}
+          {renderQcCard(d.qc)}
+        </div>
+      );
+    });
   };
 
   return (
@@ -1648,742 +2446,9 @@ export default function WorkOrderDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Production Steps (Operations from BOM) */}
-            {ebmr.operations && ebmr.operations.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.operations')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border">
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={6}>{t('workOrderDetail.ebmr.operations')}</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-center text-gray-700 w-16">{t('workOrderDetail.ebmr.opSeq')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opName')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.opDescription')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opStandardTime')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opSetupTime')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.opCleaningTime')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.operations.map((op) => (
-                        <tr key={op.id}>
-                          <td className="border p-2 text-center text-gray-900 font-medium">{op.sequence}</td>
-                          <td className="border p-2 text-gray-900 font-medium">{op.name}</td>
-                          <td className="border p-2 text-gray-900">{op.description || '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{op.standardTime ?? '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{op.setupTime ?? '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{op.cleaningTime ?? '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
+            {/* ════════ Production Records grouped by phase ════════ */}
+            {renderPhaseGroups()}
 
-            {/* Batch Records (Step-by-Step Execution) */}
-            {ebmr.batchRecords && ebmr.batchRecords.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.batchRecords')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {ebmr.batchRecords.map((br) => (
-                      <div key={br.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-medium">
-                              {br.sequence}
-                            </span>
-                            <h4 className="font-medium text-gray-900">{br.stepName}</h4>
-                          </div>
-                          <Badge variant={
-                            br.status === 'completed' ? 'primary' :
-                            br.status === 'in_progress' ? 'secondary' :
-                            br.status === 'deviation' ? 'danger' : 'default'
-                          }>
-                            {getStepStatusLabel(br.status)}
-                          </Badge>
-                        </div>
-                        {br.instructions && (
-                          <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{br.instructions}</p>
-                        )}
-                        {br.actualValues && Object.keys(br.actualValues).length > 0 && (
-                          <div className="bg-gray-50 rounded p-2 mb-2">
-                            <p className="text-xs font-medium text-gray-500 mb-1">{t('workOrderDetail.ebmr.recordedValues')}</p>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {Object.entries(br.actualValues).map(([key, value]) => (
-                                <div key={key} className="text-sm">
-                                  <span className="text-gray-500">{key.replace(/_/g, ' ')}:</span>{' '}
-                                  <span className="font-medium text-gray-900">{String(value)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          {br.performerName && <span>{t('workOrderDetail.ebmr.performedBy', { name: br.performerName })}</span>}
-                          {br.verifierName && <span>{t('workOrderDetail.ebmr.verifiedBy', { name: br.verifierName })}</span>}
-                          {br.startTime && <span>{t('workOrderDetail.ebmr.stepStart', { value: new Date(br.startTime).toLocaleString('th-TH') })}</span>}
-                          {br.endTime && <span>{t('workOrderDetail.ebmr.stepEnd', { value: new Date(br.endTime).toLocaleString('th-TH') })}</span>}
-                        </div>
-                        {br.notes && (
-                          <p className="text-sm text-gray-600 mt-1 italic">{t('workOrderDetail.ebmr.stepNotes', { value: br.notes })}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Material Consumption */}
-            <Card className="ebmr-section-with-table" data-has-table="true">
-              <CardHeader>
-                <CardTitle>{t('workOrderDetail.ebmr.materialConsumption')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <table className="w-full border-collapse border text-xs">
-                  <thead>
-                    <tr className="ebmr-print-title-row">
-                      <th colSpan={9}>{t('workOrderDetail.ebmr.materialConsumption')}</th>
-                    </tr>
-                    <tr className="bg-gray-100">
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemCode')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matItemName')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.matLot')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matPlanned')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matIssued')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matWeighed')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matReturned')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matNetUsed')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.matVariance')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ebmr.materials.map((mat: any, index: number) => {
-                      const displayUnit = mat.unit || mat.itemUnit;
-                      const weighed = mat.weighedQty;
-                      const hasWeighed = weighed !== null && weighed !== undefined;
-                      const plannedNum = Number(mat.plannedQty);
-                      const variance = hasWeighed ? Number(weighed) - plannedNum : null;
-                      const variancePct =
-                        hasWeighed && plannedNum > 0 ? (variance! / plannedNum) * 100 : null;
-                      const issued = mat.issuedQty;
-                      const returned = mat.returnedQty || 0;
-                      const netUsed = mat.netUsedQty;
-
-                      return (
-                        <tr key={index}>
-                          <td className="border p-2 text-gray-900">{mat.itemCode}</td>
-                          <td className="border p-2 text-gray-900">{mat.itemName}</td>
-                          <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">
-                            {mat.plannedQty} {displayUnit}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900">
-                            {issued != null ? <>{issued} {displayUnit}</> : '-'}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900">
-                            {hasWeighed ? (
-                              <>{weighed} {displayUnit}</>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900">
-                            {returned > 0 ? (
-                              <span className="text-amber-700">{returned} {displayUnit}</span>
-                            ) : (
-                              '-'
-                            )}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900 font-semibold">
-                            {netUsed != null ? <>{netUsed} {displayUnit}</> : '-'}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900">
-                            {hasWeighed ? (
-                              <>
-                                <span
-                                  className={
-                                    variance! > 0
-                                      ? 'text-red-600'
-                                      : variance! < 0
-                                        ? 'text-green-600'
-                                        : ''
-                                  }
-                                >
-                                  {variance! > 0 ? '+' : ''}
-                                  {variance} {displayUnit}
-                                </span>
-                                {variancePct !== null && (
-                                  <span className="text-xs text-gray-500 ml-1">
-                                    ({variancePct.toFixed(2)}%)
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              '-'
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            {/* QC Summary — audit gap #7: show test name + value + spec range */}
-            <Card className="ebmr-section-with-table" data-has-table="true">
-              <CardHeader>
-                <CardTitle>{t('workOrderDetail.ebmr.qcSummary')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <table className="w-full border-collapse border text-xs">
-                  <thead>
-                    <tr className="ebmr-print-title-row">
-                      <th colSpan={7}>{t('workOrderDetail.ebmr.qcSummary')}</th>
-                    </tr>
-                    <tr className="bg-gray-100">
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcCode')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestName')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcType')}</th>
-                      <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.qcValue')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcSpecRange')}</th>
-                      <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.qcResult')}</th>
-                      <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.qcTestedAt')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ebmr.qcTests.map((test: any, index: number) => {
-                      const value =
-                        test.numericResult != null
-                          ? `${test.numericResult} ${test.specUnit || ''}`.trim()
-                          : test.result || '-';
-                      const specRange =
-                        test.specMinValue != null && test.specMaxValue != null
-                          ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`.trim()
-                          : formatQcSpec(test.specSpecification);
-                      return (
-                        <tr key={index}>
-                          <td className="border p-2 text-gray-900">{test.testCode}</td>
-                          <td className="border p-2 text-gray-900">
-                            {test.testName || '-'}
-                          </td>
-                          <td className="border p-2 text-gray-900 capitalize">
-                            {test.testType?.replace(/_/g, ' ') || '-'}
-                          </td>
-                          <td className="border p-2 text-right text-gray-900 font-medium">
-                            {value}
-                          </td>
-                          <td className="border p-2 text-gray-900">{specRange}</td>
-                          <td className="border p-2 text-center">
-                            <Badge variant={getStatusVariant(test.result)}>
-                              {test.result || test.status}
-                            </Badge>
-                          </td>
-                          <td className="border p-2 text-gray-900">
-                            {test.testedAt
-                              ? new Date(test.testedAt).toLocaleString('th-TH')
-                              : '-'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            {/* SOP Execution Steps */}
-            {ebmr.sopExecution && ebmr.sopExecution.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.sopExecution')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border table-fixed">
-                    <colgroup>
-                      <col style={{ width: '6%' }} />{/* Step (fits "Step" label on one line) */}
-                      <col style={{ width: '28%' }} />{/* Step Name + sub-steps */}
-                      <col style={{ width: '9%' }} />{/* Status */}
-                      <col style={{ width: '16%' }} />{/* Parameters */}
-                      <col style={{ width: '13%' }} />{/* Notes */}
-                      <col style={{ width: '14%' }} />{/* Operator */}
-                      <col style={{ width: '14%' }} />{/* Verified */}
-                    </colgroup>
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>{t('workOrderDetail.ebmr.sopExecution')}</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStep')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopStepName')}</th>
-                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.sopStatus')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopParameters')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopNotes')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopOperator')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.sopVerified')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.sopExecution.map((step: any) => {
-                        const lang = (typeof navigator !== 'undefined' && navigator.language?.startsWith('th')) ? 'th' : 'en';
-                        const instructions = lang === 'th' ? (step.instructionsTh || step.instructions) : (step.instructions || step.instructionsTh);
-                        const subSteps: Array<{ id: number; sequence: number; stepName: string; stepNameTh?: string; instructions?: string; instructionsTh?: string }> =
-                          Array.isArray(step.templateSteps) ? step.templateSteps : [];
-                        return (
-                          <tr key={step.id}>
-                            <td className="border p-2 text-center text-gray-900 font-medium align-top">{step.sequence}</td>
-                            <td className="border p-2 text-gray-900 align-top">
-                              <div className="font-medium">{step.stepNameTh || step.stepName}</div>
-                              {instructions && (
-                                <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">
-                                  <span className="font-semibold">{t('workOrderDetail.ebmr.sopInstructions')}</span>{instructions}
-                                </div>
-                              )}
-                              {subSteps.length > 0 && (
-                                <ol className="text-xs text-gray-700 mt-1.5 ml-3 list-decimal space-y-0.5">
-                                  {subSteps.map((ss) => (
-                                    <li key={ss.id}>
-                                      <span className="font-medium">{lang === 'th' ? (ss.stepNameTh || ss.stepName) : (ss.stepName || ss.stepNameTh)}</span>
-                                      {(ss.instructionsTh || ss.instructions) && (
-                                        <span className="text-gray-500"> — {lang === 'th' ? (ss.instructionsTh || ss.instructions) : (ss.instructions || ss.instructionsTh)}</span>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ol>
-                              )}
-                            </td>
-                            <td className="border p-2 text-center align-top">
-                              <Badge variant={
-                                step.verifiedAt ? 'primary' :
-                                step.isCompleted ? 'secondary' :
-                                step.status === 'in_progress' ? 'warning' : 'default'
-                              }>
-                                {step.verifiedAt ? t('workOrderDetail.stepStatus.verified') : step.isCompleted ? t('workOrderDetail.stepStatus.completed') : step.status || t('workOrderDetail.stepStatus.pending')}
-                              </Badge>
-                            </td>
-                            <td className="border p-2 text-gray-900 text-sm align-top">
-                              {(() => {
-                                // eBMR audit gap #4 — render actual parameters, falling back
-                                // to the expected (BOM template) parameters with a marker so
-                                // the reader sees what was supposed to be captured.
-                                let actual: Record<string, unknown> | null = null;
-                                try {
-                                  if (step.actualParameters) {
-                                    actual =
-                                      typeof step.actualParameters === 'string'
-                                        ? JSON.parse(step.actualParameters)
-                                        : step.actualParameters;
-                                  }
-                                } catch {
-                                  /* keep null */
-                                }
-                                const cleanedActual: Array<[string, unknown]> = actual
-                                  ? Object.entries(actual).filter(([k]) => !k.startsWith('_'))
-                                  : [];
-                                let expected: Record<string, unknown> | null = null;
-                                try {
-                                  if (step.expectedParameters) {
-                                    expected =
-                                      typeof step.expectedParameters === 'string'
-                                        ? JSON.parse(step.expectedParameters)
-                                        : step.expectedParameters;
-                                  }
-                                } catch {
-                                  /* keep null */
-                                }
-                                if (cleanedActual.length > 0) {
-                                  return (
-                                    <div className="space-y-0.5">
-                                      {cleanedActual.map(([k, v]) => (
-                                        <div key={k}>
-                                          <span className="text-gray-600">{k}:</span>{' '}
-                                          <span className="font-medium">{String(v)}</span>
-                                          {expected && expected[k] != null && (
-                                            <span className="text-xs text-gray-400 ml-1">
-                                              {t('workOrderDetail.ebmr.sopTarget', { value: String(expected[k]) })}
-                                            </span>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                }
-                                if (expected && Object.keys(expected).length > 0) {
-                                  return (
-                                    <div className="text-xs text-amber-700">
-                                      <div className="font-semibold mb-0.5">
-                                        {t('workOrderDetail.ebmr.sopNotRecorded')}
-                                      </div>
-                                      {Object.entries(expected)
-                                        .filter(([k]) => !k.startsWith('_'))
-                                        .map(([k, v]) => (
-                                          <div key={k} className="text-gray-500">
-                                            {t('workOrderDetail.ebmr.sopTargetLine', { key: k, value: String(v) })}
-                                          </div>
-                                        ))}
-                                    </div>
-                                  );
-                                }
-                                return <span className="text-gray-400">-</span>;
-                              })()}
-                            </td>
-                            <td className="border p-2 text-gray-900 text-sm align-top">{step.notes || '-'}</td>
-                            <td className="border p-2 text-gray-900 text-sm align-top">
-                              {step.operatorName || (step.operatorId ? `User#${step.operatorId}` : '-')}
-                              {step.completedAt && <div className="text-xs text-gray-500">{new Date(step.completedAt).toLocaleString('th-TH')}</div>}
-                            </td>
-                            <td className="border p-2 text-gray-900 text-sm align-top">
-                              {step.verifierName || (step.verifierId ? `User#${step.verifierId}` : '-')}
-                              {step.verifiedAt && <div className="text-xs text-gray-500">{new Date(step.verifiedAt).toLocaleString('th-TH')}</div>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Cleaning Verification */}
-            {ebmr.cleaningLogs && ebmr.cleaningLogs.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.cleaning')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border text-xs">
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={8}>{t('workOrderDetail.ebmr.cleaning')}</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPhase')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanType')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanTarget')}</th>
-                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.cleanIsClean')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanOperator')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanPerformedAt')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanVerified')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.cleanNotes')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.cleaningLogs.map((log: any) => {
-                        // eBMR audit gap #5 — show equipment / room code + name.
-                        const targetCode = log.equipmentCode || log.roomCode;
-                        const targetName = log.equipmentName || log.roomName;
-                        return (
-                          <tr key={log.id}>
-                            <td className="border p-2 text-gray-900 capitalize">
-                              {(log.phase || '').replace(/_/g, ' ')}
-                            </td>
-                            <td className="border p-2 text-gray-900 capitalize">
-                              {log.itemType || '-'}
-                            </td>
-                            <td className="border p-2 text-gray-900">
-                              {targetCode || targetName ? (
-                                <>
-                                  {targetCode && (
-                                    <span className="font-medium">{targetCode}</span>
-                                  )}
-                                  {targetName && (
-                                    <span className="text-gray-600">
-                                      {targetCode ? ' — ' : ''}
-                                      {targetName}
-                                    </span>
-                                  )}
-                                </>
-                              ) : log.equipmentId ? (
-                                `EQP#${log.equipmentId}`
-                              ) : log.roomId ? (
-                                `ROOM#${log.roomId}`
-                              ) : (
-                                '-'
-                              )}
-                            </td>
-                            <td className="border p-2 text-center">
-                              {log.isClean ? (
-                                <span className="text-green-600 font-bold">✓</span>
-                              ) : (
-                                <span className="text-red-600 font-bold">✗</span>
-                              )}
-                            </td>
-                            <td className="border p-2 text-gray-900">
-                              {log.operatorName || (log.operatorId ? `User#${log.operatorId}` : '-')}
-                            </td>
-                            <td className="border p-2 text-gray-900">
-                              {log.performedAt
-                                ? new Date(log.performedAt).toLocaleString('th-TH')
-                                : '-'}
-                            </td>
-                            <td className="border p-2 text-gray-900">
-                              {log.verifierName || (log.verifierId ? `User#${log.verifierId}` : '-')}
-                              {log.verifiedAt && (
-                                <div className="text-xs text-gray-500">
-                                  {new Date(log.verifiedAt).toLocaleString('th-TH')}
-                                </div>
-                              )}
-                            </td>
-                            <td className="border p-2 text-gray-900">{log.notes || '-'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Environmental Monitoring */}
-            {ebmr.environmentalLogs && ebmr.environmentalLogs.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.environmental')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border">
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>{t('workOrderDetail.ebmr.environmental')}</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envPhase')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envDate')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envTime')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envTemperature')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.envHumidity')}</th>
-                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.envNormal')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.envNotes')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.environmentalLogs.map((log: any) => (
-                        <tr key={log.id}>
-                          <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
-                          <td className="border p-2 text-gray-900">{log.recordedDate || '-'}</td>
-                          <td className="border p-2 text-gray-900">{log.recordedTime || '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{log.temperature ?? '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{log.humidity ?? '-'}</td>
-                          <td className="border p-2 text-center">
-                            {log.isNormal ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">{log.notes || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Material Weighing Record */}
-            {ebmr.materialWeighing && ebmr.materialWeighing.length > 0 && (
-              <Card className="ebmr-section-with-table" data-has-table="true">
-                <CardHeader>
-                  <CardTitle>{t('workOrderDetail.ebmr.weighing')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full border-collapse border">
-                    <thead>
-                      <tr className="ebmr-print-title-row">
-                        <th colSpan={7}>{t('workOrderDetail.ebmr.weighing')}</th>
-                      </tr>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighItem')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighLot')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighPlanned')}</th>
-                        <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.weighWeighed')}</th>
-                        <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.weighStatus')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighWeigher')}</th>
-                        <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.weighVerifier')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ebmr.materialWeighing.map((mat: any) => (
-                        <tr key={mat.id}>
-                          <td className="border p-2 text-gray-900">
-                            <div>{mat.itemNameTh || mat.itemName}</div>
-                            <div className="text-xs text-gray-500">{mat.itemCode}</div>
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">{mat.lotNumber || '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.unit}</td>
-                          <td className="border p-2 text-right text-gray-900">{mat.weighedQty ?? '-'}</td>
-                          <td className="border p-2 text-center">
-                            <Badge variant={
-                              mat.verifiedAt ? 'primary' :
-                              mat.weighedAt ? 'secondary' : 'default'
-                            }>
-                              {mat.verifiedAt ? t('workOrderDetail.stepStatus.verified') : mat.weighedAt ? t('workOrderDetail.stepStatus.weighed') : t('workOrderDetail.stepStatus.pending')}
-                            </Badge>
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">
-                            {mat.weighedByName || (mat.weighedBy ? `User#${mat.weighedBy}` : '-')}
-                            {mat.weighedAt && <div className="text-xs text-gray-500">{new Date(mat.weighedAt).toLocaleString('th-TH')}</div>}
-                          </td>
-                          <td className="border p-2 text-gray-900 text-sm">
-                            {mat.verifiedByName || (mat.verifiedBy ? `User#${mat.verifiedBy}` : '-')}
-                            {mat.verifiedAt && <div className="text-xs text-gray-500">{new Date(mat.verifiedAt).toLocaleString('th-TH')}</div>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* IPC (In-Process Control) Results — audit gap #3: phase grouping + stats */}
-            {ebmr.ipcTests && ebmr.ipcTests.length > 0 && (() => {
-              const phaseGroups = groupIPCByPhase(ebmr.ipcTests as any[]);
-              const phaseOrder = [
-                'pre_production',
-                'production',
-                'post_production',
-                'packaging',
-              ];
-              const sortedPhases = Object.keys(phaseGroups).sort((a, b) => {
-                const ai = phaseOrder.indexOf(a);
-                const bi = phaseOrder.indexOf(b);
-                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-              });
-              const phaseLabel: Record<string, string> = {
-                pre_production: t('workOrderDetail.ebmr.ipcPhasePreProduction'),
-                production: t('workOrderDetail.ebmr.ipcPhaseProduction'),
-                post_production: t('workOrderDetail.ebmr.ipcPhasePostProduction'),
-                packaging: t('workOrderDetail.ebmr.ipcPhasePackaging'),
-                inspection: t('workOrderDetail.ebmr.ipcPhaseInspection'),
-              };
-              // Readable IPC status text (raw values are 'pass'/'fail'/'pending').
-              const ipcStatusLabel = (s: string): string => {
-                const key = String(s || 'pending').toLowerCase();
-                return t(`workOrderDetail.ebmr.ipcStatusValue.${key}` as Parameters<typeof t>[0]);
-              };
-              return (
-                <Card className="ebmr-section-with-table" data-has-table="true">
-                  <CardHeader>
-                    <CardTitle>{t('workOrderDetail.ebmr.ipcTitle')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {sortedPhases.map((phase) => {
-                      const tests = phaseGroups[phase];
-                      const stats = computeIPCStats(
-                        tests.map((t: any) => ({ numericResult: t.numericResult })),
-                      );
-                      return (
-                        <div key={phase}>
-                          <div className="flex items-center justify-between mb-1 text-sm">
-                            <div className="font-semibold text-gray-800">
-                              {phaseLabel[phase] || phase}{' '}
-                              <span className="text-xs text-gray-500">{t('workOrderDetail.ebmr.ipcTestCount', { count: tests.length })}</span>
-                            </div>
-                            {stats.count >= 1 && (
-                              <div className="text-xs text-gray-600 flex gap-3">
-                                <span>n={stats.count}</span>
-                                {stats.mean != null && (
-                                  <span>mean={stats.mean.toFixed(2)}</span>
-                                )}
-                                {stats.stdDev != null && (
-                                  <span>SD={stats.stdDev.toFixed(3)}</span>
-                                )}
-                                {stats.min != null && (
-                                  <span>
-                                    range={stats.min.toFixed(2)}…{stats.max!.toFixed(2)}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <table className="w-full border-collapse border text-xs">
-                            <thead>
-                              <tr className="bg-gray-100">
-                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTest')}</th>
-                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcSpec')}</th>
-                                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcValue')}</th>
-                                <th className="border p-2 text-right text-gray-700">{t('workOrderDetail.ebmr.ipcDeviation')}</th>
-                                <th className="border p-2 text-center text-gray-700">{t('workOrderDetail.ebmr.ipcStatus')}</th>
-                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcTestedBy')}</th>
-                                <th className="border p-2 text-left text-gray-700">{t('workOrderDetail.ebmr.ipcApprovedBy')}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {tests.map((test: any) => {
-                                const dev = computePercentDeviation(
-                                  test.numericResult,
-                                  test.specMinValue,
-                                  test.specMaxValue,
-                                );
-                                return (
-                                  <tr key={test.id}>
-                                    <td className="border p-2 text-gray-900">
-                                      {test.testName || `IPC-${test.id}`}
-                                    </td>
-                                    <td className="border p-2 text-gray-900">
-                                      {test.specMinValue != null && test.specMaxValue != null
-                                        ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`
-                                        : formatQcSpec(test.specSpecification)}
-                                    </td>
-                                    <td className="border p-2 text-right text-gray-900 font-medium">
-                                      {test.numericResult ?? test.result ?? '-'}{' '}
-                                      {test.specUnit || ''}
-                                    </td>
-                                    <td className="border p-2 text-right text-gray-900">
-                                      {dev != null ? (
-                                        <span
-                                          className={
-                                            Math.abs(dev) > 5
-                                              ? 'text-amber-600 font-semibold'
-                                              : 'text-gray-700'
-                                          }
-                                        >
-                                          {dev > 0 ? '+' : ''}
-                                          {dev.toFixed(2)}%
-                                        </span>
-                                      ) : (
-                                        '-'
-                                      )}
-                                    </td>
-                                    <td className="border p-2 text-center">
-                                      <Badge
-                                        variant={
-                                          test.status === 'pass'
-                                            ? 'primary'
-                                            : test.status === 'fail'
-                                              ? 'danger'
-                                              : 'default'
-                                        }
-                                      >
-                                        {ipcStatusLabel(test.status)}
-                                      </Badge>
-                                    </td>
-                                    <td className="border p-2 text-gray-900 text-sm">
-                                      {test.testedByName || '-'}
-                                    </td>
-                                    <td className="border p-2 text-gray-900 text-sm">
-                                      {test.approvedByName || '-'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              );
-            })()}
 
             {/* Signatures — audit gap #6 — explicit Produced/QC/QA signatures + QA sign action */}
             <Card id="ebmr-signatures">
