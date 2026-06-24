@@ -482,6 +482,29 @@ a:not([class]):hover {
     display: block !important;
   }
 
+  /* Signature block: keep the 3 boxes side-by-side (the global grid→block
+     reset would otherwise stack ผู้ผลิต/QC/QA vertically on paper). */
+  #ebmr-content .ebmr-signature-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 6mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  #ebmr-content .ebmr-signature-box {
+    border: 1px solid #111827 !important;
+    padding: 6mm 4mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Phase section headings: the green left accent bar is a UI cue that
+     confuses users on a printed GMP document — render it as a plain black
+     rule so it reads as a document section divider. */
+  #ebmr-content .ebmr-phase-heading {
+    border-left-color: #111827 !important;
+  }
+
   /* Hide no-print elements (app chrome, buttons, filters) */
   .no-print,
   .back-to-top,
@@ -891,6 +914,29 @@ a:not([class]):hover {
     color: #4b5563;
   }
 
+  /* eBMR Header card (batch / product / status block): the on-screen sizes
+     (text-lg / text-xl + Badge text-lg) are too big for paper and push long
+     values like the batch number onto a second line. Shrink to document
+     scale and let long codes wrap cleanly. */
+  #ebmr-content .grid.grid-cols-3 > div > p.text-lg,
+  #ebmr-content [data-slot="card-content"] p.text-lg {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+    word-break: break-word !important;
+  }
+  #ebmr-content [data-slot="card-content"] .grid > div > p {
+    word-break: break-word !important;
+  }
+  /* Status badge in the header should read as plain bold text, not a big pill */
+  #ebmr-content [data-slot="card-content"] [class*="Badge"].text-lg,
+  #ebmr-content [data-slot="card-content"] [data-slot="badge"] {
+    font-size: 11pt !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
   /* ===== SIGNATURE SECTION ===== */
 
   #ebmr-signatures {
@@ -943,11 +989,43 @@ body.ebmr-preview-active #ebmr-content {
   max-height: none;
   overflow: visible;
   background: #fff !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  /* Clear A4 page edges so users can see the printable boundary (the earlier
+     version looked edge-less, reading as "bad design"). */
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
   padding: 12mm 10mm 14mm 10mm;  /* same visual margin as print body padding */
   margin: 0 0 40px 0;
   font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
   color: #111827;
+}
+
+/* Preview parity with print: signature 3-col, black phase heading, tamed header */
+body.ebmr-preview-active #ebmr-content .ebmr-signature-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 6mm !important;
+}
+body.ebmr-preview-active #ebmr-content .ebmr-signature-box {
+  border: 1px solid #111827 !important;
+}
+body.ebmr-preview-active #ebmr-content .ebmr-phase-heading {
+  border-left-color: #111827 !important;
+}
+body.ebmr-preview-active #ebmr-content p.text-lg {
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  word-break: break-word !important;
+}
+body.ebmr-preview-active #ebmr-content [data-slot="card-content"] .grid > div > p {
+  word-break: break-word !important;
+}
+body.ebmr-preview-active #ebmr-content [data-slot="badge"],
+body.ebmr-preview-active #ebmr-content [class*="Badge"] {
+  font-size: 11pt !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  color: #111827 !important;
 }
 
 /* Show the print-only document header inside the preview */

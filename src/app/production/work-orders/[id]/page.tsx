@@ -1650,7 +1650,7 @@ export default function WorkOrderDetailPage() {
       if (!hasData) return null;
       return (
         <div key={phase} className="ebmr-phase-group space-y-6">
-          <h3 className="text-lg font-bold text-gray-800 border-l-4 border-emerald-500 pl-3 py-1 mt-2">
+          <h3 className="ebmr-phase-heading text-lg font-bold text-gray-800 border-l-4 border-emerald-500 pl-3 py-1 mt-2">
             {phaseLabel(phase)}
           </h3>
           {renderOperationsCard(d.operations)}
@@ -2510,7 +2510,7 @@ export default function WorkOrderDetailPage() {
                 <CardTitle>{t('workOrderDetail.ebmr.signatures')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 ebmr-signature-grid">
                   {([
                     { key: 'producedBy', label: t('workOrderDetail.ebmr.sigProducedBy') },
                     { key: 'verifiedByQc', label: t('workOrderDetail.ebmr.sigVerifiedByQc') },
@@ -2518,7 +2518,7 @@ export default function WorkOrderDetailPage() {
                   ] as const).map(({ key, label }) => {
                     const sig = ebmr.signatures?.[key];
                     return (
-                      <div key={key} className="border p-4 rounded-lg text-center">
+                      <div key={key} className="border p-4 rounded-lg text-center ebmr-signature-box">
                         <p className="text-sm text-gray-500 mb-8">{label}</p>
                         <div className="border-t pt-2">
                           <p className="text-sm text-gray-900">
