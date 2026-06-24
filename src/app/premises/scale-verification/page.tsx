@@ -39,6 +39,8 @@ interface ScaleRow {
   lastWeightDenomination: string | null;
   minVerificationWeightG: number | null;
   maxVerificationWeightG: number | null;
+  calibrationCertNumber: string | null;
+  calibrationExpiryDate: string | null;
 }
 
 // Convert a standard weight's denomination to grams (matches the server's
@@ -247,6 +249,36 @@ export default function ScaleVerificationPage() {
         <DxPaging defaultPageSize={20} />
         <DxColumn dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
         <DxColumn dataField="scaleName" caption={t('table.columns.scaleName')} />
+        <DxColumn
+          caption="ใบรับรองสอบเทียบ"
+          width={170}
+          cellRender={(c) => {
+            const row = c.data as ScaleRow;
+            if (!row.calibrationCertNumber) {
+              return <span className="text-xs text-amber-600">ยังไม่ระบุ cert</span>;
+            }
+            // Warn when the scale's own calibration cert is expired / near expiry.
+            const exp = row.calibrationExpiryDate ? new Date(row.calibrationExpiryDate) : null;
+            const days = exp ? Math.ceil((exp.getTime() - Date.now()) / 86400000) : null;
+            const tone =
+              days == null ? 'text-gray-600'
+                : days < 0 ? 'text-rose-700 font-medium'
+                : days <= 30 ? 'text-amber-700'
+                : 'text-gray-700';
+            return (
+              <div className="text-xs leading-tight">
+                <div className="font-mono text-gray-800">{row.calibrationCertNumber}</div>
+                {row.calibrationExpiryDate && (
+                  <div className={tone}>
+                    {days != null && days < 0 ? 'หมดอายุแล้ว ' : 'หมดอายุ '}
+                    {new Date(row.calibrationExpiryDate).toLocaleDateString('th-TH')}
+                    {days != null && days >= 0 && days <= 30 ? ` (อีก ${days} วัน)` : ''}
+                  </div>
+                )}
+              </div>
+            );
+          }}
+        />
         <DxColumn
           dataField="status"
           caption={t('table.columns.status')}

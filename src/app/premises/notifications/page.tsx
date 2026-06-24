@@ -46,6 +46,29 @@ function monthOffset(yearMonth: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Notification titles are generated server-side in English with technical
+// phrasing (e.g. "OUT-OF-SPEC env inspection on room #5"). Translate the common
+// fixed phrases to Thai for readability — display only, the stored value is
+// untouched. Unknown text passes through unchanged.
+function friendlyTitle(raw: string): string {
+  if (!raw) return raw;
+  let s = raw;
+  const map: Array<[RegExp, string]> = [
+    [/OUT-OF-SPEC\s+env(ironmental)?\s+inspection\s+on\s+/gi, 'ตรวจสภาพแวดล้อมเกินเกณฑ์ที่ '],
+    [/Environmental\s+inspection\s+OVERDUE\s*—?\s*/gi, 'ตรวจสภาพแวดล้อมเกินกำหนด — '],
+    [/Water\s+quality\s+OUT-OF-SPEC\s+on\s+/gi, 'คุณภาพน้ำเกินเกณฑ์ที่ '],
+    [/Water\s+test\s+OVERDUE\s*—?\s*/gi, 'ตรวจคุณภาพน้ำเกินกำหนด — '],
+    [/Scale\s+(.+?)\s+FAILED\s+verification/gi, 'เครื่องชั่ง $1 ตรวจสอบไม่ผ่าน'],
+    [/calibration\s+due/gi, 'ถึงกำหนดสอบเทียบ'],
+    [/calibration\s+overdue/gi, 'เกินกำหนดสอบเทียบ'],
+    [/maintenance\s+due/gi, 'ถึงกำหนดบำรุงรักษา'],
+    [/\bstorage_area\b/gi, 'พื้นที่จัดเก็บ'],
+    [/\broom\b/gi, 'ห้อง'],
+  ];
+  for (const [re, th] of map) s = s.replace(re, th);
+  return s;
+}
+
 export default function MaintenanceAlertsPage() {
   const t = useTranslations('equipmentNotifications');
   const tp = useTranslations('premises');
@@ -280,7 +303,7 @@ export default function MaintenanceAlertsPage() {
             }}
           />
           <Column dataField="type" caption={tp('notifications.list.col.type')} width={150} cellRender={(c) => t(`type.${c.value}` as any)} />
-          <Column dataField="title" caption={tp('notifications.list.col.title')} />
+          <Column dataField="title" caption={tp('notifications.list.col.title')} cellRender={(c) => friendlyTitle(String(c.value ?? ''))} />
           <Column dataField="dueAt" caption={tp('notifications.list.col.dueAt')} width={160} dataType="datetime" />
           <Column dataField="status" caption={tp('notifications.list.col.status')} width={130} cellRender={(c) => t(`status.${c.value}` as any)} />
           <Column
@@ -337,8 +360,8 @@ export default function MaintenanceAlertsPage() {
                               ? 'bg-amber-200 text-amber-900'
                               : 'bg-sky-200 text-sky-900';
                         return (
-                          <div key={it.id} className={`text-[10px] px-1 py-0.5 rounded truncate ${color}`} title={it.title}>
-                            {it.title}
+                          <div key={it.id} className={`text-[10px] px-1 py-0.5 rounded truncate ${color}`} title={friendlyTitle(it.title)}>
+                            {friendlyTitle(it.title)}
                           </div>
                         );
                       })}

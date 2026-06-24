@@ -387,6 +387,10 @@ export async function getScalesNeedingVerification(): Promise<Array<{
   // only weights that fit, and tell the operator roughly what reading to enter.
   minVerificationWeightG: number | null;
   maxVerificationWeightG: number | null;
+  // Calibration certificate of the scale itself (number + expiry) so the list
+  // can show it and warn when it's expiring/expired.
+  calibrationCertNumber: string | null;
+  calibrationExpiryDate: string | null;
 }>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
@@ -398,6 +402,8 @@ export async function getScalesNeedingVerification(): Promise<Array<{
         scaleStatus: t.equipment.scaleStatus,
         minVerificationWeightG: t.equipment.minVerificationWeightG,
         maxVerificationWeightG: t.equipment.maxVerificationWeightG,
+        calibrationCertNumber: t.equipment.calibrationCertNumber,
+        calibrationExpiryDate: t.equipment.calibrationExpiryDate,
       })
       .from(t.equipment)
       .where(
@@ -421,6 +427,8 @@ export async function getScalesNeedingVerification(): Promise<Array<{
       lastWeightDenomination: string | null;
       minVerificationWeightG: number | null;
       maxVerificationWeightG: number | null;
+      calibrationCertNumber: string | null;
+      calibrationExpiryDate: string | null;
     }>;
     for (const s of scales) {
       const lastVer = await db
@@ -460,6 +468,8 @@ export async function getScalesNeedingVerification(): Promise<Array<{
           s.minVerificationWeightG != null ? Number(s.minVerificationWeightG) : null,
         maxVerificationWeightG:
           s.maxVerificationWeightG != null ? Number(s.maxVerificationWeightG) : null,
+        calibrationCertNumber: s.calibrationCertNumber ? String(s.calibrationCertNumber) : null,
+        calibrationExpiryDate: s.calibrationExpiryDate ? String(s.calibrationExpiryDate) : null,
       });
     }
     return result;
