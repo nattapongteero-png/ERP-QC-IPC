@@ -14,7 +14,7 @@ import { Popup } from 'devextreme-react/popup';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
-import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus, History } from 'lucide-react';
+import { Thermometer, AlertTriangle, CheckCircle2, Plus, ListPlus, CalendarPlus, History, RefreshCw, Bell } from 'lucide-react';
 import {
   INSPECTION_TARGET_TYPES,
   INSPECTION_FREQUENCIES,
@@ -147,33 +147,43 @@ export default function InspectionsPage() {
           <Thermometer className="w-6 h-6" />
           {t('page.inspections')}
         </h1>
-        <div className="flex gap-2 flex-wrap">
-          <Button text={t('actions.refresh')} onClick={() => refetch()} />
+        {/* Header actions — all rendered as uniform pill buttons (same height,
+            padding, border, icon size) so they line up evenly. */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" /> {t('actions.refresh')}
+          </button>
           <Link
             href="/premises/environmental/inspections/history"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors"
           >
             <History className="w-4 h-4" /> {tp('environmental.inspections.historyLink')}
           </Link>
           <Link
             href="/premises/environmental/templates"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors"
           >
             <ListPlus className="w-4 h-4" /> {tp('environmental.inspections.manageTemplates')}
           </Link>
           <Link
             href="/premises/environmental/schedules"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 text-gray-700"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors"
           >
             <CalendarPlus className="w-4 h-4" /> {tp('environmental.inspections.manageSchedules')}
           </Link>
-          <Button
-            stylingMode="outlined"
-            text={tp('environmental.inspections.scanButton')}
-            hint={tp('environmental.inspections.scanHint')}
+          <button
+            type="button"
             onClick={() => scanMut.mutate()}
             disabled={scanMut.isPending}
-          />
+            title={tp('environmental.inspections.scanHint')}
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-emerald-200 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors disabled:opacity-50"
+          >
+            <Bell className="w-4 h-4" /> {tp('environmental.inspections.scanButton')}
+          </button>
         </div>
       </header>
 
@@ -270,11 +280,11 @@ export default function InspectionsPage() {
           cellRender={(c) => {
             const row = c.data as ScheduleRow;
             return (
-              <div className="flex items-center gap-1">
-                <Button
-                  text={t('actions.inspect')}
-                  type="default"
-                  stylingMode="outlined"
+              // Uniform action buttons — same height/padding/font so the column
+              // looks tidy whether or not the "view/edit" button is present.
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
                   onClick={() => {
                     setActive(row);
                     const tpl = templates?.find((tt) => tt.id === row.templateId);
@@ -284,16 +294,19 @@ export default function InspectionsPage() {
                     });
                     setAnswers(init);
                   }}
-                />
+                  className="inline-flex items-center gap-1 h-8 px-3 text-xs font-medium border border-emerald-300 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors whitespace-nowrap"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {t('actions.inspect')}
+                </button>
                 {/* Edit/view an already-recorded result — lives on the history
                     page (per-item edit + delete, audit-logged). Linked here so
                     the operator doesn't have to hunt for it. */}
                 {row.lastDone && (
                   <Link
                     href={`/premises/environmental/inspections/history?targetId=${row.targetId}&templateId=${row.templateId}`}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs border rounded hover:bg-gray-50 text-gray-700 whitespace-nowrap"
+                    className="inline-flex items-center gap-1 h-8 px-3 text-xs font-medium border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 transition-colors whitespace-nowrap"
                   >
-                    <History className="w-3 h-3" /> {tp('environmental.inspectionsHistory.viewAction')}/{tp('environmental.common.edit')}
+                    <History className="w-3.5 h-3.5" /> {tp('environmental.inspectionsHistory.viewAction')}/{tp('environmental.common.edit')}
                   </Link>
                 )}
               </div>
