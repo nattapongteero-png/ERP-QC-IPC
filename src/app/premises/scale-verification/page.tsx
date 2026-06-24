@@ -380,6 +380,7 @@ export default function ScaleVerificationPage() {
               onValueChanged={(e) => setWeightId(e.value as number | null)}
               searchEnabled
               noDataText={tp('scaleVerification.index.noWeightFits')}
+              inputAttr={{ autoComplete: 'off', name: 'scale-verify-weight', 'data-lpignore': 'true', 'data-form-type': 'other' }}
             />
             {(activeScale?.minVerificationWeightG != null || activeScale?.maxVerificationWeightG != null) && (
               <p className="text-xs text-gray-500 mt-1">
@@ -418,6 +419,7 @@ export default function ScaleVerificationPage() {
               format="#0.0000"
               min={0}
               showSpinButtons
+              inputAttr={{ autoComplete: 'off', name: 'scale-verify-reading', 'data-lpignore': 'true', 'data-form-type': 'other' }}
             />
             {selectedWeight && (
               <p className="text-xs text-gray-500 mt-1">
@@ -448,6 +450,7 @@ export default function ScaleVerificationPage() {
               value={notes}
               height={60}
               onValueChanged={(e) => setNotes(String(e.value ?? ''))}
+              inputAttr={{ autoComplete: 'off', name: 'scale-verify-notes', 'data-lpignore': 'true', 'data-form-type': 'other' }}
             />
           </div>
 
@@ -459,6 +462,9 @@ export default function ScaleVerificationPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border rounded px-3 py-2"
               placeholder={tp('scaleVerification.index.passwordPlaceholder')}
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 

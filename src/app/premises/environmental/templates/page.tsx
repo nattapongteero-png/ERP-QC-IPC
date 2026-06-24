@@ -18,6 +18,7 @@ import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
+import { TextBox } from 'devextreme-react/text-box';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ClipboardList, Pencil, Trash2, Plus } from 'lucide-react';
@@ -63,6 +64,29 @@ const blankForm: TmplForm = {
   items: [blankItem(1)],
 };
 
+// Standard environmental parameters operators can pick from a dropdown instead
+// of typing a free-text technical key. Choosing one auto-fills a sensible
+// default label + unit (still editable). "custom" lets them define their own.
+const PARAM_PRESETS: Array<{ value: string; labelKey: string; defaultLabel: string; unit: string }> = [
+  { value: 'temperature', labelKey: 'temperature', defaultLabel: 'อุณหภูมิ', unit: '°C' },
+  { value: 'humidity', labelKey: 'humidity', defaultLabel: 'ความชื้นสัมพัทธ์', unit: '%RH' },
+  { value: 'differential_pressure', labelKey: 'pressure', defaultLabel: 'ความดันต่าง', unit: 'Pa' },
+  { value: 'cleanliness', labelKey: 'cleanliness', defaultLabel: 'ความสะอาด', unit: '' },
+  { value: 'light', labelKey: 'light', defaultLabel: 'ความสว่าง', unit: 'lux' },
+  { value: 'ph', labelKey: 'ph', defaultLabel: 'ค่า pH', unit: '' },
+  { value: 'conductivity', labelKey: 'conductivity', defaultLabel: 'ค่าการนำไฟฟ้า', unit: 'µS/cm' },
+  { value: 'tds', labelKey: 'tds', defaultLabel: 'TDS', unit: 'ppm' },
+  { value: 'custom', labelKey: 'custom', defaultLabel: '', unit: '' },
+];
+
+// Distinct badge colour per location type so the column is scannable at a glance.
+const TARGET_TYPE_BADGE: Record<string, string> = {
+  room: 'bg-indigo-100 text-indigo-900',
+  storage_area: 'bg-amber-100 text-amber-900',
+  quarantine: 'bg-rose-100 text-rose-900',
+  water_point: 'bg-sky-100 text-sky-900',
+};
+
 export default function TemplatesPage() {
   const t = useTranslations('premises');
   const targetLabel = (v: InspectionTargetType) => t('environmental.common.targetType.' + v);
@@ -72,6 +96,10 @@ export default function TemplatesPage() {
   const [editing, setEditing] = useState<InspectionTemplate | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [form, setForm] = useState<TmplForm>(blankForm);
+  // Register filters: area type + active status + free-text search (client-side).
+  const [typeFilter, setTypeFilter] = useState<'all' | InspectionTargetType>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchText, setSearchText] = useState('');
 
   const { data: templates = [], isLoading, refetch } = useQuery<InspectionTemplate[]>({
     queryKey: ['env-templates-all'],
@@ -80,6 +108,21 @@ export default function TemplatesPage() {
       if (!res.ok) throw new Error('Failed');
       return res.json();
     },
+  });
+
+  const filteredTemplates = templates.filter((tpl) => {
+    if (typeFilter !== 'all' && tpl.targetType !== typeFilter) return false;
+    if (statusFilter === 'active' && !tpl.isActive) return false;
+    if (statusFilter === 'inactive' && tpl.isActive) return false;
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      if (
+        !tpl.name?.toLowerCase().includes(q) &&
+        !(tpl.description ?? '').toLowerCase().includes(q)
+      )
+        return false;
+    }
+    return true;
   });
 
   useEffect(() => {
@@ -229,8 +272,52 @@ export default function TemplatesPage() {
         </Button>
       </div>
 
+      {/* Filter bar — area type, status, free-text search. */}
+      <div className="flex flex-wrap items-end gap-3 bg-white rounded-lg border border-gray-200 p-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">{t('environmental.templates.usedWithAreaTypeColumn')}</label>
+          <SelectBox
+            width={180}
+            value={typeFilter}
+            onValueChanged={(e) => setTypeFilter(e.value)}
+            valueExpr="value"
+            displayExpr="label"
+            items={[
+              { value: 'all', label: t('environmental.templates.filterAllTypes') },
+              ...INSPECTION_TARGET_TYPES.map((v) => ({ value: v, label: targetLabel(v) })),
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">{t('environmental.common.statusColumn')}</label>
+          <SelectBox
+            width={150}
+            value={statusFilter}
+            onValueChanged={(e) => setStatusFilter(e.value)}
+            valueExpr="value"
+            displayExpr="label"
+            items={[
+              { value: 'all', label: t('environmental.templates.filterAllTypes') },
+              { value: 'active', label: t('environmental.templates.filterActive') },
+              { value: 'inactive', label: t('environmental.templates.filterInactive') },
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <label className="text-xs text-gray-500">{t('environmental.templates.filterSearch')}</label>
+          <TextBox
+            value={searchText}
+            onValueChanged={(e) => setSearchText(e.value ?? '')}
+            placeholder={t('environmental.templates.filterSearchPlaceholder')}
+            showClearButton
+            mode="search"
+            inputAttr={{ autoComplete: 'off', name: 'tpl-search', 'data-lpignore': 'true', 'data-form-type': 'other' }}
+          />
+        </div>
+      </div>
+
       <DataGrid
-        dataSource={templates}
+        dataSource={filteredTemplates}
         keyExpr="id"
         showBorders
         showRowLines
@@ -240,13 +327,17 @@ export default function TemplatesPage() {
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
-        <Column dataField="id" caption="#" width={60} />
+        <Column dataField="id" caption="#" width={60} defaultSortOrder="asc" />
         <Column dataField="name" caption={t('environmental.templates.nameColumn')} />
         <Column
           caption={t('environmental.templates.usedWithAreaTypeColumn')}
           dataField="targetType"
           width={160}
-          cellRender={(c) => <Badge className="bg-indigo-100 text-indigo-900">{targetLabel(c.value)}</Badge>}
+          cellRender={(c) => (
+            <Badge className={TARGET_TYPE_BADGE[c.value as string] ?? 'bg-gray-100 text-gray-700'}>
+              {targetLabel(c.value)}
+            </Badge>
+          )}
         />
         <Column
           caption={t('environmental.templates.itemCountColumn')}
@@ -340,7 +431,18 @@ export default function TemplatesPage() {
             )}
           </div>
           <div className="border-t pt-3">
-            <div className="font-medium text-sm mb-2">{t('environmental.templates.itemsHeading')}</div>
+            <div className="font-medium text-sm mb-1">{t('environmental.templates.itemsHeading')}</div>
+            <p className="text-xs text-gray-500 mb-2">{t('environmental.templates.itemsHint')}</p>
+            {/* Column headers so each field's purpose is clear */}
+            <div className="grid grid-cols-12 gap-2 mb-1 px-1 text-[11px] font-medium text-gray-500">
+              <div className="col-span-3">{t('environmental.templates.colLabel')}</div>
+              <div className="col-span-2">{t('environmental.templates.colParameter')}</div>
+              <div className="col-span-1">{t('environmental.templates.colUnit')}</div>
+              <div className="col-span-2">{t('environmental.templates.colMin')}</div>
+              <div className="col-span-2">{t('environmental.templates.colMax')}</div>
+              <div className="col-span-1">{t('environmental.templates.colMandatory')}</div>
+              <div className="col-span-1"></div>
+            </div>
             {form.items.map((it, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 mb-2 items-center">
                 <input
@@ -354,17 +456,35 @@ export default function TemplatesPage() {
                     }))
                   }
                 />
-                <input
-                  className="col-span-2 border rounded px-2 py-1 text-sm"
-                  placeholder={t('environmental.templates.itemParameterPlaceholder')}
-                  value={it.parameter}
-                  onChange={(e) =>
+                {/* Parameter as a dropdown of standard env parameters. Picking one
+                    auto-fills a default label (if empty) + unit, so operators don't
+                    have to know technical keys. "custom" keeps free entry. */}
+                <select
+                  className="col-span-2 border rounded px-2 py-1 text-sm bg-white"
+                  value={PARAM_PRESETS.some((p) => p.value === it.parameter) ? it.parameter : 'custom'}
+                  onChange={(e) => {
+                    const preset = PARAM_PRESETS.find((p) => p.value === e.target.value);
                     setForm((prev) => ({
                       ...prev,
-                      items: prev.items.map((x, i) => (i === idx ? { ...x, parameter: e.target.value } : x)),
-                    }))
-                  }
-                />
+                      items: prev.items.map((x, i) =>
+                        i === idx
+                          ? {
+                              ...x,
+                              parameter: e.target.value === 'custom' ? '' : e.target.value,
+                              label: x.label || preset?.defaultLabel || x.label,
+                              unit: x.unit || preset?.unit || x.unit,
+                            }
+                          : x,
+                      ),
+                    }));
+                  }}
+                >
+                  {PARAM_PRESETS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {t(`environmental.templates.param.${p.labelKey}` as never)}
+                    </option>
+                  ))}
+                </select>
                 <input
                   className="col-span-1 border rounded px-2 py-1 text-sm"
                   placeholder={t('environmental.templates.itemUnitPlaceholder')}

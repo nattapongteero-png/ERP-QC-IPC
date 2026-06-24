@@ -173,14 +173,6 @@ export function SidebarLanguageToggle({
   const currentLocale = useLocale() as Locale;
   const router = useRouter();
 
-  const handleToggle = useCallback(async () => {
-    const newLocale: Locale = currentLocale === 'th' ? 'en' : 'th';
-    setStoredLocale(newLocale);
-    await initDevExtremeLocale(newLocale);
-    if (onLanguageChange) onLanguageChange(newLocale);
-    router.refresh();
-  }, [currentLocale, onLanguageChange, router]);
-
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
   const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
 
@@ -196,47 +188,46 @@ export function SidebarLanguageToggle({
     [currentLocale, onLanguageChange, router],
   );
 
-  // Slider switch: TH on the left, EN on the right, a white knob slides to the
-  // active side. Pure text (TH/EN) + CSS only — renders identically across
-  // Chrome / Firefox / Safari / Edge (no flag emoji, which break on Windows).
-  const isEn = currentLocale === 'en';
-
+  // Segmented control (design A): both languages shown side-by-side, the active
+  // one filled emerald. A "ภาษา / Language" caption sits above. Pure text
+  // (TH/EN) + CSS only — renders identically across Chrome / Firefox / Safari /
+  // Edge (no flag emoji, which break on Windows). Clicking a side selects it.
   return (
     <div className="flex flex-col gap-1.5">
-      <button
-        type="button"
-        onClick={() => void selectLocale(isEn ? 'th' : 'en')}
-        role="switch"
-        aria-checked={isEn}
-        aria-label="Toggle language"
+      <span className="text-[11px] font-medium text-slate-400 px-0.5">ภาษา / Language</span>
+      <div
+        role="group"
+        aria-label="Language"
         data-testid="sidebar-language-toggle"
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/60 border border-emerald-500/20 hover:border-emerald-500/40 transition-colors ${className || ''}`}
+        className={`grid grid-cols-2 gap-1 p-1 rounded-lg bg-slate-800/60 border border-emerald-500/20 ${className || ''}`}
       >
-        <span
-          className={`text-[13px] font-bold w-8 text-center transition-colors ${
-            !isEn ? 'text-white' : 'text-slate-500'
-          }`}
-          data-testid="sidebar-language-th"
-        >
-          {localeBadges.th}
-        </span>
-        {/* Track + sliding knob */}
-        <span className="relative inline-block w-[54px] h-[26px] rounded-full bg-emerald-500 flex-shrink-0">
-          <span
-            className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${
-              isEn ? 'left-[31px]' : 'left-[3px]'
-            }`}
-          />
-        </span>
-        <span
-          className={`text-[13px] font-bold w-8 text-center transition-colors ${
-            isEn ? 'text-white' : 'text-slate-500'
-          }`}
-          data-testid="sidebar-language-en"
-        >
-          {localeBadges.en}
-        </span>
-      </button>
+        {locales.map((loc) => {
+          const active = loc === currentLocale;
+          return (
+            <button
+              key={loc}
+              type="button"
+              onClick={() => void selectLocale(loc)}
+              aria-pressed={active}
+              data-testid={`sidebar-language-${loc}`}
+              className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span
+                className={`inline-flex items-center justify-center min-w-[1.6rem] px-1 py-0.5 rounded text-[10px] font-bold leading-none ${
+                  active ? 'bg-white/25 text-white' : 'bg-slate-600 text-slate-100'
+                }`}
+              >
+                {localeBadges[loc]}
+              </span>
+              <span className="truncate">{localeNames[loc]}</span>
+            </button>
+          );
+        })}
+      </div>
       {appVersion && (
         <p
           className="text-center text-[10px] font-medium text-slate-400/80 tracking-wide"

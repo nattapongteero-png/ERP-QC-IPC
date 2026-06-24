@@ -320,6 +320,7 @@ export default function WaterQualityRecordsPage() {
               valueExpr="id"
               value={samplePointId}
               onValueChanged={(e) => setSamplePointId(e.value as number | null)}
+              inputAttr={{ autoComplete: 'off', name: 'wq-sample-point', 'data-lpignore': 'true', 'data-form-type': 'other' }}
             />
           </div>
           {selectedPoint && (specs ?? []).map((s) => (
@@ -336,6 +337,7 @@ export default function WaterQualityRecordsPage() {
                 step={0.001}
                 format="#0.000"
                 placeholder={t('form.value')}
+                inputAttr={{ autoComplete: 'off', name: `wq-result-${s.id}`, 'data-lpignore': 'true', 'data-form-type': 'other' }}
               />
             </div>
           ))}
@@ -350,11 +352,11 @@ export default function WaterQualityRecordsPage() {
           )}
           <div>
             <label className="block text-sm font-medium mb-1">{t('form.notes')}</label>
-            <TextArea value={notes} height={60} onValueChanged={(e) => setNotes(String(e.value ?? ''))} />
+            <TextArea value={notes} height={60} onValueChanged={(e) => setNotes(String(e.value ?? ''))} inputAttr={{ autoComplete: 'off', name: 'wq-notes', 'data-lpignore': 'true', 'data-form-type': 'other' }} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{tp('waterQuality.index.popup.password')}</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border rounded px-3 py-2" autoComplete="new-password" data-lpignore="true" data-form-type="other" />
           </div>
           {recordMut.error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">

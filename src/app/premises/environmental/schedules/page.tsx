@@ -67,6 +67,14 @@ const blankForm: FormState = {
   alertDaysBefore: 1,
 };
 
+// Distinct badge colour per location type so the column is scannable at a glance.
+const TARGET_TYPE_BADGE: Record<string, string> = {
+  room: 'bg-indigo-100 text-indigo-900',
+  storage_area: 'bg-amber-100 text-amber-900',
+  quarantine: 'bg-rose-100 text-rose-900',
+  water_point: 'bg-sky-100 text-sky-900',
+};
+
 export default function SchedulesPage() {
   const t = useTranslations('premises');
   const targetLabel = (v: InspectionTargetType) => t('environmental.common.targetType.' + v);
@@ -266,12 +274,16 @@ export default function SchedulesPage() {
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
-        <Column dataField="id" caption="#" width={60} />
+        <Column dataField="id" caption="#" width={60} defaultSortOrder="asc" />
         <Column
           caption={t('environmental.schedules.areaTypeColumn')}
           dataField="targetType"
           width={130}
-          cellRender={(c) => <Badge className="bg-indigo-100 text-indigo-900">{targetLabel(c.value)}</Badge>}
+          cellRender={(c) => (
+            <Badge className={TARGET_TYPE_BADGE[c.value as string] ?? 'bg-gray-100 text-gray-700'}>
+              {targetLabel(c.value)}
+            </Badge>
+          )}
         />
         <Column dataField="targetName" caption={t('environmental.common.targetColumn')} />
         <Column dataField="templateName" caption={t('environmental.common.templateColumn')} />
@@ -350,7 +362,15 @@ export default function SchedulesPage() {
               {t('environmental.schedules.fieldTargetHint')}
             </p>
             <SelectBox
-              dataSource={targetData.items}
+              dataSource={
+                // When editing, make sure the currently-selected target is present
+                // in the list even if the async targets query hasn't returned yet
+                // (or doesn't include it) — otherwise the disabled box renders empty
+                // and looks like the data was lost.
+                editing && form.targetId != null && !targetData.items.some((it) => it.id === form.targetId)
+                  ? [{ id: form.targetId, name: form.targetName || editing.targetName }, ...targetData.items]
+                  : targetData.items
+              }
               valueExpr="id"
               displayExpr="name"
               value={form.targetId}

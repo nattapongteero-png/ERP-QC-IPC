@@ -573,6 +573,7 @@ export default function GrnDetailPage() {
                 height={60}
                 onValueChanged={(e) => setEditForm((f) => ({ ...f, varianceReason: String(e.value ?? '') }))}
                 placeholder={t('form.varianceReason.label')}
+                inputAttr={{ autoComplete: 'off', name: 'grn-variance-reason', 'data-lpignore': 'true', 'data-form-type': 'other' }}
               />
             </div>
           </div>
@@ -702,6 +703,7 @@ export default function GrnDetailPage() {
                     [item.id]: { ...prev[item.id], remarks: String(e.value ?? '') },
                   }))
                 }
+                inputAttr={{ autoComplete: 'off', name: `grn-checklist-remarks-${item.id}`, 'data-lpignore': 'true', 'data-form-type': 'other' }}
               />
             </div>
           ))}
@@ -716,6 +718,7 @@ export default function GrnDetailPage() {
                 name="esign-password"
                 autoComplete="new-password"
                 data-lpignore="true"
+                data-form-type="other"
                 value={sigPassword}
                 onChange={(e) => setSigPassword(e.target.value)}
                 className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
@@ -823,6 +826,7 @@ export default function GrnDetailPage() {
                   height={80}
                   onValueChanged={(e) => setRejectionReason(String(e.value ?? ''))}
                   placeholder="ระบุเหตุผลการปฏิเสธ (อย่างน้อย 10 ตัวอักษร)"
+                  inputAttr={{ autoComplete: 'off', name: 'grn-rejection-reason', 'data-lpignore': 'true', 'data-form-type': 'other' }}
                 />
               </div>
             </>
@@ -897,6 +901,7 @@ export default function GrnDetailPage() {
               height={80}
               onValueChanged={(e) => setCancelReason(String(e.value ?? ''))}
               placeholder={t('cancel.reasonPlaceholder')}
+              inputAttr={{ autoComplete: 'off', name: 'grn-cancel-reason', 'data-lpignore': 'true', 'data-form-type': 'other' }}
             />
           </div>
           {cancelGrnMut.error && (

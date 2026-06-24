@@ -85,8 +85,16 @@ export default function InspectionsPage() {
       const tpl = templates?.find((tt) => tt.id === active.templateId);
       const items = (tpl?.items ?? []).map((it) => ({
         templateItemId: it.id,
-        parameter: it.parameter,
-        numericValue: answers[it.id]?.value === '' ? null : Number(answers[it.id]?.value ?? 0),
+        // parameter is required (min 1 char) by the API. Older template items may
+        // have an empty parameter — fall back to a key derived from the label so
+        // the request validates instead of failing with "Invalid body".
+        parameter:
+          (it.parameter && it.parameter.trim()) ||
+          (it.label || '').trim().toLowerCase().replace(/\s+/g, '_') ||
+          `item_${it.id}`,
+        numericValue: answers[it.id]?.value === '' || answers[it.id]?.value == null
+          ? null
+          : Number(answers[it.id]?.value),
         textValue: null,
         remarks: answers[it.id]?.remarks ?? null,
       }));
@@ -104,7 +112,18 @@ export default function InspectionsPage() {
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Failed');
+      if (!res.ok) {
+        // Surface the specific validation problem (which field/why) instead of
+        // a bare "Invalid body", so the operator/dev can see the real cause.
+        const detail = Array.isArray(body?.issues)
+          ? body.issues
+              .map((i: { path?: (string | number)[]; message?: string }) =>
+                `${(i.path ?? []).join('.')}: ${i.message}`,
+              )
+              .join('; ')
+          : '';
+        throw new Error(detail ? `${body?.error ?? 'Failed'} — ${detail}` : (body?.error ?? 'Failed'));
+      }
       return body;
     },
     onSuccess: (body: { overallResult?: string; outOfSpecCount?: number } = {}) => {
@@ -374,6 +393,14 @@ export default function InspectionsPage() {
                   step={0.01}
                   format="#0.00"
                   placeholder={t('form.value')}
+                  // Stop browser email/username autofill (the nearby password
+                  // field makes Chrome/Firefox offer credential autofill here).
+                  inputAttr={{
+                    autoComplete: 'off',
+                    name: `insp-value-${item.id}`,
+                    'data-lpignore': 'true',
+                    'data-form-type': 'other',
+                  }}
                 />
               </div>
             );
@@ -393,6 +420,9 @@ export default function InspectionsPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border rounded px-3 py-2"
+              autoComplete="new-password"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 

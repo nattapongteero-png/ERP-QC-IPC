@@ -2258,6 +2258,7 @@ export default function QcSampleDetailPage() {
             placeholder={t('qcEntry.detail.signDialog.notesPlaceholder')}
             height={80}
             maxLength={2000}
+            inputAttr={{ autoComplete: 'off', name: 'qc-sign-notes', 'data-lpignore': 'true', 'data-form-type': 'other' }}
           />
 
           <DxTextBox
@@ -2267,6 +2268,7 @@ export default function QcSampleDetailPage() {
             onValueChange={setSignPassword}
             mode="password"
             placeholder={t('qcEntry.detail.signDialog.passwordPlaceholder')}
+            inputAttr={{ autoComplete: 'new-password', name: 'qc-sign-password', 'data-lpignore': 'true', 'data-form-type': 'other' }}
           />
           <p className="text-[11px] text-gray-500 -mt-2">
             {t('qcEntry.detail.signDialog.passwordHint')}

@@ -127,6 +127,7 @@ export function ElectronicSignatureDialog({
             placeholder="กรอกความหมายของลายเซ็น..."
             height={80}
             disabled={isLoading}
+            inputAttr={{ autoComplete: 'off', name: 'esign-meaning', 'data-lpignore': 'true', 'data-form-type': 'other' }}
           />
         ) : (
           <p className="text-sm text-gray-600 italic">&ldquo;{meaning}&rdquo;</p>
@@ -149,6 +150,7 @@ export function ElectronicSignatureDialog({
           placeholder="กรอกรหัสผ่าน..."
           disabled={isLoading || success}
           onEnterKey={handleSign}
+          inputAttr={{ autoComplete: 'new-password', name: 'esign-password', 'data-lpignore': 'true', 'data-form-type': 'other' }}
         />
       </div>
 

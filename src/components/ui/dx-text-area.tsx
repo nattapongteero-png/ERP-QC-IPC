@@ -45,6 +45,8 @@ export interface DxTextAreaProps {
   validationGroup?: string;
   /** Spellcheck */
   spellcheck?: boolean;
+  /** Native input attributes (e.g. autoComplete, name, data-* for autofill suppression) */
+  inputAttr?: Record<string, unknown>;
 }
 
 /**
@@ -101,6 +103,7 @@ export function DxTextArea({
   name,
   validationGroup,
   spellcheck = false,
+  inputAttr,
 }: DxTextAreaProps) {
   const hasValidation = required || minLength !== undefined || maxLength !== undefined;
 
@@ -130,6 +133,7 @@ export function DxTextArea({
       className={className}
       name={name}
       spellcheck={spellcheck}
+      inputAttr={inputAttr}
     >
       {hasValidation && (
         <Validator validationGroup={validationGroup}>

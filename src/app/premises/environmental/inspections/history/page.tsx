@@ -8,6 +8,7 @@
  * service layer (action UPDATE / DELETE on inspectionRecords).
  */
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, Column, Paging, Pager } from 'devextreme-react/data-grid';
@@ -53,6 +54,7 @@ interface RecordDetail extends RecordRow {
 
 export default function InspectionHistoryPage() {
   const t = useTranslations('premises');
+  const searchParams = useSearchParams();
   const targetLabel = (v: string) =>
     (['room', 'storage_area', 'quarantine', 'water_point'] as const).includes(v as any)
       ? t('environmental.common.targetType.' + v)
@@ -84,7 +86,18 @@ export default function InspectionHistoryPage() {
       return res.json();
     },
   });
-  const records = data?.items ?? [];
+  // When opened from a specific row's "view/edit" button, the URL carries
+  // ?targetId=&templateId= — filter the history to just that target so the user
+  // sees only that room's records (not every room mixed together).
+  const filterTargetId = searchParams.get('targetId');
+  const filterTemplateId = searchParams.get('templateId');
+  const allRecords = data?.items ?? [];
+  const records = allRecords.filter((r) => {
+    if (filterTargetId && String(r.targetId) !== filterTargetId) return false;
+    return true;
+  });
+  const filteredTargetName =
+    filterTargetId ? allRecords.find((r) => String(r.targetId) === filterTargetId)?.targetName : null;
 
   const { data: detail } = useQuery<RecordDetail>({
     queryKey: ['env-inspection-record', viewId],
@@ -177,6 +190,20 @@ export default function InspectionHistoryPage() {
         </div>
         <Button icon="refresh" text={t('environmental.common.refresh')} onClick={() => refetch()} />
       </div>
+
+      {/* Active room filter (came from a row's view/edit) — show what's filtered
+          and let the user clear it to see all rooms again. */}
+      {filterTargetId && (
+        <div className="flex items-center justify-between gap-2 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 text-sm text-sky-900">
+          <span>
+            {t('environmental.inspectionsHistory.filteredBy')}:{' '}
+            <span className="font-semibold">{filteredTargetName || `#${filterTargetId}`}</span>
+          </span>
+          <a href="/premises/environmental/inspections/history" className="text-sky-700 underline font-medium">
+            {t('environmental.inspectionsHistory.clearFilter')}
+          </a>
+        </div>
+      )}
 
       <DataGrid
         dataSource={records}

@@ -61,6 +61,8 @@ export interface DxTextBoxProps {
   onEnterKey?: (e: TextBoxTypes.EnterKeyEvent) => void;
   /** Element attributes for testing */
   elementAttr?: Record<string, string>;
+  /** Native input attributes (e.g. autoComplete, name, data-* for autofill suppression) */
+  inputAttr?: Record<string, unknown>;
 }
 
 /**
@@ -115,6 +117,7 @@ export function DxTextBox({
   onKeyDown,
   onEnterKey,
   elementAttr,
+  inputAttr,
 }: DxTextBoxProps) {
   const hasValidation = required || zodSchema;
 
@@ -145,7 +148,7 @@ export function DxTextBox({
       className={className}
       name={name}
       focusStateEnabled={!disabled}
-      inputAttr={{ autoFocus, tabIndex }}
+      inputAttr={{ autoFocus, tabIndex, ...inputAttr }}
       onKeyDown={onKeyDown}
       onEnterKey={onEnterKey}
       elementAttr={elementAttr}
