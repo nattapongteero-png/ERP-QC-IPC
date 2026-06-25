@@ -16,6 +16,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTagBox } from '@/components/ui/dx-tag-box';
 import { AlertCircle, AlertTriangle, Package, Users, Link2 } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import type { Recall, RecallCreate, RecallClass } from '@/types/recalls';
 
 // ============================================
@@ -86,7 +87,10 @@ async function fetchLots(productId: number): Promise<Lot[]> {
 }
 
 async function fetchUsers(): Promise<User[]> {
-  const response = await fetch('/api/users?role=qc&limit=100');
+  // Fetch ALL active users — filtering by role=qc returned nothing on
+  // environments whose seed data has no qc-role users, leaving the required
+  // coordinator dropdown empty.
+  const response = await fetch('/api/users?limit=200');
   const result = await response.json();
   if (!result.success) return [];
   const items = result.data?.users || result.data?.items || result.data || [];
@@ -210,12 +214,17 @@ export function RecallDataEntryDialog({
     enabled: !!formData.productId && visible,
   });
 
-  // Fetch users
-  const { data: users } = useQuery({
+  // Fetch users for the coordinator picker
+  const { data: users, isError: usersError } = useQuery({
     queryKey: ['users-qc'],
     queryFn: fetchUsers,
     enabled: visible,
   });
+
+  // The person initiating a recall is the natural coordinator. Always include
+  // the logged-in user so the required field is fillable even when /api/users
+  // returns nothing on this environment.
+  const { data: currentUser } = useCurrentUser();
 
   // Memoize items arrays to prevent infinite re-renders in DevExtreme
   const productItems = useMemo(
@@ -235,10 +244,17 @@ export function RecallDataEntryDialog({
     [lots]
   );
 
-  const userItems = useMemo(
-    () => (users || []).map((u) => ({ value: u.id, label: u.name })),
-    [users]
-  );
+  const userItems = useMemo(() => {
+    const items = (users || []).map((u) => ({ value: u.id, label: u.name }));
+    if (currentUser?.id && !items.some((i) => i.value === currentUser.id)) {
+      items.unshift({ value: currentUser.id, label: currentUser.name });
+    }
+    return items;
+  }, [users, currentUser]);
+
+  // Effective coordinator: explicit pick, else the logged-in user (shown
+  // pre-selected in the SelectBox) — keeps submit consistent with the UI.
+  const effectiveCoordinatorId = formData.coordinatorId || currentUser?.id || null;
 
   // Create mutation
   const createMutation = useMutation({
@@ -248,7 +264,7 @@ export function RecallDataEntryDialog({
         reason: formData.reason,
         productId: formData.productId!,
         affectedLots: formData.affectedLots,
-        coordinatorId: formData.coordinatorId!,
+        coordinatorId: (formData.coordinatorId || currentUser?.id)!,
         complaintId: formData.complaintId || undefined,
       }),
     onSuccess: (data) => {
@@ -290,7 +306,7 @@ export function RecallDataEntryDialog({
     if (formData.affectedLots.length === 0) {
       newErrors.affectedLots = 'ต้องเลือกอย่างน้อยหนึ่งล็อต';
     }
-    if (!formData.coordinatorId) {
+    if (!effectiveCoordinatorId) {
       newErrors.coordinatorId = 'กรุณาเลือกผู้ประสานงาน';
     }
 
@@ -306,7 +322,7 @@ export function RecallDataEntryDialog({
       // Only allow updating certain fields in edit mode
       updateMutation.mutate({
         reason: formData.reason,
-        coordinatorId: formData.coordinatorId || undefined,
+        coordinatorId: effectiveCoordinatorId || undefined,
       });
     } else {
       createMutation.mutate();
@@ -519,13 +535,18 @@ export function RecallDataEntryDialog({
             </label>
             <DxSelectBox
               items={userItems}
-              value={formData.coordinatorId}
+              value={formData.coordinatorId ?? currentUser?.id ?? null}
               valueExpr="value"
               displayExpr="label"
               onValueChange={(value) => handleFieldChange('coordinatorId', value)}
               placeholder="เลือกผู้ประสานงาน..."
               searchEnabled
             />
+            {usersError && (
+              <p className="text-xs text-amber-600">
+                โหลดรายชื่อผู้ใช้ไม่สำเร็จ — เลือกตัวคุณเองเป็นผู้ประสานงานได้
+              </p>
+            )}
             {errors.coordinatorId && <p className="text-xs text-destructive">{errors.coordinatorId}</p>}
           </div>
         </div>
