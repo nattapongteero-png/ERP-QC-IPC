@@ -24,10 +24,18 @@ async function fetchDistribution(recallId: number): Promise<DistributionRecord[]
 }
 
 export function RecallDistributionTable({ recallId }: RecallDistributionTableProps) {
-  const { data: distribution = [], isLoading } = useQuery({
+  const { data: rawDistribution = [], isLoading } = useQuery({
     queryKey: ['recall-distribution', recallId],
     queryFn: () => fetchDistribution(recallId),
   });
+
+  // Add a synthetic `id` (the grid needs a key, and a customer may appear for
+  // several lots) and coerce the MySQL string decimal to a number.
+  const distribution = rawDistribution.map((d) => ({
+    ...d,
+    id: `${d.customerId}-${d.lotId}`,
+    quantityDistributed: Number(d.quantityDistributed) || 0,
+  }));
 
   // Calculate summary stats
   const totalQuantity = distribution.reduce((sum, d) => sum + d.quantityDistributed, 0);
@@ -63,6 +71,7 @@ export function RecallDistributionTable({ recallId }: RecallDistributionTablePro
       {/* Distribution Table */}
       <DxDataGrid
         dataSource={distribution}
+        keyExpr="id"
         showBorders
         rowAlternationEnabled
         loading={isLoading}
