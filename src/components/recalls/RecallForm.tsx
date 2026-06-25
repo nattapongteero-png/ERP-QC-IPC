@@ -7,12 +7,13 @@
  * Form for creating and editing recalls.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTagBox } from '@/components/ui/dx-tag-box';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import type { Recall, RecallCreate, RecallClass } from '@/types/recalls';
 
 interface RecallFormProps {
@@ -119,11 +120,28 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
     enabled: formData.productId > 0,
   });
 
-  // Fetch users
-  const { data: users = [] } = useQuery({
+  // Fetch users for the coordinator picker
+  const {
+    data: fetchedUsers = [],
+    isLoading: usersLoading,
+    isError: usersError,
+  } = useQuery({
     queryKey: ['users-qc'],
     queryFn: fetchUsers,
   });
+
+  // The person initiating a recall is the natural coordinator. Always include
+  // the logged-in user in the list (and select them by default) so the
+  // required field is fillable even when /api/users returns nothing on this
+  // environment.
+  const { data: currentUser } = useCurrentUser();
+  const users = useMemo<User[]>(() => {
+    const list = [...fetchedUsers];
+    if (currentUser?.id && !list.some((u) => u.id === currentUser.id)) {
+      list.unshift({ id: currentUser.id, name: currentUser.name });
+    }
+    return list;
+  }, [fetchedUsers, currentUser]);
 
   // Create mutation
   const createMutation = useMutation({
@@ -133,6 +151,10 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
       onSave();
     },
   });
+
+  // Effective coordinator: the explicit pick, otherwise the logged-in user
+  // (the SelectBox shows them pre-selected — keep submit consistent with that).
+  const effectiveCoordinatorId = formData.coordinatorId || currentUser?.id || 0;
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -146,7 +168,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
     if (formData.affectedLots.length === 0) {
       newErrors.affectedLots = 'ต้องเลือกอย่างน้อยหนึ่งล็อต';
     }
-    if (!formData.coordinatorId) {
+    if (!effectiveCoordinatorId) {
       newErrors.coordinatorId = 'กรุณาเลือกผู้ประสานงาน';
     }
 
@@ -162,7 +184,7 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
       reason: formData.reason,
       productId: formData.productId,
       affectedLots: formData.affectedLots,
-      coordinatorId: formData.coordinatorId,
+      coordinatorId: effectiveCoordinatorId,
       complaintId: formData.complaintId,
     };
 
@@ -256,13 +278,20 @@ export function RecallForm({ recall, complaintId, onSave, onCancel }: RecallForm
           dataSource={users as unknown as Record<string, unknown>[]}
           valueExpr="id"
           displayExpr="name"
-          value={formData.coordinatorId || null}
+          value={(formData.coordinatorId || currentUser?.id) || null}
           onValueChanged={(e) =>
             setFormData({ ...formData, coordinatorId: e.value || 0 })
           }
-          placeholder="เลือกผู้ประสานงาน..."
+          placeholder={
+            usersLoading ? 'กำลังโหลดรายชื่อ...' : 'เลือกผู้ประสานงาน...'
+          }
           searchEnabled
         />
+        {usersError && (
+          <p className="text-xs text-amber-600">
+            โหลดรายชื่อผู้ใช้ไม่สำเร็จ — เลือกตัวคุณเองเป็นผู้ประสานงานได้
+          </p>
+        )}
         {errors.coordinatorId && (
           <p className="text-xs text-destructive">{errors.coordinatorId}</p>
         )}
