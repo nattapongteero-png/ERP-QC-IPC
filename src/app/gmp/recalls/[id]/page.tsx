@@ -224,6 +224,10 @@ export default function RecallDetailPage() {
   }
 
   const classInfo = classLabels[recall.recallClass];
+  // MySQL returns real/decimal columns as strings, so coerce before any
+  // numeric formatting (.toFixed) — otherwise the detail page crashes on UAT
+  // while passing on SQLite tests.
+  const effectivenessRate = Number(recall.effectivenessRate) || 0;
   const canStart = recall.status === 'initiated';
   const canComplete = recall.status === 'in_progress';
   const canClose = recall.status === 'completed';
@@ -386,14 +390,14 @@ export default function RecallDetailPage() {
           <div className="flex items-center justify-center mb-4">
             <div
               className={`text-5xl font-bold ${
-                recall.effectivenessRate >= 90
+                effectivenessRate >= 90
                   ? 'text-green-600'
-                  : recall.effectivenessRate >= 70
+                  : effectivenessRate >= 70
                     ? 'text-yellow-600'
                     : 'text-red-600'
               }`}
             >
-              {recall.effectivenessRate.toFixed(1)}%
+              {effectivenessRate.toFixed(1)}%
             </div>
           </div>
 
@@ -466,7 +470,7 @@ export default function RecallDetailPage() {
               </p>
             </div>
             <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-              Effectiveness Rate: {recall.effectivenessRate.toFixed(1)}%
+              Effectiveness Rate: {effectivenessRate.toFixed(1)}%
             </p>
           </div>
 

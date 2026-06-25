@@ -44,7 +44,8 @@ export function RecallList({ recalls, loading }: RecallListProps) {
   };
 
   const renderEffectivenessCell = (cellData: { value: number }) => {
-    const value = cellData.value || 0;
+    // MySQL returns decimal columns as strings — coerce before .toFixed.
+    const value = Number(cellData.value) || 0;
     const color =
       value >= 90
         ? 'text-green-600'

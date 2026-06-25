@@ -80,14 +80,15 @@ export function RecallReconciliationForm({
     },
   });
 
-  // Calculate totals
+  // Calculate totals. MySQL returns decimal columns as strings, so coerce each
+  // value with Number() — otherwise the additions string-concatenate.
   const totals = reconciliation.reduce(
     (acc, r) => ({
-      distributed: acc.distributed + r.distributedQty,
-      returned: acc.returned + r.returnedQty,
-      destroyed: acc.destroyed + r.destroyedQty,
-      accounted: acc.accounted + r.accountedQty,
-      unaccounted: acc.unaccounted + r.unaccountedQty,
+      distributed: acc.distributed + Number(r.distributedQty || 0),
+      returned: acc.returned + Number(r.returnedQty || 0),
+      destroyed: acc.destroyed + Number(r.destroyedQty || 0),
+      accounted: acc.accounted + Number(r.accountedQty || 0),
+      unaccounted: acc.unaccounted + Number(r.unaccountedQty || 0),
     }),
     { distributed: 0, returned: 0, destroyed: 0, accounted: 0, unaccounted: 0 }
   );
@@ -115,9 +116,13 @@ export function RecallReconciliationForm({
 
   const renderStatusCell = (cellData: { data: RecallReconciliation }) => {
     const record = cellData.data;
-    const totalReconciled = record.returnedQty + record.destroyedQty + record.accountedQty;
-    const percentage = record.distributedQty > 0
-      ? (totalReconciled / record.distributedQty) * 100
+    const distributedQty = Number(record.distributedQty || 0);
+    const totalReconciled =
+      Number(record.returnedQty || 0) +
+      Number(record.destroyedQty || 0) +
+      Number(record.accountedQty || 0);
+    const percentage = distributedQty > 0
+      ? (totalReconciled / distributedQty) * 100
       : 0;
 
     if (percentage >= 100) {
