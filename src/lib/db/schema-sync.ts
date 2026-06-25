@@ -305,11 +305,19 @@ function generateWidenColumnSql(
     const m = t.match(/^varchar\((\d+)\)/);
     return m ? Number(m[1]) : null;
   };
+  // decimal(precision, scale) — widen when the schema asks for more digits than
+  // the DB column has (e.g. margin_percent 5,2 -> 10,2 to fit ±99,999,999.99).
+  const decimalParts = (t: string): { p: number; s: number } | null => {
+    const m = t.match(/^decimal\((\d+),\s*(\d+)\)/);
+    return m ? { p: Number(m[1]), s: Number(m[2]) } : null;
+  };
 
   const wantIsText = want in textRank;
   const haveIsText = have in textRank;
   const wantLen = varcharLen(want);
   const haveLen = varcharLen(have);
+  const wantDec = decimalParts(want);
+  const haveDec = decimalParts(have);
 
   let shouldWiden = false;
   if (wantIsText) {
@@ -319,6 +327,12 @@ function generateWidenColumnSql(
   } else if (wantLen != null && haveLen != null) {
     // both varchar: widen only if the schema wants more characters.
     shouldWiden = wantLen > haveLen;
+  } else if (wantDec && haveDec) {
+    // both decimal: widen only if the schema wants more integer or fractional
+    // digits (never shrink — that could truncate live values).
+    const wantIntDigits = wantDec.p - wantDec.s;
+    const haveIntDigits = haveDec.p - haveDec.s;
+    shouldWiden = wantIntDigits > haveIntDigits || wantDec.s > haveDec.s;
   }
   // schema wants varchar but DB is already TEXT → that's wider; never narrow.
 

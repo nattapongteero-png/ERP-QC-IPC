@@ -2470,7 +2470,9 @@ export const mysqlSalesOrderLines = mysqlTable('sales_order_lines', {
   unitCost: decimal('unit_cost', { precision: 15, scale: 4 }), // WAC at time of shipment
   totalCost: decimal('total_cost', { precision: 15, scale: 4 }), // quantity × unitCost (COGS)
   marginAmount: decimal('margin_amount', { precision: 15, scale: 4 }), // (unitPrice - unitCost) × qty
-  marginPercent: decimal('margin_percent', { precision: 5, scale: 2 }), // margin ÷ revenue × 100
+  // precision 10 so deep-discount / cost-over-price margins (e.g. -4400%) fit;
+  // 5,2 capped at ±999.99 and overflowed ("Out of range value").
+  marginPercent: decimal('margin_percent', { precision: 10, scale: 2 }), // margin ÷ revenue × 100
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
