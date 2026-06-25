@@ -32,8 +32,15 @@ function getTables() {
 export interface MetaherbSsoConfig {
   ssoSecret: string | null;
   callbackUrl: string | null;
-  /** Where each value came from — for diagnostics in the settings UI. */
-  source: { secret: 'db' | 'env' | 'none'; callback: 'db' | 'env' | 'none' };
+  /**
+   * Where each value came from — for diagnostics in the settings UI.
+   * 'db-decrypt-failed' = a secret IS stored but couldn't be decrypted
+   * (almost always a VMI_ENCRYPTION_KEY mismatch/rotation), so we fell back.
+   */
+  source: {
+    secret: 'db' | 'env' | 'none' | 'db-decrypt-failed';
+    callback: 'db' | 'env' | 'none';
+  };
 }
 
 /** What the settings UI shows (secret never leaves the server in clear). */
@@ -67,25 +74,49 @@ async function readRawSettings(): Promise<Record<string, string>> {
  * ssoSecret is decrypted plaintext ready for jwt.sign.
  */
 export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
-  const db = await readRawSettings().catch(() => ({} as Record<string, string>));
+  // DB read can fail (DB down). Distinguish that from "no rows" so a transient
+  // outage doesn't silently look like an empty/unconfigured integration.
+  let db: Record<string, string> = {};
+  let dbAvailable = true;
+  try {
+    db = await readRawSettings();
+  } catch (err) {
+    dbAvailable = false;
+    console.error(
+      '[metaherb-sso] settings DB read failed — falling back to env config',
+      err instanceof Error ? err.message : err
+    );
+  }
 
   // --- secret ---
   let ssoSecret: string | null = null;
   let secretSource: MetaherbSsoConfig['source']['secret'] = 'none';
+  let secretDecryptFailed = false;
   const dbSecret = db[KEY_SECRET];
   if (dbSecret) {
     try {
       // Stored encrypted; tolerate a legacy plain value just in case.
       ssoSecret = isValidCiphertext(dbSecret) ? decrypt(dbSecret) : dbSecret;
       secretSource = 'db';
-    } catch {
-      // Corrupt ciphertext / wrong key — fall through to env.
+    } catch (err) {
+      // Ciphertext present but won't decrypt — almost always a
+      // VMI_ENCRYPTION_KEY mismatch/rotation, NOT "unconfigured". Surface it.
+      secretDecryptFailed = true;
       ssoSecret = null;
+      console.error(
+        '[metaherb-sso] stored SSO secret failed to decrypt (VMI_ENCRYPTION_KEY rotated/differs?) — falling back to env',
+        err instanceof Error ? err.message : err
+      );
     }
   }
   if (!ssoSecret && process.env.METAHERB_SSO_SECRET) {
-    ssoSecret = process.env.METAHERB_SSO_SECRET;
+    // Trim stray quotes/whitespace from a hand-edited env value so we don't
+    // sign with literal quotes.
+    ssoSecret = process.env.METAHERB_SSO_SECRET.trim().replace(/^["']|["']$/g, '');
     secretSource = 'env';
+  }
+  if (!ssoSecret && secretDecryptFailed) {
+    secretSource = 'db-decrypt-failed';
   }
 
   // --- callback URL ---
@@ -98,6 +129,9 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
     callbackUrl = process.env.METAHERB_CALLBACK_URL;
     callbackSource = 'env';
   }
+
+  // Reference dbAvailable so a future caller can branch on it; logged above.
+  void dbAvailable;
 
   return {
     ssoSecret,
@@ -162,7 +196,13 @@ export async function updateMetaherbSsoConfig(
     if (typeof data.callbackUrl === 'string') {
       // Normalise stray quotes/spaces from copy-paste.
       const clean = data.callbackUrl.trim().replace(/^["']|["']$/g, '');
-      await upsert(KEY_CALLBACK, clean);
+      // A whitespace-only value is almost never an intentional "clear" — skip it
+      // so a stray save can't silently wipe a working callback. To actually
+      // clear, the UI must send an explicit empty string with no other content.
+      const isClear = data.callbackUrl === '';
+      if (clean !== '' || isClear) {
+        await upsert(KEY_CALLBACK, clean);
+      }
     }
 
     // Only touch the secret when a non-empty new value is provided.

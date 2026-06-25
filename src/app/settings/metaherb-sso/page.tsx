@@ -18,6 +18,7 @@ const SOURCE_LABEL: Record<string, string> = {
   db: 'ฐานข้อมูล',
   env: 'ENV (fallback)',
   none: 'ยังไม่ตั้งค่า',
+  'db-decrypt-failed': 'ถอดรหัสค่าใน DB ไม่สำเร็จ (คีย์ไม่ตรง — กรุณากรอก Secret ใหม่)',
 };
 
 export default function MetaherbSsoSettingsPage() {
@@ -54,7 +55,9 @@ export default function MetaherbSsoSettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const body: { callbackUrl: string; ssoSecret?: string } = { callbackUrl };
+      const body: { callbackUrl?: string; ssoSecret?: string } = {};
+      // Only send a non-empty callback so a stray save can't wipe a stored one.
+      if (callbackUrl.trim() !== '') body.callbackUrl = callbackUrl.trim();
       // Only send the secret if the admin actually typed a new one — leaving it
       // blank keeps the stored secret unchanged.
       if (secret.trim() !== '') body.ssoSecret = secret.trim();

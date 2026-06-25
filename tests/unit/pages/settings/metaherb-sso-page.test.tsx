@@ -119,4 +119,57 @@ describe('MetaherbSsoSettingsPage', () => {
       expect(body.ssoSecret).toBe('new-secret-value-123456789012345678');
     });
   });
+
+  it('omits ssoSecret from the body when the secret field is left blank', async () => {
+    render(<MetaherbSsoSettingsPage />);
+    await waitFor(() => screen.getByTestId('metaherb-callback-input'));
+
+    // Don't touch the secret field — just save.
+    fireEvent.click(screen.getByTestId('metaherb-save-button'));
+
+    await waitFor(() => {
+      const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
+      const put = calls.find((c) => c[1]?.method === 'PUT');
+      expect(put).toBeTruthy();
+      const body = JSON.parse((put![1] as RequestInit).body as string);
+      expect('ssoSecret' in body).toBe(false); // unchanged secret not sent
+      expect(body.callbackUrl).toBe(VIEW.callbackUrl);
+    });
+  });
+
+  it('shows an error message when save returns success:false', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (!init || init.method === undefined) {
+          return { ok: true, json: async () => ({ success: true, data: VIEW }) } as Response;
+        }
+        return { ok: false, json: async () => ({ success: false, error: 'บันทึกไม่สำเร็จ' }) } as Response;
+      })
+    );
+
+    render(<MetaherbSsoSettingsPage />);
+    await waitFor(() => screen.getByTestId('metaherb-callback-input'));
+    fireEvent.click(screen.getByTestId('metaherb-save-button'));
+
+    await waitFor(() => {
+      const msg = screen.getByTestId('metaherb-sso-message');
+      expect(msg.textContent).toContain('บันทึกไม่สำเร็จ');
+    });
+  });
+
+  it('shows an error when the initial load fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      })
+    );
+
+    render(<MetaherbSsoSettingsPage />);
+    await waitFor(() => {
+      const msg = screen.getByTestId('metaherb-sso-message');
+      expect(msg.textContent).toMatch(/โหลดการตั้งค่าไม่สำเร็จ/);
+    });
+  });
 });

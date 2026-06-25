@@ -74,7 +74,9 @@ services:
       - NEXTAUTH_URL=${UAT_PUBLIC_URL:-http://localhost:6809}
       - AUTH_COOKIE_INSECURE=${AUTH_COOKIE_INSECURE:-false}
       - REPORTING_BACKEND_URL=http://reporting-uat:5000
-      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY}
+      # Default mirrors docker-compose.yml so a missing .env line never yields an
+      # empty key — encrypt()/decrypt() (VMI + Metaherb SSO secret) need 32 bytes.
+      - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
       # Metaherb SSO handoff (UAT → Metaherb UAT). Metaherb issues just two
       # per-env values: the signing secret and a company-scoped callback URL
       # (.../callback/<company>) — no separate company key.
