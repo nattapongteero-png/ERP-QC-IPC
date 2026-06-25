@@ -548,17 +548,18 @@ export default function QcEntryNewPage() {
                   readOnly={selectedLotId != null}
                 />
               </div>
+              {/* Dates auto-fill from the selected lot, but stay EDITABLE so the
+                  operator can fill them in when the lot record has no dates
+                  (otherwise the field is greyed out and the COA ends up blank). */}
               <DxDateBox
                 label={t('qcEntry.new.fields.manufactureDate')}
                 value={manufactureDate}
                 onValueChange={(v) => setManufactureDate(v || '')}
-                readOnly={selectedLotId != null}
               />
               <DxDateBox
                 label={t('qcEntry.new.fields.expiryDate')}
                 value={expiryDate}
                 onValueChange={(v) => setExpiryDate(v || '')}
-                readOnly={selectedLotId != null}
               />
               <div>
                 <DxDateBox
