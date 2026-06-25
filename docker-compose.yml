@@ -111,6 +111,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -201,6 +205,11 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-arjaro:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD). Per-tenant secret/key from .env; callback
+      # defaults to Metaherb PRD so production tickets land on production.
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_ARJARO:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_ARJARO:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_ARJARO:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -270,6 +279,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-metaherb:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_METAHERB:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_METAHERB:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_METAHERB:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -336,6 +349,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-more:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_MORE:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_MORE:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_MORE:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -401,6 +418,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-renunakhon:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_RENUNAKHON:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_RENUNAKHON:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_RENUNAKHON:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -468,6 +489,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-phonphisai:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_PHONPHISAI:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_PHONPHISAI:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_PHONPHISAI:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
@@ -535,6 +560,10 @@ services:
       - REPORTING_BACKEND_URL=http://reporting-backend-huaikoeng:5000
       # VMI webhook secret encryption key (64 hex chars = 32 bytes for AES-256)
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY:-2e3292276eae29d38b49c5e332688212e6ddac0dc3c776408a436de6c1b9fc42}
+      # Metaherb SSO handoff (PRD)
+      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY_HUAIKOENG:-}
+      - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET_HUAIKOENG:-}
+      - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL_HUAIKOENG:-https://metaherb.co.th/api/sso/erp/callback}
     depends_on:
       mysql:
         condition: service_healthy
