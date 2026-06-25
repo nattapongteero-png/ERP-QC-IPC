@@ -63,7 +63,8 @@
   "purchasing": {
     "requisitions": "ใบขอซื้อ",
     "orders": "ใบสั่งซื้อ",
-    "vendors": "ผู้ขาย"
+    "vendors": "ผู้ขาย",
+    "enterMetaherb": "เข้าสู่ Metaherb"
   },
   "sales": {
     "orders": "ใบสั่งขาย",

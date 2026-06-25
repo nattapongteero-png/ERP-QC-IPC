@@ -98,6 +98,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Requisitions': 'purchasing.requisitions',
   'Purchase Orders': 'purchasing.orders',
   'Vendors': 'purchasing.vendors',
+  'Enter Metaherb': 'purchasing.enterMetaherb',
 
   // Sales submenu
   'Sales Orders': 'sales.orders',

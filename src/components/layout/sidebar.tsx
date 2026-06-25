@@ -63,6 +63,7 @@ import {
   ScrollText,
   Scale,
   Thermometer,
+  LogIn,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { expandRole } from '@/lib/auth/role-mapping';
@@ -88,6 +89,11 @@ interface NavChild {
   // Used to hide admin/hr_admin-only sub-pages from lower-privileged users so they
   // don't click into a 403. Admin always bypasses.
   roles?: string[];
+  // external = render a plain <a> doing a full browser navigation instead of a
+  // client-side <Link>. Needed for the Metaherb SSO handoff: href points at an
+  // API route that mints a token and 302-redirects cross-origin, which Next's
+  // client router can't follow.
+  external?: boolean;
 }
 
 // Define which roles can access which modules
@@ -188,6 +194,7 @@ const navigation: NavItem[] = [
       { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
+      { name: 'Enter Metaherb', href: '/api/sso/metaherb', icon: LogIn, external: true },
     ],
   },
   {
@@ -635,34 +642,57 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
                     )}
                   >
                     <div className="mt-1 ml-3 md:ml-4 pl-3 md:pl-4 border-l border-slate-700/50 space-y-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.name}
-                          href={child.href}
-                          onClick={handleLinkClick}
-                          data-active={isChildActive(child.href) ? 'true' : undefined}
-                          aria-current={isChildActive(child.href) ? 'page' : undefined}
-                          className={cn(
-                            'flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-sm',
-                            'transition-all duration-200 ease-out',
-                            'motion-reduce:transition-none',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900',
-                            isChildActive(child.href)
-                              ? 'bg-emerald-500/10 text-emerald-400 font-medium border-l-2 border-emerald-400 -ml-[2px] pl-[calc(0.5rem+2px)] md:pl-[calc(0.75rem+2px)]'
-                              : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                          )}
-                        >
-                          {child.icon && (
-                            <child.icon
-                              className={cn(
-                                'h-4 w-4',
-                                isChildActive(child.href) && 'text-emerald-400'
-                              )}
-                            />
-                          )}
-                          <span>{navLabel(child.name, tNav)}</span>
-                        </Link>
-                      ))}
+                      {item.children.map((child) => {
+                        const childClassName = cn(
+                          'flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-sm',
+                          'transition-all duration-200 ease-out',
+                          'motion-reduce:transition-none',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900',
+                          isChildActive(child.href)
+                            ? 'bg-emerald-500/10 text-emerald-400 font-medium border-l-2 border-emerald-400 -ml-[2px] pl-[calc(0.5rem+2px)] md:pl-[calc(0.75rem+2px)]'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                        );
+                        const childInner = (
+                          <>
+                            {child.icon && (
+                              <child.icon
+                                className={cn(
+                                  'h-4 w-4',
+                                  isChildActive(child.href) && 'text-emerald-400'
+                                )}
+                              />
+                            )}
+                            <span>{navLabel(child.name, tNav)}</span>
+                          </>
+                        );
+                        // External children (e.g. the Metaherb SSO handoff) point at
+                        // an API route that 302-redirects cross-origin — use a plain
+                        // <a> so the browser does a full navigation, not Next routing.
+                        if (child.external) {
+                          return (
+                            <a
+                              key={child.name}
+                              href={child.href}
+                              onClick={handleLinkClick}
+                              className={childClassName}
+                            >
+                              {childInner}
+                            </a>
+                          );
+                        }
+                        return (
+                          <Link
+                            key={child.name}
+                            href={child.href}
+                            onClick={handleLinkClick}
+                            data-active={isChildActive(child.href) ? 'true' : undefined}
+                            aria-current={isChildActive(child.href) ? 'page' : undefined}
+                            className={childClassName}
+                          >
+                            {childInner}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

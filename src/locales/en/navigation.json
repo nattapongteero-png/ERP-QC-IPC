@@ -63,7 +63,8 @@
   "purchasing": {
     "requisitions": "Requisitions",
     "orders": "Purchase Orders",
-    "vendors": "Vendors"
+    "vendors": "Vendors",
+    "enterMetaherb": "Enter Metaherb"
   },
   "sales": {
     "orders": "Sales Orders",
