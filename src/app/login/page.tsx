@@ -5,6 +5,25 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Leaf, Mail, Lock, ArrowRight, Sparkles, Shield, Clock, BarChart3 } from 'lucide-react';
 
+// Read ?redirect= and return it ONLY if it's a safe in-app path. Rejects
+// absolute URLs, protocol-relative '//evil', and backslash tricks so the
+// post-login navigation can't be hijacked to an external site (open redirect).
+// Used by the Metaherb SSO bounce: /api/sso/metaherb sends unauthenticated
+// users to /login?redirect=/api/sso/metaherb so the click round-trips.
+function getSafeRedirect(): string {
+  if (typeof window === 'undefined') return '/dashboard';
+  const raw = new URLSearchParams(window.location.search).get('redirect');
+  if (
+    raw &&
+    raw.startsWith('/') &&
+    !raw.startsWith('//') &&
+    !raw.startsWith('/\\')
+  ) {
+    return raw;
+  }
+  return '/dashboard';
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations('login');
@@ -34,7 +53,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success) {
-        router.push('/dashboard');
+        router.push(getSafeRedirect());
       } else {
         setError(data.error || t('errors.loginFailed'));
       }

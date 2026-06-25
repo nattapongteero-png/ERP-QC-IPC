@@ -24,14 +24,62 @@ import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 
+// This handler mints a credential off the session cookie — it must never be
+// cached and must always run per-request (it reads cookies anyway, but be
+// explicit so a future refactor can't accidentally make it static).
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
+    // 0. Login-CSRF defense. This GET mints a real SSO credential off the
+    //    ambient auth-token cookie (SameSite=Lax still sends it on top-level
+    //    cross-site GET navigations). Require the request to originate from a
+    //    same-origin navigation so a third-party page can't force a token
+    //    mint. Browsers that send Sec-Fetch-Site must report same-origin;
+    //    older browsers that omit it fall back to an Origin/Referer host check.
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    if (secFetchSite) {
+      if (secFetchSite !== 'same-origin' && secFetchSite !== 'none') {
+        // 'none' = user typed the URL / bookmark (legitimate). Anything
+        // cross-site/cross-origin is rejected.
+        return NextResponse.json(
+          { success: false, error: 'Cross-site request blocked' },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Fallback for browsers without Fetch Metadata: compare Origin/Referer
+      // host to this request's host. Allow when neither header is present
+      // (e.g. a plain typed navigation has no Origin and may have no Referer).
+      const selfHost = request.headers.get('host');
+      const source = request.headers.get('origin') || request.headers.get('referer');
+      if (source && selfHost) {
+        try {
+          if (new URL(source).host !== selfHost) {
+            return NextResponse.json(
+              { success: false, error: 'Cross-site request blocked' },
+              { status: 403 }
+            );
+          }
+        } catch {
+          return NextResponse.json(
+            { success: false, error: 'Cross-site request blocked' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // 1. Must be logged in to the ERP.
     const session = await getSession();
     if (!session) {
       // Bounce to login, then return here so the click "just works".
+      // Preserve our own query (e.g. ?to=/market) through the round-trip.
       const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', '/api/sso/metaherb');
+      loginUrl.searchParams.set(
+        'redirect',
+        '/api/sso/metaherb' + request.nextUrl.search
+      );
       return NextResponse.redirect(loginUrl, 302);
     }
 
@@ -39,14 +87,38 @@ export async function GET(request: NextRequest) {
     //    issues two per-environment values: the signing secret and the
     //    company-scoped callback URL (.../callback/<company>).
     const ssoSecret = process.env.METAHERB_SSO_SECRET;
-    const callbackUrl = process.env.METAHERB_CALLBACK_URL;
-    if (!ssoSecret || !callbackUrl) {
+    const callbackRaw = process.env.METAHERB_CALLBACK_URL;
+    if (!ssoSecret || !callbackRaw) {
       console.error(
         '[metaherb-sso] Missing METAHERB_SSO_SECRET or METAHERB_CALLBACK_URL'
       );
       return NextResponse.json(
         { success: false, error: 'Metaherb SSO is not configured on this server' },
         { status: 503 }
+      );
+    }
+    // Hand-edited .env values can carry stray quotes/spaces — normalise and
+    // validate the callback as a real URL here so a typo surfaces as an
+    // actionable 503 config error rather than a generic 500 later.
+    const callbackUrl = callbackRaw.trim().replace(/^["']|["']$/g, '');
+    let callback: URL;
+    try {
+      callback = new URL(callbackUrl);
+    } catch {
+      console.error(
+        '[metaherb-sso] METAHERB_CALLBACK_URL is not a valid URL:',
+        callbackRaw
+      );
+      return NextResponse.json(
+        { success: false, error: 'Metaherb SSO is misconfigured (callback URL)' },
+        { status: 503 }
+      );
+    }
+    // Defence-in-depth: a too-short secret means a brute-forceable HS256 token.
+    // Don't hard-fail (could lock out a working integration) but log loudly.
+    if (ssoSecret.length < 32) {
+      console.warn(
+        '[metaherb-sso] METAHERB_SSO_SECRET is short (<32 chars) — use a high-entropy 256-bit secret'
       );
     }
 
@@ -62,11 +134,17 @@ export async function GET(request: NextRequest) {
       return rows[0]?.id as number | undefined;
     });
     if (!requesterId) {
+      // Metaherb requires a real HR_employees.id as the PR requester, so an
+      // account with no linked employee (e.g. a bare admin) can't hand off.
+      // This is by design — surface it clearly so support can link the user.
+      console.warn(
+        `[metaherb-sso] user ${session.userId} (${session.email}) has no hr_employees row — cannot mint requesterId`
+      );
       return NextResponse.json(
         {
           success: false,
           error:
-            'บัญชีผู้ใช้นี้ยังไม่ได้ผูกกับพนักงาน (HR_employees) จึงออก token ให้ Metaherb ไม่ได้',
+            'บัญชีผู้ใช้นี้ยังไม่ได้ผูกกับพนักงาน (HR_employees) จึงออก token ให้ Metaherb ไม่ได้ กรุณาผูกบัญชีกับพนักงานก่อน',
         },
         { status: 409 }
       );
@@ -88,15 +166,21 @@ export async function GET(request: NextRequest) {
 
     // 5. Redirect to Metaherb's company-scoped callback (path already contains
     //    the company, e.g. .../callback/arjaro). Optional &redirect= passes a
-    //    Metaherb-side landing path through verbatim (e.g. ?to=/market).
-    const callback = new URL(callbackUrl);
+    //    Metaherb-side landing path through verbatim (e.g. ?to=/market). Only
+    //    accept an in-app path ('/...' but not '//' protocol-relative) so the
+    //    value can't smuggle an absolute URL onto Metaherb's side.
     callback.searchParams.set('token', token);
     const to = request.nextUrl.searchParams.get('to');
-    if (to && to.startsWith('/')) {
+    if (to && to.startsWith('/') && !to.startsWith('//')) {
       callback.searchParams.set('redirect', to);
     }
 
-    return NextResponse.redirect(callback.toString(), 302);
+    // The token rides in the URL; suppress the Referer so the Metaherb landing
+    // page can't forward it to third-party subresources.
+    return NextResponse.redirect(callback.toString(), {
+      status: 302,
+      headers: { 'Referrer-Policy': 'no-referrer' },
+    });
   } catch (error) {
     console.error('[metaherb-sso] handoff failed:', error);
     return NextResponse.json(
