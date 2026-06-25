@@ -493,10 +493,10 @@ export async function getDistributionData(
     .from(salesOrderLines)
     .innerJoin(salesOrders, eq(salesOrderLines.soId, salesOrders.id))
     .innerJoin(lots, eq(salesOrderLines.lotId, lots.id))
-    .innerJoin(customers, eq(
-      sql`CAST(${salesOrders.customerName} AS TEXT)`,
-      customers.name
-    ))
+    // Match the sales order's customer name to the customer record. A plain
+    // column comparison works on both engines — the previous CAST(... AS TEXT)
+    // is SQLite-only syntax and is a parse error on MySQL.
+    .innerJoin(customers, eq(salesOrders.customerName, customers.name))
     .where(
       and(
         inArray(salesOrderLines.lotId, lotIds),
