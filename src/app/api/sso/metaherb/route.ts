@@ -11,7 +11,10 @@
  *  - exp ≤ 180s, unique jti per token (Metaherb rejects replayed tokens).
  *  - HTTPS only in production; secret lives in env, never hardcoded.
  *
- * Spec claims: iss, email, name, role, requesterId (HR_employees.id), iat, exp, jti.
+ * Spec claims: email, name, role, requesterId (HR_employees.id), iat, exp, jti.
+ * No `iss` / company key — the company is encoded in METAHERB_CALLBACK_URL
+ * itself (e.g. .../callback/arjaro), so Metaherb only issues us 2 values:
+ * SSO_SECRET + CALLBACK_URL (both per-environment, UAT vs PRD).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,10 +23,6 @@ import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
-
-const CALLBACK_URL =
-  process.env.METAHERB_CALLBACK_URL ||
-  'https://metaherb.co.th/api/sso/erp/callback';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,12 +35,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginUrl, 302);
     }
 
-    // 2. Config — fail loud if onboarding env vars are missing.
-    const companyKey = process.env.METAHERB_COMPANY_KEY;
+    // 2. Config — fail loud if onboarding env vars are missing. Metaherb
+    //    issues two per-environment values: the signing secret and the
+    //    company-scoped callback URL (.../callback/<company>).
     const ssoSecret = process.env.METAHERB_SSO_SECRET;
-    if (!companyKey || !ssoSecret) {
+    const callbackUrl = process.env.METAHERB_CALLBACK_URL;
+    if (!ssoSecret || !callbackUrl) {
       console.error(
-        '[metaherb-sso] Missing METAHERB_COMPANY_KEY or METAHERB_SSO_SECRET'
+        '[metaherb-sso] Missing METAHERB_SSO_SECRET or METAHERB_CALLBACK_URL'
       );
       return NextResponse.json(
         { success: false, error: 'Metaherb SSO is not configured on this server' },
@@ -72,9 +73,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Mint the handoff token. exp clamped to ≤ 180s by expiresIn.
+    //    No `iss` — the company is carried in the callback URL path.
     const token = jwt.sign(
       {
-        iss: companyKey,
         email: session.email,
         name: session.name,
         role: session.role,
@@ -85,9 +86,10 @@ export async function GET(request: NextRequest) {
       { algorithm: 'HS256', expiresIn: '180s' }
     );
 
-    // 5. Redirect to Metaherb's callback. Optional &redirect= passes a
+    // 5. Redirect to Metaherb's company-scoped callback (path already contains
+    //    the company, e.g. .../callback/arjaro). Optional &redirect= passes a
     //    Metaherb-side landing path through verbatim (e.g. ?to=/market).
-    const callback = new URL(CALLBACK_URL);
+    const callback = new URL(callbackUrl);
     callback.searchParams.set('token', token);
     const to = request.nextUrl.searchParams.get('to');
     if (to && to.startsWith('/')) {
