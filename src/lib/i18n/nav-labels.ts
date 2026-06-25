@@ -150,6 +150,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
 
   // Settings submenu
   'General': 'settings.general',
+  'Metaherb SSO': 'settings.metaherbSso',
   'Approval Workflows': 'settings.approvalWorkflows',
   'Matching Tolerances': 'settings.matchingTolerances',
   'Workflow Test': 'settings.workflowTest',

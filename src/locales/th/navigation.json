@@ -125,6 +125,7 @@
   },
   "settings": {
     "general": "ตั้งค่าทั่วไป",
+    "metaherbSso": "ตั้งค่า Metaherb SSO",
     "approvalWorkflows": "Workflow อนุมัติ",
     "matchingTolerances": "เกณฑ์จับคู่",
     "workflowTest": "ทดสอบ Workflow"

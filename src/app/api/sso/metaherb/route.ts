@@ -12,9 +12,10 @@
  *  - HTTPS only in production; secret lives in env, never hardcoded.
  *
  * Spec claims: email, name, role, requesterId (HR_employees.id), iat, exp, jti.
- * No `iss` / company key — the company is encoded in METAHERB_CALLBACK_URL
- * itself (e.g. .../callback/arjaro), so Metaherb only issues us 2 values:
- * SSO_SECRET + CALLBACK_URL (both per-environment, UAT vs PRD).
+ * No `iss` / company key — the company is encoded in the callback URL itself
+ * (e.g. .../callback/arjaro), so Metaherb only issues us 2 values: SSO_SECRET +
+ * CALLBACK_URL. These are admin-managed in the DB (see
+ * metaherb-sso.service.ts), with the METAHERB_* env vars as a fallback.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,6 +24,7 @@ import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { getMetaherbSsoConfig } from '@/lib/services/metaherb-sso.service';
 
 // This handler mints a credential off the session cookie — it must never be
 // cached and must always run per-request (it reads cookies anyway, but be
@@ -83,14 +85,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginUrl, 302);
     }
 
-    // 2. Config — fail loud if onboarding env vars are missing. Metaherb
-    //    issues two per-environment values: the signing secret and the
-    //    company-scoped callback URL (.../callback/<company>).
-    const ssoSecret = process.env.METAHERB_SSO_SECRET;
-    const callbackRaw = process.env.METAHERB_CALLBACK_URL;
+    // 2. Config — admin-managed in DB, env as fallback. Metaherb issues two
+    //    per-environment values: the signing secret and the company-scoped
+    //    callback URL (.../callback/<company>).
+    const config = await getMetaherbSsoConfig();
+    const ssoSecret = config.ssoSecret;
+    const callbackRaw = config.callbackUrl;
     if (!ssoSecret || !callbackRaw) {
       console.error(
-        '[metaherb-sso] Missing METAHERB_SSO_SECRET or METAHERB_CALLBACK_URL'
+        '[metaherb-sso] Not configured (set via /settings/metaherb-sso or METAHERB_* env)'
       );
       return NextResponse.json(
         { success: false, error: 'Metaherb SSO is not configured on this server' },

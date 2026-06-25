@@ -125,6 +125,7 @@
   },
   "settings": {
     "general": "General",
+    "metaherbSso": "Metaherb SSO",
     "approvalWorkflows": "Approval Workflows",
     "matchingTolerances": "Matching Tolerances",
     "workflowTest": "Workflow Test"

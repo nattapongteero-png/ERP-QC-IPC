@@ -313,6 +313,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager'],
     children: [
       { name: 'General', href: '/settings', icon: Sliders },
+      { name: 'Metaherb SSO', href: '/settings/metaherb-sso', icon: LogIn, roles: ['admin', 'manager'] },
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
       { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play, roles: ['admin'] },
