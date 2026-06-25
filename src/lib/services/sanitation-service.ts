@@ -1302,7 +1302,7 @@ export async function getPestControlTrends(
       serviceCount: data.serviceCount,
       findingsCount: data.findingsCount,
     }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   return {
     period,

@@ -1245,7 +1245,7 @@ export async function generateRecallReport(recallId: number): Promise<RecallRepo
       action,
       customer: n.customerName,
     };
-  }).sort((a, b) => a.date.localeCompare(b.date));
+  }).sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   // Process reconciliation
   const reconciliation = recallDetails.reconciliation;
@@ -1319,8 +1319,9 @@ export async function generateRecallReport(recallId: number): Promise<RecallRepo
     });
   }
 
-  // Sort timeline
-  timeline.sort((a, b) => a.date.localeCompare(b.date));
+  // Sort timeline. MySQL returns datetime columns as Date objects (SQLite as
+  // strings), so coerce before localeCompare — Date has no localeCompare.
+  timeline.sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   // Generate regulatory notes
   let regulatoryNotes = '';
