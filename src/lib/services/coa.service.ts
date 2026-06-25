@@ -22,6 +22,8 @@
  */
 
 import { eq, and, desc, asc, gte, lte, like, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
+import { alias as sqliteAlias } from 'drizzle-orm/sqlite-core';
 import { randomBytes } from 'crypto';
 import { executeDbOperation, getInsertId } from '../db/db-helper';
 import { isSqlite } from '../db';
@@ -183,8 +185,10 @@ export interface CoaDocument {
   createdByName: string | null;
   approvedAt: string | Date | null;
   approvedBy: number | null;
+  approvedByName: string | null;
   releasedAt: string | Date | null;
   releasedBy: number | null;
+  releasedByName: string | null;
   pdfPath: string | null;
   pdfGeneratedAt: string | Date | null;
   updatedAt: string | Date;
@@ -587,29 +591,6 @@ export async function generateCoaFromSample(
     });
     const coaId = Number(getInsertId(insertResult));
 
-    // 6b. Record the analyst signature ("Tested by") at generation time so the
-    // COA shows a real signature rather than just the creator's name fallback.
-    // The user who generates the COA from completed QC results is the analyst
-    // attesting to the test data.
-    if (input.generatedBy) {
-      const [analyst] = await db
-        .select({ name: tables.users.name, department: tables.users.department })
-        .from(tables.users)
-        .where(eq(tables.users.id, input.generatedBy))
-        .limit(1);
-      await db.insert(tables.signatures).values({
-        coaId,
-        role: 'analyst',
-        userId: input.generatedBy,
-        userNameSnapshot: analyst?.name ? String(analyst.name) : null,
-        userTitleSnapshot: analyst?.department ? String(analyst.department) : null,
-        signedAt: now,
-        signatureMeaning: 'Tested / analysed',
-        ipAddress: null,
-        createdAt: now,
-      });
-    }
-
     // 7. Snapshot every test result into coa_test_results
     let seq = 1;
     for (const t of testRows as any[]) {
@@ -663,6 +644,13 @@ export async function getCoaById(id: number): Promise<CoaDocumentFull | null> {
   return executeDbOperation(async (db) => {
     const tables = getTables();
 
+    // Self-joins on the users table for the approver/releaser names so the COA
+    // can show "Reviewed by" / "Approved by" without requiring a signature row
+    // (names alone, per request). Aliasing must match the active dialect.
+    const aliasFn = isSqlite() ? sqliteAlias : alias;
+    const approverUser = (aliasFn as any)(tables.users, 'approver_user');
+    const releaserUser = (aliasFn as any)(tables.users, 'releaser_user');
+
     const [header] = await db
       .select({
         id: tables.coa.id,
@@ -696,8 +684,10 @@ export async function getCoaById(id: number): Promise<CoaDocumentFull | null> {
         createdByName: tables.users.name,
         approvedAt: tables.coa.approvedAt,
         approvedBy: tables.coa.approvedBy,
+        approvedByName: approverUser.name,
         releasedAt: tables.coa.releasedAt,
         releasedBy: tables.coa.releasedBy,
+        releasedByName: releaserUser.name,
         pdfPath: tables.coa.pdfPath,
         pdfGeneratedAt: tables.coa.pdfGeneratedAt,
         updatedAt: tables.coa.updatedAt,
@@ -707,6 +697,8 @@ export async function getCoaById(id: number): Promise<CoaDocumentFull | null> {
       .leftJoin(tables.items, eq(tables.coa.productId, tables.items.id))
       .leftJoin(tables.customers, eq(tables.coa.customerId, tables.customers.id))
       .leftJoin(tables.users, eq(tables.coa.createdBy, tables.users.id))
+      .leftJoin(approverUser, eq(tables.coa.approvedBy, approverUser.id))
+      .leftJoin(releaserUser, eq(tables.coa.releasedBy, releaserUser.id))
       .where(eq(tables.coa.id, id))
       .limit(1);
 
@@ -805,8 +797,10 @@ export async function getCoaById(id: number): Promise<CoaDocumentFull | null> {
       createdByName: h.createdByName ?? null,
       approvedAt: h.approvedAt ?? null,
       approvedBy: h.approvedBy != null ? Number(h.approvedBy) : null,
+      approvedByName: h.approvedByName ?? null,
       releasedAt: h.releasedAt ?? null,
       releasedBy: h.releasedBy != null ? Number(h.releasedBy) : null,
+      releasedByName: h.releasedByName ?? null,
       pdfPath: h.pdfPath ?? null,
       pdfGeneratedAt: h.pdfGeneratedAt ?? null,
       updatedAt: h.updatedAt,

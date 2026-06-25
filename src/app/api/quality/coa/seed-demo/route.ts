@@ -24,10 +24,7 @@ import { successResponse, errorResponse, withAuth } from '@/lib/api-utils';
 import { executeDbOperation, getInsertId } from '@/lib/db/db-helper';
 import { getNow, toDbDate } from '@/lib/db/date-utils';
 import { isSqlite } from '@/lib/db';
-import {
-  generateCoaFromSample,
-  transitionCoaStatus,
-} from '@/lib/services/coa.service';
+import { generateCoaFromSample } from '@/lib/services/coa.service';
 import {
   sqliteQcSamples,
   sqliteQcSampleTests,
@@ -344,7 +341,8 @@ export async function POST(request: NextRequest) {
       const { sampleId, analystUserId, approverUserId, qaReleaseUserId } =
         result;
 
-      // 7. Generate the COA from the released sample (writes analyst signature).
+      // 7. Generate the COA from the released sample. The "Tested by" name comes
+      //    from the creator (analyst) via the createdByName fallback.
       step = 'generate-coa';
       const gen = await generateCoaFromSample({
         sampleId: sampleId!,
@@ -352,31 +350,28 @@ export async function POST(request: NextRequest) {
       });
       const coaId = gen.coaId;
 
-      // 8. draft → review
-      step = 'submit-for-review';
-      await transitionCoaStatus(
-        coaId,
-        { action: 'submit_for_review' },
-        approverUserId!,
-      );
+      // 8. Mark the COA issued and stamp the approver/releaser DIRECTLY (no
+      //    signature rows — names only, per request). "Reviewed by" reads the
+      //    approver name, "Approved by" reads the releaser name via the
+      //    approvedByName/releasedByName fallbacks in the renderer.
+      step = 'finalize-issued';
+      await executeDbOperation(async (db) => {
+        const t = tables();
+        const now2 = getNow();
+        await db
+          .update(t.coa)
+          .set({
+            status: 'issued',
+            approvedBy: approverUserId!,
+            approvedAt: now2,
+            releasedBy: qaReleaseUserId!,
+            releasedAt: now2,
+            updatedAt: now2,
+          })
+          .where(eq(t.coa.id, coaId));
+      });
 
-      // 9. review → approved (writes approver signature)
-      step = 'approve';
-      await transitionCoaStatus(
-        coaId,
-        { action: 'approve', signatureMeaning: 'Reviewed & approved' },
-        approverUserId!,
-      );
-
-      // 10. approved → issued (writes qa_release signature)
-      step = 'issue';
-      await transitionCoaStatus(
-        coaId,
-        { action: 'issue', signatureMeaning: 'QA released' },
-        qaReleaseUserId!,
-      );
-
-      // 11. Done.
+      // 9. Done.
       return successResponse(
         {
           coaId,
@@ -384,7 +379,7 @@ export async function POST(request: NextRequest) {
           url: `/quality/coa/${coaId}`,
           reused: false,
         },
-        `Demo COA ${gen.coaNumber} issued`,
+        `Demo COA ${gen.coaNumber} issued (names only, no signatures)`,
       );
     } catch (error) {
       const message =

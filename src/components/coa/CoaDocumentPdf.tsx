@@ -422,10 +422,12 @@ export function CoaDocumentPdf({
         <SignatureBlock
           title={bilingualLabel('Reviewed by', 'ผู้ตรวจสอบ', tplLanguage)}
           sig={reviewerSig}
+          fallbackName={coa.approvedByName}
         />
         <SignatureBlock
           title={bilingualLabel('Approved by', 'ผู้อนุมัติ', tplLanguage)}
           sig={approverSig}
+          fallbackName={coa.releasedByName}
         />
       </div>
 
