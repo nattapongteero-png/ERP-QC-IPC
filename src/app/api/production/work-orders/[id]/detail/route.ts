@@ -84,6 +84,12 @@ export async function GET(
 
       const workOrder = woResult[0] as Record<string, unknown>;
 
+      // The detail page expects `plannedQty`/`actualQty` (the schema columns are
+      // `plannedQuantity`/`actualQuantity`). Expose both so the summary cards
+      // (จำนวนที่วางแผน / จำนวนจริง) read the real values instead of 0.
+      workOrder.plannedQty = workOrder.plannedQuantity;
+      workOrder.actualQty = workOrder.actualQuantity;
+
       // Get BOM info (code, name, version) + yield/loss settings if BOM is linked
       if (workOrder.bomId) {
         const bom = getTableRef('bOM');
