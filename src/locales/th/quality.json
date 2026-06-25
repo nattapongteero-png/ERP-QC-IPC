@@ -864,7 +864,7 @@
         "unit": "หน่วย",
         "manufactureDate": "วันที่ผลิต",
         "expiryDate": "วันหมดอายุ",
-        "retestDate": "Retest date",
+        "retestDate": "วันที่ทดสอบใหม่",
         "storage": "สภาพการเก็บ (Storage)",
         "retainQty": "จำนวน retain",
         "retainStorage": "ที่เก็บ / Storage location",
@@ -917,7 +917,12 @@
         "exceedsStockDetail": "ต้องเบิก {totalDraw} แต่คงเหลือ {lotQty}",
         "registerFailed": "ลงทะเบียนไม่สำเร็จ",
         "registerSuccess": "ลงทะเบียนสำเร็จ",
-        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)"
+        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)",
+        "requireManufactureDate": "กรุณาระบุวันที่ผลิต (จำเป็นสำหรับ COA)",
+        "requireExpiryDate": "กรุณาระบุวันหมดอายุ (จำเป็นสำหรับ COA)"
+      },
+      "hints": {
+        "retestDefaultsToExpiry": "หากเว้นว่าง จะใช้วันหมดอายุเป็นวันทดสอบใหม่โดยอัตโนมัติ"
       }
     },
     "detail": {

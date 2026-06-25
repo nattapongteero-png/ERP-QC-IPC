@@ -587,6 +587,29 @@ export async function generateCoaFromSample(
     });
     const coaId = Number(getInsertId(insertResult));
 
+    // 6b. Record the analyst signature ("Tested by") at generation time so the
+    // COA shows a real signature rather than just the creator's name fallback.
+    // The user who generates the COA from completed QC results is the analyst
+    // attesting to the test data.
+    if (input.generatedBy) {
+      const [analyst] = await db
+        .select({ name: tables.users.name, department: tables.users.department })
+        .from(tables.users)
+        .where(eq(tables.users.id, input.generatedBy))
+        .limit(1);
+      await db.insert(tables.signatures).values({
+        coaId,
+        role: 'analyst',
+        userId: input.generatedBy,
+        userNameSnapshot: analyst?.name ? String(analyst.name) : null,
+        userTitleSnapshot: analyst?.department ? String(analyst.department) : null,
+        signedAt: now,
+        signatureMeaning: 'Tested / analysed',
+        ipAddress: null,
+        createdAt: now,
+      });
+    }
+
     // 7. Snapshot every test result into coa_test_results
     let seq = 1;
     for (const t of testRows as any[]) {

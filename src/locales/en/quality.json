@@ -917,7 +917,12 @@
         "exceedsStockDetail": "Need {totalDraw} but only {lotQty} remaining",
         "registerFailed": "Registration failed",
         "registerSuccess": "Registered successfully",
-        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)"
+        "registerSuccessDetail": "{sampleNumber} (seeded {count} tests)",
+        "requireManufactureDate": "Please specify the manufacture date (required for COA)",
+        "requireExpiryDate": "Please specify the expiry date (required for COA)"
+      },
+      "hints": {
+        "retestDefaultsToExpiry": "If left blank, the expiry date is used as the retest date automatically"
       }
     },
     "detail": {

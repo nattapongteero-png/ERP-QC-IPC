@@ -319,6 +319,19 @@ export default function QcEntryNewPage() {
       toast.error(t('qcEntry.new.toast.selectReceivedDate'));
       return;
     }
+    // COA requires these dates to be complete — enforce them at the source so
+    // a finished COA never shows "—" for Manufacture/Expiry.
+    if (!manufactureDate) {
+      toast.error(t('qcEntry.new.toast.requireManufactureDate'));
+      return;
+    }
+    if (!expiryDate) {
+      toast.error(t('qcEntry.new.toast.requireExpiryDate'));
+      return;
+    }
+    // Retest date defaults to the expiry date when the operator leaves it blank
+    // (herbal products are re-tested no later than expiry).
+    const effectiveRetestDate = retestDate || expiryDate;
     if (exceedsStock) {
       toast.error(
         t('qcEntry.new.toast.exceedsStockTitle'),
@@ -338,7 +351,7 @@ export default function QcEntryNewPage() {
           lotNumber: lotNumber || null,
           manufactureDate: manufactureDate || null,
           expiryDate: expiryDate || null,
-          retestDate: retestDate || null,
+          retestDate: effectiveRetestDate || null,
           quantityReceived: quantityReceived ?? null,
           unit: unit || null,
           storageConditions: storageConditions || null,
@@ -547,11 +560,18 @@ export default function QcEntryNewPage() {
                 onValueChange={(v) => setExpiryDate(v || '')}
                 readOnly={selectedLotId != null}
               />
-              <DxDateBox
-                label={t('qcEntry.new.fields.retestDate')}
-                value={retestDate}
-                onValueChange={(v) => setRetestDate(v || '')}
-              />
+              <div>
+                <DxDateBox
+                  label={t('qcEntry.new.fields.retestDate')}
+                  value={retestDate}
+                  onValueChange={(v) => setRetestDate(v || '')}
+                />
+                {!retestDate && expiryDate ? (
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    {t('qcEntry.new.hints.retestDefaultsToExpiry')}
+                  </p>
+                ) : null}
+              </div>
               <DxTextBox
                 label={t('qcEntry.new.fields.storage')}
                 value={storageConditions}
