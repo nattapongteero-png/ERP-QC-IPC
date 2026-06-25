@@ -75,9 +75,10 @@ services:
       - AUTH_COOKIE_INSECURE=${AUTH_COOKIE_INSECURE:-false}
       - REPORTING_BACKEND_URL=http://reporting-uat:5000
       - VMI_ENCRYPTION_KEY=${VMI_ENCRYPTION_KEY}
-      # Metaherb SSO handoff (UAT → Metaherb UAT). Secret/key come from .env;
+      # Metaherb SSO handoff (UAT → Metaherb UAT). Secret comes from .env;
       # callback points at the Metaherb UAT endpoint so tickets land on UAT.
-      - METAHERB_COMPANY_KEY=${METAHERB_COMPANY_KEY:-}
+      # METAHERB_COMPANY_KEY is intentionally NOT forwarded here — set it in
+      # .env and add the line back when Metaherb issues the company key.
       - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET:-}
       - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL:-https://api.pomdevth.site/api/sso/erp/callback}
     depends_on:
