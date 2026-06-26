@@ -7,20 +7,11 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// DevExtreme Button renders forever in jsdom — mock it (same pattern as the
-// accounting page tests) so the component test doesn't hang.
-vi.mock('devextreme-react/button', () => ({
-  Button: ({ children, text, onClick, disabled, 'data-testid': testId }: any) => (
-    <button data-testid={testId} onClick={onClick} disabled={disabled}>
-      {children ?? text}
-    </button>
-  ),
-}));
-
-// NOTE: lucide-react is already auto-mocked globally in tests/setup.ts.
+// Component uses plain <button> (no DevExtreme), so no DevExtreme mock needed.
+// lucide-react is already auto-mocked globally in tests/setup.ts.
 
 import { CoaOcrUpload } from '@/components/inventory/coa-ocr-upload';
-import type { CoaOcrResult } from '@/lib/services/coa-ocr.service';
+import type { CoaOcrResult } from '@/types/coa-ocr';
 
 const OK_RESULT: CoaOcrResult = {
   aiUnavailable: false,

@@ -12,9 +12,8 @@
  * operator just continues entering data manually.
  */
 import { useRef, useState } from 'react';
-import { Button } from 'devextreme-react/button';
 import { Upload, FileCheck2, AlertTriangle, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import type { CoaExtraction, CoaOcrResult } from '@/lib/services/coa-ocr.service';
+import type { CoaExtraction, CoaOcrResult } from '@/types/coa-ocr';
 
 interface CoaOcrUploadProps {
   /** Fires when the operator confirms the extracted data. */
@@ -78,18 +77,29 @@ export function CoaOcrUpload({ onExtracted, endpoint = DEFAULT_ENDPOINT, classNa
         data-testid="coa-ocr-file-input"
       />
 
-      <Button
-        type="default"
-        stylingMode="outlined"
+      <button
+        type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={loading}
         data-testid="coa-ocr-upload-button"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 16px',
+          borderRadius: 8,
+          border: '1px solid #93c5fd',
+          background: '#fff',
+          color: '#1d4ed8',
+          fontSize: 14,
+          fontWeight: 500,
+          cursor: loading ? 'default' : 'pointer',
+          opacity: loading ? 0.6 : 1,
+        }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {loading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
-          {loading ? 'กำลังอ่านเอกสาร CoA…' : 'สแกน CoA จากผู้ขาย (AI)'}
-        </span>
-      </Button>
+        {loading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
+        {loading ? 'กำลังอ่านเอกสาร CoA…' : 'สแกน CoA จากผู้ขาย (AI)'}
+      </button>
 
       {fileName && !loading && (
         <div style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>
@@ -193,9 +203,23 @@ function ExtractionReview({
 
       <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <OverallBadge overall={extraction.overallResult} />
-        <Button type="success" stylingMode="contained" onClick={onConfirm} data-testid="coa-ocr-apply-button">
+        <button
+          type="button"
+          onClick={onConfirm}
+          data-testid="coa-ocr-apply-button"
+          style={{
+            padding: '8px 16px',
+            borderRadius: 8,
+            border: 'none',
+            background: '#16a34a',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
           ใช้ข้อมูลนี้
-        </Button>
+        </button>
       </div>
 
       {extraction.notes && (
