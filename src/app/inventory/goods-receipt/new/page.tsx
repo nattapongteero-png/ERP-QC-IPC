@@ -15,6 +15,8 @@ import { RadioGroup } from 'devextreme-react/radio-group';
 import { Button } from 'devextreme-react/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import type { GrnSourceType } from '@/types/goods-receipt';
+import { CoaOcrUpload } from '@/components/inventory/coa-ocr-upload';
+import type { CoaExtraction } from '@/types/coa-ocr';
 
 interface POOption {
   id: number;
@@ -258,10 +260,20 @@ export default function NewGrnPage() {
         </div>
 
         <div>
+          <label className="block text-sm font-medium mb-1">CoA จากผู้ขาย (สแกนด้วย AI)</label>
+          <CoaOcrUpload
+            onExtracted={(ex) => {
+              const summary = formatCoaForNotes(ex);
+              setNotes((prev) => (prev ? `${prev}\n\n${summary}` : summary));
+            }}
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-1">{t('form.notes.label')}</label>
           <TextArea
             value={notes}
-            height={80}
+            height={120}
             onValueChanged={(e) => setNotes(String(e.value ?? ''))}
           />
         </div>
@@ -285,4 +297,29 @@ export default function NewGrnPage() {
       </div>
     </div>
   );
+}
+
+/** Build a concise notes block from an extracted supplier CoA. */
+function formatCoaForNotes(ex: CoaExtraction): string {
+  const lines: string[] = ['[CoA สแกนด้วย AI]'];
+  if (ex.productName) lines.push(`ผลิตภัณฑ์: ${ex.productName}`);
+  if (ex.lotNumber) lines.push(`Lot: ${ex.lotNumber}`);
+  if (ex.batchNumber) lines.push(`Batch: ${ex.batchNumber}`);
+  if (ex.manufactureDate) lines.push(`วันผลิต: ${ex.manufactureDate}`);
+  if (ex.expiryDate) lines.push(`วันหมดอายุ: ${ex.expiryDate}`);
+  if (ex.manufacturerName) lines.push(`ผู้ผลิต: ${ex.manufacturerName}`);
+  if (ex.quantity) lines.push(`ปริมาณ: ${ex.quantity}`);
+
+  const overall =
+    ex.overallResult === 'pass' ? 'ผ่าน' : ex.overallResult === 'fail' ? 'ไม่ผ่าน' : 'ไม่ระบุ';
+  lines.push(`ผลรวม: ${overall}`);
+
+  const failed = ex.testResults.filter((t) => t.pass === false);
+  if (failed.length > 0) {
+    lines.push('⚠️ รายการที่ไม่ผ่านเกณฑ์:');
+    for (const t of failed) {
+      lines.push(`  - ${t.parameter}: ${t.result}${t.specification ? ` (เกณฑ์ ${t.specification})` : ''}`);
+    }
+  }
+  return lines.join('\n');
 }
