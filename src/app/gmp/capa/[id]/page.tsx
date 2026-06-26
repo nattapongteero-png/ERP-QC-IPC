@@ -15,6 +15,7 @@ import { CapaActionList, CapaEffectivenessForm, CapaDataEntryDialog } from '@/co
 import { WorkflowStatusBadge } from '@/components/shared/WorkflowStatusBadge';
 import { StatusStepper } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
+import { AiSummaryButton } from '@/components/ai/ai-summary-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxTabs } from '@/components/ui/dx-tabs';
@@ -742,6 +743,8 @@ export default function CapaDetailPage() {
           <CardContent className="p-6">
             {/* Overview Tab */}
             {activeTab === 'overview' && (
+              <div className="space-y-6">
+              <AiSummaryButton endpoint={`/api/gmp/capa/${capa.id}/summary`} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
@@ -872,6 +875,7 @@ export default function CapaDetailPage() {
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             )}
 
