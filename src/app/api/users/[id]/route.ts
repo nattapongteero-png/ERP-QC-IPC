@@ -47,7 +47,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return notFoundResponse('User not found');
       }
 
-      return successResponse(users[0]);
+      // The HR employee currently linked to this login account (1:1). Used by
+      // the user-detail UI to show / change the link, and required by the
+      // Metaherb SSO handoff (it reads hr_employees.user_id to mint requesterId).
+      const employeesTable = getTableRef('hREmployees');
+      const linked = await executeDbOperation(async (db) => {
+        return db
+          .select({
+            id: employeesTable.id,
+            employeeCode: employeesTable.employeeCode,
+            firstName: employeesTable.firstName,
+            lastName: employeesTable.lastName,
+          })
+          .from(employeesTable)
+          .where(eq(employeesTable.userId, userId))
+          .limit(1);
+      });
+
+      const linkedEmployee = linked.length > 0
+        ? {
+            id: linked[0].id,
+            employeeCode: linked[0].employeeCode,
+            fullName: `${linked[0].firstName} ${linked[0].lastName}`.trim(),
+          }
+        : null;
+
+      return successResponse({ ...users[0], linkedEmployee });
     } catch (error) {
       return serverErrorResponse(error);
     }

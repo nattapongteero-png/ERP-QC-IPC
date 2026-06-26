@@ -11,7 +11,9 @@
  *  - exp ≤ 180s, unique jti per token (Metaherb rejects replayed tokens).
  *  - HTTPS only in production; secret lives in env, never hardcoded.
  *
- * Spec claims: email, name, role, requesterId (HR_employees.id), iat, exp, jti.
+ * Spec claims: email, name, role, iat, exp, jti, and OPTIONALLY requesterId
+ * (HR_employees.id) when the login account is linked to an employee. The
+ * handoff works with or without that link; requesterId is sent only when known.
  * No `iss` / company key — the company is encoded in the callback URL itself
  * (e.g. .../callback/arjaro), so Metaherb only issues us 2 values: SSO_SECRET +
  * CALLBACK_URL. These are admin-managed in the DB (see
@@ -126,7 +128,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Resolve HR_employees.id for the logged-in user (the "requester").
-    //    Metaherb requires this to attribute the PR to a real employee.
+    //    OPTIONAL: if the account is linked to an employee we send requesterId
+    //    so Metaherb can attribute the PR to that employee; if not, we still
+    //    issue the token (the handoff must work for accounts with no linked
+    //    employee, e.g. a bare admin). Link an account via
+    //    /users/[id] → "ผูกกับพนักงาน (HR)" to populate this.
     const requesterId = await executeDbOperation(async (db) => {
       const employees = getTableRef('hREmployees');
       const rows = await db
@@ -137,30 +143,21 @@ export async function GET(request: NextRequest) {
       return rows[0]?.id as number | undefined;
     });
     if (!requesterId) {
-      // Metaherb requires a real HR_employees.id as the PR requester, so an
-      // account with no linked employee (e.g. a bare admin) can't hand off.
-      // This is by design — surface it clearly so support can link the user.
-      console.warn(
-        `[metaherb-sso] user ${session.userId} (${session.email}) has no hr_employees row — cannot mint requesterId`
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'บัญชีผู้ใช้นี้ยังไม่ได้ผูกกับพนักงาน (HR_employees) จึงออก token ให้ Metaherb ไม่ได้ กรุณาผูกบัญชีกับพนักงานก่อน',
-        },
-        { status: 409 }
+      // Not an error — just no employee attribution available for this account.
+      console.info(
+        `[metaherb-sso] user ${session.userId} (${session.email}) has no linked hr_employees row — issuing token without requesterId`
       );
     }
 
     // 4. Mint the handoff token. exp clamped to ≤ 180s by expiresIn.
     //    No `iss` — the company is carried in the callback URL path.
+    //    requesterId is included only when the account is linked to an employee.
     const token = jwt.sign(
       {
         email: session.email,
         name: session.name,
         role: session.role,
-        requesterId,
+        ...(requesterId ? { requesterId } : {}),
         jti: randomUUID(),
       },
       ssoSecret,

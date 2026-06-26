@@ -30,7 +30,15 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Link2,
+  Link2Off,
 } from 'lucide-react';
+
+interface LinkedEmployee {
+  id: number;
+  employeeCode: string;
+  fullName: string;
+}
 
 interface UserData {
   id: number;
@@ -41,6 +49,16 @@ interface UserData {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  linkedEmployee?: LinkedEmployee | null;
+}
+
+// Employee option for the "link to HR employee" dropdown — from /api/hr/employees
+interface EmployeeOption {
+  id: number;
+  userId: number | null;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface EditForm {
@@ -204,6 +222,15 @@ export default function UserDetailPage() {
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // HR employee link — the user must be linked to an hr_employees row for the
+  // Metaherb SSO handoff to work (it reads hr_employees.user_id).
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
+  const [linkedEmployee, setLinkedEmployee] = useState<LinkedEmployee | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
   const fetchUser = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -219,6 +246,9 @@ export default function UserDetailPage() {
           role: data.data.role || 'user',
           department: data.data.department || '',
         });
+        const linked: LinkedEmployee | null = data.data.linkedEmployee ?? null;
+        setLinkedEmployee(linked);
+        setSelectedEmployeeId(linked?.id ?? null);
       } else {
         setError(data.error || t('detail.toast.notFound'));
       }
@@ -263,6 +293,56 @@ export default function UserDetailPage() {
     };
     fetchLookupData();
   }, []);
+
+  // Fetch HR employees for the "link account" dropdown. We show every employee
+  // but mark those already linked to another login so the admin doesn't pick one.
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setIsLoadingEmployees(true);
+        const res = await fetch('/api/hr/employees?status=active');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setEmployees(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch employees:', err);
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
+  const handleSaveEmployeeLink = async () => {
+    setIsLinking(true);
+    setLinkError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch(`/api/users/${userId}/employee-link`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId: selectedEmployeeId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMessage(
+          selectedEmployeeId
+            ? t('detail.employeeLink.linkSuccess')
+            : t('detail.employeeLink.unlinkSuccess')
+        );
+        fetchUser();
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        setLinkError(data.error || t('detail.employeeLink.error'));
+      }
+    } catch (err) {
+      console.error('Failed to link employee:', err);
+      setLinkError(t('detail.employeeLink.error'));
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -681,6 +761,104 @@ export default function UserDetailPage() {
                       <p className="text-gray-900">{user.department || '-'}</p>
                     )}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* HR Employee Link Card — required for Metaherb SSO handoff */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5 text-gray-400" />
+                  {t('detail.employeeLink.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 mb-4">
+                  {t('detail.employeeLink.description')}
+                </p>
+
+                {linkError && (
+                  <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                    {linkError}
+                  </div>
+                )}
+
+                {/* Current link status */}
+                <div className="mb-4">
+                  {linkedEmployee ? (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <UserCheck className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {linkedEmployee.fullName}
+                        </p>
+                        <p className="text-xs text-gray-500">{linkedEmployee.employeeCode}</p>
+                      </div>
+                      <Badge variant="success" className="ml-auto">
+                        {t('detail.employeeLink.linked')}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
+                      <Link2Off className="h-5 w-5" />
+                      <span className="text-sm">{t('detail.employeeLink.notLinked')}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {t('detail.employeeLink.selectLabel')}
+                  </label>
+                  <DxSelectBox<number | null>
+                    items={[
+                      { value: null, label: t('detail.employeeLink.none') },
+                      ...employees.map((e) => {
+                        const linkedToOther = e.userId !== null && e.userId !== user.id;
+                        return {
+                          value: e.id,
+                          label:
+                            `${e.firstName} ${e.lastName} (${e.employeeCode})` +
+                            (linkedToOther ? ` · ${t('detail.employeeLink.takenSuffix')}` : ''),
+                          disabled: linkedToOther,
+                        };
+                      }),
+                    ]}
+                    value={selectedEmployeeId}
+                    onValueChange={(value) =>
+                      setSelectedEmployeeId(
+                        value === null || value === undefined ? null : Number(value)
+                      )
+                    }
+                    valueExpr="value"
+                    displayExpr="label"
+                    searchEnabled
+                    disabled={isLoadingEmployees || isLinking}
+                    placeholder={t('detail.employeeLink.selectPlaceholder')}
+                    data-testid="user-employee-link-select"
+                  />
+                  {isLoadingEmployees && (
+                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" /> {t('detail.employeeLink.loading')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end mt-4">
+                  <DxButton
+                    text={t('detail.employeeLink.save')}
+                    icon="save"
+                    type="success"
+                    data-testid="user-employee-link-save-btn"
+                    onClick={handleSaveEmployeeLink}
+                    disabled={
+                      isLinking ||
+                      isLoadingEmployees ||
+                      selectedEmployeeId === (linkedEmployee?.id ?? null)
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>
