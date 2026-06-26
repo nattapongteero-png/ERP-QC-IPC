@@ -48,6 +48,9 @@ export type {
 export { MobileListView } from './mobile-list-view';
 export type { MobileListViewProps } from './mobile-list-view';
 
+export { DateRangeFilter } from './date-range-filter';
+export type { DateRangeFilterProps } from './date-range-filter';
+
 // GMP Dual-Control — shown when logged-in user is the step's operator
 export { AwaitingOtherVerifierBadge } from './awaiting-other-verifier-badge';
 export type { AwaitingOtherVerifierBadgeProps } from './awaiting-other-verifier-badge';

@@ -18,7 +18,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { ResponsivePageHeader, StatCard, DateRangeFilter } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -137,6 +137,17 @@ const STATUS_ORDER: POStatusFilter[] = ['', 'draft', 'pending_approval', 'approv
 // Helper function to normalize status for comparison
 const normalizeStatus = (status: string) => status?.toLowerCase() || '';
 
+// Normalize a DB date value to a YYYY-MM-DD string (local) for range comparison.
+const toDateKey = (dateStr: string | Date | null | undefined): string => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('th-TH', {
@@ -181,6 +192,8 @@ export default function PurchaseOrdersPage() {
     return PO_STATUS_VALUES.includes(s) ? s : '';
   })();
   const [statusFilter, setStatusFilter] = useState<POStatusFilter>(initialStatus);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<PurchaseOrder | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -229,6 +242,8 @@ export default function PurchaseOrdersPage() {
   const handleClearFilters = () => {
     setSearch('');
     setStatusFilter('');
+    setDateFrom('');
+    setDateTo('');
   };
 
   // Client-side filtering
@@ -239,10 +254,14 @@ export default function PurchaseOrdersPage() {
         !search ||
         order.poNumber?.toLowerCase().includes(search.toLowerCase()) ||
         order.vendorName?.toLowerCase().includes(search.toLowerCase());
-      return matchesStatus && matchesSearch;
+      const orderKey = toDateKey(order.orderDate);
+      const matchesDate =
+        (!dateFrom || (!!orderKey && orderKey >= dateFrom)) &&
+        (!dateTo || (!!orderKey && orderKey <= dateTo));
+      return matchesStatus && matchesSearch && matchesDate;
     });
     return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
-  }, [orders, statusFilter, search]);
+  }, [orders, statusFilter, search, dateFrom, dateTo]);
 
   // Calculate counts for each status
   const statusCounts = useMemo(() => STATUS_ORDER.reduce((acc, status) => {
@@ -556,15 +575,24 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
 
-        {/* Search Row + Result Count */}
-        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="w-full sm:max-w-md">
-            <DxTextBox
-              placeholder={t('orders.searchPlaceholder')}
-              value={search}
-              onValueChange={setSearch}
-              showClearButton
-              mode="search"
+        {/* Search + Date Filter + Result Count */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+            <div className="w-full sm:max-w-xs">
+              <DxTextBox
+                placeholder={t('orders.searchPlaceholder')}
+                value={search}
+                onValueChange={setSearch}
+                showClearButton
+                mode="search"
+              />
+            </div>
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onFromChange={setDateFrom}
+              onToChange={setDateTo}
+              data-testid="po-date-filter"
             />
           </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">

@@ -121,5 +121,10 @@
     "noRecords": "No records to display",
     "noItems": "No items"
   },
-  "optional": "optional"
+  "optional": "optional",
+  "filters": {
+    "dateRange": "Date range",
+    "from": "From date",
+    "to": "To date"
+  }
 }

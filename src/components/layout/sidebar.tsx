@@ -194,7 +194,7 @@ const navigation: NavItem[] = [
       { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
-      { name: 'Enter Metaherb', href: '/api/sso/metaherb', icon: LogIn, external: true },
+      { name: 'Herbal Market', href: '/api/sso/metaherb', icon: LogIn, external: true },
     ],
   },
   {

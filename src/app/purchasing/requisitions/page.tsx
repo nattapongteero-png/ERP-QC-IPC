@@ -13,7 +13,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { ResponsivePageHeader, StatCard, DateRangeFilter } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -171,6 +171,17 @@ const STATUS_ORDER: PRStatusFilter[] = ['', 'draft', 'submitted', 'pending_appro
 // Helper function to normalize status for comparison
 const normalizeStatus = (status: string): string => status?.toLowerCase() || '';
 
+// Normalize a DB date value to a YYYY-MM-DD string (local) for range comparison.
+const toDateKey = (dateStr: string | Date | null | undefined): string => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const formatDate = (dateStr: string | Date | null | undefined) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('th-TH', {
@@ -201,6 +212,8 @@ export default function PurchaseRequisitionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<PRStatusFilter>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<PurchaseRequisition | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -235,10 +248,14 @@ export default function PurchaseRequisitionsPage() {
         pr.prNumber?.toLowerCase().includes(search.toLowerCase()) ||
         pr.description?.toLowerCase().includes(search.toLowerCase()) ||
         pr.requesterName?.toLowerCase().includes(search.toLowerCase());
-      return matchesStatus && matchesSearch;
+      const createdKey = toDateKey(pr.createdAt);
+      const matchesDate =
+        (!dateFrom || (!!createdKey && createdKey >= dateFrom)) &&
+        (!dateTo || (!!createdKey && createdKey <= dateTo));
+      return matchesStatus && matchesSearch && matchesDate;
     });
     return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
-  }, [requisitions, statusFilter, search]);
+  }, [requisitions, statusFilter, search, dateFrom, dateTo]);
 
   // Calculate counts for each status
   const statusCounts = STATUS_ORDER.reduce((acc, status) => {
@@ -281,6 +298,8 @@ export default function PurchaseRequisitionsPage() {
   const handleClearFilters = useCallback(() => {
     setSearch('');
     setStatusFilter('');
+    setDateFrom('');
+    setDateTo('');
   }, []);
 
   const handleDeletePR = useCallback(async () => {
@@ -560,16 +579,25 @@ export default function PurchaseRequisitionsPage() {
           </div>
         </div>
 
-        {/* Search + Result Count Row */}
-        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="w-full sm:max-w-md">
-            <DxTextBox
-              placeholder={t('requisitions.searchPlaceholder')}
-              value={search}
-              onValueChange={setSearch}
-              showClearButton
-              mode="search"
-              data-testid="search-input"
+        {/* Search + Date Filter + Result Count Row */}
+        <div className="px-3 py-3 sm:px-4 border-b border-gray-100 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+            <div className="w-full sm:max-w-xs">
+              <DxTextBox
+                placeholder={t('requisitions.searchPlaceholder')}
+                value={search}
+                onValueChange={setSearch}
+                showClearButton
+                mode="search"
+                data-testid="search-input"
+              />
+            </div>
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onFromChange={setDateFrom}
+              onToChange={setDateTo}
+              data-testid="pr-date-filter"
             />
           </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 whitespace-nowrap">
