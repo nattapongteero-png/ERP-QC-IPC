@@ -547,13 +547,26 @@ export function ItemSearchDialog({
       </div>
 
       {/* Data Grid */}
-      <div className="flex-1 px-6 py-4 overflow-hidden">
-        {isSearching ? (
+      <div className="flex-1 px-6 py-4 overflow-hidden relative">
+        {/* Show the full-screen spinner ONLY on the very first load (no data
+            yet). On tab switches / re-searches we keep the existing grid
+            mounted and float a light overlay on top instead — swapping the
+            whole grid out for a spinner every time made the dialog flicker
+            (grid vanishes → spinner → grid reappears) on each tab click. */}
+        {isSearching && filteredResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
             <DxLoadIndicator />
             <p className="text-gray-500 mt-4">กำลังค้นหารายการ...</p>
           </div>
         ) : filteredResults.length > 0 ? (
+          <>
+          {/* Subtle refreshing overlay — keeps the grid visible underneath so
+              there is no jarring blink when changing tabs or typing. */}
+          {isSearching && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 pointer-events-none">
+              <DxLoadIndicator />
+            </div>
+          )}
           <DxDataGrid
             dataSource={filteredResults}
             keyExpr="id"
@@ -629,6 +642,7 @@ export function ItemSearchDialog({
               alignment="center"
             />
           </DxDataGrid>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <div className="p-6 bg-gray-100 rounded-full mb-4">
