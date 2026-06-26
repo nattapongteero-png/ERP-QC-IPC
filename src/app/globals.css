@@ -513,10 +513,29 @@ a:not([class]):hover {
     display: none !important;
   }
 
-  /* Force show eBMR content (overrides hidden class from tab state) */
+  /* Force show eBMR content (overrides hidden class from tab state).
+
+     CRITICAL: when the user prints FROM the in-app preview overlay, the
+     `.ebmr-preview-active` body class is still set, so the on-screen
+     `body.ebmr-preview-active #ebmr-content` rule (position:fixed +
+     transform:scale(zoom) + width:210mm + top:56px) would otherwise leak
+     into the print pass and produce a shrunken / offset document. Reset
+     ALL of those here so print always uses normal page-flow layout at
+     true A4 size, regardless of the preview zoom level. */
   #ebmr-content {
     display: block !important;
     padding: 0 !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
   }
 
   /* Remove sidebar padding from main layout */
@@ -976,10 +995,25 @@ a:not([class]):hover {
    ========================================================= */
 body.ebmr-preview-active #ebmr-content {
   /* Pull the eBMR content (which may be on a hidden tab) into view,
-     centered as an A4-width sheet floating above the gray overlay. */
+     centered as an A4-width sheet floating above the gray overlay.
+
+     Scroll model: the sheet is `position: fixed` and bounded to the area
+     below the toolbar (top:56px) down to the viewport bottom, with
+     `overflow-y: auto`. That makes the sheet ITSELF the scroll viewport,
+     so documents taller than the screen can be scrolled through — the
+     previous version had `overflow: visible` + an unbounded height, so
+     the bottom of long eBMRs was clipped off-screen with no scrollbar.
+
+     Zoom uses `transform: scale` (NOT the `zoom` property): `zoom` would
+     also scale the fixed `top: 56px` offset, sliding the sheet under or
+     away from the toolbar at non-100% zoom. `transform` leaves the fixed
+     offsets untouched (verified: visual top stays at 56px for zoom 0.5–
+     1.5) while still scaling the visual, and the bounded scroll viewport
+     keeps scrolling correct at every zoom level. */
   display: block !important;
   position: fixed;
   top: 56px;                 /* below the overlay toolbar */
+  bottom: 0;                 /* bound to viewport so overflow can scroll */
   left: 50%;
   transform: translateX(-50%) scale(var(--ebmr-preview-zoom, 1));
   transform-origin: top center;
@@ -987,7 +1021,8 @@ body.ebmr-preview-active #ebmr-content {
   width: 210mm;              /* A4 width */
   min-height: 297mm;         /* at least one A4 page tall */
   max-height: none;
-  overflow: visible;
+  overflow-y: auto;          /* scroll long documents */
+  overflow-x: hidden;
   background: #fff !important;
   /* Clear A4 page edges so users can see the printable boundary (the earlier
      version looked edge-less, reading as "bad design"). */
