@@ -2281,7 +2281,18 @@
       "lev": "Efficiency Variance (LEV)"
     },
     "chart": {
-      "byType": "Variance by Type"
+      "byType": "Variance by Type",
+      "amount": "Variance Amount",
+      "favorable": "Favorable (Savings)",
+      "unfavorable": "Unfavorable (Over Cost)",
+      "types": {
+        "mpv": "Material Price Variance",
+        "muv": "Material Usage Variance",
+        "lrv": "Labor Rate Variance",
+        "lev": "Labor Efficiency Variance",
+        "voh_var": "Variable Overhead Variance",
+        "foh_vol": "Fixed Overhead Volume Variance"
+      }
     },
     "columns": {
       "group": "Group",
