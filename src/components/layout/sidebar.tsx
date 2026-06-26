@@ -175,6 +175,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'qc', 'qa', 'production'],
     children: [
       { name: 'Documents', href: '/gmp/documents', icon: FileSearch },
+      { name: 'SOP Assistant', href: '/gmp/documents/assistant', icon: Sparkles },
       { name: 'Changes', href: '/gmp/changes', icon: History },
       { name: 'CAPA', href: '/gmp/capa', icon: Target },
       { name: 'Complaints', href: '/gmp/complaints', icon: MessageSquare },
