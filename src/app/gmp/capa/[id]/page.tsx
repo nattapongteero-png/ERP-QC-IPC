@@ -290,6 +290,13 @@ export default function CapaDetailPage() {
   const [closureNotes, setClosureNotes] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // Risk Assessment editing (closes the gap where Risk was display-only and
+  // the close-CAPA risk gate could never be satisfied from the UI).
+  const [riskEdit, setRiskEdit] = useState(false);
+  const [riskSeverityDraft, setRiskSeverityDraft] = useState<RiskSeverity | null>(null);
+  const [riskProbabilityDraft, setRiskProbabilityDraft] = useState<RiskProbability | null>(null);
+  const [riskJustificationDraft, setRiskJustificationDraft] = useState('');
+
   // Delete a mistaken / test CAPA (only allowed while status === 'open').
   const handleDeleteCapa = useCallback(async () => {
     if (!window.confirm(t('capa.detail.deleteConfirm'))) {
@@ -331,6 +338,39 @@ export default function CapaDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['capa-dashboard'] });
     },
   });
+
+  // Save Risk Assessment mutation (PATCH /api/capa/[id]). riskScore is
+  // recomputed server-side from severity × probability.
+  const saveRiskMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/capa/${capaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          riskSeverity: riskSeverityDraft,
+          riskProbability: riskProbabilityDraft,
+          riskJustification: riskJustificationDraft || undefined,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || t('capa.detail.riskSaveFailed'));
+      }
+    },
+    onSuccess: () => {
+      setRiskEdit(false);
+      queryClient.invalidateQueries({ queryKey: ['capa', capaId] });
+      queryClient.invalidateQueries({ queryKey: ['capa-dashboard'] });
+    },
+  });
+
+  // Open the risk editor pre-filled with current values.
+  const openRiskEdit = useCallback(() => {
+    setRiskSeverityDraft((capa?.riskSeverity as RiskSeverity) ?? null);
+    setRiskProbabilityDraft((capa?.riskProbability as RiskProbability) ?? null);
+    setRiskJustificationDraft(capa?.riskJustification ?? '');
+    setRiskEdit(true);
+  }, [capa]);
 
   // Tabs configuration - using numeric IDs as required by DxTabItemData
   // 0: overview, 1: actions, 2: effectiveness, 3: risk, 4: attachments, 5: approvals
@@ -861,10 +901,27 @@ export default function CapaDetailPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Risk Matrix */}
                 <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                    <Scale className="h-5 w-5 text-indigo-600" />
-                    Risk Matrix (ICH Q9)
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Scale className="h-5 w-5 text-indigo-600" />
+                      Risk Matrix (ICH Q9)
+                    </h3>
+                    {canClose && !riskEdit && (
+                      <DxButton
+                        text={t('capa.detail.assessRisk')}
+                        icon="edit"
+                        stylingMode="outlined"
+                        onClick={openRiskEdit}
+                        elementAttr={{ 'data-testid': 'assess-risk-btn' }}
+                      />
+                    )}
+                  </div>
+
+                  {riskEdit && (
+                    <p className="mb-2 text-sm text-indigo-600">
+                      {t('capa.detail.riskPickHint')}
+                    </p>
+                  )}
 
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
                     <div className="grid grid-cols-6 gap-1 text-center text-xs">
@@ -883,13 +940,22 @@ export default function CapaDetailPage() {
                           </div>
                           {Object.entries(RISK_PROBABILITY_LABELS).map(([pKey, pVal]) => {
                             const score = sVal.value * pVal.value;
-                            const isSelected = capa.riskSeverity === sKey && capa.riskProbability === pKey;
+                            const isSelected = riskEdit
+                              ? riskSeverityDraft === sKey && riskProbabilityDraft === pKey
+                              : capa.riskSeverity === sKey && capa.riskProbability === pKey;
                             return (
                               <div
                                 key={`${sKey}-${pKey}`}
+                                role={riskEdit ? 'button' : undefined}
+                                data-testid={riskEdit ? `risk-cell-${sKey}-${pKey}` : undefined}
+                                onClick={riskEdit ? () => {
+                                  setRiskSeverityDraft(sKey as RiskSeverity);
+                                  setRiskProbabilityDraft(pKey as RiskProbability);
+                                } : undefined}
                                 className={cn(
                                   'h-10 rounded flex items-center justify-center font-semibold',
                                   isSelected ? 'ring-2 ring-indigo-600 ring-offset-2' : '',
+                                  riskEdit ? 'cursor-pointer hover:opacity-80' : '',
                                   score <= 4 ? 'bg-green-200 text-green-800' :
                                   score <= 9 ? 'bg-yellow-200 text-yellow-800' :
                                   score <= 16 ? 'bg-orange-200 text-orange-800' :
@@ -919,6 +985,41 @@ export default function CapaDetailPage() {
                       </div>
                     </div>
                   </div>
+
+                  {riskEdit && (
+                    <div className="mt-4 space-y-3" data-testid="risk-edit-panel">
+                      <div>
+                        <label className="block text-sm text-gray-500 mb-1">
+                          {t('capa.detail.riskJustification')}
+                        </label>
+                        <DxTextArea
+                          value={riskJustificationDraft}
+                          onValueChange={(v) => setRiskJustificationDraft(v ?? '')}
+                          height={80}
+                          placeholder={t('capa.detail.riskJustificationPlaceholder')}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <DxButton
+                          text={t('capa.detail.cancel')}
+                          stylingMode="outlined"
+                          onClick={() => setRiskEdit(false)}
+                        />
+                        <DxButton
+                          text={t('capa.detail.saveRisk')}
+                          type="success"
+                          disabled={!riskSeverityDraft || !riskProbabilityDraft || saveRiskMutation.isPending}
+                          onClick={() => saveRiskMutation.mutate()}
+                          elementAttr={{ 'data-testid': 'save-risk-btn' }}
+                        />
+                      </div>
+                      {saveRiskMutation.error && (
+                        <p className="text-sm text-red-600">
+                          {saveRiskMutation.error instanceof Error ? saveRiskMutation.error.message : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Risk Details */}

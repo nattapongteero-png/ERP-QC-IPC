@@ -338,18 +338,21 @@ export default function GrnDetailPage() {
         showBorders
         showRowLines
         rowAlternationEnabled
-        columnAutoWidth
+        wordWrapEnabled
+        width="100%"
+        columnResizingMode="widget"
+        allowColumnResizing
         data-testid="grn-lines-grid"
       >
         <Paging pageSize={20} />
-        <Column dataField="lineNumber" caption="#" width={60} />
+        <Column dataField="lineNumber" caption="#" width={44} alignment="center" />
         <Column
           dataField="itemCode"
           caption={t('table.columns.item')}
-          minWidth={230}
+          minWidth={150}
           cellRender={(cell) => (
             <div className="min-w-0">
-              <p className="font-medium font-mono whitespace-nowrap">{cell.data.itemCode || `#${cell.data.itemId}`}</p>
+              <p className="font-medium font-mono">{cell.data.itemCode || `#${cell.data.itemId}`}</p>
               {cell.data.itemName && (
                 <p className="text-xs text-gray-500">{cell.data.itemName}</p>
               )}
@@ -360,23 +363,23 @@ export default function GrnDetailPage() {
           dataField="expectedQuantity"
           caption={t('table.columns.expectedQty')}
           dataType="number"
-          width={120}
+          width={80}
         />
         <Column
           dataField="actualQuantity"
           caption={t('table.columns.actualQty')}
           dataType="number"
-          width={120}
+          width={80}
         />
-        <Column dataField="unit" caption="หน่วย" width={80} />
-        <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} />
-        <Column dataField="batchNumber" caption={t('form.batchNumber.label')} />
-        <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" />
-        <Column dataField="expiryDate" caption={t('form.expiryDate.label')} dataType="date" />
+        <Column dataField="unit" caption="หน่วย" width={60} />
+        <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} minWidth={90} />
+        <Column dataField="batchNumber" caption={t('form.batchNumber.label')} minWidth={90} />
+        <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" width={100} />
+        <Column dataField="expiryDate" caption={t('form.expiryDate.label')} dataType="date" width={100} />
         <Column
           dataField="variancePercent"
           caption={t('table.columns.variance')}
-          width={120}
+          width={80}
           cellRender={(c) => {
             const v = c.value as number | null;
             if (v == null) return '—';
@@ -388,11 +391,11 @@ export default function GrnDetailPage() {
             );
           }}
         />
-        <Column dataField="varianceReason" caption={t('form.varianceReason.label')} />
+        <Column dataField="varianceReason" caption={t('form.varianceReason.label')} minWidth={90} />
         <Column
           dataField="status"
           caption={t('table.columns.status')}
-          width={140}
+          width={110}
           cellRender={(c) => (
             <span className="inline-flex px-2 py-1 rounded text-xs bg-gray-100">
               {t(`status.line.${c.value as string}`)}
@@ -401,11 +404,11 @@ export default function GrnDetailPage() {
         />
         <Column
           caption="การดำเนินการ"
-          width={300}
+          minWidth={140}
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
             return (
-              <div className="flex gap-1 items-center">
+              <div className="flex flex-wrap gap-1 items-center">
                 {/* Edit the line's actuals — opens a form popup (Save inside).
                     Only while the line is still editable (status=created). */}
                 {line.status === 'created' && canRelease && (

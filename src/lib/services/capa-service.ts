@@ -32,6 +32,14 @@ import {
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
+// ICH Q9 risk scoring: map severity/probability to 1-5 so riskScore = S × P (1-25).
+const RISK_SEVERITY_VALUE: Record<string, number> = {
+  negligible: 1, minor: 2, moderate: 3, major: 4, critical: 5,
+};
+const RISK_PROBABILITY_VALUE: Record<string, number> = {
+  rare: 1, unlikely: 2, possible: 3, likely: 4, certain: 5,
+};
+
 // Get table references based on database type
 function getTables() {
   if (isSqlite()) {
@@ -385,6 +393,8 @@ export async function getCapaById(id: number): Promise<Capa | null> {
       closureNotes: capaTable.closureNotes,
       riskSeverity: capaTable.riskSeverity,
       riskProbability: capaTable.riskProbability,
+      riskScore: capaTable.riskScore,
+      riskJustification: capaTable.riskJustification,
     })
     .from(capaTable)
     .leftJoin(users, eq(capaTable.ownerId, users.id))
@@ -832,6 +842,24 @@ export async function updateCapa(
   if (data.rootCauseCategory !== undefined) updateData.rootCauseCategory = data.rootCauseCategory;
   if (data.dueDate !== undefined) updateData.dueDate = toDbDate(data.dueDate);
   if (data.ownerId !== undefined) updateData.ownerId = data.ownerId;
+
+  // Risk Assessment (ICH Q9). Persist severity/probability/justification and
+  // recompute riskScore (severity 1-5 × probability 1-5 = 1-25) whenever either
+  // axis is present, so the close-CAPA risk gate can actually be satisfied.
+  if (data.riskSeverity !== undefined) updateData.riskSeverity = data.riskSeverity;
+  if (data.riskProbability !== undefined) updateData.riskProbability = data.riskProbability;
+  if (data.riskJustification !== undefined) updateData.riskJustification = data.riskJustification;
+
+  const effectiveSeverity = data.riskSeverity ?? existing.riskSeverity ?? undefined;
+  const effectiveProbability = data.riskProbability ?? existing.riskProbability ?? undefined;
+  if (
+    (data.riskSeverity !== undefined || data.riskProbability !== undefined) &&
+    effectiveSeverity &&
+    effectiveProbability
+  ) {
+    updateData.riskScore =
+      RISK_SEVERITY_VALUE[effectiveSeverity] * RISK_PROBABILITY_VALUE[effectiveProbability];
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db as any)

@@ -12,7 +12,7 @@
  * - Redirect to detail page after creation
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -93,7 +93,12 @@ async function createChangeRequest(data: ChangeRequestCreate): Promise<{ id: num
 export default function NewChangeRequestPage() {
   const router = useRouter();
   const t = useTranslations('gmp');
-  const [formData, setFormData] = useState<FormData>({
+  // DevExtreme Form binds two-way to a single mutable object and mutates it
+  // in place. We keep ONE stable reference (via useRef) and never replace it,
+  // so the Form is never handed a new `formData`/`items` identity mid-typing —
+  // which is what was remounting every editor and stealing focus / scrolling
+  // to the top on each keystroke.
+  const formDataRef = useRef<FormData>({
     title: '',
     changeType: 'process',
     description: '',
@@ -104,6 +109,7 @@ export default function NewChangeRequestPage() {
     ownerId: null,
     targetDate: '',
   });
+  const formData = formDataRef.current;
 
   // Fetch users for owner selection
   const { data: users } = useQuery({
@@ -120,23 +126,26 @@ export default function NewChangeRequestPage() {
   });
 
   // Form configuration
-  const changeTypeOptions = [
+  const changeTypeOptions = useMemo(() => [
     { value: 'process', text: t('changes.new.changeTypes.process') },
     { value: 'equipment', text: t('changes.new.changeTypes.equipment') },
     { value: 'document', text: t('changes.new.changeTypes.document') },
     { value: 'supplier', text: t('changes.new.changeTypes.supplier') },
     { value: 'formula', text: t('changes.new.changeTypes.formula') },
     { value: 'other', text: t('changes.new.changeTypes.other') },
-  ];
+  ], [t]);
 
-  const priorityOptions = [
+  const priorityOptions = useMemo(() => [
     { value: 'low', text: t('changes.priority.low') },
     { value: 'medium', text: t('changes.priority.medium') },
     { value: 'high', text: t('changes.priority.high') },
     { value: 'urgent', text: t('changes.priority.urgent') },
-  ];
+  ], [t]);
 
-  const userOptions = users?.map((u) => ({ value: u.id, text: u.name })) || [];
+  const userOptions = useMemo(
+    () => users?.map((u) => ({ value: u.id, text: u.name })) || [],
+    [users]
+  );
 
   // Handlers
   const handleSubmit = useCallback(() => {
@@ -170,8 +179,9 @@ export default function NewChangeRequestPage() {
     router.push('/gmp/changes');
   }, [router]);
 
-  // Form items configuration
-  const formItems = [
+  // Form items configuration — memoized so the DevExtreme Form receives a
+  // stable `items` prop and does not remount its editors while the user types.
+  const formItems = useMemo(() => [
     {
       itemType: 'group' as const,
       caption: t('changes.new.groups.basicInfo'),
@@ -280,7 +290,7 @@ export default function NewChangeRequestPage() {
         },
       ],
     },
-  ];
+  ], [t, changeTypeOptions, priorityOptions, userOptions]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -336,14 +346,6 @@ export default function NewChangeRequestPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <Form
             formData={formData}
-            onFieldDataChanged={(e) => {
-              if (e.dataField) {
-                setFormData((prev) => ({
-                  ...prev,
-                  [e.dataField!]: e.value,
-                }));
-              }
-            }}
             labelLocation="top"
             showColonAfterLabel={false}
             items={formItems}

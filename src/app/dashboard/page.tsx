@@ -65,6 +65,9 @@ interface DashboardData {
     pendingPOs: number;
     pendingSOs: number;
     openDeviations: number;
+    thisMonthSales: number;
+    lastMonthSales: number;
+    monthlyGrowthPercent: number | null;
   };
   recentWorkOrders: Array<{
     id: number;
@@ -275,15 +278,25 @@ export default function DashboardPage() {
                 />
               </Link>
 
-              <StatCard
-                label={t('kpis.monthlyGrowth.label')}
-                value="+8.5%"
-                icon={<TrendingUp className="h-5 w-5" />}
-                variant="success"
-                size="md"
-                className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                style={{ animationDelay: '350ms' }}
-              />
+              {(() => {
+                const growth = data?.summary.monthlyGrowthPercent ?? null;
+                const hasGrowth = growth !== null && Number.isFinite(growth);
+                const isUp = hasGrowth && growth >= 0;
+                const growthValue = hasGrowth
+                  ? `${isUp ? '+' : ''}${growth.toFixed(1)}%`
+                  : '—';
+                return (
+                  <StatCard
+                    label={t('kpis.monthlyGrowth.label')}
+                    value={growthValue}
+                    icon={<TrendingUp className="h-5 w-5" />}
+                    variant={!hasGrowth ? 'default' : isUp ? 'success' : 'danger'}
+                    size="md"
+                    className="motion-safe:animate-fade-in motion-reduce:animate-none"
+                    style={{ animationDelay: '350ms' }}
+                  />
+                );
+              })()}
             </div>
 
             {/* Module KPIs Tabs */}

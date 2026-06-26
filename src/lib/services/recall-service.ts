@@ -1415,10 +1415,13 @@ function mapRowToRecall(row: DbRecallRow): Recall {
     affectedLots,
     affectedLotNumbers,
     status: row.status as RecallStatus,
-    distributedQuantity: row.distributedQuantity || 0,
-    returnedQuantity: row.returnedQuantity || 0,
-    reconciledQuantity: row.reconciledQuantity || 0,
-    effectivenessRate: row.effectivenessRate || 0,
+    // MySQL returns decimal columns as strings (e.g. '0.00'); coerce to Number
+    // so downstream callers (report generation calls .toFixed()) get a real
+    // number, not a string. `Number('') || 0` and `Number(null) || 0` → 0.
+    distributedQuantity: Number(row.distributedQuantity) || 0,
+    returnedQuantity: Number(row.returnedQuantity) || 0,
+    reconciledQuantity: Number(row.reconciledQuantity) || 0,
+    effectivenessRate: Number(row.effectivenessRate) || 0,
     regulatoryReportDate: row.regulatoryReportDate,
     closureDate: row.closureDate,
     coordinatorId: row.coordinatorId || 0,
