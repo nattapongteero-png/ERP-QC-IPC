@@ -5703,6 +5703,13 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   approvedAt: text('approved_at'),
   rejectionReason: text('rejection_reason'),
   notes: text('notes'),
+  // Origin tracking for partner integrations (e.g. Metaherb). When a PR was
+  // created by an external system, externalSource names it (e.g. 'metaherb')
+  // and externalRef holds that system's own id for correlation. The Metaherb
+  // PR-status webhook fires only when externalSource = 'metaherb'. Both stay
+  // null for normal ERP-created PRs (no inbound path yet → dormant in prod).
+  externalSource: text('external_source'),
+  externalRef: text('external_ref'),
   createdBy: integer('created_by').notNull().references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -5723,6 +5730,32 @@ export const sqlitePurchaseRequisitionLines = sqliteTable('purchase_requisition_
   status: text('status').notNull().default('open'), // open, converted, cancelled
   convertedPoLineId: integer('converted_po_line_id').references(() => sqlitePurchaseOrderLines.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Metaherb PR-status webhook deliveries (OUTBOUND) - SQLite
+// One row per send attempt-set for a PR status change pushed to Metaherb.
+// status: pending (awaiting first/next attempt) | processed (2xx) | failed
+// (terminal: 403 cross-tenant, 400/401 our-bug, or retries exhausted).
+// Retries are durable: a sweeper re-sends rows where status='pending' AND
+// nextRetryAt <= now (re-signing with a fresh timestamp each attempt).
+export const sqliteMetaherbPrWebhookDeliveries = sqliteTable('metaherb_pr_webhook_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  prId: integer('pr_id').notNull().references(() => sqlitePurchaseRequisitions.id),
+  deliveryId: text('delivery_id').notNull().unique(), // UUID idempotency key
+  eventType: text('event_type').notNull(), // approved | rejected | converted | cancelled
+  targetUrl: text('target_url').notNull(), // resolved prStatusUrl at send time
+  payload: text('payload').notNull(), // exact raw JSON body that was signed (latest attempt)
+  signature: text('signature').notNull(), // latest attempt's HMAC hex (audit)
+  timestamp: text('timestamp').notNull(), // latest attempt's Unix-seconds string
+  status: text('status').notNull().default('pending'), // pending | processed | failed
+  httpStatus: integer('http_status'),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  nextRetryAt: text('next_retry_at'), // null when terminal
+  lastError: text('last_error'),
+  processingDurationMs: integer('processing_duration_ms'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  lastAttemptAt: text('last_attempt_at'),
+  processedAt: text('processed_at'),
 });
 
 // Bank Reconciliation - SQLite (T002)
@@ -6417,6 +6450,11 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   approvedAt: datetime('approved_at'),
   rejectionReason: mysqlText('rejection_reason'),
   notes: mysqlText('notes'),
+  // Origin tracking for partner integrations (e.g. Metaherb) — see SQLite
+  // variant above. externalSource = 'metaherb' gates the PR-status webhook;
+  // externalRef holds Metaherb's own PR id. Null for normal ERP PRs.
+  externalSource: varchar('external_source', { length: 32 }),
+  externalRef: varchar('external_ref', { length: 64 }),
   createdBy: int('created_by').notNull().references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -6437,6 +6475,27 @@ export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_li
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, converted, cancelled
   convertedPoLineId: int('converted_po_line_id').references(() => mysqlPurchaseOrderLines.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Metaherb PR-status webhook deliveries (OUTBOUND) - MySQL (see SQLite variant)
+export const mysqlMetaherbPrWebhookDeliveries = mysqlTable('metaherb_pr_webhook_deliveries', {
+  id: int('id').primaryKey().autoincrement(),
+  prId: int('pr_id').notNull().references(() => mysqlPurchaseRequisitions.id),
+  deliveryId: varchar('delivery_id', { length: 64 }).notNull().unique(),
+  eventType: varchar('event_type', { length: 20 }).notNull(),
+  targetUrl: varchar('target_url', { length: 512 }).notNull(),
+  payload: mysqlText('payload').notNull(),
+  signature: varchar('signature', { length: 128 }).notNull(),
+  timestamp: varchar('timestamp', { length: 20 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  httpStatus: int('http_status'),
+  attemptCount: int('attempt_count').notNull().default(0),
+  nextRetryAt: datetime('next_retry_at'),
+  lastError: mysqlText('last_error'),
+  processingDurationMs: int('processing_duration_ms'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  lastAttemptAt: datetime('last_attempt_at'),
+  processedAt: datetime('processed_at'),
 });
 
 // Bank Reconciliation - MySQL (T002)
@@ -7486,6 +7545,10 @@ export type VmiWebhookDb = typeof sqliteVmiWebhooks.$inferSelect;
 export type NewVmiWebhookDb = typeof sqliteVmiWebhooks.$inferInsert;
 export type VmiWebhookDeliveryDb = typeof sqliteVmiWebhookDeliveries.$inferSelect;
 export type NewVmiWebhookDeliveryDb = typeof sqliteVmiWebhookDeliveries.$inferInsert;
+
+// Metaherb PR-status webhook (outbound) delivery types
+export type MetaherbPrWebhookDeliveryDb = typeof sqliteMetaherbPrWebhookDeliveries.$inferSelect;
+export type NewMetaherbPrWebhookDeliveryDb = typeof sqliteMetaherbPrWebhookDeliveries.$inferInsert;
 
 // GMP Compliance Gap Analysis Types (009-gmp-compliance-gap-analysis)
 // Document Control (หมวด 5)

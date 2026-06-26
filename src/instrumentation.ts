@@ -21,5 +21,19 @@ export async function register() {
       // Don't throw - allow server to start even if sync fails
       // The app can still work if tables already exist
     }
+
+    // Drain any Metaherb PR-status webhooks that were left pending across a
+    // restart/redeploy (the durable backstop for the inline fire-and-forget
+    // sends). Non-blocking and never throws — startup must not depend on it.
+    try {
+      const { retryDueMetaherbPrWebhooks } = await import(
+        './lib/services/metaherb-pr-webhook.service'
+      );
+      void retryDueMetaherbPrWebhooks().catch((err) =>
+        console.error('[Instrumentation] Metaherb webhook boot-drain failed:', err)
+      );
+    } catch (error) {
+      console.error('[Instrumentation] Metaherb webhook boot-drain import failed:', error);
+    }
   }
 }

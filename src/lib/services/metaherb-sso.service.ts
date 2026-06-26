@@ -23,6 +23,7 @@ import { encrypt, decrypt, isValidCiphertext } from '../crypto/encrypt';
 const CATEGORY = 'metaherb_sso';
 const KEY_SECRET = 'metaherb.sso_secret'; // value = AES-GCM ciphertext
 const KEY_CALLBACK = 'metaherb.callback_url'; // value = plain URL
+const KEY_PR_STATUS_URL = 'metaherb.pr_status_url'; // value = plain URL (outbound PR-status webhook)
 
 function getTables() {
   return { settings: getTableRef('settings') };
@@ -32,6 +33,8 @@ function getTables() {
 export interface MetaherbSsoConfig {
   ssoSecret: string | null;
   callbackUrl: string | null;
+  /** Outbound PR-status webhook target (.../pr-status/<company>). */
+  prStatusUrl: string | null;
   /**
    * Where each value came from — for diagnostics in the settings UI.
    * 'db-decrypt-failed' = a secret IS stored but couldn't be decrypted
@@ -40,12 +43,14 @@ export interface MetaherbSsoConfig {
   source: {
     secret: 'db' | 'env' | 'none' | 'db-decrypt-failed';
     callback: 'db' | 'env' | 'none';
+    prStatus: 'db' | 'env' | 'none';
   };
 }
 
 /** What the settings UI shows (secret never leaves the server in clear). */
 export interface MetaherbSsoSettingsView {
   callbackUrl: string;
+  prStatusUrl: string;
   /** True if a secret is configured (in DB or env) — value itself is hidden. */
   secretConfigured: boolean;
   source: MetaherbSsoConfig['source'];
@@ -130,13 +135,25 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
     callbackSource = 'env';
   }
 
+  // --- PR-status webhook URL (outbound) ---
+  let prStatusUrl: string | null = null;
+  let prStatusSource: MetaherbSsoConfig['source']['prStatus'] = 'none';
+  if (db[KEY_PR_STATUS_URL]) {
+    prStatusUrl = db[KEY_PR_STATUS_URL];
+    prStatusSource = 'db';
+  } else if (process.env.METAHERB_PR_STATUS_URL) {
+    prStatusUrl = process.env.METAHERB_PR_STATUS_URL.trim().replace(/^["']|["']$/g, '');
+    prStatusSource = 'env';
+  }
+
   // Reference dbAvailable so a future caller can branch on it; logged above.
   void dbAvailable;
 
   return {
     ssoSecret,
     callbackUrl,
-    source: { secret: secretSource, callback: callbackSource },
+    prStatusUrl,
+    source: { secret: secretSource, callback: callbackSource, prStatus: prStatusSource },
   };
 }
 
@@ -145,6 +162,7 @@ export async function getMetaherbSsoSettingsView(): Promise<MetaherbSsoSettingsV
   const cfg = await getMetaherbSsoConfig();
   return {
     callbackUrl: cfg.callbackUrl ?? '',
+    prStatusUrl: cfg.prStatusUrl ?? '',
     secretConfigured: !!cfg.ssoSecret,
     source: cfg.source,
   };
@@ -155,6 +173,8 @@ export interface MetaherbSsoUpdate {
   ssoSecret?: string;
   /** New callback URL. Provide to set; empty string clears it. */
   callbackUrl?: string;
+  /** New PR-status webhook URL. Provide to set; empty string clears it. */
+  prStatusUrl?: string;
 }
 
 /**
@@ -202,6 +222,15 @@ export async function updateMetaherbSsoConfig(
       const isClear = data.callbackUrl === '';
       if (clean !== '' || isClear) {
         await upsert(KEY_CALLBACK, clean);
+      }
+    }
+
+    if (typeof data.prStatusUrl === 'string') {
+      // Same trim/quote-strip + explicit-empty-to-clear rule as callbackUrl.
+      const clean = data.prStatusUrl.trim().replace(/^["']|["']$/g, '');
+      const isClear = data.prStatusUrl === '';
+      if (clean !== '' || isClear) {
+        await upsert(KEY_PR_STATUS_URL, clean);
       }
     }
 

@@ -7,6 +7,7 @@ import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'dr
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import { submitForApproval, approveRequest, rejectRequest } from './approval-workflow.service';
+import { notifyMetaherbPrStatus } from './metaherb-pr-webhook.service';
 import type {
   PurchaseRequisition,
   PurchaseRequisitionLine,
@@ -22,6 +23,7 @@ import type {
   PRToPOConvertResponse,
   PRDashboardSummary,
   PRApprovalInput,
+  PRTimelineEntry,
 } from '@/types/purchase-requisition';
 
 /**
@@ -36,7 +38,51 @@ function getTables() {
     vendors: getTableRef('vendors'),
     purchaseOrders: getTableRef('purchaseOrders'),
     purchaseOrderLines: getTableRef('purchaseOrderLines'),
+    users: getTableRef('users'),
+    approvalRequests: getTableRef('approvalRequests'),
+    approvalRequestSteps: getTableRef('approvalRequestSteps'),
   };
+}
+
+/**
+ * Resolve an HR employee's display name (English first, Thai fallback).
+ * Returns '' when the id is null or the employee is not found.
+ */
+async function resolveEmployeeName(db: any, employeeId: number | null | undefined): Promise<string> {
+  if (!employeeId) return '';
+  const tables = getTables();
+  const rows = await db
+    .select({
+      firstNameEn: tables.employees.firstNameEn,
+      lastNameEn: tables.employees.lastNameEn,
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+    })
+    .from(tables.employees)
+    .where(eq(tables.employees.id, employeeId))
+    .limit(1);
+  if (rows.length === 0) return '';
+  const emp = rows[0];
+  return emp.firstNameEn && emp.lastNameEn
+    ? `${emp.firstNameEn} ${emp.lastNameEn}`
+    : `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim();
+}
+
+/**
+ * Resolve the HR employee id linked to a user account (hr_employees.userId).
+ * Used to derive the PR requester from the logged-in user instead of a
+ * hard-coded id. Returns null when the user has no linked employee record.
+ */
+export async function getEmployeeIdForUser(userId: number): Promise<number | null> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .select({ id: tables.employees.id })
+      .from(tables.employees)
+      .where(eq(tables.employees.userId, userId))
+      .limit(1);
+    return rows.length > 0 ? rows[0].id : null;
+  });
 }
 
 /**
@@ -191,6 +237,25 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       }
     }
 
+    // Get the name of the user who recorded the PR (createdBy → users, distinct
+    // from requesterId → HR employee). Lets the detail page show "บันทึกโดย".
+    let createdByName = '';
+    if (pr.createdBy) {
+      const userResult = await db
+        .select({ name: tables.users.name })
+        .from(tables.users)
+        .where(eq(tables.users.id, pr.createdBy))
+        .limit(1);
+      if (userResult.length > 0) {
+        createdByName = userResult[0].name || '';
+      }
+    }
+
+    // Resolve the approver's name when the PR has been approved. approvedBy may
+    // be null on older PRs (it wasn't stamped before) — in that case the
+    // approval history below is the source of truth.
+    const approvedByName = await resolveEmployeeName(db, pr.approvedBy as number | null);
+
     // Lookup item codes for lines that have itemId
     const itemIds = lines
       .map((l: any) => l.itemId)
@@ -211,6 +276,8 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       ...pr,
       requesterName,
       departmentName,
+      createdByName,
+      approvedByName,
       lines: lines.map((line: {
         id?: number;
         prId?: number;
@@ -243,6 +310,101 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
         createdAt: line.createdAt,
       })),
     } as PRWithLines;
+  });
+}
+
+/**
+ * Build the action timeline for a PR: who created it, then every approval
+ * step (assignee/approver, action date, comments). The creation entry is
+ * synthesised from the PR row; the approval steps are read from
+ * approval_request_steps via the approval_requests row that links to this PR
+ * (documentType='purchase_requisition', documentId=prId).
+ *
+ * Returns [] when the PR doesn't exist. A PR that was never submitted still
+ * returns the single "created" entry.
+ */
+export async function getPRApprovalHistory(prId: number): Promise<PRTimelineEntry[]> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+
+    const [pr] = await db
+      .select()
+      .from(tables.requisitions)
+      .where(eq(tables.requisitions.id, prId))
+      .limit(1);
+
+    if (!pr) return [];
+
+    const timeline: PRTimelineEntry[] = [];
+
+    // 1) Creation entry — createdBy is a user account.
+    let createdByName = '';
+    if (pr.createdBy) {
+      const [u] = await db
+        .select({ name: tables.users.name })
+        .from(tables.users)
+        .where(eq(tables.users.id, pr.createdBy))
+        .limit(1);
+      createdByName = u?.name || '';
+    }
+    timeline.push({
+      type: 'created',
+      stepOrder: 0,
+      stepName: 'created',
+      actorName: createdByName,
+      actionDate: pr.createdAt ?? null,
+      comments: null,
+    });
+
+    // 2) Approval-workflow steps — find the approval request for this PR.
+    const [request] = await db
+      .select()
+      .from(tables.approvalRequests)
+      .where(
+        and(
+          eq(tables.approvalRequests.documentType, 'purchase_requisition'),
+          eq(tables.approvalRequests.documentId, prId),
+        ),
+      )
+      .orderBy(desc(tables.approvalRequests.id))
+      .limit(1);
+
+    if (request) {
+      const steps = await db
+        .select()
+        .from(tables.approvalRequestSteps)
+        .where(eq(tables.approvalRequestSteps.requestId, request.id))
+        .orderBy(asc(tables.approvalRequestSteps.stepOrder));
+
+      for (const step of steps) {
+        const actorName = await resolveEmployeeName(db, step.assignedTo);
+        const delegatedFromName = step.delegatedFrom
+          ? await resolveEmployeeName(db, step.delegatedFrom)
+          : undefined;
+
+        // Map the step status onto a timeline entry type. 'pending' steps are
+        // included so the user can see who the PR is waiting on.
+        const status = String(step.status || 'pending');
+        const type: PRTimelineEntry['type'] =
+          status === 'approved'
+            ? 'approved'
+            : status === 'rejected'
+              ? 'rejected'
+              : 'pending';
+
+        timeline.push({
+          type,
+          stepOrder: step.stepOrder ?? null,
+          stepName: status === 'pending' ? 'pending_approval' : status,
+          actorName,
+          delegatedFromName,
+          actionDate: step.actionDate ?? null,
+          comments: step.comments ?? null,
+        });
+      }
+    }
+
+    return timeline;
   });
 }
 
@@ -644,7 +806,7 @@ export async function approvePR(
   approverId: number,
   comments?: string
 ): Promise<void> {
-  return executeDbOperation(async (db) => {
+  const becameApproved = await executeDbOperation(async (db) => {
     const tables = getTables();
 
     // Get PR
@@ -707,7 +869,15 @@ export async function approvePR(
         })
         .where(eq(tables.lines.prId, prId));
     }
+    return result.isFullyApproved === true;
   });
+
+  // After commit: push the new status to Metaherb (only fires for Metaherb-
+  // originated PRs; the notifier short-circuits otherwise). Fire-and-forget —
+  // it never throws and the PR approval stands regardless of webhook outcome.
+  if (becameApproved) {
+    void notifyMetaherbPrStatus(prId, 'approved');
+  }
 }
 
 /**
@@ -718,7 +888,7 @@ export async function rejectPR(
   approverId: number,
   reason: string
 ): Promise<void> {
-  return executeDbOperation(async (db) => {
+  await executeDbOperation(async (db) => {
     const tables = getTables();
 
     // Get PR
@@ -782,6 +952,9 @@ export async function rejectPR(
       })
       .where(eq(tables.lines.prId, prId));
   });
+
+  // After commit: notify Metaherb (fires only for Metaherb-originated PRs).
+  void notifyMetaherbPrStatus(prId, 'rejected');
 }
 
 /**
@@ -791,7 +964,10 @@ export async function convertPRToPO(
   input: PRToPOConvertInput,
   createdBy: number
 ): Promise<PRToPOConvertResponse> {
-  return executeDbOperation(async (db) => {
+  // Set inside the DB op when the PR reaches 'converted' (all lines converted),
+  // read after commit to fire the Metaherb webhook.
+  let prFullyConverted = false;
+  const response = await executeDbOperation(async (db) => {
     const tables = getTables();
 
     // Get PR
@@ -951,6 +1127,7 @@ export async function convertPRToPO(
           updatedAt: now,
         })
         .where(eq(tables.requisitions.id, input.prId));
+      prFullyConverted = true;
     }
 
     return {
@@ -960,13 +1137,22 @@ export async function convertPRToPO(
       convertedLineCount: lines.length,
     };
   });
+
+  // After commit: notify Metaherb ONLY when the PR itself reached 'converted'
+  // (full conversion). Partial conversions don't change PR status → no webhook.
+  // Fires only for Metaherb-originated PRs. Fire-and-forget.
+  if (prFullyConverted) {
+    void notifyMetaherbPrStatus(input.prId, 'converted', response.poNumber);
+  }
+
+  return response;
 }
 
 /**
  * Cancel a Purchase Requisition
  */
 export async function cancelPR(prId: number, reason: string): Promise<void> {
-  return executeDbOperation(async (db) => {
+  await executeDbOperation(async (db) => {
     const tables = getTables();
 
     const prResult = await db
@@ -993,6 +1179,9 @@ export async function cancelPR(prId: number, reason: string): Promise<void> {
       })
       .where(eq(tables.requisitions.id, prId));
   });
+
+  // After commit: notify Metaherb (fires only for Metaherb-originated PRs).
+  void notifyMetaherbPrStatus(prId, 'cancelled');
 }
 
 /**

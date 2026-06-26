@@ -6,12 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { ResponsivePageHeader } from '@/components/shared';
-import { LogIn, Check, AlertCircle, KeyRound, Link2, Loader2, ShieldCheck } from 'lucide-react';
+import { LogIn, Check, AlertCircle, KeyRound, Link2, Loader2, ShieldCheck, Webhook } from 'lucide-react';
 
 interface SettingsView {
   callbackUrl: string;
+  prStatusUrl: string;
   secretConfigured: boolean;
-  source: { secret: 'db' | 'env' | 'none'; callback: 'db' | 'env' | 'none' };
+  source: {
+    secret: 'db' | 'env' | 'none';
+    callback: 'db' | 'env' | 'none';
+    prStatus: 'db' | 'env' | 'none';
+  };
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -24,6 +29,7 @@ const SOURCE_LABEL: Record<string, string> = {
 export default function MetaherbSsoSettingsPage() {
   const [view, setView] = useState<SettingsView | null>(null);
   const [callbackUrl, setCallbackUrl] = useState('');
+  const [prStatusUrl, setPrStatusUrl] = useState('');
   const [secret, setSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +43,7 @@ export default function MetaherbSsoSettingsPage() {
       if (data.success) {
         setView(data.data);
         setCallbackUrl(data.data.callbackUrl || '');
+        setPrStatusUrl(data.data.prStatusUrl || '');
       } else {
         setMessage({ type: 'error', text: data.error || 'โหลดการตั้งค่าไม่สำเร็จ' });
       }
@@ -55,9 +62,11 @@ export default function MetaherbSsoSettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const body: { callbackUrl?: string; ssoSecret?: string } = {};
+      const body: { callbackUrl?: string; prStatusUrl?: string; ssoSecret?: string } = {};
       // Only send a non-empty callback so a stray save can't wipe a stored one.
       if (callbackUrl.trim() !== '') body.callbackUrl = callbackUrl.trim();
+      // Same for the PR-status webhook URL.
+      if (prStatusUrl.trim() !== '') body.prStatusUrl = prStatusUrl.trim();
       // Only send the secret if the admin actually typed a new one — leaving it
       // blank keeps the stored secret unchanged.
       if (secret.trim() !== '') body.ssoSecret = secret.trim();
@@ -141,6 +150,28 @@ export default function MetaherbSsoSettingsPage() {
                     {view && (
                       <span className="ml-1">
                         · ที่มา: <b>{SOURCE_LABEL[view.source.callback]}</b>
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* PR Status Webhook URL (outbound) */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                    <Webhook className="h-4 w-4 text-gray-400" />
+                    PR Status Webhook URL
+                  </label>
+                  <DxTextBox
+                    value={prStatusUrl}
+                    onValueChanged={(e) => setPrStatusUrl(e.value ?? '')}
+                    placeholder="https://api.pomdevth.site/api/erp/pr-status/<company>"
+                    inputAttr={{ 'data-testid': 'metaherb-pr-status-input' }}
+                  />
+                  <p className="text-xs text-gray-500">
+                    ระบบจะ POST สถานะ PR (อนุมัติ/ปฏิเสธ/แปลงเป็น PO/ยกเลิก) กลับไป Metaherb ที่ URL นี้ — มีรหัสบริษัทอยู่ในตัว (เช่น …/pr-status/arjaro)
+                    {view && (
+                      <span className="ml-1">
+                        · ที่มา: <b>{SOURCE_LABEL[view.source.prStatus]}</b>
                       </span>
                     )}
                   </p>

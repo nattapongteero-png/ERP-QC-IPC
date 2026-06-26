@@ -33,14 +33,38 @@ export async function GET(request: NextRequest) {
   );
 }
 
-// Optional allow-list of permitted Metaherb callback hosts, comma-separated in
+// Optional allow-list of permitted Metaherb hosts, comma-separated in
 // METAHERB_ALLOWED_CALLBACK_HOSTS (e.g. "api.pomdevth.site,metaherb.co.th").
-// When unset, any https/http host is accepted (back-compat).
+// When unset, any https/http host is accepted (back-compat). Applies to both
+// the SSO callback URL and the PR-status webhook URL (same partner hosts).
 function allowedCallbackHosts(): string[] {
   return (process.env.METAHERB_ALLOWED_CALLBACK_HOSTS || '')
     .split(',')
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean);
+}
+
+/**
+ * Validate a Metaherb URL field (callback or pr-status). Returns an error
+ * string if invalid, or null if OK (including the empty/clear case).
+ * `label` personalises the Thai error message.
+ */
+function validateMetaherbUrl(value: string | undefined, label: string): string | null {
+  if (!value || value.trim() === '') return null; // empty = clear, allowed
+  let u: URL;
+  try {
+    u = new URL(value.trim().replace(/^["']|["']$/g, ''));
+  } catch {
+    return `${label}ไม่ถูกต้อง (ต้องเป็น URL https://)`;
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    return `${label}ต้องขึ้นต้นด้วย https:// หรือ http://`;
+  }
+  const allow = allowedCallbackHosts();
+  if (allow.length > 0 && !allow.includes(u.host.toLowerCase())) {
+    return `โฮสต์ของ${label}ไม่ได้รับอนุญาต (อนุญาต: ${allow.join(', ')})`;
+  }
+  return null;
 }
 
 export async function PUT(request: NextRequest) {
@@ -59,42 +83,25 @@ export async function PUT(request: NextRequest) {
       }
 
       try {
-        // Only accept the two managed fields; ignore anything else.
+        // Only accept the managed fields; ignore anything else.
         const callbackUrl =
           typeof body?.callbackUrl === 'string' ? body.callbackUrl : undefined;
         const ssoSecret =
           typeof body?.ssoSecret === 'string' ? body.ssoSecret : undefined;
+        const prStatusUrl =
+          typeof body?.prStatusUrl === 'string' ? body.prStatusUrl : undefined;
 
-        // Validate callback URL shape up-front (empty allowed = clear it).
-        if (callbackUrl && callbackUrl.trim() !== '') {
-          let u: URL;
-          try {
-            u = new URL(callbackUrl.trim().replace(/^["']|["']$/g, ''));
-          } catch {
-            return NextResponse.json(
-              { success: false, error: 'Callback URL ไม่ถูกต้อง (ต้องเป็น URL https://)' },
-              { status: 400 }
-            );
-          }
-          if (u.protocol !== 'https:' && u.protocol !== 'http:') {
-            return NextResponse.json(
-              { success: false, error: 'Callback URL ต้องขึ้นต้นด้วย https:// หรือ http://' },
-              { status: 400 }
-            );
-          }
-          const allow = allowedCallbackHosts();
-          if (allow.length > 0 && !allow.includes(u.host.toLowerCase())) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: `โฮสต์ของ Callback URL ไม่ได้รับอนุญาต (อนุญาต: ${allow.join(', ')})`,
-              },
-              { status: 400 }
-            );
-          }
+        // Validate URL fields up-front (empty allowed = clear it).
+        const callbackErr = validateMetaherbUrl(callbackUrl, 'Callback URL ');
+        if (callbackErr) {
+          return NextResponse.json({ success: false, error: callbackErr }, { status: 400 });
+        }
+        const prStatusErr = validateMetaherbUrl(prStatusUrl, 'PR Status Webhook URL ');
+        if (prStatusErr) {
+          return NextResponse.json({ success: false, error: prStatusErr }, { status: 400 });
         }
 
-        await updateMetaherbSsoConfig({ callbackUrl, ssoSecret }, session.userId);
+        await updateMetaherbSsoConfig({ callbackUrl, ssoSecret, prStatusUrl }, session.userId);
         return NextResponse.json({ success: true });
       } catch (error) {
         console.error('Error saving Metaherb SSO settings:', error);
