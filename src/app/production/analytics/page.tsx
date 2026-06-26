@@ -363,12 +363,12 @@ export default function ProductionAnalyticsPage() {
             {t('analytics.charts.monthlyVolume')}
           </h3>
           {monthlyData.length > 0 ? (
-            <Chart dataSource={monthlyData} size={{ height: 300 }}>
+            <Chart dataSource={monthlyData} size={{ height: 320 }}>
               <CommonSeriesSettings argumentField="month" type="bar" />
               <ChartSeries valueField="planned" name={t('analytics.charts.planned')} color="#93c5fd" />
               <ChartSeries valueField="actual" name={t('analytics.charts.actual')} color="#3b82f6" />
               <ArgumentAxis>
-                <ChartLabel font={{ size: 11 }} rotationAngle={-30} overlappingBehavior="rotate" />
+                <ChartLabel font={{ size: 11 }} displayMode="stagger" overlappingBehavior="stagger" wordWrap="none" textOverflow="none" />
               </ArgumentAxis>
               <ValueAxis allowDecimals={false} />
               <ChartLegend visible={true} verticalAlignment="bottom" horizontalAlignment="center" />
@@ -443,8 +443,8 @@ export default function ProductionAnalyticsPage() {
             <Chart dataSource={yieldByProduct} rotated size={{ height: Math.max(200, yieldByProduct.length * 40) }}>
               <CommonSeriesSettings argumentField="product" type="bar" barWidth={20} />
               <ChartSeries valueField="yield" name={t('analytics.charts.yieldPercent')} color="#06b6d4" />
-              <ArgumentAxis>
-                <ChartLabel font={{ size: 11 }} />
+              <ArgumentAxis placeholderSize={150}>
+                <ChartLabel font={{ size: 11 }} textOverflow="none" wordWrap="none" />
               </ArgumentAxis>
               <ValueAxis visualRange={[0, 100]} />
               <ChartLegend visible={false} />
@@ -472,8 +472,8 @@ export default function ProductionAnalyticsPage() {
             <Chart dataSource={productionByProduct} rotated size={{ height: Math.max(200, productionByProduct.length * 40) }}>
               <CommonSeriesSettings argumentField="product" type="bar" barWidth={20} />
               <ChartSeries valueField="count" name={t('analytics.charts.count')} color="#6366f1" />
-              <ArgumentAxis>
-                <ChartLabel font={{ size: 11 }} />
+              <ArgumentAxis placeholderSize={150}>
+                <ChartLabel font={{ size: 11 }} textOverflow="none" wordWrap="none" />
               </ArgumentAxis>
               <ValueAxis allowDecimals={false} />
               <ChartLegend visible={false} />
@@ -504,8 +504,8 @@ export default function ProductionAnalyticsPage() {
             <Chart dataSource={leadTimeByProduct} rotated size={{ height: Math.max(200, leadTimeByProduct.length * 40) }}>
               <CommonSeriesSettings argumentField="product" type="bar" barWidth={18} />
               <ChartSeries valueField="days" name={t('analytics.charts.averageDays')} color="#f59e0b" />
-              <ArgumentAxis>
-                <ChartLabel font={{ size: 11 }} />
+              <ArgumentAxis placeholderSize={150}>
+                <ChartLabel font={{ size: 11 }} textOverflow="none" wordWrap="none" />
               </ArgumentAxis>
               <ValueAxis allowDecimals={false} />
               <ChartLegend visible={false} />

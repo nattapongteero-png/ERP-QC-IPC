@@ -283,7 +283,8 @@
         "requiredDate": "กำหนดส่ง",
         "paymentTerms": "เงื่อนไขการชำระ",
         "notes": "หมายเหตุ",
-        "customer": "ลูกค้า"
+        "customer": "ลูกค้า",
+        "createdBy": "ผู้สร้าง"
       },
       "summary": {
         "progress": "ความคืบหน้า",

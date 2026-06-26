@@ -161,8 +161,6 @@ export default function DashboardPage() {
                   icon={<Package className="h-6 w-6" />}
                   iconBgColor="bg-emerald-100"
                   iconColor="text-emerald-600"
-                  trend="up"
-                  trendValue="+12%"
                   className="h-full cursor-pointer motion-safe:animate-fade-in motion-reduce:animate-none"
                   style={{ animationDelay: '0ms' }}
                 />

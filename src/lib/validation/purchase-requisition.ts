@@ -38,7 +38,11 @@ export const prLineStatusSchema = z.enum([
  * PR Create Schema
  */
 export const prCreateSchema = z.object({
-  requesterId: z.number().int().positive('Requester ID is required'),
+  // Optional from the client — when omitted, the API derives it from the
+  // logged-in user's linked HR employee (see POST /api/purchasing/requisitions).
+  // Kept accepting an explicit id so an admin/clerk can raise a PR on behalf of
+  // another employee.
+  requesterId: z.number().int().positive('Requester ID is required').optional(),
   departmentId: z.number().int().positive().optional(),
   priority: prPrioritySchema.optional().default('normal'),
   requiredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)').optional(),

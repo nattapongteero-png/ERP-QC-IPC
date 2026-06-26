@@ -26,7 +26,7 @@ import { NextIntlClientProvider, useTranslations } from 'next-intl';
  */
 const thaiDashboardMessages = {
   title: 'แดชบอร์ด',
-  description: 'ภาพรวมระบบบริหารจัดการการผลิตยาสมุนไพร',
+  description: 'fgfgff',
   kpis: {
     totalItems: {
       label: 'รายการทั้งหมด',

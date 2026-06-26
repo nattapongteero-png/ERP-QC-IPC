@@ -275,6 +275,22 @@
         "pendingApproval": "Pending Approval",
         "approved": "Approved"
       },
+      "timeline": {
+        "title": "Actions / Approval History",
+        "createdBy": "Recorded by",
+        "requestedBy": "Requested by",
+        "empty": "No action history yet",
+        "loadError": "Failed to load action history",
+        "noActor": "Unknown",
+        "delegatedFrom": "Acted on behalf of {name}",
+        "action": {
+          "created": "Created requisition",
+          "submitted": "Submitted for approval",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "pending": "Awaiting approval from"
+        }
+      },
       "convertModal": {
         "title": "Convert to Purchase Order",
         "selectVendor": "Select Vendor",

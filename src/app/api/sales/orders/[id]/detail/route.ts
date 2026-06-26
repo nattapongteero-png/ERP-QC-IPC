@@ -14,6 +14,7 @@ export async function GET(
       const salesOrderLines = getTableRef('salesOrderLines');
       const items = getTableRef('items');
       const inventoryLots = getTableRef('inventoryLots');
+      const users = getTableRef('users');
 
       // Get SO details (customer info is stored directly in sales_orders table)
       const soResult = await executeDbOperation(async (db) => {
@@ -32,6 +33,7 @@ export async function GET(
             currency: salesOrders.currency,
             paymentTerms: salesOrders.paymentTerms,
             notes: salesOrders.notes,
+            createdBy: salesOrders.createdBy,
             createdAt: salesOrders.createdAt,
             updatedAt: salesOrders.updatedAt,
           })
@@ -44,6 +46,15 @@ export async function GET(
       }
 
       const so = soResult[0];
+
+      // Resolve creator display name. SO has no separate approval step — the
+      // creator confirms the order — so we surface only "ผู้สร้าง", not an
+      // approver (the approvedBy column exists but is never written for SO).
+      const createdByName: string | null = so.createdBy
+        ? (await executeDbOperation(async (db) =>
+            db.select({ name: users.name }).from(users).where(eq(users.id, so.createdBy as number)).limit(1),
+          ))[0]?.name ?? null
+        : null;
 
       // Get SO lines
       const linesResult = await executeDbOperation(async (db) => {
@@ -145,7 +156,7 @@ export async function GET(
       return NextResponse.json({
         success: true,
         data: {
-          salesOrder: so,
+          salesOrder: { ...so, createdByName },
           lines: linesWithTotals,
           summary: {
             lineCount: linesWithTotals.length,

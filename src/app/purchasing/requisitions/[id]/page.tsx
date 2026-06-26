@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { StatusStepper } from '@/components/shared';
 import { PRForm } from '@/components/purchasing/PRForm';
+import { PRApprovalTimeline } from '@/components/purchasing/PRApprovalTimeline';
 import { PRPrintDocument } from '@/components/purchasing/PRPrintDocument';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
@@ -44,6 +45,8 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
   const [approvalComments, setApprovalComments] = useState('');
   const [processing, setProcessing] = useState(false);
+  // Bumped after an approve/reject so the timeline refetches its history.
+  const [timelineRefresh, setTimelineRefresh] = useState(0);
 
   // Delete PR state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -151,6 +154,8 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         if (prResult.success) {
           setPR(prResult.data);
         }
+        // Refresh the action timeline to reflect the new approve/reject step.
+        setTimelineRefresh((n) => n + 1);
       } else {
         setError(result.error);
       }
@@ -346,6 +351,13 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         )}
 
         {pr && <PRForm mode="edit" prId={parseInt(id, 10)} initialData={pr} />}
+
+        {/* ผู้ดำเนินการ / ประวัติการอนุมัติ — ใครสร้าง/ส่ง/อนุมัติ/ปฏิเสธ พร้อมวันเวลา */}
+        {pr && (
+          <div className="mt-6">
+            <PRApprovalTimeline prId={parseInt(id, 10)} refreshKey={timelineRefresh} />
+          </div>
+        )}
 
         {/* Convert to PO Modal */}
         <Popup

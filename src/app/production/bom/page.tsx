@@ -277,13 +277,6 @@ export default function BOMDashboardPage() {
               className="hidden sm:inline-flex"
             />
             <DxButton
-              icon="chart"
-              text={t('workOrders.actions.analytics') || 'Analytics'}
-              stylingMode="outlined"
-              onClick={() => router.push('/production/work-orders')}
-              className="hidden md:inline-flex"
-            />
-            <DxButton
               text={t('bom.actions.createNewBOM')}
               icon="plus"
               type="success"

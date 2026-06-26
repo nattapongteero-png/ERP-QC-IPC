@@ -87,8 +87,10 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         const createResponse = await fetch('/api/purchasing/requisitions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          // requesterId is omitted on purpose — the API derives it from the
+          // logged-in user's linked HR employee. (Previously hard-coded to 1,
+          // which attributed every PR to the same employee.)
           body: JSON.stringify({
-            requesterId: 1, // TODO: Get from session
             priority,
             requiredDate: requiredDate ? toLocalDateStr(requiredDate) : undefined,
             description,

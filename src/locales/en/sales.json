@@ -283,7 +283,8 @@
         "requiredDate": "Required Date",
         "paymentTerms": "Payment Terms",
         "notes": "Notes",
-        "customer": "Customer"
+        "customer": "Customer",
+        "createdBy": "Created By"
       },
       "summary": {
         "progress": "Progress",

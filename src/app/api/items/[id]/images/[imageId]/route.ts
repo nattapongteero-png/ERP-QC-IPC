@@ -47,6 +47,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return new NextResponse('Image data not found', { status: 404 });
     }
 
+    // Build a Content-Disposition that is safe for non-Latin-1 filenames.
+    // HTTP header values must be ISO-8859-1 (ByteString); Thai/Unicode file
+    // names (code points > 255) throw when constructing Headers. Provide an
+    // ASCII fallback plus an RFC 5987 UTF-8 encoded filename* parameter.
+    const asciiFallback = image.fileName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, "'");
+    const encodedFileName = encodeURIComponent(image.fileName);
+    const contentDisposition =
+      `inline; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
+
     // Return the image with appropriate headers
     return new NextResponse(data, {
       status: 200,
@@ -54,7 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         'Content-Type': image.mimeType,
         'Content-Length': data.length.toString(),
         'Cache-Control': 'public, max-age=31536000, immutable',
-        'Content-Disposition': `inline; filename="${image.fileName}"`,
+        'Content-Disposition': contentDisposition,
       },
     });
   } catch (error) {

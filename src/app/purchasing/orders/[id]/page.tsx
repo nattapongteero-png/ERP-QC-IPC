@@ -1455,8 +1455,38 @@ export default function PurchaseOrderDetailPage() {
                   categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
                 />
 
+                {/* ผู้ดำเนินการ — ผู้จัดทำ / ผู้อนุมัติ พร้อมวันเวลา */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t" data-testid="po-actors">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1.5 bg-blue-50 rounded-lg">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">ผู้จัดทำ</p>
+                      <p className="font-medium text-gray-900" data-testid="po-created-by-name">
+                        {po.createdByName || '-'}
+                      </p>
+                      <p className="text-xs text-gray-400">สร้างเมื่อ {formatDateTime(po.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className={cn('p-1.5 rounded-lg', po.approvedByName ? 'bg-green-50' : 'bg-gray-100')}>
+                      <CheckCircle className={cn('h-4 w-4', po.approvedByName ? 'text-green-600' : 'text-gray-400')} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500">ผู้อนุมัติ</p>
+                      <p className="font-medium text-gray-900" data-testid="po-approved-by-name">
+                        {po.approvedByName || 'ยังไม่อนุมัติ'}
+                      </p>
+                      {po.approvedAt && (
+                        <p className="text-xs text-gray-400">อนุมัติเมื่อ {formatDateTime(po.approvedAt)}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Audit Info */}
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-3">
                   <span>สร้างเมื่อ: {formatDateTime(po.createdAt)}</span>
                   <span>แก้ไขล่าสุด: {formatDateTime(po.updatedAt)}</span>
                 </div>

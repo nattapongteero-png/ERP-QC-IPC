@@ -93,6 +93,7 @@ interface SODetail {
     currency: string;
     paymentTerms: string;
     notes: string;
+    createdByName: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -908,6 +909,14 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-xs text-gray-500">{t('orders.detail.fields.paymentTerms')}</p>
               </div>
               <p className="font-medium">{so.paymentTerms || '-'}</p>
+            </div>
+            {/* ผู้สร้าง — SO ไม่มีขั้นอนุมัติแยก ผู้สร้างยืนยันออเดอร์เอง */}
+            <div className="p-3 bg-gray-50 rounded-lg" data-testid="so-created-by">
+              <div className="flex items-center gap-1.5 mb-1">
+                <User className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-xs text-gray-500">{t('orders.detail.fields.createdBy')}</p>
+              </div>
+              <p className="font-medium" data-testid="so-created-by-name">{so.createdByName || '-'}</p>
             </div>
           </div>
 

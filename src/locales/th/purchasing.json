@@ -275,6 +275,22 @@
         "pendingApproval": "รออนุมัติ",
         "approved": "อนุมัติ"
       },
+      "timeline": {
+        "title": "ผู้ดำเนินการ / ประวัติการอนุมัติ",
+        "createdBy": "บันทึกโดย",
+        "requestedBy": "ผู้ขอซื้อ",
+        "empty": "ยังไม่มีประวัติการดำเนินการ",
+        "loadError": "ไม่สามารถโหลดประวัติการดำเนินการได้",
+        "noActor": "ไม่ระบุชื่อ",
+        "delegatedFrom": "ดำเนินการแทน {name}",
+        "action": {
+          "created": "สร้างใบขอซื้อ",
+          "submitted": "ส่งขออนุมัติ",
+          "approved": "อนุมัติ",
+          "rejected": "ปฏิเสธ",
+          "pending": "รออนุมัติจาก"
+        }
+      },
       "convertModal": {
         "title": "แปลงเป็นใบสั่งซื้อ",
         "selectVendor": "เลือกผู้ขาย",

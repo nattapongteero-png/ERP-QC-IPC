@@ -90,12 +90,34 @@ export interface PurchaseRequisition {
   projectId?: number | null;
   totalAmount: number;
   approvalRequestId?: number | null;
+  // createdBy = the user account that recorded the PR (distinct from
+  // requesterId, the HR employee on whose behalf it was raised).
+  createdBy?: number | null;
+  createdByName?: string;
+  approvedBy?: number | null;
+  approvedByName?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
   submittedAt?: Date | string | null;
   approvedAt?: Date | string | null;
   rejectedAt?: Date | string | null;
   rejectionReason?: string | null;
+}
+
+/**
+ * A single step in the PR action timeline shown on the detail page —
+ * who did what, when. Covers creation + every approval-workflow step.
+ */
+export interface PRTimelineEntry {
+  // 'created' is synthesised from the PR row; the rest come from
+  // approval_request_steps (status: approved | rejected | pending | …).
+  type: 'created' | 'submitted' | 'approved' | 'rejected' | 'pending';
+  stepOrder: number | null;
+  stepName: string;
+  actorName: string;          // who performed (or is assigned to) the step
+  delegatedFromName?: string; // set when the step was approved on someone's behalf
+  actionDate?: Date | string | null;
+  comments?: string | null;
 }
 
 /**

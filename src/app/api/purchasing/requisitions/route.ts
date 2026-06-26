@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createPR, listPRs } from '@/lib/services/purchase-requisition.service';
+import { createPR, listPRs, getEmployeeIdForUser } from '@/lib/services/purchase-requisition.service';
 import { prCreateSchema, prListFilterSchema } from '@/lib/validation/purchase-requisition';
 import { getSession } from '@/lib/auth';
 
@@ -53,7 +53,25 @@ export async function POST(request: NextRequest) {
     const data = prCreateSchema.parse(body);
     const userId = session.userId;
 
-    const prId = await createPR(data, userId);
+    // Derive the requester (HR employee) from the logged-in user when the
+    // client didn't specify one explicitly. Fixes the previous hard-coded
+    // requesterId=1 that attributed every PR to the same employee.
+    let requesterId = data.requesterId;
+    if (!requesterId) {
+      const employeeId = await getEmployeeIdForUser(userId);
+      if (!employeeId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'บัญชีผู้ใช้นี้ยังไม่ได้ผูกกับข้อมูลพนักงาน (HR) จึงระบุผู้ขอซื้อไม่ได้ — กรุณาเลือกผู้ขอซื้อ หรือผูกบัญชีกับพนักงานก่อน',
+          },
+          { status: 400 },
+        );
+      }
+      requesterId = employeeId;
+    }
+
+    const prId = await createPR({ ...data, requesterId }, userId);
 
     return NextResponse.json({ success: true, id: prId }, { status: 201 });
   } catch (error: any) {
