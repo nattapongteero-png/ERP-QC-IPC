@@ -674,12 +674,16 @@ a:not([class]):hover {
     border-collapse: separate !important;
     border-spacing: 0 !important;
     width: 100% !important;
-    /* Table outer edges via box-shadow inset (top + left + right + bottom) */
+    /* Table outer edges via box-shadow inset (top + left + right + bottom).
+       MUST be the SAME 1px weight as the per-cell inner lines below — a
+       thicker outer frame (the old 1.5px) doubled up against the cells'
+       own 1px right/bottom shadows on the left/right edges, making the
+       frame read as uneven thick borders. Uniform 1px = clean grid. */
     box-shadow:
-      inset 0 1.5px 0 0 #000,     /* top */
-      inset 1.5px 0 0 0 #000,     /* left */
-      inset -1.5px 0 0 0 #000,    /* right */
-      inset 0 -1.5px 0 0 #000     /* bottom */
+      inset 0 1px 0 0 #000,       /* top */
+      inset 1px 0 0 0 #000,       /* left */
+      inset -1px 0 0 0 #000,      /* right */
+      inset 0 -1px 0 0 #000       /* bottom */
       !important;
   }
 
@@ -1098,21 +1102,28 @@ body.ebmr-preview-active #ebmr-content h3 {
   background: transparent !important;
 }
 
-/* Document-style table grid (box-shadow inset method, same as print) */
+/* Document-style table grid.
+
+   On screen we use real `border-collapse: collapse` borders (NOT the
+   box-shadow-inset method the @media print block uses). The inset method
+   exists ONLY to dodge a Firefox print-rasterizer bug; on screen it is
+   unnecessary and actively harmful: the 1.5px outer frame + 1px per-cell
+   shadows double up on the right/left edges (uneven thick lines) and,
+   because the preview sheet is `transform: scale`d, inset shadows scale
+   to sub-pixel widths and render unevenly (some lines fade, some thicken).
+   `border-collapse: collapse` lets the browser merge shared edges into a
+   single uniform 1px line across the whole grid — clean and professional. */
 body.ebmr-preview-active #ebmr-content table {
-  border-collapse: separate !important;
+  border-collapse: collapse !important;
   border-spacing: 0 !important;
   width: 100% !important;
-  box-shadow:
-    inset 0 1.5px 0 0 #000,
-    inset 1.5px 0 0 0 #000,
-    inset -1.5px 0 0 0 #000,
-    inset 0 -1.5px 0 0 #000 !important;
+  box-shadow: none !important;
+  border: 1px solid #111827 !important;
 }
 body.ebmr-preview-active #ebmr-content table td,
 body.ebmr-preview-active #ebmr-content table th {
-  border: none !important;
-  box-shadow: inset -1px 0 0 0 #000, inset 0 -1px 0 0 #000 !important;
+  border: 1px solid #111827 !important;
+  box-shadow: none !important;
 }
 body.ebmr-preview-active #ebmr-content table thead tr:not(.ebmr-print-title-row) th {
   background-color: #e5e7eb !important;

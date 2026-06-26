@@ -1710,21 +1710,18 @@ export default function WorkOrderDetailPage() {
                 onClick={() => handleStatusChange(nextStatus)}
               />
             )}
-            {activeTabIndex === 5 && (
-              <DxButton
-                text={t('workOrderDetail.header.previewEbmr')}
-                icon="eyeopen"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => setShowPrintPreview(true)}
-              />
-            )}
+            {/* Single eBMR entry point, available on every tab. Always opens
+                the in-app preview overlay (WYSIWYG A4 sheet + zoom + a Print
+                button) instead of firing the raw browser print dialog — the
+                overlay renders clean, uniform document borders, whereas the
+                bare browser dialog showed uneven table frames and gave the
+                user no zoom/preview. Print happens from inside the overlay. */}
             <DxButton
               text={t('workOrderDetail.header.printEbmr')}
               icon="print"
               type="normal"
               stylingMode="outlined"
-              onClick={() => window.print()}
+              onClick={() => setShowPrintPreview(true)}
             />
           </div>
         </div>
