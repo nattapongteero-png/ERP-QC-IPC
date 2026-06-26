@@ -23,30 +23,10 @@ import { getDocuments, getDocumentById } from './document-service';
 // Types
 // ============================================
 
-export interface SopCitation {
-  documentId: number;
-  documentNumber: string;
-  title: string;
-  versionNumber: string;
-}
-
-export interface SopAnswer {
-  answer: string;
-  citations: SopCitation[];
-  /** True when the LLM was unavailable; caller should fall back / retry. */
-  aiUnavailable: boolean;
-  /** True when no relevant active documents were found for the question. */
-  noSources: boolean;
-}
-
-export interface SopAskOptions {
-  /** Max documents to pull into context (default 5). */
-  maxDocs?: number;
-  /** Restrict to a document type (e.g. SOP type id). */
-  typeId?: number;
-  /** Per-document content cap (chars) to keep the prompt bounded. */
-  maxCharsPerDoc?: number;
-}
+// Types live in src/types/sop-assistant.ts so UI/tests can import them without
+// the service's runtime deps. Re-exported here for backward compatibility.
+export type { SopCitation, SopAnswer, SopAskOptions } from '@/types/sop-assistant';
+import type { SopCitation, SopAnswer, SopAskOptions } from '@/types/sop-assistant';
 
 // ============================================
 // Retrieval

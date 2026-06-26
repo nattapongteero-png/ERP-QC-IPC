@@ -10,8 +10,7 @@
  *   <AiSummaryButton endpoint={`/api/gmp/capa/${id}/summary`} />
  */
 import { useState } from 'react';
-import { DxButton } from '@/components/ui/dx-button';
-import { Sparkles, AlertTriangle } from 'lucide-react';
+import { Sparkles, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface AiSummaryResponse {
   summary: string | null;
@@ -58,15 +57,29 @@ export function AiSummaryButton({ endpoint, label = 'สรุปด้วย AI
 
   return (
     <div className={className} data-testid="ai-summary">
-      <DxButton
-        text={loading ? 'กำลังสรุป…' : label}
-        icon="sparkles"
-        stylingMode="outlined"
-        type="default"
-        disabled={loading}
+      <button
+        type="button"
         onClick={run}
+        disabled={loading}
         data-testid="ai-summary-button"
-      />
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 16px',
+          borderRadius: 8,
+          border: '1px solid #c7d2fe',
+          background: '#fff',
+          color: '#4338ca',
+          fontSize: 14,
+          fontWeight: 500,
+          cursor: loading ? 'default' : 'pointer',
+          opacity: loading ? 0.6 : 1,
+        }}
+      >
+        {loading ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
+        {loading ? 'กำลังสรุป…' : label}
+      </button>
 
       {summary && (
         <div

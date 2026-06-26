@@ -9,11 +9,10 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { TextArea } from 'devextreme-react/text-area';
-import { DxButton } from '@/components/ui/dx-button';
 import { ResponsivePageHeader } from '@/components/shared';
+import { VoiceInputButton } from '@/components/ai/voice-input-button';
 import { Bot, Send, FileText, Loader2, AlertTriangle, User } from 'lucide-react';
-import type { SopAnswer, SopCitation } from '@/lib/services/sop-assistant.service';
+import type { SopAnswer, SopCitation } from '@/types/sop-assistant';
 
 interface ChatTurn {
   question: string;
@@ -116,28 +115,52 @@ export default function SopAssistantPage() {
         <div ref={endRef} />
       </div>
 
-      <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <div style={{ flex: 1 }}>
-          <TextArea
-            value={input}
-            onValueChanged={(e) => setInput(e.value ?? '')}
-            onKeyDown={(e) => onKeyDown(e.event as unknown as React.KeyboardEvent)}
-            placeholder="พิมพ์คำถามเกี่ยวกับ SOP/GMP…"
-            autoResizeEnabled
-            minHeight={48}
-            maxHeight={140}
-            data-testid="sop-input"
-          />
-        </div>
-        <DxButton
-          icon="send"
-          type="default"
-          stylingMode="contained"
-          disabled={loading || !input.trim()}
-          onClick={ask}
-          data-testid="sop-send-button"
-          text="ถาม"
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+        <VoiceInputButton onTranscript={(text) => setInput((prev) => (prev ? `${prev} ${text}` : text))} />
+      </div>
+
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="พิมพ์คำถามเกี่ยวกับ SOP/GMP…"
+          data-testid="sop-input"
+          rows={2}
+          style={{
+            flex: 1,
+            resize: 'vertical',
+            minHeight: 48,
+            maxHeight: 140,
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: '1px solid #d1d5db',
+            fontSize: 14,
+            fontFamily: 'inherit',
+          }}
         />
+        <button
+          type="button"
+          onClick={ask}
+          disabled={loading || !input.trim()}
+          data-testid="sop-send-button"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '10px 18px',
+            borderRadius: 8,
+            border: 'none',
+            background: '#2563eb',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: loading || !input.trim() ? 'default' : 'pointer',
+            opacity: loading || !input.trim() ? 0.5 : 1,
+          }}
+        >
+          <Send size={15} /> ถาม
+        </button>
       </div>
     </div>
   );
