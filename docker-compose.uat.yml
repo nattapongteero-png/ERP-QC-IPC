@@ -82,6 +82,11 @@ services:
       # (.../callback/<company>) — no separate company key.
       - METAHERB_SSO_SECRET=${METAHERB_SSO_SECRET:-}
       - METAHERB_CALLBACK_URL=${METAHERB_CALLBACK_URL:-https://api.pomdevth.site/api/sso/erp/callback}
+      # Shared secret guarding all cron routes (x-cron-secret / Bearer): VMI
+      # poll-orders/sync-inventory/prices/items + Metaherb PR-status retry
+      # sweeper. Without it those routes 500 ("Cron endpoint not configured").
+      # Sourced from .env; the inline boot-drain still retries on restart if unset.
+      - CRON_SECRET=${CRON_SECRET:-}
     depends_on:
       mysql-uat:
         condition: service_healthy
