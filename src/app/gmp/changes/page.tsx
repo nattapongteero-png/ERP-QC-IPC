@@ -329,13 +329,6 @@ export default function ChangeControlListPage() {
               className="hidden sm:inline-flex"
             />
             <DxButton
-              icon="chart"
-              text={t('changes.actions.analytics')}
-              stylingMode="outlined"
-              onClick={handleRefresh}
-              className="hidden md:inline-flex"
-            />
-            <DxButton
               icon="plus"
               text={t('changes.actions.newChange')}
               type="success"

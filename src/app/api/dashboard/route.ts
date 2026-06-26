@@ -1,12 +1,37 @@
 import { NextRequest } from 'next/server';
-import { eq, sql, and } from 'drizzle-orm';
+import { eq, sql, and, gte, lt, ne } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
+import { toQueryDate } from '@/lib/db/date-utils';
 import {
   successResponse,
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
 import { getDashboardModuleKpis } from '@/lib/services/dashboard.service';
+
+/**
+ * Sum the value of non-draft, non-cancelled sales orders whose orderDate
+ * falls within [start, end). Used for the monthly-growth KPI — real data,
+ * never a hardcoded figure.
+ */
+async function sumSalesInRange(start: Date, end: Date): Promise<number> {
+  const soTable = getTableRef('salesOrders');
+  return executeDbOperation(async (db) => {
+    const result = await db
+      .select({ total: sql`COALESCE(SUM(${soTable.totalAmount}), 0)` })
+      .from(soTable)
+      .where(
+        and(
+          ne(soTable.status, 'draft'),
+          ne(soTable.status, 'cancelled'),
+          sql`${soTable.orderDate} IS NOT NULL`,
+          gte(soTable.orderDate, toQueryDate(start)),
+          lt(soTable.orderDate, toQueryDate(end))
+        )
+      );
+    return Number(result[0]?.total || 0);
+  });
+}
 
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: NextRequest) {
@@ -104,6 +129,24 @@ export async function GET(request: NextRequest) {
         getDashboardModuleKpis(),
       ]);
 
+      // Monthly sales growth: this calendar month vs last calendar month.
+      // Computed from real sales-order values — null when there is no prior
+      // month to compare against (so the UI shows "—" instead of a fake %).
+      const now = new Date();
+      const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const [thisMonthSales, lastMonthSales] = await Promise.all([
+        sumSalesInRange(startThisMonth, startNextMonth),
+        sumSalesInRange(startLastMonth, startThisMonth),
+      ]);
+
+      const monthlyGrowthPercent =
+        lastMonthSales > 0
+          ? ((thisMonthSales - lastMonthSales) / lastMonthSales) * 100
+          : null;
+
       // Get recent work orders
       const recentWorkOrders = await executeDbOperation(async (db) => {
         return db
@@ -169,6 +212,9 @@ export async function GET(request: NextRequest) {
           pendingPOs,
           pendingSOs,
           openDeviations,
+          thisMonthSales,
+          lastMonthSales,
+          monthlyGrowthPercent,
         },
         recentWorkOrders,
         inventoryByStatus,

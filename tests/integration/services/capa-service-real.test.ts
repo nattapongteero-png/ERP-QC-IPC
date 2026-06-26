@@ -116,6 +116,8 @@ function syncSchemaFromDrizzle() {
     schema.sqliteCapaAttachments,
     schema.sqliteCapaApprovals,
     schema.sqliteDeviations,
+    schema.sqliteComplaints,
+    schema.sqliteAuditFindings,
   ];
 
   for (const table of tablesToCreate) {
@@ -258,6 +260,16 @@ describe('CAPA Service Real Integration Tests', () => {
       expect(effectiveness.result).toBe('effective');
       expect(effectiveness.checkNumber).toBe(1);
 
+      // Step 7b: Risk assessment is a required close gate — set it via updateCapa.
+      const risked = await updateCapa(capa.id, {
+        riskSeverity: 'major',
+        riskProbability: 'unlikely',
+        riskJustification: 'Contained excursion, low recurrence likelihood',
+      }, 1);
+      expect(risked.riskSeverity).toBe('major');
+      expect(risked.riskProbability).toBe('unlikely');
+      expect(risked.riskScore).toBe(8); // major(4) × unlikely(2)
+
       // Step 8: Close CAPA
       const closedCapa = await closeCapa(capa.id, 'All actions completed and verified effective', 1);
 
@@ -386,6 +398,13 @@ describe('CAPA Service Real Integration Tests', () => {
 
       expect(effectiveCheck.checkNumber).toBe(2);
       expect(effectiveCheck.result).toBe('effective');
+
+      // Root cause + risk assessment are required close gates.
+      await updateCapa(capa.id, {
+        rootCauseAnalysis: 'Process variation under specific conditions',
+        riskSeverity: 'moderate',
+        riskProbability: 'possible',
+      }, 1);
 
       // Now can close
       const closedCapa = await closeCapa(capa.id, 'Closed after follow-up', 1);
@@ -587,7 +606,7 @@ describe('CAPA Service Real Integration Tests', () => {
       }, 1);
 
       await expect(closeCapa(capa.id, 'Try to close', 1))
-        .rejects.toThrow('action(s) not completed');
+        .rejects.toThrow('การดำเนินการ (Action)');
     });
 
     it('should prevent closing without effectiveness check', async () => {
@@ -610,7 +629,7 @@ describe('CAPA Service Real Integration Tests', () => {
       await updateAction(action.id, { status: 'completed' }, 2);
 
       await expect(closeCapa(capa.id, 'Try to close', 1))
-        .rejects.toThrow('No effective verification');
+        .rejects.toThrow('การประเมินประสิทธิผล (Effectiveness Check)');
     });
   });
 

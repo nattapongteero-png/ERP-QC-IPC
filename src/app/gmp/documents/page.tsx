@@ -369,7 +369,7 @@ export default function GmpDocumentsDashboardPage() {
   const renderActions = useCallback((cellData: { data: Document }) => {
     const doc = cellData.data;
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -703,7 +703,11 @@ export default function GmpDocumentsDashboardPage() {
             />
             <Column
               caption={t('documents.table.columns.actions')}
-              minWidth={120}
+              width={120}
+              fixed={true}
+              fixedPosition="right"
+              allowHiding={false}
+              alignment="center"
               cellRender={renderActions}
               allowFiltering={false}
               allowSorting={false}
