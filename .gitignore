@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+# Playwright run artifacts (videos, failure screenshots, error-context)
+/test-results/
+# SQLite test database (regenerated on each test run)
+test.db
 
 # next.js
 /.next/
