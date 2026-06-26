@@ -12,6 +12,7 @@
     "test": "DB_TYPE=sqlite vitest",
     "test:run": "DB_TYPE=sqlite vitest run",
     "test:coverage": "DB_TYPE=sqlite vitest run --coverage",
+    "test:clean": "node scripts/kill-vitest.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

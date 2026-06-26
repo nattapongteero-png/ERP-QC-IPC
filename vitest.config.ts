@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import os from 'os';
 import react from '@vitejs/plugin-react';
 
 // Two .ts tests render React components, so they need jsdom despite the .ts
@@ -11,12 +12,31 @@ const JSDOM_TS_TESTS = [
   'tests/unit/hooks/use-vmi-auto-sync.test.ts',
 ];
 
+// RAM-bound worker sizing. Each vitest fork loads the full module graph
+// (Next + Drizzle + DevExtreme + ...) and costs roughly ~0.6 GB. This machine
+// has 16 GB but routinely runs the dev container + UAT stack alongside, so
+// free RAM is often ~2 GB. Capping workers by *current* free memory keeps a
+// test run from pushing the machine into swap (the real cause of "vitest is
+// slow" — swap thrash, not CPU). When RAM is free it scales back up.
+const PER_WORKER_GB = 0.6;
+const freeGB = os.freemem() / 1024 ** 3;
+const byRam = Math.max(1, Math.floor(freeGB / PER_WORKER_GB));
+const byCpu = Math.max(1, os.cpus().length - 2); // leave 2 cores for OS/Docker
+const WORKERS = Math.min(byCpu, byRam, 6);
+
 export default defineConfig({
   test: {
     globals: true,
-    // 8-core machine: 6 workers leaves headroom for the OS and avoids the
-    // RAM thrashing the old maxWorkers: 16 (2x oversubscription) caused.
-    maxWorkers: 6,
+    // Adaptive: min(cpu-2, freeRAM/0.6GB, 6). See note above — RAM is the
+    // binding constraint here, so fewer workers under memory pressure is
+    // actually *faster* (avoids swap) than oversubscribing.
+    maxWorkers: WORKERS,
+    minWorkers: 1,
+    // Cap each fork's heap so one runaway test can't balloon the machine into
+    // swap; forks (not threads) keep better-sqlite3's native addon stable.
+    poolOptions: {
+      forks: { maxForks: WORKERS, minForks: 1 },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
