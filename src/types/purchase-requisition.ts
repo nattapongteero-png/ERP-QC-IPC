@@ -42,6 +42,10 @@ export interface PRCreateInput {
   justification?: string;
   costCenterId?: number;
   projectId?: number;
+  // External-origin markers (e.g. Metaherb-created PRs). Drives the outbound
+  // PR-status webhook — see isMetaherbOrigin() in metaherb-pr-webhook.service.
+  externalSource?: string;
+  externalRef?: string;
 }
 
 /**

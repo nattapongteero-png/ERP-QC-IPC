@@ -158,6 +158,8 @@ export async function createPR(
           justification: data.justification || null,
           costCenterId: data.costCenterId || null,
           projectId: data.projectId || null,
+          externalSource: data.externalSource || null,
+          externalRef: data.externalRef || null,
           totalAmount: 0,
           createdBy,
           createdAt: now,

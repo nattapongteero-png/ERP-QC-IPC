@@ -179,6 +179,17 @@ function deliveryUpdateFromOutcome(
 }
 
 /**
+ * Is this PR's origin Metaherb? Tolerant by design: Metaherb stamps the source
+ * with different casings/suffixes across its surfaces (e.g. 'metaherb',
+ * 'METAHERB_WEB'), so we match any value that starts with "metaherb"
+ * case-insensitively rather than an exact 'metaherb'. NULL/empty → false.
+ */
+export function isMetaherbOrigin(externalSource: string | null | undefined): boolean {
+  return typeof externalSource === 'string'
+    && externalSource.trim().toLowerCase().startsWith('metaherb');
+}
+
+/**
  * OUTBOUND entry point — call AFTER a PR status commit, fire-and-forget.
  * Skips silently for non-Metaherb PRs. Never throws.
  */
@@ -207,7 +218,7 @@ export async function notifyMetaherbPrStatus(
       return;
     }
     // Only Metaherb-originated PRs are pushed back. Silent skip otherwise.
-    if (pr.externalSource !== 'metaherb') {
+    if (!isMetaherbOrigin(pr.externalSource)) {
       return;
     }
 

@@ -50,6 +50,13 @@ export const prCreateSchema = z.object({
   justification: z.string().max(1000).optional(),
   costCenterId: z.number().int().positive().optional(),
   projectId: z.number().int().positive().optional(),
+  // Origin marker for PRs created by an external system (e.g. Metaherb sends
+  // externalSource='METAHERB_WEB'). When externalSource starts with "metaherb"
+  // the PR-status webhook fires back to Metaherb on approve/reject/convert/cancel.
+  // externalRef holds the partner's own PR id for correlation. Lengths mirror
+  // purchase_requisitions.external_source varchar(32) / external_ref varchar(64).
+  externalSource: z.string().max(32).optional(),
+  externalRef: z.string().max(64).optional(),
 });
 
 /**
