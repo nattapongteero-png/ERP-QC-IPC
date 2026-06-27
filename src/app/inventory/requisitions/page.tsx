@@ -73,6 +73,9 @@ export default function MaterialRequisitionsInboxPage() {
   // list: click the chevron to reveal the requisition's materials + actions
   // in-place instead of navigating to a separate detail page.
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // Client-side paging (the HTML table has no built-in pager like DxDataGrid did).
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Date preset helpers — set BOTH from/to so a chip shows the active range.
   const setDatePreset = (preset: 'today' | 'last7' | 'last30' | 'thisMonth') => {
@@ -241,6 +244,16 @@ export default function MaterialRequisitionsInboxPage() {
   const gridRows = useMemo(
     () => filteredRows.map((r) => ({ ...r, _key: rowKey(r) })),
     [filteredRows],
+  );
+
+  // Reset to page 1 whenever the filtered set changes (tab/status/search/date),
+  // so we never land on an empty page past the new end.
+  useEffect(() => { setPage(1); }, [sourceTab, statusFilter, outStatusFilter, search, dateFrom, dateTo, insufficientOnly]);
+
+  const totalPages = Math.max(1, Math.ceil(gridRows.length / pageSize));
+  const pagedRows = useMemo(
+    () => gridRows.slice((page - 1) * pageSize, page * pageSize),
+    [gridRows, page, pageSize],
   );
 
   // Stats reflect the active source tab so the cards match what's listed.
@@ -518,22 +531,24 @@ export default function MaterialRequisitionsInboxPage() {
             {t('requisitions.empty')}
           </div>
         ) : (
-          <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-[820px] w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-[820px] w-full divide-y divide-emerald-50">
+                <thead className="bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
                   <tr>
-                    <th className="w-8 px-3 py-2"></th>
-                    <th className="w-12 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{t('requisitions.table.workOrder')}</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('requisitions.table.materialName')}</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{t('requisitions.requestedBy', { name: '' }).replace(':', '').trim()}</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('requisitions.statusOptions.all')}</th>
+                    <th className="w-8 px-3 py-2.5"></th>
+                    <th className="w-12 px-3 py-2.5 text-center text-xs font-semibold text-emerald-800 uppercase tracking-wider">#</th>
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-emerald-800 uppercase tracking-wider whitespace-nowrap">{t('requisitions.table.workOrder')}</th>
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-emerald-800 uppercase tracking-wider">{t('requisitions.table.materialName')}</th>
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-emerald-800 uppercase tracking-wider whitespace-nowrap">{t('requisitions.requestedBy', { name: '' }).replace(':', '').trim()}</th>
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-emerald-800 uppercase tracking-wider">{t('requisitions.statusOptions.all')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {gridRows.map((req, idx) => {
+                <tbody className="divide-y divide-emerald-50 bg-white">
+                  {pagedRows.map((req, idx) => {
                     const key = req._key;
+                    // Sequence continues across pages (page 2 starts at 21, …).
+                    const sequence = (page - 1) * pageSize + idx + 1;
                     const expanded = expandedKey === key;
                     const insufficient = req.materials.some(isInsufficient);
                     const isOob = req.source === 'out_of_bom';
@@ -545,7 +560,7 @@ export default function MaterialRequisitionsInboxPage() {
                       <RequisitionRowFragment
                         key={key}
                         req={req}
-                        sequence={idx + 1}
+                        sequence={sequence}
                         expanded={expanded}
                         onToggle={() => setExpandedKey(expanded ? null : key)}
                         insufficient={insufficient}
@@ -563,6 +578,39 @@ export default function MaterialRequisitionsInboxPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+            {/* Pager — page size + prev/next, restoring what the DxDataGrid gave. */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 border-t border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9] text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                {[10, 20, 50, 100].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => { setPageSize(n); setPage(1); }}
+                    className={
+                      pageSize === n
+                        ? 'px-2.5 py-1 rounded-md bg-emerald-600 text-white text-xs font-medium'
+                        : 'px-2.5 py-1 rounded-md border border-gray-200 hover:bg-white text-xs'
+                    }
+                  >{n}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <span>
+                  {t('requisitions.page.title')} {page} / {totalPages} ({gridRows.length})
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                  >‹</button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                  >›</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -599,8 +647,8 @@ function RequisitionRowFragment({
 }) {
   return (
     <>
-      <tr className="hover:bg-emerald-50/30 cursor-pointer" onClick={onToggle}>
-        <td className="px-3 py-2 text-gray-400">
+      <tr className={`cursor-pointer transition-colors ${expanded ? 'bg-emerald-50/60' : 'hover:bg-emerald-50/30'}`} onClick={onToggle}>
+        <td className="px-3 py-2 text-emerald-500">
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </td>
         <td className="px-3 py-2 text-xs text-center text-gray-500">{sequence}</td>
