@@ -73,13 +73,24 @@ describe('askSop', () => {
     expect(complete).not.toHaveBeenCalled();
   });
 
-  it('skips file-only docs that have no text content', async () => {
+  it('still cites file-only docs (no text content) instead of saying not-found', async () => {
+    // File-only docs (scanned PDFs with no body text) used to be skipped, which
+    // made the assistant wrongly answer "ไม่พบเอกสาร". Now we keep them: the LLM
+    // is called with a placeholder and the doc is returned as a citation so the
+    // user is told the SOP exists and can open the attached file.
     getDocuments.mockResolvedValue({ documents: [doc(1, 'SOP-X', 'Scanned only')], total: 1 });
     getDocumentById.mockResolvedValue(detail(1, 'SOP-X', 'Scanned only', '')); // empty content
+    complete.mockResolvedValue('พบเอกสาร SOP-X v1 — เป็นไฟล์แนบ กรุณาเปิดดูที่หน้าเอกสาร');
+
     const result = await askSop('test question');
 
-    expect(result.noSources).toBe(true);
-    expect(complete).not.toHaveBeenCalled();
+    expect(result.noSources).toBe(false);
+    expect(complete).toHaveBeenCalled();
+    expect(result.citations).toHaveLength(1);
+    expect(result.citations[0]).toMatchObject({ documentNumber: 'SOP-X' });
+    // The prompt fed to the LLM must flag the doc as a file-only attachment.
+    const prompt = complete.mock.calls[0][0] as string;
+    expect(prompt).toContain('ไฟล์แนบ');
   });
 
   it('reports aiUnavailable but still returns citations when the LLM is down', async () => {
