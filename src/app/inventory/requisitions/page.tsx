@@ -12,9 +12,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { DxDataGrid, DxColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -26,172 +28,21 @@ import {
   CheckCircle2,
   Package,
   AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Scale,
   X,
   Filter,
 } from 'lucide-react';
-import {
-  calculateIssuance,
-  type UnitConfig,
-} from '@/lib/utils/unit-conversion';
 import { formatNumber } from '@/lib/utils/number-format';
+import {
+  rowKey,
+  formatDateTh,
+  isInsufficient,
+  type RequisitionRow,
+} from './_lib';
 
-interface MaterialRow {
-  materialId: number;
-  itemId: number;
-  itemCode: string | null;
-  itemName: string | null;
-  plannedQuantity: number;
-  actualQuantity: number | null;
-  unit: string;
-  itemUnit: string | null;
-  secondaryUnit: string | null;
-  conversionRate: number | string | null;
-  weightUnit: string | null;
-  secondaryToWeightRate: number | string | null;
-  weightTrackingEnabled: boolean | number | null;
-  status: string | null;
-  onHand: number | string | null;
-  releasedAvailable: number;
-  stockAtApproval: number | string | null;
-}
-
-interface RequisitionRow {
-  source: 'bom' | 'out_of_bom';
-  /** Out-of-BOM withdrawal request id (present only when source = 'out_of_bom'). */
-  requestId?: number;
-  reasonType?: string;
-  /** Real out-of-BOM state: 'approved' = awaiting release, 'released' = issued. */
-  workflowStatus?: 'approved' | 'released';
-  workOrderId: number;
-  woNumber: string;
-  batchNumber: string;
-  productName: string | null;
-  productCode: string | null;
-  plannedQuantity?: number;
-  unit?: string;
-  requisitionStatus: 'requested' | 'approved';
-  requestedBy: string | null;
-  requestedAt: string | null;
-  approvedBy: string | null;
-  approvedAt: string | null;
-  releasedBy?: string | null;
-  releasedAt?: string | null;
-  materials: MaterialRow[];
-}
-
-/** Stable list key — out-of-BOM rows share a workOrderId, so key by requestId. */
-function rowKey(r: RequisitionRow): string {
-  return r.source === 'out_of_bom' ? `wd-${r.requestId}` : `wo-${r.workOrderId}`;
-}
-
-function formatDateTh(value: string | null | undefined) {
-  if (!value) return '—';
-  try {
-    return new Date(value).toLocaleString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return String(value);
-  }
-}
-
-/**
- * Reduce a material row into a {needed, issuance, status} summary.
- * Returns null when the item is not weight-tracked or required fields are missing —
- * the caller should fall back to plain "plannedQty unit" display.
- */
-function planIssuance(mat: MaterialRow): {
-  puToIssue: number;
-  actualIssuedSU: number;
-  remainderSU: number;
-  pu: string;
-  su: string;
-} | null {
-  const tracked = !!mat.weightTrackingEnabled;
-  const ratio1 = Number(mat.conversionRate);
-  if (!tracked || !Number.isFinite(ratio1) || ratio1 <= 0) return null;
-  if (!mat.secondaryUnit || !mat.itemUnit) return null;
-
-  // plannedQuantity is in `unit` (BOM line unit). Coerce it to SU before issuance:
-  // - if BOM unit == secondaryUnit → already SU
-  // - if BOM unit == primaryUnit → multiply by ratio1
-  // - otherwise: bail (we'd be guessing)
-  let plannedSU: number;
-  if (mat.unit === mat.secondaryUnit) {
-    plannedSU = Number(mat.plannedQuantity);
-  } else if (mat.unit === mat.itemUnit) {
-    plannedSU = Number(mat.plannedQuantity) * ratio1;
-  } else {
-    return null;
-  }
-  if (!Number.isFinite(plannedSU) || plannedSU <= 0) return null;
-
-  const config: UnitConfig = {
-    primaryUnit: mat.itemUnit,
-    secondaryUnit: mat.secondaryUnit,
-    weightUnit: mat.weightUnit,
-    conversionRate: ratio1,
-    secondaryToWeightRate: Number(mat.secondaryToWeightRate) || null,
-    weightTrackingEnabled: true,
-  };
-
-  try {
-    const r = calculateIssuance(plannedSU, config);
-    return {
-      puToIssue: r.puToIssue,
-      actualIssuedSU: r.actualIssuedSU,
-      remainderSU: r.remainderSU,
-      pu: mat.itemUnit,
-      su: mat.secondaryUnit,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Stock-sufficiency check for one material row.
- *
- * releasedAvailable comes back from the API in PRIMARY unit (it sums
- * inventory_lots which are always stored in primary). plannedQuantity is
- * in the BOM line's own unit — could be primary, secondary, or weight.
- * Raw `available < planned` is wrong whenever those units differ: e.g.
- * 11.2 box of capsules vs planned 170,000 cap → 11.2 < 170000 reads as
- * "insufficient" even though 11.2 box = 1,120,000 cap is plenty.
- *
- * We coerce planned into primary unit using the conversion chain
- * (SU → PU via conversionRate; WU → SU → PU via secondaryToWeightRate
- * then conversionRate) and compare in primary.
- */
-function plannedInPrimary(mat: MaterialRow): number {
-  const planned = Number(mat.plannedQuantity);
-  if (!Number.isFinite(planned)) return 0;
-
-  const ratio1 = Number(mat.conversionRate);
-  const ratio2 = Number(mat.secondaryToWeightRate);
-
-  if (mat.unit === mat.itemUnit) return planned;
-  if (mat.unit === mat.secondaryUnit && ratio1 > 0) return planned / ratio1;
-  if (mat.unit === mat.weightUnit && ratio1 > 0 && ratio2 > 0) {
-    return planned / ratio2 / ratio1;
-  }
-  // Unknown unit pairing — fall back to raw value rather than guess.
-  return planned;
-}
-
-function isInsufficient(mat: MaterialRow): boolean {
-  return Number(mat.releasedAvailable) < plannedInPrimary(mat);
-}
 
 export default function MaterialRequisitionsInboxPage() {
   const t = useTranslations('inventory');
+  const router = useRouter();
   const toast = useToast();
 
   const STATUS_OPTIONS = useMemo(() => [
@@ -217,7 +68,6 @@ export default function MaterialRequisitionsInboxPage() {
   const [dateFrom, setDateFrom] = useState<string>(''); // YYYY-MM-DD
   const [dateTo, setDateTo] = useState<string>('');     // YYYY-MM-DD
   const [insufficientOnly, setInsufficientOnly] = useState<boolean>(false);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [approving, setApproving] = useState<Set<number>>(new Set());
 
   // Date preset helpers — set BOTH from/to so a chip shows the active range.
@@ -319,6 +169,14 @@ export default function MaterialRequisitionsInboxPage() {
     });
   }, [rows, sourceTab, statusFilter, outStatusFilter, search, dateFrom, dateTo, insufficientOnly]);
 
+  // Add a stable grid/route key per row (out-of-BOM rows share workOrderId, so
+  // rowKey discriminates by requestId). keyExpr="_key" + onRowClick use it to
+  // navigate to /inventory/requisitions/{_key}.
+  const gridRows = useMemo(
+    () => filteredRows.map((r) => ({ ...r, _key: rowKey(r) })),
+    [filteredRows],
+  );
+
   // Stats reflect the active source tab so the cards match what's listed.
   // For out-of-BOM the cards mean awaiting-release vs released.
   const stats = useMemo(() => {
@@ -361,13 +219,6 @@ export default function MaterialRequisitionsInboxPage() {
       }));
   }, [rows, sourceTab, statusFilter, outStatusFilter]);
 
-  const toggle = (woId: number) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(woId)) next.delete(woId);
-      else next.add(woId);
-      return next;
-    });
 
   const approve = async (woId: number) => {
     setApproving((prev) => new Set(prev).add(woId));
@@ -668,220 +519,104 @@ export default function MaterialRequisitionsInboxPage() {
             {t('requisitions.empty')}
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredRows.map((req) => {
-              // Out-of-BOM rows share a workOrderId, so the expand toggle keys
-              // off requestId for those; BOM rows key off workOrderId.
-              const toggleKey = req.source === 'out_of_bom' ? req.requestId! : req.workOrderId;
-              const isOpen = expanded.has(toggleKey);
-              const insufficient = req.materials.some(isInsufficient);
-              return (
-                <div
-                  key={rowKey(req)}
-                  className="rounded-2xl border border-emerald-100 bg-white shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden"
-                >
-                  <button
-                    onClick={() => toggle(toggleKey)}
-                    className="w-full px-5 py-4 flex items-center gap-4 hover:bg-[#F6FCF9] transition-colors text-left"
-                  >
-                    {isOpen ? (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
+          <DxDataGrid
+            dataSource={gridRows}
+            keyExpr="_key"
+            showBorders
+            showRowLines
+            rowAlternationEnabled
+            columnAutoWidth
+            pageSize={20}
+            allowedPageSizes={[10, 20, 50, 100]}
+            onRowClick={(e) => router.push(`/inventory/requisitions/${e.key}`)}
+            elementAttr={{ 'data-testid': 'requisitions-grid' }}
+          >
+            <DxColumn
+              caption="#"
+              width={48}
+              alignment="center"
+              allowSorting={false}
+              allowFiltering={false}
+              cellRender={(c) => (
+                <span className="text-gray-500 text-sm font-medium">{(c.row?.loadIndex ?? 0) + 1}</span>
+              )}
+            />
+            <DxColumn
+              caption={t('requisitions.table.materialName')}
+              minWidth={180}
+              cellRender={(c) => {
+                const req = c.data as RequisitionRow;
+                return (
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-900">{req.woNumber}</div>
+                    <div className="text-xs text-gray-500">Batch {req.batchNumber}</div>
+                  </div>
+                );
+              }}
+            />
+            <DxColumn
+              caption={t('requisitions.table.materialName')}
+              minWidth={200}
+              cellRender={(c) => {
+                const req = c.data as RequisitionRow;
+                return (
+                  <div className="min-w-0">
+                    <div className="text-sm text-gray-900">{req.productName ?? '—'}</div>
+                    <div className="text-xs text-gray-500">{req.productCode ?? ''}</div>
+                    {req.source === 'out_of_bom' && req.reasonType && (
+                      <div className="text-xs text-blue-600 mt-0.5">
+                        {t('requisitions.reason', { reason: reasonLabel(req.reasonType) })}
+                      </div>
                     )}
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">{req.woNumber}</div>
-                        <div className="text-xs text-gray-500">Batch {req.batchNumber}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-900">{req.productName ?? '—'}</div>
-                        <div className="text-xs text-gray-500">{req.productCode ?? ''}</div>
-                        {req.source === 'out_of_bom' && req.reasonType && (
-                          <div className="text-xs text-blue-600 mt-0.5">
-                            {t('requisitions.reason', { reason: reasonLabel(req.reasonType) })}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        <div>{t('requisitions.requestedBy', { name: req.requestedBy ?? '—' })}</div>
-                        <div>{formatDateTh(req.requestedAt)}</div>
-                      </div>
-                      <div className="flex items-center gap-2 justify-start md:justify-end">
-                        {insufficient && req.workflowStatus !== 'released' && (
-                          <Badge variant="danger" dot>
-                            <AlertTriangle className="h-3 w-3 mr-1" /> {t('requisitions.badges.insufficient')}
-                          </Badge>
-                        )}
-                        {req.source === 'out_of_bom' ? (
-                          <Badge
-                            variant={req.workflowStatus === 'released' ? 'success' : 'warning'}
-                            dot
-                          >
-                            {req.workflowStatus === 'released' ? t('requisitions.badges.released') : t('requisitions.badges.awaitingRelease')}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'}
-                            dot
-                          >
-                            {req.requisitionStatus === 'approved' ? t('requisitions.badges.approved') : t('requisitions.badges.awaitingApproval')}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-
-                  {isOpen && (
-                    <div className="px-5 pb-5 border-t border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="text-xs text-gray-500 uppercase">
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-2 pr-3">{t('requisitions.table.itemCode')}</th>
-                              <th className="text-left py-2 px-3">{t('requisitions.table.materialName')}</th>
-                              <th className="text-right py-2 px-3">{t('requisitions.table.quantityNeeded')}</th>
-                              <th className="text-right py-2 px-3">
-                                <div className="inline-flex items-center gap-1 justify-end">
-                                  <Scale className="h-3.5 w-3.5" /> {t('requisitions.table.quantityToIssue')}
-                                </div>
-                              </th>
-                              <th className="text-right py-2 pl-3">{t('requisitions.table.onHand')}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {req.materials.map((mat) => {
-                              const plan = planIssuance(mat);
-                              const need = Number(mat.plannedQuantity);
-                              const have = Number(mat.releasedAvailable);
-                              // Compare in primary unit — have is already
-                              // primary; coerce planned via plannedInPrimary()
-                              // so the colour matches the badge logic.
-                              const enough = have >= plannedInPrimary(mat);
-                              const ratio1 = Number(mat.conversionRate);
-                              const haveSU =
-                                plan && Number.isFinite(ratio1) && ratio1 > 0
-                                  ? have * ratio1
-                                  : null;
-                              return (
-                                <tr
-                                  key={mat.materialId}
-                                  className="border-b border-gray-100 last:border-b-0"
-                                >
-                                  <td className="py-2 pr-3 font-medium text-gray-900">
-                                    {mat.itemCode}
-                                  </td>
-                                  <td className="py-2 px-3 text-gray-700">{mat.itemName}</td>
-                                  <td className="py-2 px-3 text-right">
-                                    <span className="font-medium">
-                                      {formatNumber(need)}
-                                    </span>{' '}
-                                    <span className="text-gray-500">{mat.unit}</span>
-                                  </td>
-                                  <td className="py-2 px-3 text-right">
-                                    {plan ? (
-                                      <div>
-                                        <span className="font-semibold text-emerald-700">
-                                          {formatNumber(plan.puToIssue)} {plan.pu}
-                                        </span>
-                                        {plan.remainderSU > 0 && (
-                                          <div className="text-xs text-amber-700">
-                                            {t('requisitions.table.remainderOnSite', { qty: formatNumber(plan.remainderSU), unit: plan.su })}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="font-semibold text-emerald-700">
-                                        {formatNumber(need)} {mat.unit}
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td
-                                    className={`py-2 pl-3 text-right ${
-                                      enough ? 'text-gray-700' : 'text-red-600 font-semibold'
-                                    }`}
-                                  >
-                                    <div>
-                                      {formatNumber(have)}{' '}
-                                      <span className="text-gray-500 text-xs">
-                                        {mat.itemUnit}
-                                      </span>
-                                    </div>
-                                    {haveSU != null && plan && (
-                                      <div className="text-xs text-gray-500">
-                                        = {formatNumber(haveSU)} {plan.su}
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* BOM requisition — warehouse approves (deducts on approve) */}
-                      {req.source === 'bom' && req.requisitionStatus === 'requested' && (
-                        <div className="flex items-center justify-end mt-4 gap-2">
-                          <DxButton
-                            text={approving.has(req.workOrderId) ? t('requisitions.approvingBtn') : t('requisitions.approveBtn')}
-                            icon="check"
-                            type="success"
-                            stylingMode="contained"
-                            disabled={approving.has(req.workOrderId) || insufficient}
-                            onClick={() => approve(req.workOrderId)}
-                          />
-                          {insufficient && (
-                            <span className="text-xs text-red-600">
-                              {t('requisitions.insufficientCannotApprove')}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {req.source === 'bom' && req.requisitionStatus === 'approved' && (
-                        <div className="flex items-center justify-end mt-4 text-xs text-gray-500">
-                          {t('requisitions.approvedBy', { name: req.approvedBy ?? '—', date: formatDateTh(req.approvedAt) })}
-                        </div>
-                      )}
-
-                      {/* Out-of-BOM withdrawal — supervisor already approved.
-                          If awaiting release → show the release button (deducts
-                          stock). If already released → show who issued it. */}
-                      {req.source === 'out_of_bom' && (
-                        <div className="flex flex-col items-end mt-4 gap-2">
-                          <div className="text-xs text-gray-500">
-                            {t('requisitions.approvedBySupervisor', { name: req.approvedBy ?? '—', date: formatDateTh(req.approvedAt) })}
-                          </div>
-                          {req.workflowStatus === 'released' ? (
-                            <div className="text-xs text-emerald-700 font-medium">
-                              {t('requisitions.releasedBy', { name: req.releasedBy ?? '—', date: formatDateTh(req.releasedAt) })}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <DxButton
-                                text={releasing.has(req.requestId!) ? t('requisitions.releasingBtn') : t('requisitions.releaseBtn')}
-                                icon="box"
-                                type="success"
-                                stylingMode="contained"
-                                disabled={releasing.has(req.requestId!) || insufficient}
-                                onClick={() => release(req.requestId!)}
-                              />
-                              {insufficient && (
-                                <span className="text-xs text-red-600">
-                                  {t('requisitions.insufficientCannotRelease')}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                );
+              }}
+            />
+            <DxColumn
+              caption="ขอเบิกโดย"
+              width={170}
+              cellRender={(c) => {
+                const req = c.data as RequisitionRow;
+                return (
+                  <div className="text-xs text-gray-600">
+                    <div>{req.requestedBy ?? '—'}</div>
+                    <div>{formatDateTh(req.requestedAt)}</div>
+                  </div>
+                );
+              }}
+            />
+            <DxColumn
+              caption={t('requisitions.statusOptions.all')}
+              width={170}
+              alignment="center"
+              cellRender={(c) => {
+                const req = c.data as RequisitionRow;
+                const insufficient = req.materials.some(isInsufficient);
+                return (
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    {insufficient && req.workflowStatus !== 'released' && (
+                      <Badge variant="danger" dot>
+                        <AlertTriangle className="h-3 w-3 mr-1" /> {t('requisitions.badges.insufficient')}
+                      </Badge>
+                    )}
+                    {req.source === 'out_of_bom' ? (
+                      <Badge variant={req.workflowStatus === 'released' ? 'success' : 'warning'} dot>
+                        {req.workflowStatus === 'released'
+                          ? t('requisitions.badges.released')
+                          : t('requisitions.badges.awaitingRelease')}
+                      </Badge>
+                    ) : (
+                      <Badge variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'} dot>
+                        {req.requisitionStatus === 'approved'
+                          ? t('requisitions.badges.approved')
+                          : t('requisitions.badges.awaitingApproval')}
+                      </Badge>
+                    )}
+                  </div>
+                );
+              }}
+            />
+          </DxDataGrid>
         )}
       </div>
     </MainLayout>
