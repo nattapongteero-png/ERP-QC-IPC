@@ -174,6 +174,8 @@ export default function VendorsPage() {
 
       return matchesStatus && matchesSearch;
     });
+    // Newest first (id is auto-increment, so highest id = most recent).
+    filtered.sort((a, b) => Number(b.id) - Number(a.id));
     return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [vendors, statusFilter, search]);
 
@@ -524,9 +526,10 @@ export default function VendorsPage() {
                 sorting
                 responsiveColumns
                 virtualScrolling={filteredVendors.length > 100}
-                height={600}
-                mobileHeight={520}
-                tabletHeight={560}
+                /* No fixed height: grow to fit the page's rows so a full page
+                   shows without an inner scrollbar. Only virtual scrolling
+                   (>100 rows) needs a bounded height. */
+                height={filteredVendors.length > 100 ? 600 : undefined}
                 onRowClick={handleRowClick}
                 noDataText={t('vendors.grid.noData')}
               />

@@ -254,6 +254,8 @@ export default function PurchaseRequisitionsPage() {
         (!dateTo || (!!createdKey && createdKey <= dateTo));
       return matchesStatus && matchesSearch && matchesDate;
     });
+    // Newest first (id is auto-increment, so highest id = most recent).
+    filtered.sort((a, b) => Number(b.id) - Number(a.id));
     return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [requisitions, statusFilter, search, dateFrom, dateTo]);
 
@@ -633,9 +635,10 @@ export default function PurchaseRequisitionsPage() {
             sorting
             responsiveColumns
             virtualScrolling={filteredRequisitions.length > 100}
-            height={600}
-            mobileHeight={520}
-            tabletHeight={560}
+            /* No fixed height: let the grid grow to fit the page's rows so a
+               full page (e.g. 20 rows) shows without an inner scrollbar. Only
+               virtual scrolling (>100 rows) needs a bounded height. */
+            height={filteredRequisitions.length > 100 ? 600 : undefined}
             onRowClick={handleRowClick}
             noDataText={t('requisitions.grid.noData')}
             data-testid="pr-grid"
