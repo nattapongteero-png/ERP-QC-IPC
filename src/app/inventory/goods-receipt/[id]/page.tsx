@@ -148,15 +148,12 @@ export default function GrnDetailPage() {
 
   const currentTemplate: ChecklistTemplate | undefined = template?.[0];
 
-  // For a PO-sourced GRN the supplier CoA is already captured in the registry
-  // when the PO is recorded, so the "แนบ CoA" checklist item is redundant and
-  // is hidden. WO (finished goods) keeps every item.
-  const isPoSource = data?.grn.sourceType === 'po';
+  // The full checklist is shown for every GRN. Both PO (purchased) and WO
+  // (in-house / sub-contracted production) can carry a supplier/external CoA,
+  // so the CoA scan + CoA checklist item are available in both cases.
+  const visibleChecklistItems = currentTemplate?.items ?? [];
   const isCoaChecklistItem = (label: string) =>
     /coa|ใบรับรองผลวิเคราะห์|certificate of analysis/i.test(label);
-  const visibleChecklistItems = (currentTemplate?.items ?? []).filter(
-    (it) => !(isPoSource && isCoaChecklistItem(it.label)),
-  );
 
   // Mutations
   const updateLineMut = useMutation({
@@ -718,27 +715,24 @@ export default function GrnDetailPage() {
               );
             })()}
           </div>
-          {/* CoA AI scan — only for WO (finished goods) receipts. PO receipts
-              already have the supplier CoA in the registry, so no scan here.
-              Scanning auto-marks the CoA checklist item as passed and fills its
-              remarks with the extracted summary. */}
-          {!isPoSource && (
-            <div className="border rounded p-3 bg-indigo-50/40 border-indigo-200 space-y-2">
-              <div className="text-sm font-medium text-indigo-900">CoA จากผู้ขาย (สแกนด้วย AI)</div>
-              <CoaOcrUpload
-                onExtracted={(ex) => {
-                  const summary = formatCoaForChecklist(ex);
-                  const coaItem = visibleChecklistItems.find((it) => isCoaChecklistItem(it.label));
-                  if (coaItem) {
-                    setChecklistAnswers((prev) => ({
-                      ...prev,
-                      [coaItem.id]: { isPass: ex.overallResult !== 'fail', remarks: summary },
-                    }));
-                  }
-                }}
-              />
-            </div>
-          )}
+          {/* CoA AI scan — available for both PO and WO receipts. Scanning the
+              supplier/external CoA auto-marks the CoA checklist item as passed
+              (unless overall=fail) and fills its remarks with the summary. */}
+          <div className="border rounded p-3 bg-indigo-50/40 border-indigo-200 space-y-2">
+            <div className="text-sm font-medium text-indigo-900">CoA จากผู้ขาย (สแกนด้วย AI)</div>
+            <CoaOcrUpload
+              onExtracted={(ex) => {
+                const summary = formatCoaForChecklist(ex);
+                const coaItem = visibleChecklistItems.find((it) => isCoaChecklistItem(it.label));
+                if (coaItem) {
+                  setChecklistAnswers((prev) => ({
+                    ...prev,
+                    [coaItem.id]: { isPass: ex.overallResult !== 'fail', remarks: summary },
+                  }));
+                }
+              }}
+            />
+          </div>
           {visibleChecklistItems.map((item) => (
             <div key={item.id} className="border rounded p-3 space-y-2">
               <div className="flex items-center gap-2">
