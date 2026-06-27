@@ -293,7 +293,7 @@ export default function GoodsReceiptListPage() {
         <div className="flex flex-col gap-1">
           <label className="text-xs text-gray-500">{t('filters.sourceType')}</label>
           <SelectBox
-            width={170}
+            width={200}
             value={sourceFilter}
             onValueChanged={(e) => setSourceFilter(e.value)}
             valueExpr="value"

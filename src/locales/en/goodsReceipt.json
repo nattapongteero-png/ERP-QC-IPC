@@ -24,8 +24,8 @@
     "failed": "Failed"
   },
   "sourceType": {
-    "po": "Purchase Order (Raw Material)",
-    "wo": "Work Order (Finished Goods)"
+    "po": "Purchase Order (PO)",
+    "wo": "Work Order (WO)"
   },
   "filters": {
     "sourceType": "Source",

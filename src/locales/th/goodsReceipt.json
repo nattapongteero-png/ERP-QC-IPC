@@ -24,8 +24,8 @@
     "failed": "ไม่ผ่าน"
   },
   "sourceType": {
-    "po": "Purchase Order (วัตถุดิบ)",
-    "wo": "Work Order (สินค้าสำเร็จรูป)"
+    "po": "ใบสั่งซื้อ (PO)",
+    "wo": "ใบสั่งผลิต (WO)"
   },
   "filters": {
     "sourceType": "แหล่งที่มา",
