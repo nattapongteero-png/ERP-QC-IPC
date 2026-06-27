@@ -12,6 +12,8 @@ import {
   DataGrid,
   Column,
   Paging,
+  Scrolling,
+  ColumnChooser,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
@@ -129,6 +131,16 @@ export default function GrnDetailPage() {
 
   const currentTemplate: ChecklistTemplate | undefined = template?.[0];
 
+  // For a PO-sourced GRN the supplier CoA is already captured in the registry
+  // when the PO is recorded, so the "แนบ CoA" checklist item is redundant and
+  // is hidden. WO (finished goods) keeps every item.
+  const isPoSource = data?.grn.sourceType === 'po';
+  const isCoaChecklistItem = (label: string) =>
+    /coa|ใบรับรองผลวิเคราะห์|certificate of analysis/i.test(label);
+  const visibleChecklistItems = (currentTemplate?.items ?? []).filter(
+    (it) => !(isPoSource && isCoaChecklistItem(it.label)),
+  );
+
   // Mutations
   const updateLineMut = useMutation({
     mutationFn: async ({ lineId, patch }: { lineId: number; patch: Partial<GoodsReceiptLine> }) => {
@@ -190,7 +202,7 @@ export default function GrnDetailPage() {
       if (!checklistSampleQty.trim() || !Number.isFinite(sampleQty) || sampleQty <= 0) {
         throw new Error('กรุณากรอกจำนวนที่ QC สุ่มตรวจ (มากกว่า 0) ก่อนลงนาม');
       }
-      const items = currentTemplate.items.map((tmpl) => ({
+      const items = visibleChecklistItems.map((tmpl) => ({
         templateItemId: tmpl.id,
         isPass: checklistAnswers[tmpl.id]?.isPass ?? false,
         remarks: checklistAnswers[tmpl.id]?.remarks ?? null,
@@ -342,8 +354,14 @@ export default function GrnDetailPage() {
         width="100%"
         columnResizingMode="widget"
         allowColumnResizing
+        columnMinWidth={60}
         data-testid="grn-lines-grid"
       >
+        {/* Many columns — let the grid scroll horizontally on narrow screens
+            instead of squeezing headers into each other, and let users hide
+            columns they don't need via the column chooser. */}
+        <Scrolling columnRenderingMode="standard" showScrollbar="always" />
+        <ColumnChooser enabled mode="select" />
         <Paging pageSize={20} />
         <Column dataField="lineNumber" caption="#" width={44} alignment="center" />
         <Column
@@ -379,7 +397,8 @@ export default function GrnDetailPage() {
         <Column
           dataField="variancePercent"
           caption={t('table.columns.variance')}
-          width={80}
+          minWidth={110}
+          width={120}
           cellRender={(c) => {
             const v = c.value as number | null;
             if (v == null) return '—';
@@ -391,7 +410,7 @@ export default function GrnDetailPage() {
             );
           }}
         />
-        <Column dataField="varianceReason" caption={t('form.varianceReason.label')} minWidth={90} />
+        <Column dataField="varianceReason" caption={t('form.varianceReason.label')} minWidth={120} />
         <Column
           dataField="status"
           caption={t('table.columns.status')}
@@ -404,11 +423,14 @@ export default function GrnDetailPage() {
         />
         <Column
           caption="การดำเนินการ"
-          minWidth={140}
+          width={172}
+          minWidth={150}
+          fixed
+          fixedPosition="right"
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
             return (
-              <div className="flex flex-wrap gap-1 items-center">
+              <div className="flex flex-col gap-1 items-stretch [&_.dx-button]:w-full">
                 {/* Edit the line's actuals — opens a form popup (Save inside).
                     Only while the line is still editable (status=created). */}
                 {line.status === 'created' && canRelease && (
@@ -433,7 +455,7 @@ export default function GrnDetailPage() {
                     onClick={() => {
                       setActiveLineId(line.id);
                       const initial: Record<number, { isPass: boolean; remarks?: string }> = {};
-                      (currentTemplate?.items ?? []).forEach((it) => {
+                      visibleChecklistItems.forEach((it) => {
                         initial[it.id] = { isPass: false };
                       });
                       setChecklistAnswers(initial);
@@ -679,7 +701,7 @@ export default function GrnDetailPage() {
               );
             })()}
           </div>
-          {(currentTemplate?.items ?? []).map((item) => (
+          {visibleChecklistItems.map((item) => (
             <div key={item.id} className="border rounded p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckBox
