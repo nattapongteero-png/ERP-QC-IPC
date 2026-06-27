@@ -89,6 +89,7 @@
     },
     "table": {
       "itemCode": "รหัสสินค้า",
+      "workOrder": "ใบสั่งผลิต",
       "materialName": "ชื่อวัตถุดิบ",
       "quantityNeeded": "จำนวนที่ต้องการ",
       "quantityToIssue": "จำนวนที่ต้องจ่าย",

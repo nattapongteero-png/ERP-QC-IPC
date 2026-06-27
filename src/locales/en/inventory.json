@@ -89,6 +89,7 @@
     },
     "table": {
       "itemCode": "Item Code",
+      "workOrder": "Work Order",
       "materialName": "Material Name",
       "quantityNeeded": "Quantity Needed",
       "quantityToIssue": "Quantity to Issue",

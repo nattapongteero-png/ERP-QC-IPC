@@ -542,7 +542,7 @@ export default function MaterialRequisitionsInboxPage() {
               )}
             />
             <DxColumn
-              caption={t('requisitions.table.materialName')}
+              caption={t('requisitions.table.workOrder')}
               minWidth={180}
               cellRender={(c) => {
                 const req = c.data as RequisitionRow;

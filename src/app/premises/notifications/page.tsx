@@ -160,8 +160,10 @@ export default function MaintenanceAlertsPage() {
   });
 
   const items = data?.items ?? [];
-  // Number rows so the list shows a sequence column (top row = #1).
-  const numberedItems = items.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+  // Feed → newest first (highest id = most recent), numbered so the top row is #1.
+  const numberedItems = [...items]
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const open = items.filter((i) => i.status === 'open');
   const overdue = items.filter((i) => i.severity === 'overdue' && i.status === 'open').length;
   const in7d = items.filter((i) => i.severity === 'due_in_7d' && i.status === 'open').length;
@@ -271,6 +273,7 @@ export default function MaintenanceAlertsPage() {
       </div>
 
       {view === 'list' ? (
+        <div className="bg-white rounded-lg border overflow-hidden">
         <DataGrid
           dataSource={numberedItems}
           keyExpr="id"
@@ -325,6 +328,7 @@ export default function MaintenanceAlertsPage() {
             }}
           />
         </DataGrid>
+        </div>
       ) : (
         <div className="bg-white border rounded-lg p-3">
           <div className="flex items-center justify-between gap-2 mb-2">

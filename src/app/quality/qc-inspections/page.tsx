@@ -297,7 +297,7 @@ export default function QcInspectionsPage() {
           />
         </div>
 
-        <div className="bg-white rounded-lg border">
+        <div className="bg-white rounded-lg border overflow-hidden">
           <DxDataGrid
             dataSource={numberedRows}
             keyExpr="id"
