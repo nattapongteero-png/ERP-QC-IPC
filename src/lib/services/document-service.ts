@@ -437,7 +437,12 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
     conditions.push(
       or(
         like(documents.documentNumber, `%${params.search}%`),
-        like(documents.title, `%${params.search}%`)
+        like(documents.title, `%${params.search}%`),
+        // Also match the current version's body text, so a search for a term
+        // that only appears inside the document (not its title) still finds it.
+        // This is what makes the SOP Assistant retrieve docs by content, not
+        // just by title. The list query already leftJoins `versions`.
+        like(versions.content, `%${params.search}%`)
       )
     );
   }
@@ -446,10 +451,13 @@ export async function getDocuments(params: DocumentListParams): Promise<Document
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
 
-  // Get total count
+  // Get total count. Must leftJoin versions too because the search filter can
+  // reference versions.content (the count and list queries must share the same
+  // FROM/JOIN shape or the content filter throws "unknown column").
   const [countResult] = await database
     .select({ count: sql<number>`count(*)` })
     .from(documents)
+    .leftJoin(versions, eq(documents.currentVersionId, versions.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined);
 
   // Handle MySQL BigInt by converting to Number
