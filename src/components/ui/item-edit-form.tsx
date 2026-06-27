@@ -41,7 +41,7 @@ import { TppSearchDialog, TppItem } from '@/components/ui/tpp-search-dialog';
 import { TtmtSearchDialog, TtmtItem } from '@/components/ui/ttmt-search-dialog';
 import { ItemImagesSection } from '@/components/ui/item-images-section';
 import { ItemPriceOffersSection } from '@/components/ui/item-price-offers-section';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 // ============================================================================
 // Types
@@ -517,6 +517,7 @@ export function ItemEditForm({
   className,
 }: ItemEditFormProps) {
   const t = useTranslations('inventory');
+  const locale = useLocale();
   const [formData, setFormData] = React.useState<ItemFormData>(
     item ? itemToFormData(item) : getDefaultFormData()
   );
@@ -532,8 +533,8 @@ export function ItemEditForm({
 
   // Convert to select options
   const categoryOptions = React.useMemo(
-    () => categoriesToOptions(categories, true),
-    [categories]
+    () => categoriesToOptions(categories, true, locale),
+    [categories, locale]
   );
   const unitOptions = React.useMemo(
     () => unitsToOptions(units, false),

@@ -10,7 +10,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { useItemCategories } from '@/hooks/use-lookup-data';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import DataGrid, {
@@ -151,8 +152,29 @@ async function fetchItems(): Promise<Item[]> {
 export default function ItemsPage() {
   const router = useRouter();
   const t = useTranslations('inventory');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  // Category display: items store a category CODE (e.g. "herb"); show the
+  // localized name from the item_categories lookup so the column reads
+  // "สมุนไพร" / "Herb" by language instead of the raw code.
+  const { data: itemCategories } = useItemCategories();
+  const categoryMap = useMemo(() => {
+    const m = new Map<string, { nameTh: string; nameEn: string | null }>();
+    (itemCategories ?? []).forEach((c) => m.set(c.code, { nameTh: c.nameTh, nameEn: c.nameEn }));
+    return m;
+  }, [itemCategories]);
+  const renderCategoryCell = useCallback(
+    (data: { value: string | null }) => {
+      const code = data.value;
+      if (!code) return '—';
+      const cat = categoryMap.get(code);
+      if (!cat) return code; // unknown code → show raw as fallback
+      return locale === 'en' ? cat.nameEn || cat.nameTh : cat.nameTh;
+    },
+    [categoryMap, locale],
+  );
   const [activeTab, setActiveTab] = useState<'all' | ItemType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -787,6 +809,7 @@ export default function ItemsPage() {
               dataField="category"
               caption={t('items.grid.columns.category')}
               width={120}
+              cellRender={renderCategoryCell}
             />
             <Column
               dataField="onHand"

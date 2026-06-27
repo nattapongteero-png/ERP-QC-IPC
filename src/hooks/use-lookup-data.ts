@@ -73,14 +73,21 @@ export function useItemUnits(): UseLookupDataResult<ItemUnit> {
 }
 
 // Helper to convert categories to select options
-export function categoriesToOptions(categories: ItemCategory[], includeEmpty = true) {
+export function categoriesToOptions(
+  categories: ItemCategory[],
+  includeEmpty = true,
+  locale?: string,
+) {
   const options = categories.map(cat => ({
     value: cat.code,
-    label: cat.nameEn || cat.nameTh,
+    // Localized label: Thai when locale==='th', otherwise English (falling back
+    // to Thai when no English name exists).
+    label: locale === 'th' ? cat.nameTh : cat.nameEn || cat.nameTh,
   }));
 
   if (includeEmpty) {
-    return [{ value: '', label: 'Select Category' }, ...options];
+    const emptyLabel = locale === 'th' ? 'เลือกหมวดหมู่' : 'Select Category';
+    return [{ value: '', label: emptyLabel }, ...options];
   }
   return options;
 }
