@@ -142,9 +142,9 @@ export function CoaOcrUpload({ onExtracted, endpoint = DEFAULT_ENDPOINT, classNa
 
 function field(label: string, value: string | null) {
   return (
-    <div style={{ display: 'flex', gap: 8, padding: '2px 0' }}>
-      <span style={{ minWidth: 120, color: '#6b7280', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 500 }}>{value || '—'}</span>
+    <div style={{ display: 'flex', gap: 8, padding: '3px 0', lineHeight: 1.7 }}>
+      <span style={{ minWidth: 120, color: '#6b7280', fontSize: 13, lineHeight: 1.7 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.7 }}>{value || '—'}</span>
     </div>
   );
 }
@@ -159,9 +159,9 @@ function ExtractionReview({
   return (
     <div
       data-testid="coa-ocr-result"
-      style={{ marginTop: 12, padding: 16, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f9fafb' }}
+      style={{ marginTop: 12, padding: 16, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f9fafb', lineHeight: 1.7 }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {field('ผลิตภัณฑ์', extraction.productName)}
         {field('รหัสผู้ขาย', extraction.supplierItemCode)}
         {field('Lot', extraction.lotNumber)}
@@ -174,22 +174,22 @@ function ExtractionReview({
 
       {extraction.testResults.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }} data-testid="coa-ocr-tests">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, lineHeight: 1.7 }} data-testid="coa-ocr-tests">
             <thead>
               <tr style={{ textAlign: 'left', color: '#6b7280' }}>
-                <th style={{ padding: '4px 8px' }}>พารามิเตอร์</th>
-                <th style={{ padding: '4px 8px' }}>ผล</th>
-                <th style={{ padding: '4px 8px' }}>เกณฑ์</th>
-                <th style={{ padding: '4px 8px' }}>สถานะ</th>
+                <th style={{ padding: '6px 8px' }}>พารามิเตอร์</th>
+                <th style={{ padding: '6px 8px' }}>ผล</th>
+                <th style={{ padding: '6px 8px' }}>เกณฑ์</th>
+                <th style={{ padding: '6px 8px' }}>สถานะ</th>
               </tr>
             </thead>
             <tbody>
               {extraction.testResults.map((t, i) => (
                 <tr key={i} style={{ borderTop: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '4px 8px' }}>{t.parameter}</td>
-                  <td style={{ padding: '4px 8px' }}>{t.result}</td>
-                  <td style={{ padding: '4px 8px' }}>{t.specification || '—'}</td>
-                  <td style={{ padding: '4px 8px' }}>
+                  <td style={{ padding: '6px 8px' }}>{t.parameter}</td>
+                  <td style={{ padding: '6px 8px' }}>{t.result}</td>
+                  <td style={{ padding: '6px 8px' }}>{t.specification || '—'}</td>
+                  <td style={{ padding: '6px 8px' }}>
                     {t.pass === true && <CheckCircle2 size={16} color="#16a34a" />}
                     {t.pass === false && <XCircle size={16} color="#dc2626" />}
                     {t.pass === null && <span style={{ color: '#9ca3af' }}>—</span>}

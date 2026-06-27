@@ -28,6 +28,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { StatusStepper } from '@/components/shared';
+import { CoaOcrUpload } from '@/components/inventory/coa-ocr-upload';
+import type { CoaExtraction } from '@/types/coa-ocr';
 import type {
   GoodsReceipt,
   GoodsReceiptLine,
@@ -43,6 +45,21 @@ function sqrtSamplePlan(lotQty: number | null | undefined): number {
   const n = Number(lotQty);
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.min(n, Math.ceil(Math.sqrt(n) + 1));
+}
+
+/** Concise CoA summary written into the CoA checklist item's remarks. */
+function formatCoaForChecklist(ex: CoaExtraction): string {
+  const parts: string[] = [];
+  if (ex.lotNumber) parts.push(`Lot ${ex.lotNumber}`);
+  if (ex.expiryDate) parts.push(`EXP ${ex.expiryDate}`);
+  const overall =
+    ex.overallResult === 'pass' ? 'ผ่าน' : ex.overallResult === 'fail' ? 'ไม่ผ่าน' : 'ไม่ระบุ';
+  parts.push(`ผลรวม: ${overall}`);
+  const failed = ex.testResults.filter((t) => t.pass === false);
+  if (failed.length > 0) {
+    parts.push('ไม่ผ่าน: ' + failed.map((t) => `${t.parameter} (${t.result})`).join(', '));
+  }
+  return '[สแกน AI] ' + parts.join(' · ');
 }
 
 export default function GrnDetailPage() {
@@ -701,6 +718,27 @@ export default function GrnDetailPage() {
               );
             })()}
           </div>
+          {/* CoA AI scan — only for WO (finished goods) receipts. PO receipts
+              already have the supplier CoA in the registry, so no scan here.
+              Scanning auto-marks the CoA checklist item as passed and fills its
+              remarks with the extracted summary. */}
+          {!isPoSource && (
+            <div className="border rounded p-3 bg-indigo-50/40 border-indigo-200 space-y-2">
+              <div className="text-sm font-medium text-indigo-900">CoA จากผู้ขาย (สแกนด้วย AI)</div>
+              <CoaOcrUpload
+                onExtracted={(ex) => {
+                  const summary = formatCoaForChecklist(ex);
+                  const coaItem = visibleChecklistItems.find((it) => isCoaChecklistItem(it.label));
+                  if (coaItem) {
+                    setChecklistAnswers((prev) => ({
+                      ...prev,
+                      [coaItem.id]: { isPass: ex.overallResult !== 'fail', remarks: summary },
+                    }));
+                  }
+                }}
+              />
+            </div>
+          )}
           {visibleChecklistItems.map((item) => (
             <div key={item.id} className="border rounded p-3 space-y-2">
               <div className="flex items-center gap-2">
