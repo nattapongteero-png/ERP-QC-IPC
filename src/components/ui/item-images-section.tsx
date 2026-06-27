@@ -236,13 +236,9 @@ export function ItemImagesSection({ itemId, className }: ItemImagesSectionProps)
           <h3 className="text-sm font-semibold text-gray-900">รูปภาพสินค้า</h3>
           <p className="text-xs text-gray-500 mt-0.5">{images.length} รูป</p>
         </div>
-        <DxButton
-          text="อัปโหลด"
-          icon="upload"
-          type="default"
-          stylingMode="outlined"
-          onClick={() => fileInputRef.current?.click()}
-        />
+        {/* Single upload entry point is the drop-zone below (click or drag-drop);
+            the header button was a redundant second trigger and was removed. The
+            hidden file input is shared by the drop-zone. */}
         <input
           ref={fileInputRef}
           type="file"
