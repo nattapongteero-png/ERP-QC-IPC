@@ -106,13 +106,8 @@ async function retrieveDocs(
   // Always include a broad pass on the full question too (catches multi-word titles).
   const queries = terms.length > 0 ? [question, ...terms] : [question];
 
-  // TEMP DEBUG (remove after diagnosing SOP-assistant no-match): log how the
-  // question was tokenised and how many docs each search term matched.
-  console.log('[SOP-DEBUG] question=', JSON.stringify(question), 'terms=', JSON.stringify(terms), 'queries=', JSON.stringify(queries));
-
   for (const q of queries) {
     const res = await getDocuments({ status: 'active', typeId: options.typeId, search: q, limit: 20 });
-    console.log('[SOP-DEBUG] search=', JSON.stringify(q), '→ matched', res.documents.length, 'docs:', JSON.stringify(res.documents.slice(0, 3).map((d) => d.title)));
     for (const doc of res.documents) {
       hitCount.set(doc.id, (hitCount.get(doc.id) ?? 0) + 1);
       if (!seen.has(doc.id)) {
@@ -134,16 +129,23 @@ async function retrieveDocs(
   const docs: RetrievedDoc[] = [];
   for (const id of ranked) {
     const detail = await getDocumentById(id);
-    const content = detail?.currentVersion?.content;
-    console.log('[SOP-DEBUG] hydrate id=', id, 'title=', JSON.stringify(detail?.title), 'hasContent=', !!(content && content.trim()), 'contentLen=', content ? content.length : 0);
-    if (!content || !content.trim()) continue; // skip file-only docs with no text
+    if (!detail) continue;
+    const content = detail.currentVersion?.content;
     const meta = seen.get(id)!;
+    const hasText = !!(content && content.trim());
+    // Previously file-only docs (no body text, e.g. a scanned PDF) were skipped
+    // entirely — so a question that matched such a doc returned "ไม่พบเอกสาร",
+    // which wrongly tells the user the SOP doesn't exist. Instead keep the doc
+    // and pass a placeholder so the assistant can cite it and point the user to
+    // open the file.
     docs.push({
       documentId: id,
       documentNumber: detail.documentNumber ?? meta.documentNumber,
       title: detail.title ?? meta.title,
       versionNumber: detail.currentVersion?.versionNumber ?? meta.currentVersionNumber ?? '-',
-      content: content.length > maxChars ? content.slice(0, maxChars) + '\n…[truncated]' : content,
+      content: hasText
+        ? (content!.length > maxChars ? content!.slice(0, maxChars) + '\n…[truncated]' : content!)
+        : '[เอกสารนี้เป็นไฟล์แนบ (ไม่มีข้อความในระบบ) — แจ้งผู้ใช้ว่าพบเอกสารนี้และให้เปิดดูไฟล์ที่หน้าเอกสาร โดยอ้างอิงเลขเอกสารและเวอร์ชัน]',
     });
   }
   return docs;
@@ -158,8 +160,11 @@ const SYSTEM_PROMPT =
   "user's question using ONLY the controlled documents provided below. If the " +
   'answer is not contained in them, say you could not find it in the current ' +
   'controlled documents — never invent procedures. Cite the document number(s) ' +
-  'and version you used inline, e.g. (SOP-QA-001 v2). Answer in the same ' +
-  'language as the question (Thai or English). Be concise and operational.';
+  'and version you used inline, e.g. (SOP-QA-001 v2). If a relevant document is ' +
+  'marked as a file-only attachment (no text in the system), DO tell the user ' +
+  'that the document exists and name it (number + version), and ask them to open ' +
+  'the attached file on the document page — do NOT say no document was found. ' +
+  'Answer in the same language as the question (Thai or English). Be concise and operational.';
 
 function buildPrompt(question: string, docs: RetrievedDoc[]): string {
   const context = docs
