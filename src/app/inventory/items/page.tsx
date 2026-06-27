@@ -521,14 +521,29 @@ export default function ItemsPage() {
   const renderStockCell = useCallback((data: { data: Item }) => {
     const onHand = data.data.onHand ?? 0;
     const minStock = data.data.minStock ?? 0;
+    const maxStock = data.data.maxStock ?? 0;
+    const reorderPoint = data.data.reorderPoint ?? 0;
+
+    // Same thresholds as the edit page's StockStatus card so the list and detail
+    // agree: low → near-reorder → overstock → healthy (priority order).
     const isLow = minStock > 0 && onHand < minStock;
+    const isNearReorder = reorderPoint > 0 && onHand <= reorderPoint && !isLow;
+    const isOverstock = maxStock > 0 && onHand > maxStock;
+
+    const badge = isLow
+      ? { cls: 'bg-red-100 text-red-700', label: t('itemForm.stock.low') }
+      : isNearReorder
+        ? { cls: 'bg-amber-100 text-amber-700', label: t('itemForm.stock.nearReorder') }
+        : isOverstock
+          ? { cls: 'bg-sky-100 text-sky-700', label: t('itemForm.stock.overstock') }
+          : null;
 
     return (
       <div>
         <div className={cn('font-medium', isLow ? 'text-red-600' : 'text-gray-900')}>
           {formatCompactNumber(onHand)} {data.data.primaryUnit}
-          {isLow && (
-            <span className="ml-1 text-xs px-1 py-0.5 bg-red-100 text-red-700 rounded">{t('items.grid.lowStock')}</span>
+          {badge && (
+            <span className={cn('ml-1 text-xs px-1 py-0.5 rounded', badge.cls)}>{badge.label}</span>
           )}
         </div>
       </div>
