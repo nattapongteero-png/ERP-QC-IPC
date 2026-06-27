@@ -43,12 +43,46 @@ const STOPWORDS = new Set([
   'ใน', 'เป็น', 'มี', 'ทำ', 'อย่างไร', 'ยังไง', 'คือ',
 ]);
 
+/**
+ * Strip the common Thai interrogative/particle tails that get glued onto a noun
+ * phrase because Thai is written without spaces — e.g.
+ * "การทำความสะอาดทำยังไง" → "การทำความสะอาด". Without this, the whole run is one
+ * token that never matches a document titled "การทำความสะอาด (Cleaning)".
+ */
+const THAI_TAILS = ['ทำยังไง', 'ทำอย่างไร', 'ยังไง', 'อย่างไร', 'ทำไง', 'คืออะไร', 'อะไร', 'ไหม', 'หรือไม่', 'ทำ'];
+function stripThaiTails(token: string): string {
+  let t = token;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const tail of THAI_TAILS) {
+      if (t.length > tail.length && t.endsWith(tail)) {
+        t = t.slice(0, -tail.length);
+        changed = true;
+      }
+    }
+  }
+  return t;
+}
+
 function keywords(question: string): string[] {
-  return question
+  const out = new Set<string>();
+  const raw = question
     .toLowerCase()
     .split(/[\s,.?!()/\\"'：:；;]+/)
     .map((w) => w.trim())
     .filter((w) => w.length >= 2 && !STOPWORDS.has(w));
+
+  for (const w of raw) {
+    out.add(w);
+    // For glued Thai phrases, also add the phrase with trailing question
+    // particles removed, so it matches a document's noun-phrase title/body.
+    const stripped = stripThaiTails(w);
+    if (stripped.length >= 2 && stripped !== w && !STOPWORDS.has(stripped)) {
+      out.add(stripped);
+    }
+  }
+  return [...out];
 }
 
 /**
