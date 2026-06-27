@@ -135,6 +135,7 @@ async function retrieveDocs(
   for (const id of ranked) {
     const detail = await getDocumentById(id);
     const content = detail?.currentVersion?.content;
+    console.log('[SOP-DEBUG] hydrate id=', id, 'title=', JSON.stringify(detail?.title), 'hasContent=', !!(content && content.trim()), 'contentLen=', content ? content.length : 0);
     if (!content || !content.trim()) continue; // skip file-only docs with no text
     const meta = seen.get(id)!;
     docs.push({
