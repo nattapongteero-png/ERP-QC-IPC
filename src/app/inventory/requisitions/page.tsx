@@ -12,11 +12,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { DxDataGrid, DxColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxDateBox } from '@/components/ui/dx-date-box';
@@ -30,8 +28,11 @@ import {
   AlertTriangle,
   X,
   Filter,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils/number-format';
+import { RequisitionMaterialsTable } from './_MaterialsTable';
 import {
   rowKey,
   formatDateTh,
@@ -42,7 +43,6 @@ import {
 
 export default function MaterialRequisitionsInboxPage() {
   const t = useTranslations('inventory');
-  const router = useRouter();
   const toast = useToast();
 
   const STATUS_OPTIONS = useMemo(() => [
@@ -69,6 +69,10 @@ export default function MaterialRequisitionsInboxPage() {
   const [dateTo, setDateTo] = useState<string>('');     // YYYY-MM-DD
   const [insufficientOnly, setInsufficientOnly] = useState<boolean>(false);
   const [approving, setApproving] = useState<Set<number>>(new Set());
+  // Which row is expanded inline (by its stable rowKey). Like the audit-trail
+  // list: click the chevron to reveal the requisition's materials + actions
+  // in-place instead of navigating to a separate detail page.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   // Date preset helpers — set BOTH from/to so a chip shows the active range.
   const setDatePreset = (preset: 'today' | 'last7' | 'last30' | 'thisMonth') => {
@@ -131,6 +135,68 @@ export default function MaterialRequisitionsInboxPage() {
   useEffect(() => {
     fetchRequisitions();
   }, [fetchRequisitions]);
+
+  // Approve a BOM requisition (issues stock) — lifted from the detail page so
+  // it can run inline from the expanded row.
+  const approveRow = useCallback(async (req: RequisitionRow) => {
+    setApproving((prev) => new Set(prev).add(req.workOrderId));
+    try {
+      const res = await fetch(`/api/production/work-orders/${req.workOrderId}/requisition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const issued = (data.data?.issued ?? []) as {
+          itemCode: string; puToIssue: number; pu: string; suIssued: number; su: string;
+        }[];
+        if (issued.length > 0) {
+          const lines = issued
+            .map((i) => t('requisitions.toast.issuedLine', {
+              code: i.itemCode, pu: formatNumber(i.puToIssue), puUnit: i.pu,
+              su: formatNumber(i.suIssued), suUnit: i.su,
+            }))
+            .join('\n');
+          toast.success(t('requisitions.toast.approveReleaseSuccess'), lines);
+        } else {
+          toast.success(t('requisitions.toast.approveSuccess'));
+        }
+        await fetchRequisitions();
+      } else {
+        toast.error(t('requisitions.toast.approveFailed'), data.error || '');
+      }
+    } catch (err) {
+      toast.error(t('requisitions.toast.approveFailed'), String(err));
+    } finally {
+      setApproving((prev) => { const n = new Set(prev); n.delete(req.workOrderId); return n; });
+    }
+  }, [t, toast, fetchRequisitions]);
+
+  // Release an approved out-of-BOM withdrawal request.
+  const releaseRow = useCallback(async (req: RequisitionRow) => {
+    if (!req.requestId) return;
+    const reqId = req.requestId;
+    setReleasing((prev) => new Set(prev).add(reqId));
+    try {
+      const res = await fetch(`/api/material-withdrawal/requests/${reqId}/release`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        toast.success(t('requisitions.toast.releaseSuccess'), t('requisitions.toast.releaseSuccessDetail'));
+        await fetchRequisitions();
+      } else {
+        toast.error(t('requisitions.toast.releaseFailed'), data.error || '');
+      }
+    } catch (err) {
+      toast.error(t('requisitions.toast.releaseFailed'), String(err));
+    } finally {
+      setReleasing((prev) => { const n = new Set(prev); n.delete(reqId); return n; });
+    }
+  }, [t, toast, fetchRequisitions]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -219,73 +285,6 @@ export default function MaterialRequisitionsInboxPage() {
       }));
   }, [rows, sourceTab, statusFilter, outStatusFilter]);
 
-
-  const approve = async (woId: number) => {
-    setApproving((prev) => new Set(prev).add(woId));
-    try {
-      const res = await fetch(`/api/production/work-orders/${woId}/requisition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        const issued = (data.data?.issued ?? []) as { itemCode: string; puToIssue: number; pu: string; suIssued: number; su: string }[];
-        if (issued.length > 0) {
-          const lines = issued
-            .map((i) => t('requisitions.toast.issuedLine', {
-              code: i.itemCode,
-              pu: formatNumber(i.puToIssue),
-              puUnit: i.pu,
-              su: formatNumber(i.suIssued),
-              suUnit: i.su,
-            }))
-            .join('\n');
-          toast.success(t('requisitions.toast.approveReleaseSuccess'), lines);
-        } else {
-          toast.success(t('requisitions.toast.approveSuccess'));
-        }
-        await fetchRequisitions();
-      } else {
-        toast.error(t('requisitions.toast.approveFailed'), data.error || '');
-      }
-    } catch (err) {
-      toast.error(t('requisitions.toast.approveFailed'), String(err));
-    } finally {
-      setApproving((prev) => {
-        const next = new Set(prev);
-        next.delete(woId);
-        return next;
-      });
-    }
-  };
-
-  // Warehouse release of an approved out-of-BOM withdrawal — deducts stock.
-  const release = async (requestId: number) => {
-    setReleasing((prev) => new Set(prev).add(requestId));
-    try {
-      const res = await fetch(`/api/material-withdrawal/requests/${requestId}/release`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (res.ok && !data.error) {
-        toast.success(t('requisitions.toast.releaseSuccess'), t('requisitions.toast.releaseSuccessDetail'));
-        await fetchRequisitions();
-      } else {
-        toast.error(t('requisitions.toast.releaseFailed'), data.error || '');
-      }
-    } catch (err) {
-      toast.error(t('requisitions.toast.releaseFailed'), String(err));
-    } finally {
-      setReleasing((prev) => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
-    }
-  };
 
   return (
     <MainLayout>
@@ -519,106 +518,165 @@ export default function MaterialRequisitionsInboxPage() {
             {t('requisitions.empty')}
           </div>
         ) : (
-          <DxDataGrid
-            dataSource={gridRows}
-            keyExpr="_key"
-            showBorders
-            showRowLines
-            rowAlternationEnabled
-            columnAutoWidth
-            pageSize={20}
-            allowedPageSizes={[10, 20, 50, 100]}
-            onRowClick={(e) => router.push(`/inventory/requisitions/${e.key}`)}
-            elementAttr={{ 'data-testid': 'requisitions-grid' }}
-          >
-            <DxColumn
-              caption="#"
-              width={48}
-              alignment="center"
-              allowSorting={false}
-              allowFiltering={false}
-              cellRender={(c) => (
-                <span className="text-gray-500 text-sm font-medium">{(c.row?.loadIndex ?? 0) + 1}</span>
-              )}
-            />
-            <DxColumn
-              caption={t('requisitions.table.workOrder')}
-              minWidth={180}
-              cellRender={(c) => {
-                const req = c.data as RequisitionRow;
-                return (
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900">{req.woNumber}</div>
-                    <div className="text-xs text-gray-500">Batch {req.batchNumber}</div>
-                  </div>
-                );
-              }}
-            />
-            <DxColumn
-              caption={t('requisitions.table.materialName')}
-              minWidth={200}
-              cellRender={(c) => {
-                const req = c.data as RequisitionRow;
-                return (
-                  <div className="min-w-0">
-                    <div className="text-sm text-gray-900">{req.productName ?? '—'}</div>
-                    <div className="text-xs text-gray-500">{req.productCode ?? ''}</div>
-                    {req.source === 'out_of_bom' && req.reasonType && (
-                      <div className="text-xs text-blue-600 mt-0.5">
-                        {t('requisitions.reason', { reason: reasonLabel(req.reasonType) })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            <DxColumn
-              caption="ขอเบิกโดย"
-              width={170}
-              cellRender={(c) => {
-                const req = c.data as RequisitionRow;
-                return (
-                  <div className="text-xs text-gray-600">
-                    <div>{req.requestedBy ?? '—'}</div>
-                    <div>{formatDateTh(req.requestedAt)}</div>
-                  </div>
-                );
-              }}
-            />
-            <DxColumn
-              caption={t('requisitions.statusOptions.all')}
-              width={170}
-              alignment="center"
-              cellRender={(c) => {
-                const req = c.data as RequisitionRow;
-                const insufficient = req.materials.some(isInsufficient);
-                return (
-                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                    {insufficient && req.workflowStatus !== 'released' && (
-                      <Badge variant="danger" dot>
-                        <AlertTriangle className="h-3 w-3 mr-1" /> {t('requisitions.badges.insufficient')}
-                      </Badge>
-                    )}
-                    {req.source === 'out_of_bom' ? (
-                      <Badge variant={req.workflowStatus === 'released' ? 'success' : 'warning'} dot>
-                        {req.workflowStatus === 'released'
-                          ? t('requisitions.badges.released')
-                          : t('requisitions.badges.awaitingRelease')}
-                      </Badge>
-                    ) : (
-                      <Badge variant={req.requisitionStatus === 'approved' ? 'success' : 'warning'} dot>
-                        {req.requisitionStatus === 'approved'
-                          ? t('requisitions.badges.approved')
-                          : t('requisitions.badges.awaitingApproval')}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              }}
-            />
-          </DxDataGrid>
+          <div className="bg-white rounded-lg border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-[820px] w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="w-8 px-3 py-2"></th>
+                    <th className="w-12 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{t('requisitions.table.workOrder')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('requisitions.table.materialName')}</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{t('requisitions.requestedBy', { name: '' }).replace(':', '').trim()}</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('requisitions.statusOptions.all')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {gridRows.map((req, idx) => {
+                    const key = req._key;
+                    const expanded = expandedKey === key;
+                    const insufficient = req.materials.some(isInsufficient);
+                    const isOob = req.source === 'out_of_bom';
+                    const released = req.workflowStatus === 'released';
+                    const approved = isOob ? req.workflowStatus === 'approved' : req.requisitionStatus === 'approved';
+                    const isApproving = approving.has(req.workOrderId);
+                    const isReleasing = req.requestId != null && releasing.has(req.requestId);
+                    return (
+                      <RequisitionRowFragment
+                        key={key}
+                        req={req}
+                        sequence={idx + 1}
+                        expanded={expanded}
+                        onToggle={() => setExpandedKey(expanded ? null : key)}
+                        insufficient={insufficient}
+                        isOob={isOob}
+                        released={released}
+                        approved={approved}
+                        isApproving={isApproving}
+                        isReleasing={isReleasing}
+                        onApprove={() => approveRow(req)}
+                        onRelease={() => releaseRow(req)}
+                        reasonLabel={reasonLabel}
+                        t={t}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
     </MainLayout>
+  );
+}
+
+/**
+ * One requisition row + its inline expandable detail (chevron toggles it open,
+ * like the audit-trail list). The expanded panel shows the requisition info,
+ * the materials table, and the approve (BOM) / release (out-of-BOM) action —
+ * so the operator never leaves the list to act on a row.
+ */
+function RequisitionRowFragment({
+  req, sequence, expanded, onToggle, insufficient, isOob, released, approved,
+  isApproving, isReleasing, onApprove, onRelease, reasonLabel, t,
+}: {
+  req: RequisitionRow & { _key: string };
+  sequence: number;
+  expanded: boolean;
+  onToggle: () => void;
+  insufficient: boolean;
+  isOob: boolean;
+  released: boolean;
+  approved: boolean;
+  isApproving: boolean;
+  isReleasing: boolean;
+  onApprove: () => void;
+  onRelease: () => void;
+  reasonLabel: (reasonType: string) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: (key: any, values?: any) => string;
+}) {
+  return (
+    <>
+      <tr className="hover:bg-emerald-50/30 cursor-pointer" onClick={onToggle}>
+        <td className="px-3 py-2 text-gray-400">
+          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </td>
+        <td className="px-3 py-2 text-xs text-center text-gray-500">{sequence}</td>
+        <td className="px-3 py-2">
+          <div className="text-sm font-semibold text-gray-900">{req.woNumber}</div>
+          <div className="text-xs text-gray-500">Batch {req.batchNumber}</div>
+        </td>
+        <td className="px-3 py-2">
+          <div className="text-sm text-gray-900">{req.productName ?? '—'}</div>
+          <div className="text-xs text-gray-500">{req.productCode ?? ''}</div>
+          {isOob && req.reasonType && (
+            <div className="text-xs text-blue-600 mt-0.5">
+              {t('requisitions.reason', { reason: reasonLabel(req.reasonType) })}
+            </div>
+          )}
+        </td>
+        <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+          <div>{req.requestedBy ?? '—'}</div>
+          <div>{formatDateTh(req.requestedAt)}</div>
+        </td>
+        <td className="px-3 py-2">
+          <div className="flex items-center gap-1.5 flex-wrap justify-center">
+            {insufficient && !released && (
+              <Badge variant="danger" dot>
+                <AlertTriangle className="h-3 w-3 mr-1" /> {t('requisitions.badges.insufficient')}
+              </Badge>
+            )}
+            {isOob ? (
+              <Badge variant={released ? 'success' : 'warning'} dot>
+                {released ? t('requisitions.badges.released') : t('requisitions.badges.awaitingRelease')}
+              </Badge>
+            ) : (
+              <Badge variant={approved ? 'success' : 'warning'} dot>
+                {approved ? t('requisitions.badges.approved') : t('requisitions.badges.awaitingApproval')}
+              </Badge>
+            )}
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="bg-gray-50/50">
+          <td colSpan={6} className="px-6 py-4 border-t border-gray-100">
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <RequisitionMaterialsTable materials={req.materials} t={t} />
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
+              {!isOob && !approved && (
+                <>
+                  {insufficient && (
+                    <span className="text-xs text-red-600">{t('requisitions.insufficientCannotApprove')}</span>
+                  )}
+                  <DxButton
+                    text={isApproving ? t('requisitions.approvingBtn') : t('requisitions.approveBtn')}
+                    type="success"
+                    disabled={isApproving || insufficient}
+                    onClick={onApprove}
+                  />
+                </>
+              )}
+              {isOob && !released && (
+                <>
+                  {insufficient && (
+                    <span className="text-xs text-red-600">{t('requisitions.insufficientCannotRelease')}</span>
+                  )}
+                  <DxButton
+                    text={isReleasing ? t('requisitions.releasingBtn') : t('requisitions.releaseBtn')}
+                    type="success"
+                    disabled={isReleasing || insufficient}
+                    onClick={onRelease}
+                  />
+                </>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
