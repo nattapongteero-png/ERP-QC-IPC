@@ -22,7 +22,10 @@
     "calibration_due": "Calibration",
     "scale_failure": "Scale FAIL",
     "verification_expired": "Verification Expired",
-    "inspection_due": "Inspection"
+    "inspection_due": "Inspection",
+    "lot_received": "Lot Received",
+    "wo_completed": "WO Completed",
+    "deviation_opened": "Deviation Opened"
   },
   "status": {
     "open": "Open",

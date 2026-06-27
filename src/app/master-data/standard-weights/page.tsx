@@ -103,19 +103,19 @@ export default function StandardWeightsPage() {
 
       <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
         <DxDataGrid
-          dataSource={data ?? []}
+          dataSource={(data ?? []).map((d, i) => ({ ...d, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
           loading={isLoading}
           height="auto"
           width="100%"
-          columnAutoWidth
           elementAttr={{ 'data-testid': 'standard-weights-grid' }}
         >
           <DxSearchPanel visible placeholder="ค้นหา..." width={200} />
           <DxPaging defaultPageSize={20} />
 
+          <DxColumn dataField="_rowNumber" caption="#" width={56} alignment="center" allowSorting={false} allowFiltering={false} />
           <DxColumn
             dataField="code"
             caption={t('table.columns.code')}

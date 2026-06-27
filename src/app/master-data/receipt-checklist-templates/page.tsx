@@ -137,14 +137,16 @@ export default function ReceiptChecklistTemplatesPage() {
       </header>
 
       <DataGrid
-        dataSource={data ?? []}
+        dataSource={(data ?? []).map((d, i) => ({ ...d, _rowNumber: i + 1 }))}
         keyExpr="id"
         showBorders
         showRowLines
         rowAlternationEnabled
-        columnAutoWidth
+        wordWrapEnabled
+        width="100%"
       >
         <Paging pageSize={20} />
+        <Column dataField="_rowNumber" caption="#" width={56} alignment="center" allowSorting={false} allowFiltering={false} />
         <Column
           dataField="category"
           caption={t('tolerances.columns.category')}

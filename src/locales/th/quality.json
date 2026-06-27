@@ -1480,11 +1480,45 @@
     "clearFilters": "ล้างตัวกรอง",
     "noEvents": "ไม่พบเหตุการณ์ที่ตรงกับตัวกรอง",
     "columns": {
-      "no": "ลำดับ"
+      "no": "ลำดับ",
+      "timestamp": "เวลา",
+      "user": "ผู้ใช้",
+      "action": "การกระทำ",
+      "entity": "รายการ",
+      "details": "รายละเอียด",
+      "ip": "IP"
+    },
+    "kpi": {
+      "eventsToday": "เหตุการณ์วันนี้",
+      "signOffsThisWeek": "การลงนามสัปดาห์นี้",
+      "verifyHitsThisWeek": "การยืนยันสัปดาห์นี้",
+      "failedLogins7d": "เข้าระบบล้มเหลว (7 วัน)"
+    },
+    "filterLabels": {
+      "entity": "ประเภทรายการ",
+      "entityId": "รหัสรายการ",
+      "action": "การกระทำ",
+      "userId": "รหัสผู้ใช้",
+      "from": "ตั้งแต่",
+      "to": "ถึง",
+      "search": "ค้นหา",
+      "searchPlaceholder": "ค้นหาในรายละเอียด, IP, อุปกรณ์…"
+    },
+    "detail": {
+      "source": "แหล่งที่มา",
+      "userAgent": "อุปกรณ์ผู้ใช้",
+      "ipSource": "IP / แหล่งที่มา",
+      "payload": "ข้อมูล"
     },
     "pager": {
       "firstPage": "หน้าแรก",
-      "lastPage": "หน้าสุดท้าย"
+      "lastPage": "หน้าสุดท้าย",
+      "first": "หน้าแรก",
+      "prev": "ก่อนหน้า",
+      "next": "ถัดไป",
+      "last": "หน้าสุดท้าย",
+      "pageInfo": "หน้า {page} จาก {totalPages} ({total} เหตุการณ์)",
+      "pageSize": "ต่อหน้า"
     }
   }
 }

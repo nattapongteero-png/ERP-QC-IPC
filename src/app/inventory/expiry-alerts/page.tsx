@@ -149,7 +149,8 @@ export default function ExpiryAlertsPage() {
     {
       dataField: 'daysExpired',
       caption: t('expiryAlerts.columns.daysExpired'),
-      width: 130,
+      // minWidth (not a fixed width) so the longer Thai header isn't clipped.
+      minWidth: 150,
       cellRender: (cellInfo) => (
         <Badge variant="danger">
           {t('expiryAlerts.badge.daysAgo', { days: cellInfo.data.daysExpired ?? 0 })}
@@ -181,7 +182,8 @@ export default function ExpiryAlertsPage() {
     {
       dataField: 'daysToExpiry',
       caption: t('expiryAlerts.columns.daysToExpiry'),
-      width: 140,
+      // minWidth (not a fixed width) so the longer Thai header isn't clipped.
+      minWidth: 170,
       cellRender: (cellInfo) => {
         const days = cellInfo.data.daysToExpiry || 0;
         const variant = days <= 30 ? 'danger' : days <= 60 ? 'secondary' : 'default';

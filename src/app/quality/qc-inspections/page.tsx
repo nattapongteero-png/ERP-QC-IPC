@@ -142,6 +142,15 @@ export default function QcInspectionsPage() {
     [rows],
   );
 
+  // QC inspections are a feed → newest first (top row = #1).
+  const numberedRows = useMemo(
+    () =>
+      [...rows]
+        .sort((a, b) => Number(b.id) - Number(a.id))
+        .map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [rows],
+  );
+
   const submit = async () => {
     if (!form.subject.trim()) {
       toast.error(t('qcInspections.toast.subjectRequired'));
@@ -196,6 +205,7 @@ export default function QcInspectionsPage() {
   };
 
   const columns: DxDataGridColumn[] = [
+    { dataField: '_rowNumber', caption: '#', width: 56, alignment: 'center', allowSorting: false, allowFiltering: false },
     { dataField: 'inspectionNumber', caption: t('qcInspections.columns.number'), width: 140 },
     { dataField: 'inspectedAt', caption: t('qcInspections.columns.date'), dataType: 'datetime', width: 150 },
     {
@@ -289,7 +299,7 @@ export default function QcInspectionsPage() {
 
         <div className="bg-white rounded-lg border">
           <DxDataGrid
-            dataSource={rows}
+            dataSource={numberedRows}
             keyExpr="id"
             columns={columns}
             data-testid="qc-inspections-grid"

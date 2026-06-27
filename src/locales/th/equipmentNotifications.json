@@ -22,7 +22,10 @@
     "calibration_due": "สอบเทียบ",
     "scale_failure": "เครื่องชั่ง FAIL",
     "verification_expired": "Verification หมดอายุ",
-    "inspection_due": "ตรวจสอบ"
+    "inspection_due": "ตรวจสอบ",
+    "lot_received": "รับล็อตใหม่",
+    "wo_completed": "ปิดใบสั่งผลิต",
+    "deviation_opened": "เปิดความเบี่ยงเบน"
   },
   "status": {
     "open": "รอดำเนินการ",

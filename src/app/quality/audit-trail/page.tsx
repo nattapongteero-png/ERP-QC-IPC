@@ -317,25 +317,25 @@ export default function AuditTrailPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KpiCard
             icon={Activity}
-            label="Events today"
+            label={t('auditTrail.kpi.eventsToday')}
             value={kpis?.totalEventsToday ?? 0}
             color="emerald"
           />
           <KpiCard
             icon={ShieldCheck}
-            label="Sign-offs this week"
+            label={t('auditTrail.kpi.signOffsThisWeek')}
             value={kpis?.signOffsThisWeek ?? 0}
             color="teal"
           />
           <KpiCard
             icon={Eye}
-            label="Verify hits this week"
+            label={t('auditTrail.kpi.verifyHitsThisWeek')}
             value={kpis?.verifyHitsThisWeek ?? 0}
             color="sky"
           />
           <KpiCard
             icon={AlertTriangle}
-            label="Failed logins (7d)"
+            label={t('auditTrail.kpi.failedLogins7d')}
             value={kpis?.failedLoginsThisWeek ?? 0}
             color="amber"
           />
@@ -349,7 +349,7 @@ export default function AuditTrailPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
             <SelectInput
-              label="Entity"
+              label={t('auditTrail.filterLabels.entity')}
               value={entityType}
               onChange={(v) => {
                 setPage(1);
@@ -358,7 +358,7 @@ export default function AuditTrailPage() {
               options={ENTITY_OPTIONS}
             />
             <TextInput
-              label="Entity ID"
+              label={t('auditTrail.filterLabels.entityId')}
               value={entityId}
               onChange={(v) => {
                 setPage(1);
@@ -368,7 +368,7 @@ export default function AuditTrailPage() {
               type="number"
             />
             <SelectInput
-              label="Action"
+              label={t('auditTrail.filterLabels.action')}
               value={actionType}
               onChange={(v) => {
                 setPage(1);
@@ -377,7 +377,7 @@ export default function AuditTrailPage() {
               options={ACTION_OPTIONS}
             />
             <TextInput
-              label="User ID"
+              label={t('auditTrail.filterLabels.userId')}
               value={userId}
               onChange={(v) => {
                 setPage(1);
@@ -387,7 +387,7 @@ export default function AuditTrailPage() {
               type="number"
             />
             <TextInput
-              label="From"
+              label={t('auditTrail.filterLabels.from')}
               value={dateFrom}
               onChange={(v) => {
                 setPage(1);
@@ -396,7 +396,7 @@ export default function AuditTrailPage() {
               type="date"
             />
             <TextInput
-              label="To"
+              label={t('auditTrail.filterLabels.to')}
               value={dateTo}
               onChange={(v) => {
                 setPage(1);
@@ -405,13 +405,13 @@ export default function AuditTrailPage() {
               type="date"
             />
             <TextInput
-              label="Search"
+              label={t('auditTrail.filterLabels.search')}
               value={search}
               onChange={(v) => {
                 setPage(1);
                 setSearch(v);
               }}
-              placeholder="text in details, IP, agent…"
+              placeholder={t('auditTrail.filterLabels.searchPlaceholder')}
             />
           </div>
           <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
@@ -457,22 +457,22 @@ export default function AuditTrailPage() {
                         {t('auditTrail.columns.no')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        Timestamp
+                        {t('auditTrail.columns.timestamp')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        User
+                        {t('auditTrail.columns.user')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        Action
+                        {t('auditTrail.columns.action')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        Entity
+                        {t('auditTrail.columns.entity')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Details
+                        {t('auditTrail.columns.details')}
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                        IP
+                        {t('auditTrail.columns.ip')}
                       </th>
                     </tr>
                   </thead>
@@ -481,6 +481,7 @@ export default function AuditTrailPage() {
                       <RowFragment
                         key={r.rowKey}
                         row={r}
+                        t={t}
                         // Global sequence so the number keeps climbing across pages.
                         sequenceNumber={(page - 1) * limit + idx + 1}
                         expanded={expandedRow === r.rowKey}
@@ -500,10 +501,10 @@ export default function AuditTrailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-sm text-gray-600 gap-2">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span>
-                    Page {page} of {totalPages} ({total.toLocaleString()} events)
+                    {t('auditTrail.pager.pageInfo', { page, totalPages, total: total.toLocaleString() })}
                   </span>
                   <label className="flex items-center gap-2 text-xs">
-                    Page size:
+                    {t('auditTrail.pager.pageSize')}:
                     <select
                       value={limit}
                       onChange={(e) => {
@@ -526,21 +527,21 @@ export default function AuditTrailPage() {
                     className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                     title={t('auditTrail.pager.firstPage')}
                   >
-                    « First
+                    « {t('auditTrail.pager.first')}
                   </button>
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page <= 1}
                     className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                   >
-                    ‹ Prev
+                    ‹ {t('auditTrail.pager.prev')}
                   </button>
                   <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                     className="px-3 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                   >
-                    Next ›
+                    {t('auditTrail.pager.next')} ›
                   </button>
                   <button
                     onClick={() => setPage(totalPages)}
@@ -548,7 +549,7 @@ export default function AuditTrailPage() {
                     className="px-2 py-1 rounded-md border border-gray-200 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                     title={t('auditTrail.pager.lastPage')}
                   >
-                    Last »
+                    {t('auditTrail.pager.last')} »
                   </button>
                 </div>
               </div>
@@ -569,11 +570,13 @@ function RowFragment({
   sequenceNumber,
   expanded,
   onToggle,
+  t,
 }: {
   row: AuditRow;
   sequenceNumber: number;
   expanded: boolean;
   onToggle: () => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   const ab = actionBadgeVariant(row.action);
   return (
@@ -629,26 +632,17 @@ function RowFragment({
       {expanded && (
         <tr className="bg-gray-50/50">
           <td colSpan={8} className="px-6 py-3 border-t border-gray-100">
+            {/* Only fields NOT already shown in the row's columns (timestamp,
+                action, entity, ip live in the table row) — avoids duplication. */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs">
-              <DetailField label="Source" value={row.source} mono />
-              <DetailField label="Action" value={row.actionLabel || row.action} mono />
-              <DetailField
-                label="Entity"
-                value={`${row.entityType}:${row.entityId ?? '—'}`}
-                mono
-              />
-              <DetailField label="User Agent" value={row.userAgent || '—'} mono />
-              <DetailField
-                label="IP / Source"
-                value={row.ipAddress ?? '—'}
-                mono
-              />
-              <DetailField label="Timestamp" value={row.timestamp} mono />
+              <DetailField label={t('auditTrail.detail.source')} value={row.source} mono />
+              <DetailField label={t('auditTrail.detail.userAgent')} value={row.userAgent || '—'} mono />
+              <DetailField label={t('auditTrail.detail.ipSource')} value={row.ipAddress ?? '—'} mono />
             </div>
             {row.detailsJson && (
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                  Payload
+                  {t('auditTrail.detail.payload')}
                 </p>
                 <pre className="text-xs font-mono bg-white border border-gray-200 rounded-md p-3 overflow-x-auto max-h-72">
                   {JSON.stringify(row.detailsJson, null, 2)}

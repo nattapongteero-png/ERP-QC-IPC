@@ -1480,11 +1480,45 @@
     "clearFilters": "Clear filters",
     "noEvents": "No events match the filters",
     "columns": {
-      "no": "No."
+      "no": "No.",
+      "timestamp": "Timestamp",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "details": "Details",
+      "ip": "IP"
+    },
+    "kpi": {
+      "eventsToday": "Events today",
+      "signOffsThisWeek": "Sign-offs this week",
+      "verifyHitsThisWeek": "Verify hits this week",
+      "failedLogins7d": "Failed logins (7d)"
+    },
+    "filterLabels": {
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "action": "Action",
+      "userId": "User ID",
+      "from": "From",
+      "to": "To",
+      "search": "Search",
+      "searchPlaceholder": "text in details, IP, agent…"
+    },
+    "detail": {
+      "source": "Source",
+      "userAgent": "User Agent",
+      "ipSource": "IP / Source",
+      "payload": "Payload"
     },
     "pager": {
       "firstPage": "First page",
-      "lastPage": "Last page"
+      "lastPage": "Last page",
+      "first": "First",
+      "prev": "Prev",
+      "next": "Next",
+      "last": "Last",
+      "pageInfo": "Page {page} of {totalPages} ({total} events)",
+      "pageSize": "Page size"
     }
   }
 }
