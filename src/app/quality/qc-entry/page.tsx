@@ -67,6 +67,7 @@ interface PendingTaskRow {
   qcResult: 'pending' | 'passed' | 'failed';
   ageDays: number;
   vendorName: string | null;
+  sourceType: string;
 }
 
 const STATUS_OPTIONS = [
@@ -482,9 +483,12 @@ export default function QcEntryListPage() {
                   data-testid={`pending-task-${task.lineId}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs text-gray-500">{task.grnNumber}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <SourceBadge sourceType={task.sourceType} />
+                      <span className="font-mono text-xs text-gray-500 truncate">{task.grnNumber}</span>
+                    </div>
                     {task.ageDays > 0 && (
-                      <span className="text-[11px] text-amber-700">{t('qcEntry.list.pending.days', { count: task.ageDays })}</span>
+                      <span className="text-[11px] text-amber-700 shrink-0">{t('qcEntry.list.pending.days', { count: task.ageDays })}</span>
                     )}
                   </div>
                   <p className="font-medium text-gray-900 truncate mt-0.5">
@@ -584,5 +588,22 @@ export default function QcEntryListPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/** PO/WO origin badge — ใบสั่งซื้อ (teal) vs ใบสั่งผลิต (indigo), matching the
+ *  GRN list page colours so users can tell incoming source apart at a glance. */
+function SourceBadge({ sourceType }: { sourceType: string }) {
+  const isWo = sourceType === 'wo';
+  const cls = isWo
+    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    : 'bg-teal-50 text-teal-700 border-teal-200';
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${cls}`}
+      title={isWo ? 'ใบสั่งผลิต (Work Order)' : 'ใบสั่งซื้อ (Purchase Order)'}
+    >
+      {isWo ? 'ใบสั่งผลิต' : 'ใบสั่งซื้อ'}
+    </span>
   );
 }

@@ -105,6 +105,7 @@ export async function getPendingQaList(): Promise<Array<{
   qcSampleStatus: string | null;
   ageDays: number;
   vendorName: string | null;
+  sourceType: string;
 }>> {
   return executeDbOperation(async (db) => {
     const t = getTables();
@@ -129,6 +130,7 @@ export async function getPendingQaList(): Promise<Array<{
         lineStatus: t.lines.status,
         createdAt: t.lines.createdAt,
         vendorName: t.vendors.name,
+        sourceType: t.grns.sourceType,
       })
       .from(t.lines)
       .leftJoin(t.grns, eq(t.grns.id, t.lines.grnId))
@@ -168,6 +170,7 @@ export async function getPendingQaList(): Promise<Array<{
         qcResult,
         ageDays: Math.floor((Date.now() - new Date(r.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
         vendorName: r.vendorName ?? null,
+        sourceType: String(r.sourceType ?? 'po'),
       };
     });
   });

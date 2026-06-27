@@ -47,6 +47,26 @@ function sqrtSamplePlan(lotQty: number | null | undefined): number {
   return Math.min(n, Math.ceil(Math.sqrt(n) + 1));
 }
 
+/**
+ * Roll the per-line statuses up to the current workflow step key used by the
+ * stepper. Mirrors deriveWorkflowStatus() in the service (least-advanced open
+ * line dictates the stage) but maps to the 4 stepper steps:
+ *   register → qc_check → qc_approve → in_stock
+ */
+function deriveStepKey(
+  headerStatus: string,
+  lineStatuses: string[],
+): 'register' | 'qc_check' | 'qc_approve' | 'in_stock' | 'rejected' | 'cancelled' {
+  if (headerStatus === 'cancelled') return 'cancelled';
+  const open = (s: string) => lineStatuses.includes(s);
+  if (open('created')) return 'register';
+  if (open('checklist_done') || open('qc_pending')) return 'qc_check';
+  if (open('qc_approved')) return 'qc_approve';
+  if (open('rejected') && !open('released_to_stock')) return 'rejected';
+  if (open('released_to_stock')) return 'in_stock';
+  return headerStatus === 'released' ? 'in_stock' : 'register';
+}
+
 /** Concise CoA summary written into the CoA checklist item's remarks. */
 function formatCoaForChecklist(ex: CoaExtraction): string {
   const parts: string[] = [];
@@ -348,15 +368,37 @@ export default function GrnDetailPage() {
         </div>
       </header>
 
-      {/* Workflow status — สถานะการดำเนินงาน */}
-      <StatusStepper
-        title="สถานะการดำเนินงาน"
-        current={grn.status}
-        steps={[
-          { key: 'in_progress', label: 'กำลังดำเนินการ' },
-          { key: 'released', label: 'ผ่านแล้ว (ปล่อยเข้าคลัง)' },
-        ]}
-      />
+      {/* Workflow status — สถานะการดำเนินงาน.
+          Two distinct flows, since PO and WO originate differently:
+            PO เกิดจากการสั่งซื้อ (supplier) → ลงทะเบียน PO อัตโนมัติ
+            WO เกิดจากการผลิต (โรงงานผลิตเอง) → รับงานผลิต
+          The 4 QC/warehouse steps are the same; only step 1's wording differs. */}
+      {(() => {
+        const stepKey = deriveStepKey(grn.status, lines.map((l) => l.status));
+        const isWo = grn.sourceType === 'wo';
+        const firstStep = isWo
+          ? { key: 'register', label: 'รับงานผลิต' }
+          : { key: 'register', label: 'ลงทะเบียน PO (อัตโนมัติ)' };
+        const steps =
+          stepKey === 'rejected'
+            ? [firstStep, { key: 'rejected', label: 'QC ไม่ผ่าน (Reject)' }]
+            : stepKey === 'cancelled'
+            ? [firstStep, { key: 'cancelled', label: 'ยกเลิก GRN' }]
+            : [
+                firstStep,
+                { key: 'qc_check', label: 'QC ตรวจ COA + Checklist' },
+                { key: 'qc_approve', label: 'QC อนุมัติ' },
+                { key: 'in_stock', label: 'คลังรับเข้า (เข้าคลัง)' },
+              ];
+        return (
+          <StatusStepper
+            title="สถานะการดำเนินงาน"
+            current={stepKey}
+            tone={stepKey === 'rejected' || stepKey === 'cancelled' ? 'violet' : 'emerald'}
+            steps={steps}
+          />
+        );
+      })()}
 
       <DataGrid
         dataSource={lines}

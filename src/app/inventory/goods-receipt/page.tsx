@@ -21,7 +21,7 @@ import { TextArea } from 'devextreme-react/text-area';
 import { DateBox } from 'devextreme-react/date-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TextBox } from 'devextreme-react/text-box';
-import { ClipboardCheck, Plus, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
+import { ClipboardCheck, AlertTriangle, CheckCircle2, Hourglass, FlaskConical } from 'lucide-react';
 import { BackButton } from '@/components/shared/BackButton';
 import type { IncomingDashboardCounts, GrnWorkflowStatus } from '@/types/goods-receipt';
 
@@ -232,19 +232,11 @@ export default function GoodsReceiptListPage() {
           </h1>
           <p className="text-[#4B7163] text-sm mt-1">{t('page.subtitle')}</p>
         </div>
+        {/* GRN is created automatically (PO → on receive/approve, WO → on Work
+            Order close), so there's no manual "create GRN" entry point here.
+            The /goods-receipt/new route is kept as a fallback but unlinked. */}
         <div className="flex gap-2">
           <Button text={t('actions.refresh')} onClick={() => refetch()} />
-          <Button
-            type="default"
-            stylingMode="contained"
-            onClick={() => router.push('/inventory/goods-receipt/new')}
-            render={() => (
-              <span className="inline-flex items-center gap-1">
-                <Plus className="w-4 h-4" />
-                {t('actions.create')}
-              </span>
-            )}
-          />
         </div>
       </header>
 
