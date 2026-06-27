@@ -12,7 +12,6 @@ import {
   DxDataGrid,
   DxColumn,
   DxFilterRow,
-  DxPaging,
   DxHeaderFilter,
 } from '@/components/ui/dx-data-grid';
 import { Button } from 'devextreme-react/button';
@@ -361,11 +360,23 @@ export default function GoodsReceiptListPage() {
         columnAutoWidth
         onRowClick={(e) => router.push(`/inventory/goods-receipt/${e.key}`)}
         elementAttr={{ 'data-testid': 'grn-list-grid' }}
-        paging={false}
+        pageSize={20}
+        allowedPageSizes={[10, 20, 50, 100]}
       >
         <DxFilterRow visible={false} />
         <DxHeaderFilter visible={false} />
-        <DxPaging defaultPageSize={20} />
+        {/* Running row number (#) so rows are easy to count/reference,
+            matching the lots list. */}
+        <DxColumn
+          caption="#"
+          width={48}
+          alignment="center"
+          allowSorting={false}
+          allowFiltering={false}
+          cellRender={(c) => (
+            <span className="text-gray-500 text-sm font-medium">{(c.row?.loadIndex ?? 0) + 1}</span>
+          )}
+        />
         <DxColumn dataField="grnNumber" caption={t('table.columns.grnNumber')} width={150} />
         <DxColumn
           dataField="sourceType"
