@@ -146,6 +146,15 @@ export default function StorageMonitoringPage() {
     };
   }, [logs]);
 
+  // Newest first (highest id = most recent), numbered so the top row is #1.
+  const numberedLogs = useMemo(
+    () =>
+      [...logs]
+        .sort((a, b) => Number(b.id) - Number(a.id))
+        .map((item, index) => ({ ...item, _rowNumber: index + 1 })),
+    [logs],
+  );
+
   // Stable option list for the warehouse SelectBox — a fresh array each render
   // can make DevExtreme drop the currently-selected display value.
   const warehouseOptions = useMemo(
@@ -263,6 +272,14 @@ export default function StorageMonitoringPage() {
   };
 
   const columns: DxDataGridColumn[] = [
+    {
+      dataField: '_rowNumber',
+      caption: '#',
+      width: 56,
+      alignment: 'center',
+      allowSorting: false,
+      allowFiltering: false,
+    },
     { dataField: 'readingAt', caption: t('storageMonitoring.columns.readingAt'), dataType: 'datetime', width: 160 },
     {
       dataField: 'warehouseCode',
@@ -435,7 +452,7 @@ export default function StorageMonitoringPage() {
 
         <div className="bg-white rounded-lg border">
           <DxDataGrid
-            dataSource={logs}
+            dataSource={numberedLogs}
             keyExpr="id"
             columns={columns}
             data-testid="storage-monitoring-grid"

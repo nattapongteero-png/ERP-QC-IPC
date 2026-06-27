@@ -94,9 +94,14 @@ export default function InspectionHistoryPage() {
   const filterTargetType = searchParams.get('targetType');
   const allRecords = data?.items ?? [];
   const isFiltering = !!filterTargetId && !!filterTargetType;
-  const records = allRecords.filter((r) =>
-    !isFiltering ? true : String(r.targetId) === filterTargetId && r.targetType === filterTargetType,
-  );
+  const records = allRecords
+    .filter((r) =>
+      !isFiltering ? true : String(r.targetId) === filterTargetId && r.targetType === filterTargetType,
+    )
+    // Newest first (highest id = most recent), numbered so the top row is #1
+    // (the "#" column was previously the raw id, which read 8,7,6… backwards).
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const filteredTargetName = isFiltering ? records[0]?.targetName ?? null : null;
 
   const { data: detail } = useQuery<RecordDetail>({
@@ -217,7 +222,7 @@ export default function InspectionHistoryPage() {
       >
         <Paging pageSize={20} />
         <Pager visible showPageSizeSelector allowedPageSizes={[20, 50, 100]} />
-        <Column dataField="id" caption="#" width={60} />
+        <Column dataField="_rowNumber" caption="#" width={60} alignment="center" allowSorting={false} />
         <Column dataField="performedAt" caption={t('environmental.inspectionsHistory.performedAtColumn')} dataType="datetime" width={170} />
         <Column
           dataField="targetType"

@@ -147,6 +147,8 @@ export default function ScaleVerificationPage() {
   }).length;
 
   const scales = data?.items ?? [];
+  // Number rows so the grid shows a sequence column (top row = #1).
+  const numberedScales = scales.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const activeCount = scales.filter((s) => s.status === 'active').length;
   const oosCount = scales.filter((s) => s.status === 'out_of_service').length;
 
@@ -237,16 +239,16 @@ export default function ScaleVerificationPage() {
       </div>
 
       <DxDataGrid
-        dataSource={scales}
+        dataSource={numberedScales}
         keyExpr="scaleId"
         showBorders
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
         elementAttr={{ 'data-testid': 'scales-grid' }}
-        paging={false}
       >
         <DxPaging defaultPageSize={20} />
+        <DxColumn dataField="_rowNumber" caption="#" width={56} alignment="center" allowSorting={false} allowFiltering={false} />
         <DxColumn dataField="scaleCode" caption={t('table.columns.scaleCode')} width={120} />
         <DxColumn dataField="scaleName" caption={t('table.columns.scaleName')} />
         <DxColumn

@@ -241,7 +241,10 @@ export default function DeviationsPage() {
       const matchesSource = !sourceFilter || dev.sourceType === sourceFilter;
 
       return matchesSearch && matchesStatus && matchesSeverity && matchesSource;
-    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+    })
+      // Newest first (id is auto-increment, so highest id = most recent).
+      .sort((a, b) => Number(b.id) - Number(a.id))
+      .map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [deviations, search, statusFilter, severityFilter, sourceFilter]);
 
   // Per-tab counts (total irrespective of search/severity/source)
@@ -830,9 +833,10 @@ export default function DeviationsPage() {
         // rows where paging would create excessive Prev/Next clicks.
         pageSize={20}
         virtualScrolling={filteredDeviations.length > 100}
-        height={600}
-        mobileHeight={520}
-        tabletHeight={560}
+        // No fixed height: grow to fit the page's rows so a full 20-row page
+        // shows without an inner scrollbar. Only virtual scrolling (>100 rows)
+        // needs a bounded height.
+        height={filteredDeviations.length > 100 ? 600 : undefined}
         onRowClick={handleRowClick}
         noDataText={t('deviations.grid.noData')}
       />

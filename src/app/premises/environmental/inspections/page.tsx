@@ -164,6 +164,8 @@ export default function InspectionsPage() {
   });
 
   const schedules = schedData?.items ?? [];
+  // Number rows so the grid shows a sequence column (top row = #1).
+  const numberedSchedules = schedules.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const now = new Date();
   const overdue = schedules.filter((s) => new Date(s.nextDue) < now).length;
   const today = schedules.filter((s) => new Date(s.nextDue).toDateString() === now.toDateString()).length;
@@ -286,14 +288,16 @@ export default function InspectionsPage() {
       </div>
 
       <DataGrid
-        dataSource={schedules}
+        dataSource={numberedSchedules}
         keyExpr="id"
         showBorders
         showRowLines
         rowAlternationEnabled
         columnAutoWidth
+        height="auto"
       >
         <Paging pageSize={20} />
+        <Column dataField="_rowNumber" caption="#" width={56} alignment="center" allowSorting={false} allowFiltering={false} />
         <Column
           dataField="targetType"
           caption={t('form.targetType')}

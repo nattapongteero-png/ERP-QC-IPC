@@ -224,8 +224,14 @@ export function DxDataGrid<T = Record<string, unknown>>({
   rowAlternationEnabled = true,
   allowColumnReordering = true,
   allowColumnResizing = true,
-  columnAutoWidth = true,
-  wordWrapEnabled = false,
+  // Default to NOT forcing each column to its content width — that made the
+  // summed column widths exceed the viewport and produced a horizontal
+  // scrollbar. With it off the grid fits its container and long (esp. Thai)
+  // text wraps instead of pushing the table wider.
+  columnAutoWidth = false,
+  // Wrap long cell text onto multiple lines so Thai strings don't overflow the
+  // cell / collide with the next column.
+  wordWrapEnabled = true,
   height,
   width,
   noDataText = 'ไม่มีข้อมูล',

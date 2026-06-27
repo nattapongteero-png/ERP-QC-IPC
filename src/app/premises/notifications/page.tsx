@@ -160,6 +160,8 @@ export default function MaintenanceAlertsPage() {
   });
 
   const items = data?.items ?? [];
+  // Number rows so the list shows a sequence column (top row = #1).
+  const numberedItems = items.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   const open = items.filter((i) => i.status === 'open');
   const overdue = items.filter((i) => i.severity === 'overdue' && i.status === 'open').length;
   const in7d = items.filter((i) => i.severity === 'due_in_7d' && i.status === 'open').length;
@@ -270,15 +272,17 @@ export default function MaintenanceAlertsPage() {
 
       {view === 'list' ? (
         <DataGrid
-          dataSource={items}
+          dataSource={numberedItems}
           keyExpr="id"
           showBorders
           showRowLines
           rowAlternationEnabled
           columnAutoWidth
+          height="auto"
           data-testid="notifications-grid"
         >
           <Paging pageSize={20} />
+          <Column dataField="_rowNumber" caption="#" width={56} alignment="center" allowSorting={false} allowFiltering={false} />
           <Column
             dataField="severity"
             caption={tp('notifications.list.col.severity')}
