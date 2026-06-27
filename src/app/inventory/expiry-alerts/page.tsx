@@ -312,7 +312,6 @@ export default function ExpiryAlertsPage() {
                   keyExpr="lotNumber"
                   columns={expiredColumns}
                   showBorders
-                  height={420}
                   noDataText={t('expiryAlerts.noExpired')}
                 />
               </div>
@@ -341,7 +340,6 @@ export default function ExpiryAlertsPage() {
                   keyExpr="lotNumber"
                   columns={nearExpiryColumns}
                   showBorders
-                  height={420}
                   noDataText={t('expiryAlerts.noNearExpiry')}
                 />
               </div>

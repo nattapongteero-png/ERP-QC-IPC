@@ -450,7 +450,7 @@ export default function StorageMonitoringPage() {
           </span>
         </div>
 
-        <div className="bg-white rounded-lg border">
+        <div className="bg-white rounded-lg border overflow-hidden">
           <DxDataGrid
             dataSource={numberedLogs}
             keyExpr="id"

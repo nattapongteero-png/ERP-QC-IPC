@@ -174,8 +174,8 @@ export default function VendorsPage() {
 
       return matchesStatus && matchesSearch;
     });
-    // Newest first (id is auto-increment, so highest id = most recent).
-    filtered.sort((a, b) => Number(b.id) - Number(a.id));
+    // Master data (vendors) — keep natural order so the newest record stays at
+    // the bottom (per the master-data ordering convention), just number rows.
     return filtered.map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [vendors, statusFilter, search]);
 

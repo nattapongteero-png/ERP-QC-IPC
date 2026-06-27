@@ -131,7 +131,6 @@ export default function EnvironmentalConditionsPage() {
           loading={isLoading}
           height="auto"
           width="100%"
-          columnAutoWidth
         >
           <DxSearchPanel visible placeholder="ค้นหาเงื่อนไข..." width={200} />
           <DxPaging defaultPageSize={20} />
