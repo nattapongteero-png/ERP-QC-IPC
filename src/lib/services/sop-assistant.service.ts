@@ -106,8 +106,13 @@ async function retrieveDocs(
   // Always include a broad pass on the full question too (catches multi-word titles).
   const queries = terms.length > 0 ? [question, ...terms] : [question];
 
+  // TEMP DEBUG (remove after diagnosing SOP-assistant no-match): log how the
+  // question was tokenised and how many docs each search term matched.
+  console.log('[SOP-DEBUG] question=', JSON.stringify(question), 'terms=', JSON.stringify(terms), 'queries=', JSON.stringify(queries));
+
   for (const q of queries) {
     const res = await getDocuments({ status: 'active', typeId: options.typeId, search: q, limit: 20 });
+    console.log('[SOP-DEBUG] search=', JSON.stringify(q), '→ matched', res.documents.length, 'docs:', JSON.stringify(res.documents.slice(0, 3).map((d) => d.title)));
     for (const doc of res.documents) {
       hitCount.set(doc.id, (hitCount.get(doc.id) ?? 0) + 1);
       if (!seen.has(doc.id)) {
