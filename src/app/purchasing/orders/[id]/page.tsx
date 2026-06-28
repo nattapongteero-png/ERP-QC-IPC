@@ -133,6 +133,8 @@ interface PODetail {
     createdBy: number | null;
     approvedBy: number | null;
     approvedAt: string | null;
+    // Metaherb dual-approval: null = not a Metaherb PO; otherwise pending|approved|rejected.
+    metaherbApproval: 'pending' | 'approved' | 'rejected' | null;
     createdByName: string | null;
     approvedByName: string | null;
     sentVia: string | null;
@@ -1056,7 +1058,13 @@ export default function PurchaseOrderDetailPage() {
                   icon="check"
                   type="success"
                   stylingMode="contained"
-                  disabled={isTransitioning}
+                  // Metaherb POs need Metaherb-admin approval first — block the
+                  // owner's finalise until metaherbApproval === 'approved'. The
+                  // backend enforces this too; this just disables the button.
+                  disabled={
+                    isTransitioning ||
+                    (po.metaherbApproval != null && po.metaherbApproval !== 'approved')
+                  }
                   onClick={() => transitionStatus('approved', `ยืนยันอนุมัติ PO ${po.poNumber}?`)}
                   data-testid="po-approve-btn"
                 />
@@ -1101,6 +1109,46 @@ export default function PurchaseOrderDetailPage() {
                     ⚠️ ผู้ขายยังไม่มีอีเมลในระบบ — โปรดเพิ่มอีเมลผู้ขายเพื่อการส่งที่สมบูรณ์
                   </p>
                 )}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Metaherb dual-approval banner — shows the Metaherb-admin side of the
+            two-sided approval for POs that originated from Metaherb. */}
+        {po.metaherbApproval != null && (
+          <Card
+            className={cn(
+              '!p-4 border-l-4',
+              po.metaherbApproval === 'approved'
+                ? 'border-l-emerald-500'
+                : po.metaherbApproval === 'rejected'
+                  ? 'border-l-red-500'
+                  : 'border-l-amber-500',
+            )}
+            data-testid="metaherb-approval-banner"
+          >
+            <div className="flex items-start gap-3">
+              {po.metaherbApproval === 'approved' ? (
+                <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              ) : po.metaherbApproval === 'rejected' ? (
+                <XCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+              ) : (
+                <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              )}
+              <div className="text-sm">
+                <p className="font-semibold text-gray-800">การอนุมัติ 2 ฝ่าย (Metaherb)</p>
+                <p className="text-gray-600 mt-0.5">
+                  {po.metaherbApproval === 'approved' && (
+                    <>Metaherb <span className="font-medium text-emerald-700">อนุมัติแล้ว</span> — โรงงานสามารถกดอนุมัติเพื่อยืนยันได้</>
+                  )}
+                  {po.metaherbApproval === 'rejected' && (
+                    <>Metaherb <span className="font-medium text-red-700">ปฏิเสธ</span> ใบสั่งซื้อนี้ — PO ถูกปฏิเสธ</>
+                  )}
+                  {po.metaherbApproval === 'pending' && (
+                    <>ส่งเข้าคิวอนุมัติฝั่ง Metaherb แล้ว — <span className="font-medium text-amber-700">รอ Metaherb อนุมัติ</span> ก่อนโรงงานจึงจะอนุมัติได้</>
+                  )}
+                </p>
               </div>
             </div>
           </Card>

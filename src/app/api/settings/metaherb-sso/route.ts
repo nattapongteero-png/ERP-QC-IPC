@@ -90,6 +90,10 @@ export async function PUT(request: NextRequest) {
           typeof body?.ssoSecret === 'string' ? body.ssoSecret : undefined;
         const prStatusUrl =
           typeof body?.prStatusUrl === 'string' ? body.prStatusUrl : undefined;
+        const poSubmitUrl =
+          typeof body?.poSubmitUrl === 'string' ? body.poSubmitUrl : undefined;
+        const factoryName =
+          typeof body?.factoryName === 'string' ? body.factoryName : undefined;
 
         // Validate URL fields up-front (empty allowed = clear it).
         const callbackErr = validateMetaherbUrl(callbackUrl, 'Callback URL ');
@@ -100,8 +104,15 @@ export async function PUT(request: NextRequest) {
         if (prStatusErr) {
           return NextResponse.json({ success: false, error: prStatusErr }, { status: 400 });
         }
+        const poSubmitErr = validateMetaherbUrl(poSubmitUrl, 'PO Submit Webhook URL ');
+        if (poSubmitErr) {
+          return NextResponse.json({ success: false, error: poSubmitErr }, { status: 400 });
+        }
 
-        await updateMetaherbSsoConfig({ callbackUrl, ssoSecret, prStatusUrl }, session.userId);
+        await updateMetaherbSsoConfig(
+          { callbackUrl, ssoSecret, prStatusUrl, poSubmitUrl, factoryName },
+          session.userId,
+        );
         return NextResponse.json({ success: true });
       } catch (error) {
         console.error('Error saving Metaherb SSO settings:', error);

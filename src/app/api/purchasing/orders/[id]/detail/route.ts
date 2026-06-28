@@ -40,6 +40,8 @@ export async function GET(
             createdBy: purchaseOrders.createdBy,
             approvedBy: purchaseOrders.approvedBy,
             approvedAt: purchaseOrders.approvedAt,
+            // Metaherb dual-approval state (null for non-Metaherb POs).
+            metaherbApproval: purchaseOrders.metaherbApproval,
             sentVia: purchaseOrders.sentVia,
             sentAt: purchaseOrders.sentAt,
             sentToEmail: purchaseOrders.sentToEmail,

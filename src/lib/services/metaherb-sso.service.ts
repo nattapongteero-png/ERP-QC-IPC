@@ -24,6 +24,8 @@ const CATEGORY = 'metaherb_sso';
 const KEY_SECRET = 'metaherb.sso_secret'; // value = AES-GCM ciphertext
 const KEY_CALLBACK = 'metaherb.callback_url'; // value = plain URL
 const KEY_PR_STATUS_URL = 'metaherb.pr_status_url'; // value = plain URL (outbound PR-status webhook)
+const KEY_PO_SUBMIT_URL = 'metaherb.po_submit_url'; // value = plain URL (outbound PO-submit webhook; optional — derived from pr_status_url if blank)
+const KEY_FACTORY_NAME = 'metaherb.factory_name'; // value = plain text (our company/factory name sent in po-submit)
 
 function getTables() {
   return { settings: getTableRef('settings') };
@@ -36,6 +38,14 @@ export interface MetaherbSsoConfig {
   /** Outbound PR-status webhook target (.../pr-status/<company>). */
   prStatusUrl: string | null;
   /**
+   * Outbound PO-submit webhook target (.../po-submit/<company>). If not set
+   * explicitly, derived from prStatusUrl by swapping the path segment
+   * 'pr-status' → 'po-submit' (same host + same company segment).
+   */
+  poSubmitUrl: string | null;
+  /** Our company/factory name, sent as `factory` in the po-submit body. */
+  factoryName: string | null;
+  /**
    * Where each value came from — for diagnostics in the settings UI.
    * 'db-decrypt-failed' = a secret IS stored but couldn't be decrypted
    * (almost always a VMI_ENCRYPTION_KEY mismatch/rotation), so we fell back.
@@ -44,13 +54,30 @@ export interface MetaherbSsoConfig {
     secret: 'db' | 'env' | 'none' | 'db-decrypt-failed';
     callback: 'db' | 'env' | 'none';
     prStatus: 'db' | 'env' | 'none';
+    poSubmit: 'db' | 'env' | 'derived' | 'none';
+    factory: 'db' | 'env' | 'none';
   };
+}
+
+/**
+ * Derive the PO-submit URL from the PR-status URL by replacing the
+ * '/pr-status/' path segment with '/po-submit/'. Returns null if the input is
+ * null or doesn't contain that segment.
+ */
+export function derivePoSubmitUrl(prStatusUrl: string | null): string | null {
+  if (!prStatusUrl) return null;
+  if (!prStatusUrl.includes('/pr-status/')) return null;
+  return prStatusUrl.replace('/pr-status/', '/po-submit/');
 }
 
 /** What the settings UI shows (secret never leaves the server in clear). */
 export interface MetaherbSsoSettingsView {
   callbackUrl: string;
   prStatusUrl: string;
+  /** Resolved PO-submit URL (may be derived from prStatusUrl). */
+  poSubmitUrl: string;
+  /** Our company/factory name sent in po-submit. */
+  factoryName: string;
   /** True if a secret is configured (in DB or env) — value itself is hidden. */
   secretConfigured: boolean;
   source: MetaherbSsoConfig['source'];
@@ -146,6 +173,34 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
     prStatusSource = 'env';
   }
 
+  // --- PO-submit webhook URL (outbound) — explicit, else env, else derived ---
+  let poSubmitUrl: string | null = null;
+  let poSubmitSource: MetaherbSsoConfig['source']['poSubmit'] = 'none';
+  if (db[KEY_PO_SUBMIT_URL]) {
+    poSubmitUrl = db[KEY_PO_SUBMIT_URL];
+    poSubmitSource = 'db';
+  } else if (process.env.METAHERB_PO_SUBMIT_URL) {
+    poSubmitUrl = process.env.METAHERB_PO_SUBMIT_URL.trim().replace(/^["']|["']$/g, '');
+    poSubmitSource = 'env';
+  } else {
+    const derived = derivePoSubmitUrl(prStatusUrl);
+    if (derived) {
+      poSubmitUrl = derived;
+      poSubmitSource = 'derived';
+    }
+  }
+
+  // --- factory name (our company name sent in po-submit) ---
+  let factoryName: string | null = null;
+  let factorySource: MetaherbSsoConfig['source']['factory'] = 'none';
+  if (db[KEY_FACTORY_NAME]) {
+    factoryName = db[KEY_FACTORY_NAME];
+    factorySource = 'db';
+  } else if (process.env.METAHERB_FACTORY_NAME) {
+    factoryName = process.env.METAHERB_FACTORY_NAME.trim();
+    factorySource = 'env';
+  }
+
   // Reference dbAvailable so a future caller can branch on it; logged above.
   void dbAvailable;
 
@@ -153,7 +208,15 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
     ssoSecret,
     callbackUrl,
     prStatusUrl,
-    source: { secret: secretSource, callback: callbackSource, prStatus: prStatusSource },
+    poSubmitUrl,
+    factoryName,
+    source: {
+      secret: secretSource,
+      callback: callbackSource,
+      prStatus: prStatusSource,
+      poSubmit: poSubmitSource,
+      factory: factorySource,
+    },
   };
 }
 
@@ -163,6 +226,8 @@ export async function getMetaherbSsoSettingsView(): Promise<MetaherbSsoSettingsV
   return {
     callbackUrl: cfg.callbackUrl ?? '',
     prStatusUrl: cfg.prStatusUrl ?? '',
+    poSubmitUrl: cfg.poSubmitUrl ?? '',
+    factoryName: cfg.factoryName ?? '',
     secretConfigured: !!cfg.ssoSecret,
     source: cfg.source,
   };
@@ -175,6 +240,10 @@ export interface MetaherbSsoUpdate {
   callbackUrl?: string;
   /** New PR-status webhook URL. Provide to set; empty string clears it. */
   prStatusUrl?: string;
+  /** New PO-submit webhook URL. Provide to set; empty string clears it (falls back to derived). */
+  poSubmitUrl?: string;
+  /** Our company/factory name for po-submit. Provide to set; empty string clears it. */
+  factoryName?: string;
 }
 
 /**
@@ -231,6 +300,24 @@ export async function updateMetaherbSsoConfig(
       const isClear = data.prStatusUrl === '';
       if (clean !== '' || isClear) {
         await upsert(KEY_PR_STATUS_URL, clean);
+      }
+    }
+
+    if (typeof data.poSubmitUrl === 'string') {
+      // Same rule. Empty = clear → resolution falls back to deriving from pr_status_url.
+      const clean = data.poSubmitUrl.trim().replace(/^["']|["']$/g, '');
+      const isClear = data.poSubmitUrl === '';
+      if (clean !== '' || isClear) {
+        await upsert(KEY_PO_SUBMIT_URL, clean);
+      }
+    }
+
+    if (typeof data.factoryName === 'string') {
+      // Plain text — trim only. Empty = clear.
+      const clean = data.factoryName.trim();
+      const isClear = data.factoryName === '';
+      if (clean !== '' || isClear) {
+        await upsert(KEY_FACTORY_NAME, clean);
       }
     }
 

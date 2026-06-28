@@ -104,12 +104,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } = body;
 
       const poTable = getTableRef('purchaseOrders');
+      const vendorsTbl = getTableRef('vendors');
 
-      // Check if PO exists
+      // Check if PO exists (join vendor so we know if it's a Metaherb PO).
       const existing = await executeDbOperation(async (db) => {
         const result = await db
-          .select({ id: poTable.id, status: poTable.status, vendorId: poTable.vendorId })
+          .select({
+            id: poTable.id,
+            status: poTable.status,
+            vendorId: poTable.vendorId,
+            metaherbApproval: poTable.metaherbApproval,
+            vendorCode: vendorsTbl.code,
+          })
           .from(poTable)
+          .leftJoin(vendorsTbl, eq(poTable.vendorId, vendorsTbl.id))
           .where(eq(poTable.id, poId))
           .limit(1);
         return result[0] || null;
@@ -118,6 +126,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (!existing) {
         return errorResponse('Purchase order not found', 404);
       }
+
+      // Metaherb dual-approval gate. A PO whose vendor is METAHERB needs BOTH
+      // the ERP owner AND Metaherb-admin to approve before it can become
+      // 'approved'. Either side rejecting → rejected.
+      const isMetaherbPO =
+        typeof existing.vendorCode === 'string' &&
+        existing.vendorCode.trim().toUpperCase() === 'METAHERB';
+      // Set true below when this PATCH submits a Metaherb PO for approval, so we
+      // fire the po-submit webhook after the DB commit.
+      let firePoSubmit = false;
 
       // Enforce the PO lifecycle: reject illegal status jumps (e.g. skipping
       // approval). A no-op (same status) or a status-less edit is allowed.
@@ -129,6 +147,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
               (allowed.length
                 ? ` (อนุญาต: ${allowed.join(', ')})`
                 : ' (สถานะนี้สิ้นสุดแล้ว)'),
+            400,
+          );
+        }
+      }
+
+      // Dual-approval gate for Metaherb POs: the ERP owner may only finalise the
+      // approval once Metaherb-admin has approved. If Metaherb hasn't decided yet,
+      // block the owner's 'approved' click (keep it pending_approval). If Metaherb
+      // already rejected, the PO is rejected, not approvable.
+      if (isMetaherbPO && status === 'approved' && existing.status !== 'approved') {
+        if (existing.metaherbApproval === 'rejected') {
+          return errorResponse(
+            'ใบสั่งซื้อนี้ถูกปฏิเสธโดย Metaherb แล้ว ไม่สามารถอนุมัติได้',
+            400,
+          );
+        }
+        if (existing.metaherbApproval !== 'approved') {
+          return errorResponse(
+            'ใบสั่งซื้อจาก Metaherb ต้องรอ Metaherb อนุมัติก่อน จึงจะอนุมัติฝั่งโรงงานได้ (ขณะนี้ยังรอผลจาก Metaherb)',
             400,
           );
         }
@@ -146,6 +183,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
       if (notes !== undefined) updateData.notes = notes;
+
+      // Metaherb PO submitted for approval → mark its Metaherb side 'pending' and
+      // queue the po-submit webhook (fired after commit) so it lands in the
+      // Metaherb-admin approval queue.
+      if (isMetaherbPO && status === 'pending_approval' && existing.status !== 'pending_approval') {
+        updateData.metaherbApproval = 'pending';
+        firePoSubmit = true;
+      }
 
       // Stamp who/when on approval, and how/when on send-to-vendor, so the detail
       // page can show "อนุมัติโดย … / ส่งทาง … เมื่อ …" instead of a bare status.
@@ -182,6 +227,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         newValue: updateData,
         ipAddress: getClientIP(request),
       });
+
+      // After commit: push the PO into Metaherb's approval queue. Fire-and-forget
+      // (never throws to caller) so a webhook failure can't fail the submit; a
+      // durable retry sweeper resends failed deliveries.
+      if (firePoSubmit) {
+        try {
+          const { notifyMetaherbPoSubmit } = await import('@/lib/services/metaherb-po-webhook.service');
+          void notifyMetaherbPoSubmit(poId);
+        } catch (err) {
+          console.warn('Metaherb po-submit webhook dispatch failed (non-fatal):', err);
+        }
+      }
 
       // Auto-create a Goods Receipt once the PO advances past draft, so the PO
       // lines appear on the GRN screen (quarantine → QC checklist → release).

@@ -35,5 +35,17 @@ export async function register() {
     } catch (error) {
       console.error('[Instrumentation] Metaherb webhook boot-drain import failed:', error);
     }
+
+    // Same durable backstop for the Metaherb PO-submit webhook.
+    try {
+      const { retryDueMetaherbPoWebhooks } = await import(
+        './lib/services/metaherb-po-webhook.service'
+      );
+      void retryDueMetaherbPoWebhooks().catch((err) =>
+        console.error('[Instrumentation] Metaherb PO webhook boot-drain failed:', err)
+      );
+    } catch (error) {
+      console.error('[Instrumentation] Metaherb PO webhook boot-drain import failed:', error);
+    }
   }
 }

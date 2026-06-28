@@ -702,6 +702,10 @@ export const sqlitePurchaseOrders = sqliteTable('purchase_orders', {
   sentVia: text('sent_via'), // email | fax | portal | manual
   sentAt: text('sent_at'),
   sentToEmail: text('sent_to_email'),
+  // Metaherb dual-approval: result of the Metaherb-admin side of approval.
+  // NULL = not a Metaherb PO (single-side approval, unchanged flow). Set to
+  // 'pending' when submitted for approval; 'approved'/'rejected' on decision.
+  metaherbApproval: text('metaherb_approval'), // pending | approved | rejected | null
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2410,6 +2414,8 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   sentVia: varchar('sent_via', { length: 50 }),
   sentAt: datetime('sent_at'),
   sentToEmail: varchar('sent_to_email', { length: 255 }),
+  // Metaherb dual-approval (see sqlitePurchaseOrders.metaherbApproval).
+  metaherbApproval: varchar('metaherb_approval', { length: 20 }), // pending | approved | rejected | null
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -5758,6 +5764,28 @@ export const sqliteMetaherbPrWebhookDeliveries = sqliteTable('metaherb_pr_webhoo
   processedAt: text('processed_at'),
 });
 
+// Metaherb PO-submit webhook deliveries (durable outbound retry) — mirrors the
+// PR-status deliveries table. Keyed on poId; eventType is 'po_submit'.
+export const sqliteMetaherbPoWebhookDeliveries = sqliteTable('metaherb_po_webhook_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  poId: integer('po_id').notNull().references(() => sqlitePurchaseOrders.id),
+  deliveryId: text('delivery_id').notNull().unique(), // UUID idempotency key
+  eventType: text('event_type').notNull(), // po_submit
+  targetUrl: text('target_url').notNull(),
+  payload: text('payload').notNull(),
+  signature: text('signature').notNull(),
+  timestamp: text('timestamp').notNull(),
+  status: text('status').notNull().default('pending'), // pending | processed | failed
+  httpStatus: integer('http_status'),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  nextRetryAt: text('next_retry_at'),
+  lastError: text('last_error'),
+  processingDurationMs: integer('processing_duration_ms'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  lastAttemptAt: text('last_attempt_at'),
+  processedAt: text('processed_at'),
+});
+
 // Bank Reconciliation - SQLite (T002)
 export const sqliteBankStatements = sqliteTable('bank_statements', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -6481,6 +6509,27 @@ export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_li
 export const mysqlMetaherbPrWebhookDeliveries = mysqlTable('metaherb_pr_webhook_deliveries', {
   id: int('id').primaryKey().autoincrement(),
   prId: int('pr_id').notNull().references(() => mysqlPurchaseRequisitions.id),
+  deliveryId: varchar('delivery_id', { length: 64 }).notNull().unique(),
+  eventType: varchar('event_type', { length: 20 }).notNull(),
+  targetUrl: varchar('target_url', { length: 512 }).notNull(),
+  payload: mysqlText('payload').notNull(),
+  signature: varchar('signature', { length: 128 }).notNull(),
+  timestamp: varchar('timestamp', { length: 20 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  httpStatus: int('http_status'),
+  attemptCount: int('attempt_count').notNull().default(0),
+  nextRetryAt: datetime('next_retry_at'),
+  lastError: mysqlText('last_error'),
+  processingDurationMs: int('processing_duration_ms'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  lastAttemptAt: datetime('last_attempt_at'),
+  processedAt: datetime('processed_at'),
+});
+
+// Metaherb PO-submit webhook deliveries — mirrors the PR-status deliveries table.
+export const mysqlMetaherbPoWebhookDeliveries = mysqlTable('metaherb_po_webhook_deliveries', {
+  id: int('id').primaryKey().autoincrement(),
+  poId: int('po_id').notNull().references(() => mysqlPurchaseOrders.id),
   deliveryId: varchar('delivery_id', { length: 64 }).notNull().unique(),
   eventType: varchar('event_type', { length: 20 }).notNull(),
   targetUrl: varchar('target_url', { length: 512 }).notNull(),
