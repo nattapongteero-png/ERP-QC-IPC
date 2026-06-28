@@ -22,7 +22,7 @@ import { eq, and, lte, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb, getTodayStr } from '../db/date-utils';
-import { getMetaherbSsoConfig, derivePoOwnerDecisionUrl } from './metaherb-sso.service';
+import { getMetaherbSsoConfig } from './metaherb-sso.service';
 import { computeSignature } from './vmi-webhook-crypto';
 import {
   metaherbPoSubmitBodySchema,
@@ -357,7 +357,7 @@ export async function notifyMetaherbPoOwnerDecision(
     }
 
     const cfg = await getMetaherbSsoConfig();
-    const url = derivePoOwnerDecisionUrl(cfg.poSubmitUrl);
+    const url = cfg.poOwnerDecisionUrl;
     const body = metaherbPoOwnerDecisionBodySchema.parse({
       erpPOID: po.id,
       decision,

@@ -159,9 +159,12 @@ beforeEach(async () => {
   await seedVendors();
   getMetaherbSsoConfigMock.mockResolvedValue({
     ssoSecret: 'b'.repeat(64),
-    callbackUrl: null,
+    baseUrl: 'https://api.x',
+    companyKey: 'uat',
+    callbackUrl: 'https://api.x/api/sso/erp/callback/uat',
     prStatusUrl: 'https://api.x/api/erp/pr-status/uat',
     poSubmitUrl: 'https://api.x/api/erp/po-submit/uat',
+    poOwnerDecisionUrl: 'https://api.x/api/erp/po-owner-decision/uat',
     factoryName: 'โรงงานทดสอบ',
     source: {},
   });

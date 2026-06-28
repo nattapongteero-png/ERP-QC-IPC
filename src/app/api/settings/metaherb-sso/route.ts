@@ -83,34 +83,31 @@ export async function PUT(request: NextRequest) {
       }
 
       try {
-        // Only accept the managed fields; ignore anything else.
-        const callbackUrl =
-          typeof body?.callbackUrl === 'string' ? body.callbackUrl : undefined;
+        // Simplified model: base URL + company key + factory name (+ secret).
+        const baseUrl =
+          typeof body?.baseUrl === 'string' ? body.baseUrl : undefined;
+        const companyKey =
+          typeof body?.companyKey === 'string' ? body.companyKey : undefined;
         const ssoSecret =
           typeof body?.ssoSecret === 'string' ? body.ssoSecret : undefined;
-        const prStatusUrl =
-          typeof body?.prStatusUrl === 'string' ? body.prStatusUrl : undefined;
-        const poSubmitUrl =
-          typeof body?.poSubmitUrl === 'string' ? body.poSubmitUrl : undefined;
         const factoryName =
           typeof body?.factoryName === 'string' ? body.factoryName : undefined;
 
-        // Validate URL fields up-front (empty allowed = clear it).
-        const callbackErr = validateMetaherbUrl(callbackUrl, 'Callback URL ');
-        if (callbackErr) {
-          return NextResponse.json({ success: false, error: callbackErr }, { status: 400 });
+        // Validate base URL up-front (empty allowed = clear it).
+        const baseErr = validateMetaherbUrl(baseUrl, 'Base URL ');
+        if (baseErr) {
+          return NextResponse.json({ success: false, error: baseErr }, { status: 400 });
         }
-        const prStatusErr = validateMetaherbUrl(prStatusUrl, 'PR Status Webhook URL ');
-        if (prStatusErr) {
-          return NextResponse.json({ success: false, error: prStatusErr }, { status: 400 });
-        }
-        const poSubmitErr = validateMetaherbUrl(poSubmitUrl, 'PO Submit Webhook URL ');
-        if (poSubmitErr) {
-          return NextResponse.json({ success: false, error: poSubmitErr }, { status: 400 });
+        // companyKey: a single path segment, no slashes/spaces.
+        if (typeof companyKey === 'string' && companyKey.trim() !== '' && /[\s/]/.test(companyKey.trim())) {
+          return NextResponse.json(
+            { success: false, error: 'Company Key ต้องเป็นคำเดียว ห้ามมีช่องว่างหรือ /' },
+            { status: 400 },
+          );
         }
 
         await updateMetaherbSsoConfig(
-          { callbackUrl, ssoSecret, prStatusUrl, poSubmitUrl, factoryName },
+          { baseUrl, companyKey, ssoSecret, factoryName },
           session.userId,
         );
         return NextResponse.json({ success: true });

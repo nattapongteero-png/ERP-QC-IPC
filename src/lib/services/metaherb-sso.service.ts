@@ -22,10 +22,53 @@ import { encrypt, decrypt, isValidCiphertext } from '../crypto/encrypt';
 
 const CATEGORY = 'metaherb_sso';
 const KEY_SECRET = 'metaherb.sso_secret'; // value = AES-GCM ciphertext
-const KEY_CALLBACK = 'metaherb.callback_url'; // value = plain URL
-const KEY_PR_STATUS_URL = 'metaherb.pr_status_url'; // value = plain URL (outbound PR-status webhook)
-const KEY_PO_SUBMIT_URL = 'metaherb.po_submit_url'; // value = plain URL (outbound PO-submit webhook; optional — derived from pr_status_url if blank)
+const KEY_CALLBACK = 'metaherb.callback_url'; // value = plain URL (legacy explicit; superseded by base_url+company_key)
+const KEY_PR_STATUS_URL = 'metaherb.pr_status_url'; // value = plain URL (legacy explicit)
+const KEY_PO_SUBMIT_URL = 'metaherb.po_submit_url'; // value = plain URL (legacy explicit)
 const KEY_FACTORY_NAME = 'metaherb.factory_name'; // value = plain text (our company/factory name sent in po-submit)
+// New simplified model: store base URL + company key once, derive every endpoint.
+const KEY_BASE_URL = 'metaherb.base_url'; // e.g. https://api.pomdevth.site
+const KEY_COMPANY_KEY = 'metaherb.company_key'; // e.g. uat (the per-tenant segment baked into every URL)
+
+/**
+ * Path templates for the Metaherb endpoints, relative to the base URL. The
+ * company key is the last segment of each (Metaherb routes by it; a mismatch
+ * yields 403). Callback lives under /api/sso/erp/, the webhooks under /api/erp/.
+ */
+const METAHERB_PATHS = {
+  callback: (key: string) => `/api/sso/erp/callback/${key}`,
+  prStatus: (key: string) => `/api/erp/pr-status/${key}`,
+  poSubmit: (key: string) => `/api/erp/po-submit/${key}`,
+  poOwnerDecision: (key: string) => `/api/erp/po-owner-decision/${key}`,
+} as const;
+
+/** Resolved set of all Metaherb endpoint URLs (built from base + companyKey). */
+export interface MetaherbUrls {
+  callbackUrl: string;
+  prStatusUrl: string;
+  poSubmitUrl: string;
+  poOwnerDecisionUrl: string;
+}
+
+/**
+ * Build every Metaherb endpoint URL from a base URL + company key. Trims a
+ * trailing slash on the base so we don't produce '//api'. Returns null if
+ * either input is empty.
+ */
+export function buildMetaherbUrls(
+  baseUrl: string | null | undefined,
+  companyKey: string | null | undefined,
+): MetaherbUrls | null {
+  const base = (baseUrl ?? '').trim().replace(/\/+$/, '');
+  const key = (companyKey ?? '').trim();
+  if (!base || !key) return null;
+  return {
+    callbackUrl: base + METAHERB_PATHS.callback(key),
+    prStatusUrl: base + METAHERB_PATHS.prStatus(key),
+    poSubmitUrl: base + METAHERB_PATHS.poSubmit(key),
+    poOwnerDecisionUrl: base + METAHERB_PATHS.poOwnerDecision(key),
+  };
+}
 
 function getTables() {
   return { settings: getTableRef('settings') };
@@ -34,27 +77,26 @@ function getTables() {
 /** Resolved config the SSO route actually uses (decrypted secret). */
 export interface MetaherbSsoConfig {
   ssoSecret: string | null;
+  /** The base URL + company key the URLs were built from (when using the new model). */
+  baseUrl: string | null;
+  companyKey: string | null;
   callbackUrl: string | null;
   /** Outbound PR-status webhook target (.../pr-status/<company>). */
   prStatusUrl: string | null;
-  /**
-   * Outbound PO-submit webhook target (.../po-submit/<company>). If not set
-   * explicitly, derived from prStatusUrl by swapping the path segment
-   * 'pr-status' → 'po-submit' (same host + same company segment).
-   */
+  /** Outbound PO-submit webhook target (.../po-submit/<company>). */
   poSubmitUrl: string | null;
+  /** Outbound po-owner-decision webhook target (.../po-owner-decision/<company>). */
+  poOwnerDecisionUrl: string | null;
   /** Our company/factory name, sent as `factory` in the po-submit body. */
   factoryName: string | null;
   /**
-   * Where each value came from — for diagnostics in the settings UI.
-   * 'db-decrypt-failed' = a secret IS stored but couldn't be decrypted
-   * (almost always a VMI_ENCRYPTION_KEY mismatch/rotation), so we fell back.
+   * Where the URLs came from — for diagnostics in the settings UI.
+   * 'base' = built from base_url + company_key (new model).
+   * 'db-decrypt-failed' = a secret IS stored but couldn't be decrypted.
    */
   source: {
     secret: 'db' | 'env' | 'none' | 'db-decrypt-failed';
-    callback: 'db' | 'env' | 'none';
-    prStatus: 'db' | 'env' | 'none';
-    poSubmit: 'db' | 'env' | 'derived' | 'none';
+    urls: 'base' | 'legacy' | 'env' | 'none';
     factory: 'db' | 'env' | 'none';
   };
 }
@@ -83,12 +125,16 @@ export function derivePoOwnerDecisionUrl(poSubmitUrl: string | null): string | n
 
 /** What the settings UI shows (secret never leaves the server in clear). */
 export interface MetaherbSsoSettingsView {
-  callbackUrl: string;
-  prStatusUrl: string;
-  /** Resolved PO-submit URL (may be derived from prStatusUrl). */
-  poSubmitUrl: string;
+  /** New simplified inputs. */
+  baseUrl: string;
+  companyKey: string;
   /** Our company/factory name sent in po-submit. */
   factoryName: string;
+  /** Resolved endpoint URLs (read-only preview, built from base + key). */
+  callbackUrl: string;
+  prStatusUrl: string;
+  poSubmitUrl: string;
+  poOwnerDecisionUrl: string;
   /** True if a secret is configured (in DB or env) — value itself is hidden. */
   secretConfigured: boolean;
   source: MetaherbSsoConfig['source'];
@@ -162,42 +208,53 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
     secretSource = 'db-decrypt-failed';
   }
 
-  // --- callback URL ---
+  // --- endpoint URLs ---
+  // Preferred (new) model: a single base URL + company key from which every
+  // endpoint is built. Falls back to the legacy explicit per-URL settings (and
+  // their env vars) so existing tenants keep working until they re-save with the
+  // simplified form. base/key may come from DB or env.
+  const baseUrl =
+    db[KEY_BASE_URL] ||
+    (process.env.METAHERB_BASE_URL ? process.env.METAHERB_BASE_URL.trim().replace(/^["']|["']$/g, '') : '');
+  const companyKey =
+    db[KEY_COMPANY_KEY] ||
+    (process.env.METAHERB_COMPANY_KEY ? process.env.METAHERB_COMPANY_KEY.trim().replace(/^["']|["']$/g, '') : '');
+
   let callbackUrl: string | null = null;
-  let callbackSource: MetaherbSsoConfig['source']['callback'] = 'none';
-  if (db[KEY_CALLBACK]) {
-    callbackUrl = db[KEY_CALLBACK];
-    callbackSource = 'db';
-  } else if (process.env.METAHERB_CALLBACK_URL) {
-    callbackUrl = process.env.METAHERB_CALLBACK_URL;
-    callbackSource = 'env';
-  }
-
-  // --- PR-status webhook URL (outbound) ---
   let prStatusUrl: string | null = null;
-  let prStatusSource: MetaherbSsoConfig['source']['prStatus'] = 'none';
-  if (db[KEY_PR_STATUS_URL]) {
-    prStatusUrl = db[KEY_PR_STATUS_URL];
-    prStatusSource = 'db';
-  } else if (process.env.METAHERB_PR_STATUS_URL) {
-    prStatusUrl = process.env.METAHERB_PR_STATUS_URL.trim().replace(/^["']|["']$/g, '');
-    prStatusSource = 'env';
-  }
-
-  // --- PO-submit webhook URL (outbound) — explicit, else env, else derived ---
   let poSubmitUrl: string | null = null;
-  let poSubmitSource: MetaherbSsoConfig['source']['poSubmit'] = 'none';
-  if (db[KEY_PO_SUBMIT_URL]) {
-    poSubmitUrl = db[KEY_PO_SUBMIT_URL];
-    poSubmitSource = 'db';
-  } else if (process.env.METAHERB_PO_SUBMIT_URL) {
-    poSubmitUrl = process.env.METAHERB_PO_SUBMIT_URL.trim().replace(/^["']|["']$/g, '');
-    poSubmitSource = 'env';
+  let poOwnerDecisionUrl: string | null = null;
+  let urlsSource: MetaherbSsoConfig['source']['urls'] = 'none';
+  let resolvedBaseUrl: string | null = null;
+  let resolvedCompanyKey: string | null = null;
+
+  const built = buildMetaherbUrls(baseUrl, companyKey);
+  if (built) {
+    // New model wins when both base + key are present.
+    callbackUrl = built.callbackUrl;
+    prStatusUrl = built.prStatusUrl;
+    poSubmitUrl = built.poSubmitUrl;
+    poOwnerDecisionUrl = built.poOwnerDecisionUrl;
+    resolvedBaseUrl = baseUrl;
+    resolvedCompanyKey = companyKey;
+    urlsSource = db[KEY_BASE_URL] || db[KEY_COMPANY_KEY] ? 'base' : 'env';
   } else {
-    const derived = derivePoSubmitUrl(prStatusUrl);
-    if (derived) {
-      poSubmitUrl = derived;
-      poSubmitSource = 'derived';
+    // Legacy: explicit full URLs (DB → env), po-submit/po-owner-decision derived.
+    callbackUrl = db[KEY_CALLBACK] || process.env.METAHERB_CALLBACK_URL || null;
+    prStatusUrl =
+      db[KEY_PR_STATUS_URL] ||
+      (process.env.METAHERB_PR_STATUS_URL
+        ? process.env.METAHERB_PR_STATUS_URL.trim().replace(/^["']|["']$/g, '')
+        : null);
+    poSubmitUrl =
+      db[KEY_PO_SUBMIT_URL] ||
+      (process.env.METAHERB_PO_SUBMIT_URL
+        ? process.env.METAHERB_PO_SUBMIT_URL.trim().replace(/^["']|["']$/g, '')
+        : null) ||
+      derivePoSubmitUrl(prStatusUrl);
+    poOwnerDecisionUrl = derivePoOwnerDecisionUrl(poSubmitUrl);
+    if (callbackUrl || prStatusUrl || poSubmitUrl) {
+      urlsSource = db[KEY_CALLBACK] || db[KEY_PR_STATUS_URL] || db[KEY_PO_SUBMIT_URL] ? 'legacy' : 'env';
     }
   }
 
@@ -217,15 +274,16 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
 
   return {
     ssoSecret,
+    baseUrl: resolvedBaseUrl,
+    companyKey: resolvedCompanyKey,
     callbackUrl,
     prStatusUrl,
     poSubmitUrl,
+    poOwnerDecisionUrl,
     factoryName,
     source: {
       secret: secretSource,
-      callback: callbackSource,
-      prStatus: prStatusSource,
-      poSubmit: poSubmitSource,
+      urls: urlsSource,
       factory: factorySource,
     },
   };
@@ -235,10 +293,13 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
 export async function getMetaherbSsoSettingsView(): Promise<MetaherbSsoSettingsView> {
   const cfg = await getMetaherbSsoConfig();
   return {
+    baseUrl: cfg.baseUrl ?? '',
+    companyKey: cfg.companyKey ?? '',
+    factoryName: cfg.factoryName ?? '',
     callbackUrl: cfg.callbackUrl ?? '',
     prStatusUrl: cfg.prStatusUrl ?? '',
     poSubmitUrl: cfg.poSubmitUrl ?? '',
-    factoryName: cfg.factoryName ?? '',
+    poOwnerDecisionUrl: cfg.poOwnerDecisionUrl ?? '',
     secretConfigured: !!cfg.ssoSecret,
     source: cfg.source,
   };
@@ -247,12 +308,10 @@ export async function getMetaherbSsoSettingsView(): Promise<MetaherbSsoSettingsV
 export interface MetaherbSsoUpdate {
   /** New plaintext secret. Omit/empty = leave the stored secret unchanged. */
   ssoSecret?: string;
-  /** New callback URL. Provide to set; empty string clears it. */
-  callbackUrl?: string;
-  /** New PR-status webhook URL. Provide to set; empty string clears it. */
-  prStatusUrl?: string;
-  /** New PO-submit webhook URL. Provide to set; empty string clears it (falls back to derived). */
-  poSubmitUrl?: string;
+  /** Metaherb API base URL, e.g. https://api.pomdevth.site. Empty string clears it. */
+  baseUrl?: string;
+  /** Per-tenant company key (last URL segment), e.g. uat. Empty string clears it. */
+  companyKey?: string;
   /** Our company/factory name for po-submit. Provide to set; empty string clears it. */
   factoryName?: string;
 }
@@ -293,33 +352,26 @@ export async function updateMetaherbSsoConfig(
       }
     };
 
-    if (typeof data.callbackUrl === 'string') {
-      // Normalise stray quotes/spaces from copy-paste.
-      const clean = data.callbackUrl.trim().replace(/^["']|["']$/g, '');
-      // A whitespace-only value is almost never an intentional "clear" — skip it
-      // so a stray save can't silently wipe a working callback. To actually
-      // clear, the UI must send an explicit empty string with no other content.
-      const isClear = data.callbackUrl === '';
+    if (typeof data.baseUrl === 'string') {
+      // Normalise stray quotes/spaces + trailing slash from copy-paste.
+      const clean = data.baseUrl.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+      const isClear = data.baseUrl === '';
       if (clean !== '' || isClear) {
-        await upsert(KEY_CALLBACK, clean);
+        await upsert(KEY_BASE_URL, clean);
+        // Saving the simplified model supersedes any legacy explicit URLs — clear
+        // them so they can't shadow the base+key resolution.
+        await upsert(KEY_CALLBACK, '');
+        await upsert(KEY_PR_STATUS_URL, '');
+        await upsert(KEY_PO_SUBMIT_URL, '');
       }
     }
 
-    if (typeof data.prStatusUrl === 'string') {
-      // Same trim/quote-strip + explicit-empty-to-clear rule as callbackUrl.
-      const clean = data.prStatusUrl.trim().replace(/^["']|["']$/g, '');
-      const isClear = data.prStatusUrl === '';
+    if (typeof data.companyKey === 'string') {
+      // Plain segment — trim + strip any slashes the user may paste.
+      const clean = data.companyKey.trim().replace(/^["']|["']$/g, '').replace(/^\/+|\/+$/g, '');
+      const isClear = data.companyKey === '';
       if (clean !== '' || isClear) {
-        await upsert(KEY_PR_STATUS_URL, clean);
-      }
-    }
-
-    if (typeof data.poSubmitUrl === 'string') {
-      // Same rule. Empty = clear → resolution falls back to deriving from pr_status_url.
-      const clean = data.poSubmitUrl.trim().replace(/^["']|["']$/g, '');
-      const isClear = data.poSubmitUrl === '';
-      if (clean !== '' || isClear) {
-        await upsert(KEY_PO_SUBMIT_URL, clean);
+        await upsert(KEY_COMPANY_KEY, clean);
       }
     }
 

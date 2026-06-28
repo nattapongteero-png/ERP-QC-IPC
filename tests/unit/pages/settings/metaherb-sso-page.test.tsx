@@ -58,9 +58,15 @@ vi.mock('@/components/ui/dx-button', () => ({
 }));
 
 const VIEW = {
+  baseUrl: 'https://api.pomdevth.site',
+  companyKey: 'arjaro',
+  factoryName: 'บริษัท ทดสอบ จำกัด',
   callbackUrl: 'https://api.pomdevth.site/api/sso/erp/callback/arjaro',
+  prStatusUrl: 'https://api.pomdevth.site/api/erp/pr-status/arjaro',
+  poSubmitUrl: 'https://api.pomdevth.site/api/erp/po-submit/arjaro',
+  poOwnerDecisionUrl: 'https://api.pomdevth.site/api/erp/po-owner-decision/arjaro',
   secretConfigured: true,
-  source: { secret: 'db', callback: 'db' },
+  source: { secret: 'db', urls: 'base', factory: 'db' },
 };
 
 describe('MetaherbSsoSettingsPage', () => {
@@ -84,26 +90,28 @@ describe('MetaherbSsoSettingsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders and loads existing config (callback shown, secret never revealed)', async () => {
+  it('renders and loads existing config (base+key shown, secret never revealed)', async () => {
     render(<MetaherbSsoSettingsPage />);
 
     // Page shell present
     expect(screen.getByTestId('metaherb-sso-settings')).toBeTruthy();
 
-    // Callback URL populates from the API
+    // Base URL + company key populate from the API
     await waitFor(() => {
-      const cb = screen.getByTestId('metaherb-callback-input') as HTMLInputElement;
-      expect(cb.value).toBe(VIEW.callbackUrl);
+      const base = screen.getByTestId('metaherb-base-url-input') as HTMLInputElement;
+      expect(base.value).toBe(VIEW.baseUrl);
     });
+    const key = screen.getByTestId('metaherb-company-key-input') as HTMLInputElement;
+    expect(key.value).toBe(VIEW.companyKey);
 
     // Secret input is empty (value never round-trips from the server)
     const secret = screen.getByTestId('metaherb-secret-input') as HTMLInputElement;
     expect(secret.value).toBe('');
   });
 
-  it('PUTs callback + new secret on save', async () => {
+  it('PUTs base+key + new secret on save', async () => {
     render(<MetaherbSsoSettingsPage />);
-    await waitFor(() => screen.getByTestId('metaherb-callback-input'));
+    await waitFor(() => screen.getByTestId('metaherb-base-url-input'));
 
     const secret = screen.getByTestId('metaherb-secret-input');
     fireEvent.change(secret, { target: { value: 'new-secret-value-123456789012345678' } });
@@ -115,14 +123,15 @@ describe('MetaherbSsoSettingsPage', () => {
       const put = calls.find((c) => c[1]?.method === 'PUT');
       expect(put).toBeTruthy();
       const body = JSON.parse((put![1] as RequestInit).body as string);
-      expect(body.callbackUrl).toBe(VIEW.callbackUrl);
+      expect(body.baseUrl).toBe(VIEW.baseUrl);
+      expect(body.companyKey).toBe(VIEW.companyKey);
       expect(body.ssoSecret).toBe('new-secret-value-123456789012345678');
     });
   });
 
   it('omits ssoSecret from the body when the secret field is left blank', async () => {
     render(<MetaherbSsoSettingsPage />);
-    await waitFor(() => screen.getByTestId('metaherb-callback-input'));
+    await waitFor(() => screen.getByTestId('metaherb-base-url-input'));
 
     // Don't touch the secret field — just save.
     fireEvent.click(screen.getByTestId('metaherb-save-button'));
@@ -133,7 +142,7 @@ describe('MetaherbSsoSettingsPage', () => {
       expect(put).toBeTruthy();
       const body = JSON.parse((put![1] as RequestInit).body as string);
       expect('ssoSecret' in body).toBe(false); // unchanged secret not sent
-      expect(body.callbackUrl).toBe(VIEW.callbackUrl);
+      expect(body.baseUrl).toBe(VIEW.baseUrl);
     });
   });
 
@@ -149,7 +158,7 @@ describe('MetaherbSsoSettingsPage', () => {
     );
 
     render(<MetaherbSsoSettingsPage />);
-    await waitFor(() => screen.getByTestId('metaherb-callback-input'));
+    await waitFor(() => screen.getByTestId('metaherb-base-url-input'));
     fireEvent.click(screen.getByTestId('metaherb-save-button'));
 
     await waitFor(() => {
