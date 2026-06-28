@@ -22,10 +22,11 @@ import { eq, and, lte, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb, getTodayStr } from '../db/date-utils';
-import { getMetaherbSsoConfig } from './metaherb-sso.service';
+import { getMetaherbSsoConfig, derivePoOwnerDecisionUrl } from './metaherb-sso.service';
 import { computeSignature } from './vmi-webhook-crypto';
 import {
   metaherbPoSubmitBodySchema,
+  metaherbPoOwnerDecisionBodySchema,
   type MetaherbPoSubmitBody,
   type MetaherbPoItem,
 } from '../validation/metaherb-po-webhook';
@@ -232,9 +233,81 @@ export async function buildMetaherbPoSubmitBody(
  * OUTBOUND entry point — call AFTER a PO is submitted for approval, fire-and-
  * forget. Skips silently for non-Metaherb POs. Never throws.
  */
+/**
+ * Persist a delivery row + make the first (inline) attempt. Shared by the
+ * po-submit and po-owner-decision senders. `url`/`secret` may be null → a
+ * terminal config_missing row is written and nothing is sent. Never throws.
+ */
+async function dispatchPoDelivery(args: {
+  poId: number;
+  eventType: 'po_submit' | 'po_owner_decision';
+  url: string | null;
+  secret: string | null;
+  rawBody: string;
+}): Promise<void> {
+  const { poId, eventType, url, secret, rawBody } = args;
+  const t = tables();
+  const deliveryId = randomUUID();
+
+  if (!url || !secret) {
+    const now = getNow();
+    await executeDbOperation(async (db) =>
+      db.insert(t.deliveries).values({
+        poId,
+        deliveryId,
+        eventType,
+        targetUrl: url ?? '',
+        payload: rawBody,
+        signature: '',
+        timestamp: '',
+        status: 'failed',
+        attemptCount: 0,
+        lastError: 'config_missing',
+        createdAt: now,
+      })
+    );
+    console.error(
+      `[metaherb-po-webhook] config missing (url=${!!url} secret=${!!secret}) — PO ${poId} ${eventType} not sent`
+    );
+    return;
+  }
+
+  // Persist a pending row FIRST so the sweeper can resume even if this process
+  // dies before the POST returns.
+  const nowIso = getNow();
+  await executeDbOperation(async (db) =>
+    db.insert(t.deliveries).values({
+      poId,
+      deliveryId,
+      eventType,
+      targetUrl: url,
+      payload: rawBody,
+      signature: '',
+      timestamp: '',
+      status: 'pending',
+      attemptCount: 0,
+      nextRetryAt: toDbDate(new Date().toISOString()),
+      createdAt: nowIso,
+    })
+  );
+
+  const { outcome, ts, signature } = await sendOnce(url, rawBody, secret);
+  const update = deliveryUpdateFromOutcome(outcome, ts, signature, 1);
+  await executeDbOperation(async (db) =>
+    db.update(t.deliveries).set(update).where(eq(t.deliveries.deliveryId, deliveryId))
+  );
+
+  if (!outcome.ok) {
+    console.warn(
+      `[metaherb-po-webhook] PO ${poId} ${eventType} attempt 1 failed (${outcome.error}) — ${
+        (update.status as string) === 'failed' ? 'terminal' : 'will retry'
+      }`
+    );
+  }
+}
+
 export async function notifyMetaherbPoSubmit(poId: number): Promise<void> {
   try {
-    const t = tables();
     const po = await loadPoHeader(poId);
     if (!po) {
       console.warn(`[metaherb-po-webhook] PO ${poId} not found — skipping notify`);
@@ -246,74 +319,60 @@ export async function notifyMetaherbPoSubmit(poId: number): Promise<void> {
     }
 
     const cfg = await getMetaherbSsoConfig();
-    const url = cfg.poSubmitUrl;
-    const secret = cfg.ssoSecret;
-
     const items = await loadPoItems(poId);
     const body = await buildMetaherbPoSubmitBody(po, cfg.factoryName, items);
-    const rawBody = JSON.stringify(body);
-    const deliveryId = randomUUID();
+    await dispatchPoDelivery({
+      poId: po.id,
+      eventType: 'po_submit',
+      url: cfg.poSubmitUrl,
+      secret: cfg.ssoSecret,
+      rawBody: JSON.stringify(body),
+    });
+  } catch (err) {
+    console.error(
+      `[metaherb-po-webhook] unexpected error notifying PO ${poId} submit:`,
+      err instanceof Error ? err.message : err
+    );
+  }
+}
 
-    // Config missing → record a terminal failed row (nothing to retry against).
-    if (!url || !secret) {
-      const now = getNow();
-      await executeDbOperation(async (db) =>
-        db.insert(t.deliveries).values({
-          poId: po.id,
-          deliveryId,
-          eventType: 'po_submit',
-          targetUrl: url ?? '',
-          payload: rawBody,
-          signature: '',
-          timestamp: '',
-          status: 'failed',
-          attemptCount: 0,
-          lastError: 'config_missing',
-          createdAt: now,
-        })
-      );
-      console.error(
-        `[metaherb-po-webhook] config missing (url=${!!url} secret=${!!secret}) — PO ${poId} not sent`
-      );
+/**
+ * OUTBOUND — tell Metaherb the ERP owner's verdict on a Metaherb PO. Call AFTER
+ * the PO status commit, fire-and-forget. Skips silently for non-Metaherb POs.
+ * Never throws.
+ */
+export async function notifyMetaherbPoOwnerDecision(
+  poId: number,
+  decision: 'approved' | 'rejected',
+  poNumber: string
+): Promise<void> {
+  try {
+    const po = await loadPoHeader(poId);
+    if (!po) {
+      console.warn(`[metaherb-po-webhook] PO ${poId} not found — skipping owner-decision notify`);
+      return;
+    }
+    if (!isMetaherbVendorCode(po.vendorCode)) {
       return;
     }
 
-    // Persist a pending row FIRST so the sweeper can resume even if this process
-    // dies before the POST returns.
-    const nowIso = getNow();
-    await executeDbOperation(async (db) =>
-      db.insert(t.deliveries).values({
-        poId: po.id,
-        deliveryId,
-        eventType: 'po_submit',
-        targetUrl: url,
-        payload: rawBody,
-        signature: '',
-        timestamp: '',
-        status: 'pending',
-        attemptCount: 0,
-        nextRetryAt: toDbDate(new Date().toISOString()),
-        createdAt: nowIso,
-      })
-    );
-
-    // First (inline) attempt.
-    const { outcome, ts, signature } = await sendOnce(url, rawBody, secret);
-    const update = deliveryUpdateFromOutcome(outcome, ts, signature, 1);
-    await executeDbOperation(async (db) =>
-      db.update(t.deliveries).set(update).where(eq(t.deliveries.deliveryId, deliveryId))
-    );
-
-    if (!outcome.ok) {
-      console.warn(
-        `[metaherb-po-webhook] PO ${poId} attempt 1 failed (${outcome.error}) — ${
-          (update.status as string) === 'failed' ? 'terminal' : 'will retry'
-        }`
-      );
-    }
+    const cfg = await getMetaherbSsoConfig();
+    const url = derivePoOwnerDecisionUrl(cfg.poSubmitUrl);
+    const body = metaherbPoOwnerDecisionBodySchema.parse({
+      erpPOID: po.id,
+      decision,
+      poNumber: poNumber || po.poNumber,
+    });
+    await dispatchPoDelivery({
+      poId: po.id,
+      eventType: 'po_owner_decision',
+      url,
+      secret: cfg.ssoSecret,
+      rawBody: JSON.stringify(body),
+    });
   } catch (err) {
     console.error(
-      `[metaherb-po-webhook] unexpected error notifying PO ${poId}:`,
+      `[metaherb-po-webhook] unexpected error notifying PO ${poId} owner-decision:`,
       err instanceof Error ? err.message : err
     );
   }

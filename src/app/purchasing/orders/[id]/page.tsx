@@ -133,8 +133,9 @@ interface PODetail {
     createdBy: number | null;
     approvedBy: number | null;
     approvedAt: string | null;
-    // Metaherb dual-approval: null = not a Metaherb PO; otherwise pending|approved|rejected.
+    // Metaherb dual-approval (parallel): null = not a Metaherb PO; otherwise pending|approved|rejected.
     metaherbApproval: 'pending' | 'approved' | 'rejected' | null;
+    erpOwnerApproval: 'pending' | 'approved' | 'rejected' | null;
     createdByName: string | null;
     approvedByName: string | null;
     sentVia: string | null;
@@ -562,7 +563,7 @@ export default function PurchaseOrderDetailPage() {
   };
 
   // Transition PO status (Submit / Approve)
-  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved' | 'sent', confirmMsg: string) => {
+  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved' | 'rejected' | 'sent', confirmMsg: string) => {
     if (!confirm(confirmMsg)) return;
     setIsTransitioning(true);
     try {
@@ -1058,15 +1059,25 @@ export default function PurchaseOrderDetailPage() {
                   icon="check"
                   type="success"
                   stylingMode="contained"
-                  // Metaherb POs need Metaherb-admin approval first — block the
-                  // owner's finalise until metaherbApproval === 'approved'. The
-                  // backend enforces this too; this just disables the button.
-                  disabled={
-                    isTransitioning ||
-                    (po.metaherbApproval != null && po.metaherbApproval !== 'approved')
-                  }
+                  // Parallel approval: the owner may approve anytime, independent
+                  // of Metaherb. The PO only becomes 'approved' once BOTH sides
+                  // approve (handled server-side); until then it stays pending.
+                  disabled={isTransitioning}
                   onClick={() => transitionStatus('approved', `ยืนยันอนุมัติ PO ${po.poNumber}?`)}
                   data-testid="po-approve-btn"
+                />
+              )}
+              {/* Owner reject — for Metaherb POs (parallel dual-approval), the
+                  owner can reject anytime; either side rejecting → PO rejected. */}
+              {po.status === 'pending_approval' && canApprove && po.metaherbApproval != null && (
+                <DxButton
+                  text={isTransitioning ? 'กำลังปฏิเสธ...' : 'ปฏิเสธ (Reject)'}
+                  icon="close"
+                  type="danger"
+                  stylingMode="contained"
+                  disabled={isTransitioning}
+                  onClick={() => transitionStatus('rejected', `ยืนยันปฏิเสธ PO ${po.poNumber}? (ใบสั่งซื้อจะถูกปฏิเสธทั้งสองฝั่ง)`)}
+                  data-testid="po-reject-btn"
                 />
               )}
               {po.status === 'approved' && (
@@ -1139,16 +1150,46 @@ export default function PurchaseOrderDetailPage() {
               <div className="text-sm">
                 <p className="font-semibold text-gray-800">การอนุมัติ 2 ฝ่าย (Metaherb)</p>
                 <p className="text-gray-600 mt-0.5">
-                  {po.metaherbApproval === 'approved' && (
-                    <>Metaherb <span className="font-medium text-emerald-700">อนุมัติแล้ว</span> — โรงงานสามารถกดอนุมัติเพื่อยืนยันได้</>
-                  )}
-                  {po.metaherbApproval === 'rejected' && (
-                    <>Metaherb <span className="font-medium text-red-700">ปฏิเสธ</span> ใบสั่งซื้อนี้ — PO ถูกปฏิเสธ</>
-                  )}
-                  {po.metaherbApproval === 'pending' && (
-                    <>ส่งเข้าคิวอนุมัติฝั่ง Metaherb แล้ว — <span className="font-medium text-amber-700">รอ Metaherb อนุมัติ</span> ก่อนโรงงานจึงจะอนุมัติได้</>
-                  )}
+                  อนุมัติคู่ขนาน — ต้องอนุมัติครบทั้งสองฝ่าย PO จึงจะอนุมัติ ฝ่ายใดปฏิเสธ PO จะถูกปฏิเสธ
                 </p>
+                <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
+                  <span>
+                    Metaherb:{' '}
+                    <b
+                      className={cn(
+                        po.metaherbApproval === 'approved'
+                          ? 'text-emerald-700'
+                          : po.metaherbApproval === 'rejected'
+                            ? 'text-red-700'
+                            : 'text-amber-700',
+                      )}
+                    >
+                      {po.metaherbApproval === 'approved'
+                        ? 'อนุมัติแล้ว'
+                        : po.metaherbApproval === 'rejected'
+                          ? 'ปฏิเสธ'
+                          : 'รออนุมัติ'}
+                    </b>
+                  </span>
+                  <span>
+                    โรงงาน (เรา):{' '}
+                    <b
+                      className={cn(
+                        po.erpOwnerApproval === 'approved'
+                          ? 'text-emerald-700'
+                          : po.erpOwnerApproval === 'rejected'
+                            ? 'text-red-700'
+                            : 'text-amber-700',
+                      )}
+                    >
+                      {po.erpOwnerApproval === 'approved'
+                        ? 'อนุมัติแล้ว'
+                        : po.erpOwnerApproval === 'rejected'
+                          ? 'ปฏิเสธ'
+                          : 'รออนุมัติ'}
+                    </b>
+                  </span>
+                </div>
               </div>
             </div>
           </Card>

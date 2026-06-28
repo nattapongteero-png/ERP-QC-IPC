@@ -70,6 +70,17 @@ export function derivePoSubmitUrl(prStatusUrl: string | null): string | null {
   return prStatusUrl.replace('/pr-status/', '/po-submit/');
 }
 
+/**
+ * Derive the po-owner-decision URL from the po-submit URL (swap '/po-submit/' →
+ * '/po-owner-decision/', same host + company segment). Returns null if the
+ * input is null or doesn't contain '/po-submit/'.
+ */
+export function derivePoOwnerDecisionUrl(poSubmitUrl: string | null): string | null {
+  if (!poSubmitUrl) return null;
+  if (!poSubmitUrl.includes('/po-submit/')) return null;
+  return poSubmitUrl.replace('/po-submit/', '/po-owner-decision/');
+}
+
 /** What the settings UI shows (secret never leaves the server in clear). */
 export interface MetaherbSsoSettingsView {
   callbackUrl: string;

@@ -42,6 +42,7 @@ export async function GET(
             approvedAt: purchaseOrders.approvedAt,
             // Metaherb dual-approval state (null for non-Metaherb POs).
             metaherbApproval: purchaseOrders.metaherbApproval,
+            erpOwnerApproval: purchaseOrders.erpOwnerApproval,
             sentVia: purchaseOrders.sentVia,
             sentAt: purchaseOrders.sentAt,
             sentToEmail: purchaseOrders.sentToEmail,

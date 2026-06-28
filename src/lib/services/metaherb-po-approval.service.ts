@@ -1,14 +1,13 @@
 /**
  * Metaherb PO dual-approval — merge the Metaherb-admin decision into the ERP PO.
  *
- * Order is fixed (by product decision): Metaherb approves FIRST, then the ERP
- * owner finalises. So applying a Metaherb decision here never flips the PO to
- * 'approved' on its own — that's the owner's explicit action (gated in the PO
- * PATCH route to require metaherbApproval === 'approved'). A 'rejected' decision
- * DOES terminate the PO immediately.
+ * PARALLEL approval: the ERP owner and Metaherb approve independently, either
+ * order. The PO becomes 'approved' only when BOTH sides are 'approved'; it
+ * becomes 'rejected' the moment either side rejects.
  *
- *   decision = 'approved' → metaherbApproval='approved'; status stays
- *                            'pending_approval' (owner can now finalise).
+ *   decision = 'approved' → metaherbApproval='approved'; if the owner already
+ *                            approved → status='approved', else stays
+ *                            'pending_approval'.
  *   decision = 'rejected' → metaherbApproval='rejected'; status='rejected'.
  *
  * Idempotent: re-applying the same decision is a no-op (no duplicate side effects).
@@ -48,6 +47,7 @@ export async function applyMetaherbPoDecision(
         id: t.pos.id,
         status: t.pos.status,
         metaherbApproval: t.pos.metaherbApproval,
+        erpOwnerApproval: t.pos.erpOwnerApproval,
         vendorCode: t.vendors.code,
       })
       .from(t.pos)
@@ -88,11 +88,18 @@ export async function applyMetaherbPoDecision(
       return { ok: true, status: 'applied', poStatus: 'rejected', metaherbApproval: 'rejected' } as const;
     }
 
-    // decision === 'approved' — record Metaherb's approval; the ERP owner still
-    // has to finalise, so the PO stays pending_approval.
+    // decision === 'approved' — record Metaherb's approval. Parallel rule: if the
+    // ERP owner already approved, both sides are in → PO becomes 'approved';
+    // otherwise it waits in pending_approval for the owner.
+    const bothApproved = po.erpOwnerApproval === 'approved';
+    const newPoStatus = bothApproved ? 'approved' : po.status;
     await db
       .update(t.pos)
-      .set({ metaherbApproval: 'approved', updatedAt: now })
+      .set({
+        metaherbApproval: 'approved',
+        status: newPoStatus,
+        updatedAt: now,
+      })
       .where(eq(t.pos.id, erpPOID));
 
     // decidedBy is accepted for audit/logging by the caller; not persisted here.
@@ -101,7 +108,7 @@ export async function applyMetaherbPoDecision(
     return {
       ok: true,
       status: 'applied',
-      poStatus: po.status,
+      poStatus: newPoStatus,
       metaherbApproval: 'approved',
     } as const;
   });

@@ -27,13 +27,19 @@ vi.mock('@/lib/db', () => ({
 }));
 
 const getMetaherbSsoConfigMock = vi.fn();
-vi.mock('@/lib/services/metaherb-sso.service', () => ({
-  getMetaherbSsoConfig: () => getMetaherbSsoConfigMock(),
-}));
+vi.mock('@/lib/services/metaherb-sso.service', async () => {
+  // Keep the real derive helpers; only stub the config getter.
+  const actual = await vi.importActual<any>('@/lib/services/metaherb-sso.service');
+  return {
+    ...actual,
+    getMetaherbSsoConfig: () => getMetaherbSsoConfigMock(),
+  };
+});
 
 import { applyMetaherbPoDecision } from '@/lib/services/metaherb-po-approval.service';
 import {
   notifyMetaherbPoSubmit,
+  notifyMetaherbPoOwnerDecision,
   isMetaherbVendorCode,
 } from '@/lib/services/metaherb-po-webhook.service';
 
@@ -90,7 +96,12 @@ async function seedVendors() {
 }
 
 let poCounter = 0;
-async function insertPo(vendorId: number, status: string, metaherbApproval: string | null): Promise<number> {
+async function insertPo(
+  vendorId: number,
+  status: string,
+  metaherbApproval: string | null,
+  erpOwnerApproval: string | null = null,
+): Promise<number> {
   poCounter++;
   const res = await testDb.insert(schema.sqlitePurchaseOrders).values({
     poNumber: `PO-${poCounter}`,
@@ -98,6 +109,7 @@ async function insertPo(vendorId: number, status: string, metaherbApproval: stri
     status,
     totalAmount: 200,
     metaherbApproval: metaherbApproval ?? undefined,
+    erpOwnerApproval: erpOwnerApproval ?? undefined,
     orderDate: '2026-06-28',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -165,18 +177,27 @@ describe('isMetaherbVendorCode', () => {
   });
 });
 
-describe('applyMetaherbPoDecision', () => {
-  it('approved → records metaherbApproval=approved, keeps pending_approval', async () => {
-    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending');
+describe('applyMetaherbPoDecision (parallel)', () => {
+  it('Metaherb approves while owner still pending → keeps pending_approval', async () => {
+    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending', 'pending');
     const res = await applyMetaherbPoDecision(poId, 'approved');
     expect(res.ok).toBe(true);
     const po = await getPo(poId);
     expect(po.metaherbApproval).toBe('approved');
-    expect(po.status).toBe('pending_approval'); // owner still finalises
+    expect(po.status).toBe('pending_approval'); // owner hasn't approved yet
+  });
+
+  it('Metaherb approves AND owner already approved → PO approved', async () => {
+    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending', 'approved');
+    const res = await applyMetaherbPoDecision(poId, 'approved');
+    expect(res.ok).toBe(true);
+    const po = await getPo(poId);
+    expect(po.metaherbApproval).toBe('approved');
+    expect(po.status).toBe('approved'); // both sides in
   });
 
   it('rejected → metaherbApproval=rejected AND status=rejected', async () => {
-    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending');
+    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending', 'approved');
     const res = await applyMetaherbPoDecision(poId, 'rejected');
     expect(res.ok).toBe(true);
     const po = await getPo(poId);
@@ -185,7 +206,7 @@ describe('applyMetaherbPoDecision', () => {
   });
 
   it('is idempotent on repeat decision', async () => {
-    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'approved');
+    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'approved', 'pending');
     const res = await applyMetaherbPoDecision(poId, 'approved');
     expect(res.ok && res.status).toBe('idempotent');
   });
@@ -245,5 +266,34 @@ describe('notifyMetaherbPoSubmit', () => {
     const deliveries = await getDeliveries(poId);
     expect(deliveries[0].status).toBe('pending');
     expect(deliveries[0].nextRetryAt).toBeTruthy();
+  });
+});
+
+describe('notifyMetaherbPoOwnerDecision', () => {
+  it('skips non-Metaherb PO', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const poId = await insertPo(acmeVendorId, 'pending_approval', null);
+    await notifyMetaherbPoOwnerDecision(poId, 'approved', 'PO-X');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await getDeliveries(poId)).toHaveLength(0);
+  });
+
+  it('POSTs owner decision to the derived po-owner-decision URL with correct body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal('fetch', fetchMock);
+    const poId = await insertPo(metaherbVendorId, 'rejected', 'pending', 'rejected');
+    await notifyMetaherbPoOwnerDecision(poId, 'rejected', 'PO-OWNER-1');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, opts] = fetchMock.mock.calls[0];
+    // derived from po-submit URL by swapping the path segment.
+    expect(url).toBe('https://api.x/api/erp/po-owner-decision/uat');
+    expect(opts.headers['X-Webhook-Signature']).toBeTruthy();
+    const body = JSON.parse(opts.body);
+    expect(body).toEqual({ erpPOID: poId, decision: 'rejected', poNumber: 'PO-OWNER-1' });
+    const deliveries = await getDeliveries(poId);
+    expect(deliveries).toHaveLength(1);
+    expect(deliveries[0].eventType).toBe('po_owner_decision');
+    expect(deliveries[0].status).toBe('processed');
   });
 });

@@ -706,6 +706,11 @@ export const sqlitePurchaseOrders = sqliteTable('purchase_orders', {
   // NULL = not a Metaherb PO (single-side approval, unchanged flow). Set to
   // 'pending' when submitted for approval; 'approved'/'rejected' on decision.
   metaherbApproval: text('metaherb_approval'), // pending | approved | rejected | null
+  // ERP owner side of the parallel dual-approval. NULL = non-Metaherb PO (or
+  // not yet submitted). Set 'pending' on submit, then 'approved'/'rejected'
+  // when the owner acts. PO.status flips to 'approved' only when BOTH sides are
+  // 'approved'; either 'rejected' → PO rejected.
+  erpOwnerApproval: text('erp_owner_approval'), // pending | approved | rejected | null
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2416,6 +2421,7 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   sentToEmail: varchar('sent_to_email', { length: 255 }),
   // Metaherb dual-approval (see sqlitePurchaseOrders.metaherbApproval).
   metaherbApproval: varchar('metaherb_approval', { length: 20 }), // pending | approved | rejected | null
+  erpOwnerApproval: varchar('erp_owner_approval', { length: 20 }), // pending | approved | rejected | null
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

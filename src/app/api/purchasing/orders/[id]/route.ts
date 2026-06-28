@@ -21,11 +21,14 @@ interface RouteParams {
 // and edits that don't change status are always allowed.
 const PO_STATUS_TRANSITIONS: Record<string, string[]> = {
   draft: ['pending_approval', 'cancelled'],
-  pending_approval: ['approved', 'draft', 'cancelled'],
+  // 'rejected' supports the owner side of Metaherb dual-approval (either party
+  // rejecting terminates the PO).
+  pending_approval: ['approved', 'rejected', 'draft', 'cancelled'],
   approved: ['sent', 'cancelled'],
   sent: ['partial', 'received', 'cancelled'],
   partial: ['received', 'cancelled'],
   received: [],
+  rejected: ['draft'],
   cancelled: [],
 };
 
@@ -114,6 +117,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             status: poTable.status,
             vendorId: poTable.vendorId,
             metaherbApproval: poTable.metaherbApproval,
+            erpOwnerApproval: poTable.erpOwnerApproval,
+            poNumber: poTable.poNumber,
             vendorCode: vendorsTbl.code,
           })
           .from(poTable)
@@ -152,49 +157,61 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Dual-approval gate for Metaherb POs: the ERP owner may only finalise the
-      // approval once Metaherb-admin has approved. If Metaherb hasn't decided yet,
-      // block the owner's 'approved' click (keep it pending_approval). If Metaherb
-      // already rejected, the PO is rejected, not approvable.
-      if (isMetaherbPO && status === 'approved' && existing.status !== 'approved') {
-        if (existing.metaherbApproval === 'rejected') {
-          return errorResponse(
-            'ใบสั่งซื้อนี้ถูกปฏิเสธโดย Metaherb แล้ว ไม่สามารถอนุมัติได้',
-            400,
-          );
-        }
-        if (existing.metaherbApproval !== 'approved') {
-          return errorResponse(
-            'ใบสั่งซื้อจาก Metaherb ต้องรอ Metaherb อนุมัติก่อน จึงจะอนุมัติฝั่งโรงงานได้ (ขณะนี้ยังรอผลจาก Metaherb)',
-            400,
-          );
-        }
-      }
-
       // Build update object
       const updateData: Record<string, unknown> = {
         updatedAt: dbDate(),
       };
 
+      // PARALLEL dual-approval for Metaherb POs. The ERP owner and Metaherb-admin
+      // approve independently (either order). The owner's click records the ERP
+      // side here; PO.status only becomes 'approved' when BOTH sides are
+      // 'approved', and 'rejected' the moment either side rejects. This means an
+      // owner 'approved' click on a Metaherb PO whose Metaherb side isn't yet
+      // approved must NOT advance status — it stays pending_approval.
+      //
+      // ownerDecision is set when the owner approves/rejects a Metaherb PO, so we
+      // fire the po-owner-decision webhook (after commit) back to Metaherb.
+      let ownerDecision: 'approved' | 'rejected' | null = null;
+      if (
+        isMetaherbPO &&
+        existing.status === 'pending_approval' &&
+        (status === 'approved' || status === 'rejected')
+      ) {
+        ownerDecision = status;
+        updateData.erpOwnerApproval = status;
+        if (status === 'rejected') {
+          // Either side rejecting terminates the PO.
+          updateData.status = 'rejected';
+        } else {
+          // Owner approved: finalise only if Metaherb already approved, else hold.
+          updateData.status = existing.metaherbApproval === 'approved' ? 'approved' : 'pending_approval';
+        }
+      } else if (status !== undefined) {
+        // Non-Metaherb PO, or a non-approval transition — pass status through.
+        updateData.status = status;
+      }
+
       if (vendorId !== undefined) updateData.vendorId = vendorId;
-      if (status !== undefined) updateData.status = status;
       if (orderDate !== undefined) updateData.orderDate = parseDbDate(orderDate);
       if (expectedDate !== undefined) updateData.expectedDate = parseDbDate(expectedDate);
       if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
       if (notes !== undefined) updateData.notes = notes;
 
-      // Metaherb PO submitted for approval → mark its Metaherb side 'pending' and
-      // queue the po-submit webhook (fired after commit) so it lands in the
+      // Metaherb PO submitted for approval → mark BOTH sides 'pending' and queue
+      // the po-submit webhook (fired after commit) so it lands in the
       // Metaherb-admin approval queue.
       if (isMetaherbPO && status === 'pending_approval' && existing.status !== 'pending_approval') {
         updateData.metaherbApproval = 'pending';
+        updateData.erpOwnerApproval = 'pending';
         firePoSubmit = true;
       }
 
       // Stamp who/when on approval, and how/when on send-to-vendor, so the detail
       // page can show "อนุมัติโดย … / ส่งทาง … เมื่อ …" instead of a bare status.
-      if (status === 'approved' && existing.status !== 'approved') {
+      // Use the EFFECTIVE status we computed above (a Metaherb owner-approve may
+      // resolve to pending_approval, in which case we don't stamp approver yet).
+      if (updateData.status === 'approved' && existing.status !== 'approved') {
         updateData.approvedBy = session.userId;
         updateData.approvedAt = dbDate();
       }
@@ -240,18 +257,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
 
+      // After commit: tell Metaherb the ERP owner's verdict (approved/rejected) so
+      // it can show the ERP side and forward to the store once both sides agree.
+      // Fire-and-forget + durable retry, same as po-submit.
+      if (ownerDecision) {
+        try {
+          const { notifyMetaherbPoOwnerDecision } = await import('@/lib/services/metaherb-po-webhook.service');
+          void notifyMetaherbPoOwnerDecision(poId, ownerDecision, existing.poNumber);
+        } catch (err) {
+          console.warn('Metaherb po-owner-decision webhook dispatch failed (non-fatal):', err);
+        }
+      }
+
       // Auto-create a Goods Receipt once the PO advances past draft, so the PO
       // lines appear on the GRN screen (quarantine → QC checklist → release).
       // Triggered on the first transition into any of approved/sent/partial/
       // received — covers POs advanced via this PATCH or the legacy /receive
-      // path (which sets 'received'/'partial'). Idempotent
-      // (autoCreateGrnForSource skips if a GRN already exists) and best-effort:
-      // never fail the PO update if GRN creation errors.
+      // path (which sets 'received'/'partial'). Uses the EFFECTIVE status (a
+      // Metaherb owner-approve may resolve to pending_approval → no GRN yet).
+      // Idempotent (autoCreateGrnForSource skips if a GRN already exists) and
+      // best-effort: never fail the PO update if GRN creation errors.
       const GRN_TRIGGER_STATUSES = ['approved', 'sent', 'partial', 'received'];
+      const effectiveStatus = updateData.status as string | undefined;
       if (
-        status !== undefined &&
-        GRN_TRIGGER_STATUSES.includes(status) &&
-        status !== existing.status
+        effectiveStatus !== undefined &&
+        GRN_TRIGGER_STATUSES.includes(effectiveStatus) &&
+        effectiveStatus !== existing.status
       ) {
         try {
           const { autoCreateGrnForSource } = await import('@/lib/services/goods-receipt.service');

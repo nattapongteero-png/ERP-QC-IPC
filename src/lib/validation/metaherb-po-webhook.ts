@@ -43,3 +43,16 @@ export const metaherbPoDecisionSchema = z.object({
 });
 
 export type MetaherbPoDecision = z.infer<typeof metaherbPoDecisionSchema>;
+
+/**
+ * Outbound po-owner-decision body — the ERP tells Metaherb the owner's verdict
+ * on a Metaherb PO (so Metaherb shows the ERP side + forwards to the store once
+ * both sides agree). Same signing scheme as po-submit.
+ */
+export const metaherbPoOwnerDecisionBodySchema = z.object({
+  erpPOID: z.number().int().positive(),
+  decision: z.enum(['approved', 'rejected']),
+  poNumber: z.string().min(1),
+});
+
+export type MetaherbPoOwnerDecisionBody = z.infer<typeof metaherbPoOwnerDecisionBodySchema>;
