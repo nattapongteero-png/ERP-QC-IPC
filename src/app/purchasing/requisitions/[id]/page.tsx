@@ -77,6 +77,13 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     fetchPR();
   }, [id]);
 
+  // PRs raised by the Metaherb storefront always get the Metaherb supplier on PO
+  // conversion — the backend forces it regardless of UI, but we also lock the
+  // dropdown so the user sees the supplier is pre-determined.
+  const isMetaherbPR =
+    typeof pr?.externalSource === 'string' &&
+    pr.externalSource.trim().toLowerCase().startsWith('metaherb');
+
   // Fetch vendors for convert modal
   useEffect(() => {
     const fetchVendors = async () => {
@@ -86,7 +93,17 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         if (result.success) {
           const list = result.data?.items || result.data || [];
           // Defensive: only active vendors should be selectable for a new PO.
-          setVendors(list.filter((v: { isActive?: boolean }) => v.isActive !== false));
+          const active = list.filter((v: { isActive?: boolean }) => v.isActive !== false);
+          setVendors(active);
+          // For a Metaherb PR, pre-select the METAHERB vendor (matched by code) so
+          // the locked dropdown shows it. If it doesn't exist yet the backend
+          // creates it on convert — the button stays enabled for that case.
+          if (isMetaherbPR) {
+            const metaherb = active.find(
+              (v: { code?: string }) => (v.code || '').toUpperCase() === 'METAHERB',
+            );
+            setVendorId(metaherb ? metaherb.id : null);
+          }
         }
       } catch (err) {
         console.error('Error fetching vendors:', err);
@@ -96,10 +113,12 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     if (showConvertModal) {
       fetchVendors();
     }
-  }, [showConvertModal]);
+  }, [showConvertModal, isMetaherbPR]);
 
   const handleConvertToPO = async () => {
-    if (!vendorId) {
+    // Metaherb PRs force the Metaherb vendor server-side, so a vendor selection
+    // isn't required here. Every other PR must have one.
+    if (!vendorId && !isMetaherbPR) {
       setError('Please select a vendor');
       return;
     }
@@ -111,7 +130,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
       const response = await fetch(`/api/purchasing/requisitions/${id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId }),
+        body: JSON.stringify(vendorId ? { vendorId } : {}),
       });
 
       const result = await response.json();
@@ -365,7 +384,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           onHiding={() => setShowConvertModal(false)}
           title={t('requisitions.detail.convertModal.title')}
           width={400}
-          height={250}
+          height={isMetaherbPR ? 280 : 250}
           showCloseButton={true}
         >
           <div className="p-4">
@@ -381,10 +400,20 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                   v ? (v.code ? `${v.code} - ${v.name}` : v.name ?? '') : ''
                 }
                 valueExpr="id"
-                placeholder={t('requisitions.detail.convertModal.selectVendorPlaceholder')}
-                searchEnabled={true}
+                placeholder={
+                  isMetaherbPR
+                    ? 'METAHERB'
+                    : t('requisitions.detail.convertModal.selectVendorPlaceholder')
+                }
+                searchEnabled={!isMetaherbPR}
+                disabled={isMetaherbPR}
                 data-testid="vendor-select"
               />
+              {isMetaherbPR && (
+                <p className="mt-1 text-xs text-emerald-700" data-testid="metaherb-vendor-note">
+                  ผู้ขายถูกกำหนดเป็น METAHERB อัตโนมัติ (ใบขอซื้อจาก Metaherb)
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end mt-6">
@@ -397,7 +426,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 text={converting ? t('requisitions.detail.convertModal.converting') : t('requisitions.detail.convertModal.convert')}
                 type="success"
                 onClick={handleConvertToPO}
-                disabled={converting || !vendorId}
+                disabled={converting || (!vendorId && !isMetaherbPR)}
                 data-testid="confirm-convert-btn"
               />
             </div>

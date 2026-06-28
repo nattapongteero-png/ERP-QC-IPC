@@ -132,7 +132,9 @@ export const prApprovalSchema = z.object({
 export const prToPOConvertSchema = z.object({
   prId: z.number().int().positive('PR ID is required'),
   lineIds: z.array(z.number().int().positive()).optional(),
-  vendorId: z.number().int().positive('Vendor ID is required'),
+  // Optional: Metaherb PRs force the Metaherb vendor server-side, so the client
+  // may omit it. The service still requires it for all other (manual) PRs.
+  vendorId: z.number().int().positive('Vendor ID is required').optional(),
   deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   deliveryAddress: z.string().max(500).optional(),
   paymentTerms: z.string().max(100).optional(),

@@ -7,7 +7,7 @@ import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'dr
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import { submitForApproval, approveRequest, rejectRequest } from './approval-workflow.service';
-import { notifyMetaherbPrStatus } from './metaherb-pr-webhook.service';
+import { notifyMetaherbPrStatus, isMetaherbOrigin } from './metaherb-pr-webhook.service';
 import type {
   PurchaseRequisition,
   PurchaseRequisitionLine,
@@ -960,6 +960,98 @@ export async function rejectPR(
 }
 
 /**
+ * Fixed profile for the Metaherb vendor. `code` is the immutable business key
+ * we match on — never change it. The other fields are seed values used only on
+ * first creation; staff can edit them later in the vendor page without breaking
+ * the match. payment_terms is left blank pending PM's decision.
+ */
+const METAHERB_VENDOR = {
+  code: 'METAHERB',
+  name: 'บริษัท เมต้าเฮิร์บ จำกัด (METAHERB CO., LTD.)',
+  taxId: '0105565148242',
+  address: '459/153 ถนนสุขสวัสดิ์ แขวงราษฎร์บูรณะ เขตราษฎร์บูรณะ กรุงเทพมหานคร 10140',
+  contactPerson: 'อรรถพล อุทัยเรือง',
+  phone: '0614213111',
+  email: 'metaherb.herb@gmail.com',
+  paymentTerms: '',
+} as const;
+
+/**
+ * Find-or-create the Metaherb vendor, idempotently. We match on the immutable
+ * `code` (unique) first, then fall back to `tax_id` (covers a row created by
+ * hand under a different code), and only create when neither matches. We never
+ * match on name — names get typed many ways (METAHER / metaherb / เมตาเฮิร์บ)
+ * and matching on them would spawn duplicates. A previously-deactivated vendor
+ * is re-activated so it can be selected for the PO. Always returns a vendorId.
+ *
+ * `db` is the active transaction handle from executeDbOperation.
+ */
+async function ensureMetaherbVendor(db: any): Promise<number> {
+  const tables = getTables();
+  const now = getNow();
+
+  // 1) match on code (unique business key)
+  const byCode = await db
+    .select({ id: tables.vendors.id, isActive: tables.vendors.isActive })
+    .from(tables.vendors)
+    .where(eq(tables.vendors.code, METAHERB_VENDOR.code))
+    .limit(1);
+  if (byCode.length > 0) {
+    if (!byCode[0].isActive) {
+      await db
+        .update(tables.vendors)
+        .set({ isActive: true, updatedAt: now })
+        .where(eq(tables.vendors.id, byCode[0].id));
+    }
+    return byCode[0].id;
+  }
+
+  // 2) fallback: match on tax_id (e.g. created by hand under another code)
+  if (METAHERB_VENDOR.taxId) {
+    const byTax = await db
+      .select({ id: tables.vendors.id })
+      .from(tables.vendors)
+      .where(eq(tables.vendors.taxId, METAHERB_VENDOR.taxId))
+      .limit(1);
+    if (byTax.length > 0) {
+      return byTax[0].id;
+    }
+  }
+
+  // 3) create (first purchase). Guard the unique-code race: if a concurrent
+  // convert created it first, re-select by code and reuse that row.
+  try {
+    const res = await db.insert(tables.vendors).values({
+      code: METAHERB_VENDOR.code,
+      name: METAHERB_VENDOR.name,
+      taxId: METAHERB_VENDOR.taxId,
+      contactPerson: METAHERB_VENDOR.contactPerson,
+      phone: METAHERB_VENDOR.phone,
+      email: METAHERB_VENDOR.email,
+      address: METAHERB_VENDOR.address,
+      paymentTerms: METAHERB_VENDOR.paymentTerms || null,
+      isApproved: true, // selectable as a PO vendor immediately
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return getInsertId(res);
+  } catch (error: any) {
+    if (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed')) {
+      const again = await db
+        .select({ id: tables.vendors.id })
+        .from(tables.vendors)
+        .where(eq(tables.vendors.code, METAHERB_VENDOR.code))
+        .limit(1);
+      if (again.length > 0) {
+        return again[0].id;
+      }
+    }
+    throw error;
+  }
+}
+
+/**
  * Convert approved PR to PO (T036)
  */
 export async function convertPRToPO(
@@ -987,6 +1079,16 @@ export async function convertPRToPO(
 
     if (pr.status !== 'approved') {
       throw new Error('PR_NOT_APPROVED');
+    }
+
+    // For Metaherb-originated PRs the supplier is always Metaherb — find-or-create
+    // that vendor and force it, ignoring whatever vendor the UI sent. Non-Metaherb
+    // PRs keep the user-selected vendor (existing behaviour) and still require one.
+    let vendorId = input.vendorId;
+    if (isMetaherbOrigin(pr.externalSource)) {
+      vendorId = await ensureMetaherbVendor(db);
+    } else if (!vendorId) {
+      throw new Error('VENDOR_REQUIRED');
     }
 
     // Get lines to convert
@@ -1054,7 +1156,7 @@ export async function convertPRToPO(
 
         const poResult = await db.insert(tables.purchaseOrders).values({
           poNumber: nextPONumber,
-          vendorId: input.vendorId,
+          vendorId: vendorId,
           status: 'draft',
           prId: input.prId,
           totalAmount: poTotal,

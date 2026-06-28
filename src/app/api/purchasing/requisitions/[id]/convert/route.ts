@@ -40,6 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       PR_NOT_FOUND: 'PR not found',
       PR_NOT_APPROVED: 'PR is not approved. Only approved PRs can be converted to POs',
       NO_LINES_TO_CONVERT: 'No approved lines available for conversion',
+      VENDOR_REQUIRED: 'Please select a vendor',
     };
 
     if (error.name === 'ZodError') {

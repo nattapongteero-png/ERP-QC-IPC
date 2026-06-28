@@ -106,6 +106,11 @@ export interface PurchaseRequisition {
   approvedAt?: Date | string | null;
   rejectedAt?: Date | string | null;
   rejectionReason?: string | null;
+  // External-origin markers. externalSource = 'metaherb' for PRs raised by the
+  // Metaherb storefront; drives the PR-status webhook and forces the Metaherb
+  // vendor on PO conversion.
+  externalSource?: string | null;
+  externalRef?: string | null;
 }
 
 /**
@@ -197,7 +202,7 @@ export interface PRSubmitResponse {
 export interface PRToPOConvertInput {
   prId: number;
   lineIds?: number[];      // Specific lines to convert (empty = all approved lines)
-  vendorId: number;        // Target vendor for PO
+  vendorId?: number;       // Target vendor for PO (optional: Metaherb PRs force it server-side)
   deliveryDate?: string;
   deliveryAddress?: string;
   paymentTerms?: string;
