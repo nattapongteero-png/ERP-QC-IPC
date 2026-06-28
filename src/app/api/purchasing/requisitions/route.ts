@@ -49,7 +49,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const rawBody = await request.json();
+
+    // Accept the external-origin markers in BOTH snake_case (external_source /
+    // external_ref — what Metaherb currently sends) and camelCase. prCreateSchema
+    // (a Zod object) strips unknown keys, so without this the snake_case values
+    // were silently dropped and every Metaherb PR landed with external_source =
+    // NULL, which in turn stopped the PR-status webhook from ever firing.
+    const body = { ...rawBody };
+    if (body.externalSource === undefined && body.external_source !== undefined) {
+      body.externalSource = body.external_source;
+    }
+    if (body.externalRef === undefined && body.external_ref !== undefined) {
+      body.externalRef = body.external_ref;
+    }
+
     const data = prCreateSchema.parse(body);
     const userId = session.userId;
 
