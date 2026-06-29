@@ -69,6 +69,11 @@ export async function GET(request: NextRequest) {
             currency: poTable.currency,
             vendorId: poTable.vendorId,
             vendorName: vendorsTable.name,
+            vendorCode: vendorsTable.code,
+            // Metaherb dual-approval state, so the list can show both sides'
+            // status without opening the PO. Null = non-Metaherb PO.
+            metaherbApproval: poTable.metaherbApproval,
+            erpOwnerApproval: poTable.erpOwnerApproval,
             createdAt: poTable.createdAt,
           })
           .from(poTable)

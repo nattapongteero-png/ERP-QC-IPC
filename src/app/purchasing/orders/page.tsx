@@ -52,7 +52,20 @@ interface PurchaseOrder {
   totalAmount: number;
   currency: string;
   itemCount?: number;
+  // Metaherb dual-approval (null = non-Metaherb PO).
+  metaherbApproval?: 'pending' | 'approved' | 'rejected' | null;
+  erpOwnerApproval?: 'pending' | 'approved' | 'rejected' | null;
 }
+
+// Map a dual-approval side value → badge variant + Thai label.
+const APPROVAL_BADGE: Record<'pending' | 'approved' | 'rejected', {
+  variant: 'success' | 'warning' | 'danger';
+  label: string;
+}> = {
+  pending: { variant: 'warning', label: 'รออนุมัติ' },
+  approved: { variant: 'success', label: 'อนุมัติแล้ว' },
+  rejected: { variant: 'danger', label: 'ไม่อนุมัติ' },
+};
 
 // Status filter type
 type POStatusFilter = '' | 'draft' | 'pending_approval' | 'approved' | 'sent' | 'partial' | 'received' | 'cancelled';
@@ -401,10 +414,29 @@ export default function PurchaseOrdersPage() {
     {
       dataField: 'status',
       caption: t('orders.grid.columns.status'),
-      width: 140,
+      width: 160,
       cellRender: (cellInfo) => {
         const status = normalizeStatus(cellInfo.data.status) as POStatusFilter;
         const config = STATUS_CONFIG[status] || STATUS_CONFIG[''];
+        const mh = cellInfo.data.metaherbApproval as 'pending' | 'approved' | 'rejected' | null | undefined;
+        const erp = cellInfo.data.erpOwnerApproval as 'pending' | 'approved' | 'rejected' | null | undefined;
+
+        // Metaherb PO (still awaiting either side) → show both sides' status so
+        // the user doesn't have to open the PO. Once the PO resolves to a
+        // terminal lifecycle status (approved/sent/…/rejected) the normal badge
+        // already tells the story, so fall through to it.
+        const isMetaherbInReview =
+          mh != null && (status === 'pending_approval');
+        if (isMetaherbInReview) {
+          const mhCfg = APPROVAL_BADGE[mh ?? 'pending'];
+          const erpCfg = APPROVAL_BADGE[erp ?? 'pending'];
+          return (
+            <div className="flex flex-col gap-1" data-testid="po-dual-approval-badges">
+              <Badge variant={mhCfg.variant} dot>MH: {mhCfg.label}</Badge>
+              <Badge variant={erpCfg.variant} dot>ERP: {erpCfg.label}</Badge>
+            </div>
+          );
+        }
         return (
           <Badge variant={config.badgeVariant} dot>
             {t(`orders.status.${config.translationKey}`)}
