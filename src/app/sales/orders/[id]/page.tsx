@@ -1208,17 +1208,24 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        {/* Workflow status — สถานะการดำเนินงาน */}
+        {/* Workflow status — สถานะการดำเนินงาน.
+            The flow ends at "จัดส่งแล้ว" (shipped): once shipped, the order is
+            complete for accounting (AR invoice + journal entries are already
+            posted). There is no proof-of-delivery step in the business process,
+            so the old "delivered" step only ever stayed grey and made a finished
+            order look unfinished. The 'delivered' status still exists elsewhere
+            (list/filter/customer page) for any legacy orders — we just don't show
+            it as a pending step here.
+            // [marker: so-stepper-no-delivered] */}
         <StatusStepper
           title="สถานะการดำเนินงาน"
-          current={so.status}
+          current={so.status === 'delivered' ? 'shipped' : so.status}
           steps={[
             { key: 'draft', label: 'ร่าง' },
             { key: 'confirmed', label: 'ยืนยันแล้ว' },
             { key: 'processing', label: 'กำลังจัดเตรียม' },
             { key: 'ready', label: 'พร้อมส่ง' },
             { key: 'shipped', label: 'จัดส่งแล้ว' },
-            { key: 'delivered', label: 'ส่งมอบแล้ว' },
           ]}
         />
 
