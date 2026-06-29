@@ -30,6 +30,8 @@
     "alerts": {
       "title": "การแจ้งเตือน",
       "critical": "วิกฤต",
+      "warning": "เตือน",
+      "info": "ข้อมูล",
       "expand": "ขยาย",
       "collapse": "ย่อ",
       "moreAlerts": "+ อีก {count} รายการ",
@@ -39,7 +41,15 @@
       "daysUnit": "วัน"
     },
     "expenseBreakdown": "สัดส่วนค่าใช้จ่าย",
-    "revenueVsExpenses": "แนวโน้มรายได้เทียบกับค่าใช้จ่าย"
+    "revenueVsExpenses": "แนวโน้มรายได้เทียบกับค่าใช้จ่าย",
+    "expenseCategories": {
+      "Raw Materials": "วัตถุดิบ",
+      "Labor": "ค่าแรง",
+      "Utilities": "ค่าสาธารณูปโภค",
+      "Quality/Compliance": "คุณภาพ/มาตรฐาน",
+      "Maintenance": "ค่าบำรุงรักษา",
+      "Other": "อื่นๆ"
+    },
     "quickLinks": {
       "financialStatements": "งบการเงิน",
       "trialBalance": "งบทดลอง",

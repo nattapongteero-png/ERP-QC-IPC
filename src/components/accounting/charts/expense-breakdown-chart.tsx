@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { PieChart as PieChartIcon } from 'lucide-react';
 import type { ExpenseCategory } from '@/types/accounting';
@@ -38,9 +39,18 @@ function formatCurrency(amount: number): string {
 }
 
 export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, className = '' }: ExpenseBreakdownChartProps) {
+  const t = useTranslations('accounting');
+  // Localize the expense category name (the data carries the English GL-category
+  // name); fall back to the raw name if no translation key exists.
+  const localizeCategory = (name: string) => {
+    const key = `dashboard.expenseCategories.${name}`;
+    const v = t(key);
+    return v === key ? name : v;
+  };
+
   // Transform data to include index-based access for labels
   const chartData: ChartDataItem[] = data.map((item) => ({
-    categoryName: item.categoryName,
+    categoryName: localizeCategory(item.categoryName),
     amount: item.amount,
     percentage: item.percentage,
   }));
@@ -57,7 +67,7 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <PieChartIcon className="h-5 w-5 text-purple-500" />
-          Expense Breakdown
+          {(() => { const v = t('dashboard.expenseBreakdown'); return v === 'dashboard.expenseBreakdown' ? 'Expense Breakdown' : v; })()}
         </CardTitle>
       </CardHeader>
       <CardContent>

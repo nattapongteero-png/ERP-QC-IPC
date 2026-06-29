@@ -30,6 +30,8 @@
     "alerts": {
       "title": "Alerts",
       "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info",
       "expand": "Expand",
       "collapse": "Collapse",
       "moreAlerts": "+ {count} more alerts",
@@ -39,7 +41,15 @@
       "daysUnit": "days"
     },
     "expenseBreakdown": "Expense Breakdown",
-    "revenueVsExpenses": "Revenue vs Expenses Trend"
+    "revenueVsExpenses": "Revenue vs Expenses Trend",
+    "expenseCategories": {
+      "Raw Materials": "Raw Materials",
+      "Labor": "Labor",
+      "Utilities": "Utilities",
+      "Quality/Compliance": "Quality/Compliance",
+      "Maintenance": "Maintenance",
+      "Other": "Other"
+    },
     "quickLinks": {
       "financialStatements": "Financial Statements",
       "trialBalance": "Trial Balance",

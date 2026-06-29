@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronUp, X, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,22 @@ const priorityConfig: Record<AlertPriority, { icon: typeof AlertTriangle; bg: st
   },
 };
 
+// Map an alert's stable type → i18n key for its title + action label, so the
+// English text the API sends gets localized. Message body (with dynamic period
+// names / day counts) is left as-is from the API.
+const ALERT_TITLE_KEY: Record<string, string> = {
+  period_close_pending: 'dashboard.alerts.periodClosePending',
+};
+const ALERT_ACTION_KEY: Record<string, string> = {
+  period_close_pending: 'dashboard.alerts.managePeriods',
+};
+
 export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: ExecutiveAlertBarProps) {
+  const t = useTranslations('accounting');
+  const tr = (key: string, fallback: string) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (alerts.length === 0) return null;
@@ -56,31 +72,31 @@ export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: Executi
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-4">
-          <span className="text-sm font-semibold text-gray-700">Alerts</span>
+          <span className="text-sm font-semibold text-gray-700">{tr('dashboard.alerts.title', 'Alerts')}</span>
           <div className="flex items-center gap-2">
             {criticalCount > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white" data-testid="critical-count">
                 <AlertTriangle className="h-3 w-3" />
-                {criticalCount} Critical
+                {criticalCount} {tr('dashboard.alerts.critical', 'Critical')}
               </span>
             )}
             {warningCount > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500 text-white" data-testid="warning-count">
                 <AlertCircle className="h-3 w-3" />
-                {warningCount} Warning
+                {warningCount} {tr('dashboard.alerts.warning', 'Warning')}
               </span>
             )}
             {infoCount > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white" data-testid="info-count">
                 <Info className="h-3 w-3" />
-                {infoCount} Info
+                {infoCount} {tr('dashboard.alerts.info', 'Info')}
               </span>
             )}
           </div>
         </div>
         <Button variant="ghost" size="sm" className="h-7 px-2">
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          <span className="ml-1 text-xs">{isExpanded ? 'Collapse' : 'Expand'}</span>
+          <span className="ml-1 text-xs">{isExpanded ? tr('dashboard.alerts.collapse', 'Collapse') : tr('dashboard.alerts.expand', 'Expand')}</span>
         </Button>
       </div>
 
@@ -102,7 +118,9 @@ export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: Executi
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm font-semibold ${config.text}`}>{alert.title}</p>
+                  <p className={`text-sm font-semibold ${config.text}`}>
+                    {ALERT_TITLE_KEY[alert.type] ? tr(ALERT_TITLE_KEY[alert.type], alert.title) : alert.title}
+                  </p>
                   {alert.formattedValue && (
                     <span className="text-sm font-bold text-gray-900">{alert.formattedValue}</span>
                   )}
@@ -115,7 +133,7 @@ export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: Executi
                   href={alert.actionLink}
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${config.text} hover:underline`}
                 >
-                  {alert.actionLabel}
+                  {ALERT_ACTION_KEY[alert.type] ? tr(ALERT_ACTION_KEY[alert.type], alert.actionLabel) : alert.actionLabel}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
                 {onDismiss && alert.priority !== 'critical' && (
@@ -143,7 +161,7 @@ export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: Executi
           className="p-2 text-center text-xs text-gray-500 bg-gray-50 cursor-pointer hover:bg-gray-100"
           onClick={() => setIsExpanded(true)}
         >
-          + {alerts.length - 3} more alerts
+          {tr('dashboard.alerts.moreAlerts', `+ ${alerts.length - 3} more alerts`).replace('{count}', String(alerts.length - 3))}
         </div>
       )}
     </Card>
