@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
-import { eq, sql, and, gte, lt, ne } from 'drizzle-orm';
+import { eq, sql, and, gte, lte, lt, ne } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
-import { toQueryDate } from '@/lib/db/date-utils';
+import { toQueryDate, getTodayStr } from '@/lib/db/date-utils';
 import {
   successResponse,
   serverErrorResponse,
@@ -75,15 +75,23 @@ export async function GET(request: NextRequest) {
           return Number(result[0]?.count || 0);
         }),
 
-        // Lots expiring in 30 days
+        // Lots expiring within 30 days (released lots whose expiry date falls
+        // between today and today+30). Matches the "ภายใน 30 วัน" UI label and
+        // the audit dashboard's expiringSoon window — previously this counted
+        // ALL released lots with an expiry date, inflating the number.
         executeDbOperation(async (db) => {
+          const todayStr = getTodayStr();
+          const thirtyDaysAhead = new Date();
+          thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30);
           const result = await db
             .select({ count: sql`count(*)` })
             .from(lotsTable)
             .where(
               and(
                 eq(lotsTable.status, 'released'),
-                sql`${lotsTable.expiryDate} IS NOT NULL`
+                sql`${lotsTable.expiryDate} IS NOT NULL`,
+                gte(lotsTable.expiryDate, toQueryDate(todayStr)),
+                lte(lotsTable.expiryDate, toQueryDate(thirtyDaysAhead))
               )
             );
           return Number(result[0]?.count || 0);

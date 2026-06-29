@@ -90,6 +90,7 @@ export async function getHRKpis(): Promise<HRKpis> {
   const healthRecordsTable = getTableRef('HRHealthRecords');
   const authorizationsTable = getTableRef('HRAuthorizations');
   const notificationsTable = getTableRef('HRNotifications');
+  const trainingRecordsTable = getTableRef('HRTrainingRecords');
   const today = getTodayStr();
 
   const [
@@ -113,10 +114,31 @@ export async function getHRKpis(): Promise<HRKpis> {
         .where(eq(employeesTable.status, 'active'));
       return Number(result[0]?.count || 0);
     }),
-    // Training compliance (employees with valid training / total * 100)
-    executeDbOperation(async () => {
-      // For now, return 0 - actual implementation would check training expiry
-      return 0;
+    // Training compliance numerator: count of ACTIVE employees who hold at
+    // least one passed training record that is still valid (no expiry, or
+    // expiry in the future). Divided by active employees below to get the %.
+    executeDbOperation(async (db) => {
+      try {
+        const result = await db
+          .select({
+            count: sql`count(DISTINCT ${trainingRecordsTable.employeeId})`,
+          })
+          .from(trainingRecordsTable)
+          .innerJoin(
+            employeesTable,
+            eq(trainingRecordsTable.employeeId, employeesTable.id)
+          )
+          .where(
+            and(
+              eq(employeesTable.status, 'active'),
+              eq(trainingRecordsTable.result, 'pass'),
+              sql`(${trainingRecordsTable.expiryDate} IS NULL OR ${trainingRecordsTable.expiryDate} > ${toQueryDate(today)})`
+            )
+          );
+        return Number(result[0]?.count || 0);
+      } catch {
+        return 0; // Table may not exist (e.g. fresh DB)
+      }
     }),
     // Health records due (employees with expired or expiring health records)
     executeDbOperation(async (db) => {
