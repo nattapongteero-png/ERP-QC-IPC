@@ -1154,6 +1154,19 @@ export async function convertPRToPO(
           nextPONumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
         }
 
+        // PRs have no payment-terms field, so when the convert doesn't supply
+        // one, inherit the vendor's default terms (e.g. "Net 30") instead of
+        // leaving the PO blank. The user can still edit it on the PO page.
+        let resolvedPaymentTerms: string | null = input.paymentTerms || null;
+        if (!resolvedPaymentTerms && vendorId) {
+          const vRow = await db
+            .select({ paymentTerms: tables.vendors.paymentTerms })
+            .from(tables.vendors)
+            .where(eq(tables.vendors.id, vendorId))
+            .limit(1);
+          resolvedPaymentTerms = (vRow[0]?.paymentTerms as string | null) || null;
+        }
+
         const poResult = await db.insert(tables.purchaseOrders).values({
           poNumber: nextPONumber,
           vendorId: vendorId,
@@ -1162,7 +1175,7 @@ export async function convertPRToPO(
           totalAmount: poTotal,
           deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
           deliveryAddress: input.deliveryAddress || null,
-          paymentTerms: input.paymentTerms || null,
+          paymentTerms: resolvedPaymentTerms,
           notes: input.notes || null,
           createdBy,
           createdAt: now,
