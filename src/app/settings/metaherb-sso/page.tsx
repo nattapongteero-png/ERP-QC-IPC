@@ -42,7 +42,6 @@ export default function MetaherbSsoSettingsPage() {
   const [view, setView] = useState<SettingsView | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
   const [companyKey, setCompanyKey] = useState('');
-  const [factoryName, setFactoryName] = useState('');
   const [secret, setSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,7 +56,6 @@ export default function MetaherbSsoSettingsPage() {
         setView(data.data);
         setBaseUrl(data.data.baseUrl || '');
         setCompanyKey(data.data.companyKey || '');
-        setFactoryName(data.data.factoryName || '');
       } else {
         setMessage({ type: 'error', text: data.error || 'โหลดการตั้งค่าไม่สำเร็จ' });
       }
@@ -93,13 +91,11 @@ export default function MetaherbSsoSettingsPage() {
       const body: {
         baseUrl?: string;
         companyKey?: string;
-        factoryName?: string;
         ssoSecret?: string;
       } = {};
       // Only send non-empty values so a stray save can't wipe a stored one.
       if (baseUrl.trim() !== '') body.baseUrl = baseUrl.trim();
       if (companyKey.trim() !== '') body.companyKey = companyKey.trim();
-      if (factoryName.trim() !== '') body.factoryName = factoryName.trim();
       // Only send the secret if the admin actually typed a new one.
       if (secret.trim() !== '') body.ssoSecret = secret.trim();
 
@@ -128,7 +124,7 @@ export default function MetaherbSsoSettingsPage() {
       <div className="max-w-3xl mx-auto space-y-6" data-testid="metaherb-sso-settings">
         <ResponsivePageHeader
           title="ตั้งค่า Metaherb SSO"
-          subtitle="กรอก Base URL + Company Key + ชื่อบริษัท + Secret ที่ Metaherb ออกให้ — ระบบจะประกอบ URL ปลายทางทุกเส้นเอง (เก็บในฐานข้อมูล แก้ได้โดยไม่ต้อง redeploy)"
+          subtitle="กรอก Base URL + Company Key + Secret ที่ Metaherb ออกให้ — ระบบจะประกอบ URL ปลายทางทุกเส้นเอง และใช้ชื่อบริษัทจากหน้าตั้งค่าบริษัทอัตโนมัติ (เก็บในฐานข้อมูล แก้ได้โดยไม่ต้อง redeploy)"
           icon={LogIn}
         />
 
@@ -204,22 +200,21 @@ export default function MetaherbSsoSettingsPage() {
                   </p>
                 </div>
 
-                {/* Factory name (our company name sent in po-submit) */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                {/* Factory name is inherited from the company settings page
+                    (/settings) — no separate entry here. Shown read-only so the
+                    admin knows what name Metaherb will display. */}
+                {view?.factoryName ? (
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5">
                     <Building2 className="h-4 w-4 text-gray-400" />
-                    ชื่อโรงงาน/บริษัทของเรา (factory)
-                  </label>
-                  <DxTextBox
-                    value={factoryName}
-                    onValueChanged={(e) => setFactoryName(e.value ?? '')}
-                    placeholder="เช่น บริษัท ... จำกัด"
-                    inputAttr={{ 'data-testid': 'metaherb-factory-input' }}
-                  />
-                  <p className="text-xs text-gray-500">
-                    ชื่อนี้จะถูกส่งไปกับใบ PO (ฟิลด์ factory) เพื่อให้ Metaherb แสดงในคิว admin ว่าใบ PO มาจากโรงงานใด
+                    ชื่อบริษัทที่ส่งให้ Metaherb (factory): <b className="text-gray-700">{view.factoryName}</b>
+                    <span className="text-gray-400">— ดึงจากหน้า “ตั้งค่าบริษัท” อัตโนมัติ</span>
                   </p>
-                </div>
+                ) : (
+                  <p className="text-xs text-amber-600 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-amber-500" />
+                    ยังไม่มีชื่อบริษัท — ไปกรอกที่หน้า “ตั้งค่าบริษัท” (/settings) ระบบจะนำมาใช้เป็นชื่อ factory ให้เอง
+                  </p>
+                )}
 
                 {/* Derived endpoint preview (read-only) */}
                 {previewUrls && (

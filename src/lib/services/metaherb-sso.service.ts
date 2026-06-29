@@ -97,7 +97,9 @@ export interface MetaherbSsoConfig {
   source: {
     secret: 'db' | 'env' | 'none' | 'db-decrypt-failed';
     urls: 'base' | 'legacy' | 'env' | 'none';
-    factory: 'db' | 'env' | 'none';
+    // 'company' = inherited from the ERP company settings (the default — no
+    // dedicated Metaherb factory value was set).
+    factory: 'db' | 'env' | 'company' | 'none';
   };
 }
 
@@ -259,6 +261,9 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
   }
 
   // --- factory name (our company name sent in po-submit) ---
+  // Default to the ERP's own company name (settings page) so this never needs a
+  // separate entry. An explicit Metaherb factory value (DB/env) overrides it —
+  // kept for the rare case the name shown to Metaherb should differ.
   let factoryName: string | null = null;
   let factorySource: MetaherbSsoConfig['source']['factory'] = 'none';
   if (db[KEY_FACTORY_NAME]) {
@@ -267,6 +272,22 @@ export async function getMetaherbSsoConfig(): Promise<MetaherbSsoConfig> {
   } else if (process.env.METAHERB_FACTORY_NAME) {
     factoryName = process.env.METAHERB_FACTORY_NAME.trim();
     factorySource = 'env';
+  } else {
+    // Inherit from company settings (Thai name preferred, English fallback).
+    try {
+      const { getCompanySettings } = await import('./settings.service');
+      const company = await getCompanySettings();
+      const inherited = (company.companyNameTh || company.companyName || '').trim();
+      if (inherited) {
+        factoryName = inherited;
+        factorySource = 'company';
+      }
+    } catch (err) {
+      console.error(
+        '[metaherb-sso] could not read company settings for factory fallback',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
   // Reference dbAvailable so a future caller can branch on it; logged above.
