@@ -951,6 +951,7 @@ export async function getExecutiveAlerts(
         priority,
         title: 'Period Close Pending',
         message: `Fiscal period "${period.periodName}" ended ${daysPastEnd} days ago and is still open. Please review and close.`,
+        messageParams: { period: period.periodName, days: daysPastEnd },
         value: daysPastEnd,
         formattedValue: formatDays(daysPastEnd),
         threshold: 5,

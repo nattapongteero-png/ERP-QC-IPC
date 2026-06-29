@@ -47,6 +47,11 @@ const ALERT_TITLE_KEY: Record<string, string> = {
 const ALERT_ACTION_KEY: Record<string, string> = {
   period_close_pending: 'dashboard.alerts.managePeriods',
 };
+// Localizable message templates (rebuilt from messageParams in the active
+// locale); the API's English `message` is the fallback.
+const ALERT_MESSAGE_KEY: Record<string, string> = {
+  period_close_pending: 'dashboard.alerts.periodCloseDetail',
+};
 
 export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: ExecutiveAlertBarProps) {
   const t = useTranslations('accounting');
@@ -125,7 +130,14 @@ export function ExecutiveAlertBar({ alerts, onDismiss, className = '' }: Executi
                     <span className="text-sm font-bold text-gray-900">{alert.formattedValue}</span>
                   )}
                 </div>
-                <p className="text-xs text-gray-600 mt-0.5">{alert.message}</p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {ALERT_MESSAGE_KEY[alert.type] && alert.messageParams
+                    ? (() => {
+                        const v = t(ALERT_MESSAGE_KEY[alert.type], alert.messageParams);
+                        return v === ALERT_MESSAGE_KEY[alert.type] ? alert.message : v;
+                      })()
+                    : alert.message}
+                </p>
               </div>
 
               <div className="flex items-center gap-2">

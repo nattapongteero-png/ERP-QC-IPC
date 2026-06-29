@@ -1427,6 +1427,9 @@ export interface ExecutiveAlert {
   priority: AlertPriority;
   title: string;
   message: string;
+  /** Structured params so the UI can rebuild the message in the active locale
+   *  (the `message` string itself stays English as a fallback). */
+  messageParams?: Record<string, string | number>;
   value?: number;
   formattedValue?: string;
   threshold?: number;
