@@ -373,7 +373,9 @@ export default function ItemsPage() {
     const totalQuarantine = items.reduce((sum, item) => sum + (Number(item.quarantineQty) || 0), 0);
     const itemsInQuarantine = items.filter((item) => (item.quarantineQty ?? 0) > 0).length;
     const lowStockItems = items.filter(
-      (item) => item.minStock && item.onHand !== undefined && item.onHand < item.minStock
+      // Number() — same string-comparison trap as renderStockCell: without it
+      // the "25 สต็อกต่ำ" KPI over-counts overstocked items.
+      (item) => Number(item.minStock) > 0 && item.onHand != null && Number(item.onHand) < Number(item.minStock)
     ).length;
     const activeItems = items.filter((item) => item.isActive).length;
     const inactiveItems = items.filter((item) => !item.isActive).length;
@@ -519,10 +521,14 @@ export default function ItemsPage() {
   }, [t]);
 
   const renderStockCell = useCallback((data: { data: Item }) => {
-    const onHand = data.data.onHand ?? 0;
-    const minStock = data.data.minStock ?? 0;
-    const maxStock = data.data.maxStock ?? 0;
-    const reorderPoint = data.data.reorderPoint ?? 0;
+    // Coerce with Number() — these can arrive as strings, and without it the
+    // comparisons become STRING comparisons (e.g. "2530.50" < "5" is true
+    // because "2" < "5"), which made an overstocked item show "สต็อกต่ำ".
+    // Must match the edit page's StockStatus card, which already uses Number().
+    const onHand = Number(data.data.onHand) || 0;
+    const minStock = Number(data.data.minStock) || 0;
+    const maxStock = Number(data.data.maxStock) || 0;
+    const reorderPoint = Number(data.data.reorderPoint) || 0;
 
     // Same thresholds as the edit page's StockStatus card so the list and detail
     // agree: low → near-reorder → overstock → healthy (priority order).
