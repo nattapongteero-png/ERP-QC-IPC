@@ -369,41 +369,70 @@ export async function getSalesKpis(): Promise<SalesKpis> {
 
 export async function getVMIKpis(): Promise<VMIKpis> {
   const itemsTable = getTableRef('items');
+  // getTableRef upper-cases the first letter → resolves to sqlite/mysqlVMIOrders.
+  const vmiOrdersTable = getTableRef('vMIOrders');
 
-  // VMI is external portal integration - provide basic metrics
+  // VMI items = items actually flagged for VMI (isVMI), not merely "has a
+  // reorder point". This is the real VMI-managed catalogue.
   const vmiItemsResult = await executeDbOperation(async (db) => {
-    // Items that have VMI vendor mapping would have reorderPoint set
     const result = await db
       .select({ count: sql`count(*)` })
       .from(itemsTable)
-      .where(
-        and(
-          eq(itemsTable.isActive, true),
-          sql`${itemsTable.reorderPoint} IS NOT NULL`
-        )
-      );
+      .where(and(eq(itemsTable.isActive, true), eq(itemsTable.isVMI, true)));
     return Number(result[0]?.count || 0);
   });
 
+  // Below reorder among VMI items. CAST to a number so the comparison is
+  // numeric (string columns would compare lexicographically and miscount).
   const belowReorderResult = await executeDbOperation(async (db) => {
     const result = await db
       .select({ count: sql`count(*)` })
       .from(itemsTable)
       .where(
         and(
+          eq(itemsTable.isActive, true),
+          eq(itemsTable.isVMI, true),
           sql`${itemsTable.reorderPoint} IS NOT NULL`,
-          sql`${itemsTable.onHand} < ${itemsTable.reorderPoint}`
+          sql`CAST(${itemsTable.onHand} AS DECIMAL(18,4)) < CAST(${itemsTable.reorderPoint} AS DECIMAL(18,4))`
         )
       );
     return Number(result[0]?.count || 0);
   });
 
+  // Pending ASNs = VMI orders shipped by the vendor but not yet received.
+  const pendingAsnsResult = await executeDbOperation(async (db) => {
+    const result = await db
+      .select({ count: sql`count(*)` })
+      .from(vmiOrdersTable)
+      .where(eq(vmiOrdersTable.status, 'shipped'));
+    return Number(result[0]?.count || 0);
+  });
+
+  // Outstanding order value = total value of VMI orders not yet received or
+  // cancelled (still in flight: submitted/confirmed/shipped).
+  const outstandingResult = await executeDbOperation(async (db) => {
+    const result = await db
+      .select({ total: sql`COALESCE(SUM(${vmiOrdersTable.totalValue}), 0)` })
+      .from(vmiOrdersTable)
+      .where(sql`${vmiOrdersTable.status} NOT IN ('received', 'cancelled')`);
+    return Number(result[0]?.total || 0);
+  });
+
+  // Last sync = most recent per-item VMI sync timestamp.
+  const lastSyncResult = await executeDbOperation(async (db) => {
+    const result = await db
+      .select({ last: sql`MAX(${itemsTable.lastVmiSyncAt})` })
+      .from(itemsTable)
+      .where(eq(itemsTable.isVMI, true));
+    return (result[0]?.last as string | null) ?? null;
+  });
+
   return {
     vmiItems: vmiItemsResult,
-    lastSyncTime: null, // Would come from VMI sync logs
+    lastSyncTime: lastSyncResult,
     stockBelowReorder: belowReorderResult,
-    pendingAsns: 0, // Would require ASN tracking
-    outstandingOrderValue: 0, // Would require VMI order tracking
+    pendingAsns: pendingAsnsResult,
+    outstandingOrderValue: outstandingResult,
   };
 }
 
