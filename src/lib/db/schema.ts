@@ -727,6 +727,9 @@ export const sqlitePurchaseOrderLines = sqliteTable('purchase_order_lines', {
   totalPrice: real('total_price').notNull(),
   expectedDate: text('expected_date'),
   notes: text('notes'),
+  // Copied from the PR line on convert; echoed in the po-submit webhook (see
+  // purchase_requisition_lines.external_line_ref). Null when no external origin.
+  externalLineRef: text('external_line_ref'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
@@ -2438,6 +2441,8 @@ export const mysqlPurchaseOrderLines = mysqlTable('purchase_order_lines', {
   totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
   expectedDate: datetime('expected_date'),
   notes: mysqlText('notes'),
+  // Copied from the PR line on convert; echoed in the po-submit webhook.
+  externalLineRef: varchar('external_line_ref', { length: 64 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -5739,6 +5744,11 @@ export const sqlitePurchaseRequisitionLines = sqliteTable('purchase_requisition_
   lineTotal: real('line_total').notNull().default(0),
   preferredVendorId: integer('preferred_vendor_id').references(() => sqliteVendors.id),
   notes: text('notes'),
+  // Partner line correlation (e.g. Metaherb's own PR-line id). Passed through
+  // on PR-line create, copied to the PO line on convert, and echoed back in the
+  // po-submit webhook so Metaherb can map each line to its source. Null for
+  // lines with no external origin (ERP-added lines, or POs created without a PR).
+  externalLineRef: text('external_line_ref'),
   status: text('status').notNull().default('open'), // open, converted, cancelled
   convertedPoLineId: integer('converted_po_line_id').references(() => sqlitePurchaseOrderLines.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -6506,6 +6516,8 @@ export const mysqlPurchaseRequisitionLines = mysqlTable('purchase_requisition_li
   lineTotal: decimal('line_total', { precision: 15, scale: 2 }).notNull().default('0'),
   preferredVendorId: int('preferred_vendor_id').references(() => mysqlVendors.id),
   notes: mysqlText('notes'),
+  // Partner line correlation (e.g. Metaherb's PR-line id). See SQLite variant.
+  externalLineRef: varchar('external_line_ref', { length: 64 }),
   status: varchar('status', { length: 20 }).notNull().default('open'), // open, converted, cancelled
   convertedPoLineId: int('converted_po_line_id').references(() => mysqlPurchaseOrderLines.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

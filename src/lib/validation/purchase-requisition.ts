@@ -83,6 +83,9 @@ export const prLineCreateSchema = z.object({
   estimatedUnitPrice: z.number().min(0).optional().default(0),
   suggestedVendorId: z.number().int().positive().optional(),
   notes: z.string().max(500).optional(),
+  // Partner line correlation (e.g. Metaherb's PR-line id). Stored on the PR
+  // line, copied to the PO line on convert, echoed back in the po-submit webhook.
+  externalLineRef: z.string().max(64).optional(),
 });
 
 /**

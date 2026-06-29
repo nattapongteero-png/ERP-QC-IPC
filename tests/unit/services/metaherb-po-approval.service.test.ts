@@ -117,6 +117,7 @@ async function insertPo(
   const poId = res.lastInsertRowid as number;
   await testDb.insert(schema.sqlitePurchaseOrderLines).values({
     poId, itemId, quantity: 2, unit: 'pcs', unitPrice: 100, totalPrice: 200,
+    externalLineRef: 'PRL-4821',
     createdAt: new Date().toISOString(),
   } as any);
   return poId;
@@ -256,6 +257,8 @@ describe('notifyMetaherbPoSubmit', () => {
     expect(body.factory).toBe('โรงงานทดสอบ');
     expect(body.supplier).toBe('METAHERB Store');
     expect(body.items).toHaveLength(1);
+    // externalLineRef echoed per item for line-level correlation.
+    expect(body.items[0].externalLineRef).toBe('PRL-4821');
     const deliveries = await getDeliveries(poId);
     expect(deliveries).toHaveLength(1);
     expect(deliveries[0].status).toBe('processed');
@@ -304,13 +307,18 @@ describe('notifyMetaherbPoOwnerDecision', () => {
     expect(deliveries[0].status).toBe('processed');
   });
 
-  it('omits reason on approve (reason only meaningful on reject)', async () => {
+  it('on approve: no reason, includes final items[] with externalLineRef', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal('fetch', fetchMock);
     const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending', 'approved');
     await notifyMetaherbPoOwnerDecision(poId, 'approved', 'PO-OWNER-2');
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body).toEqual({ erpPOID: poId, decision: 'approved', poNumber: 'PO-OWNER-2' });
+    expect(body.erpPOID).toBe(poId);
+    expect(body.decision).toBe('approved');
+    expect(body.poNumber).toBe('PO-OWNER-2');
     expect('reason' in body).toBe(false);
+    // Final lines sent so Metaherb reserves stock against the approved set.
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].externalLineRef).toBe('PRL-4821');
   });
 });

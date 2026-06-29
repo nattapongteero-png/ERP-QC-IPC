@@ -73,6 +73,7 @@ export interface PRLineInput {
   estimatedUnitPrice?: number;
   suggestedVendorId?: number;
   notes?: string;
+  externalLineRef?: string;   // Partner line id (e.g. Metaherb PR-line), echoed in po-submit
 }
 
 /**

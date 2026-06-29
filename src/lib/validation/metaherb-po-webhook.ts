@@ -16,6 +16,9 @@ export const metaherbPoItemSchema = z.object({
   unit: z.string().optional(),
   pricePerUnit: z.number().optional(),
   image: z.string().optional(),
+  // Partner line correlation echoed back to Metaherb. null = the line has no
+  // origin in Metaherb's system (ERP-added, or a PO created without a PR).
+  externalLineRef: z.string().nullable().optional(),
 });
 
 export type MetaherbPoItem = z.infer<typeof metaherbPoItemSchema>;
@@ -55,6 +58,10 @@ export const metaherbPoOwnerDecisionBodySchema = z.object({
   poNumber: z.string().min(1),
   // The owner's rejection reason — present only on a 'rejected' decision.
   reason: z.string().optional(),
+  // The PO's final lines (with externalLineRef) — sent on 'approved' so Metaherb
+  // can reserve/cut stock against the actual approved lines (PO lines are
+  // editable until approval). Omitted on reject.
+  items: z.array(metaherbPoItemSchema).optional(),
 });
 
 export type MetaherbPoOwnerDecisionBody = z.infer<typeof metaherbPoOwnerDecisionBodySchema>;

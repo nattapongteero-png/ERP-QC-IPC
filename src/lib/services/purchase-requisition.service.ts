@@ -570,6 +570,9 @@ export async function addPRLines(
         lineTotal,
         preferredVendorId: line.suggestedVendorId || null,
         notes: line.notes || null,
+        // Partner line correlation (e.g. Metaherb's PR-line id), echoed back in
+        // the po-submit webhook after convert. Null for ERP-entered lines.
+        externalLineRef: line.externalLineRef || null,
         status: 'pending',
         createdAt: now,
       });
@@ -1209,6 +1212,9 @@ export async function convertPRToPO(
         unitPrice: price,
         totalPrice: qty * price,
         notes: prLine.description || null,
+        // Carry the partner line ref through to the PO so the po-submit webhook
+        // can echo it back to Metaherb for line-level correlation.
+        externalLineRef: prLine.externalLineRef || null,
         createdAt: now,
       });
 

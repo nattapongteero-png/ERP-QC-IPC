@@ -193,6 +193,7 @@ async function loadPoItems(poId: number): Promise<MetaherbPoItem[]> {
         quantity: t.poLines.quantity,
         unit: t.poLines.unit,
         unitPrice: t.poLines.unitPrice,
+        externalLineRef: t.poLines.externalLineRef,
       })
       .from(t.poLines)
       .leftJoin(t.items, eq(t.poLines.itemId, t.items.id))
@@ -203,6 +204,9 @@ async function loadPoItems(poId: number): Promise<MetaherbPoItem[]> {
     qty: Number(r.quantity) || 0,
     unit: r.unit || undefined,
     pricePerUnit: r.unitPrice != null ? Number(r.unitPrice) : undefined,
+    // Echo the partner line ref so Metaherb can map each line to its source.
+    // null (not undefined) signals "no external origin" per the integration spec.
+    externalLineRef: r.externalLineRef ?? null,
   }));
 }
 
@@ -359,12 +363,17 @@ export async function notifyMetaherbPoOwnerDecision(
 
     const cfg = await getMetaherbSsoConfig();
     const url = cfg.poOwnerDecisionUrl;
+    // On approve, send the PO's final lines (with externalLineRef) so Metaherb
+    // reserves stock against the actual approved lines — PO lines can be edited
+    // up until approval, so the original po-submit set may be stale.
+    const items = decision === 'approved' ? await loadPoItems(poId) : undefined;
     const body = metaherbPoOwnerDecisionBodySchema.parse({
       erpPOID: po.id,
       decision,
       poNumber: poNumber || po.poNumber,
       // Include the reason only on reject (and only when non-empty).
       ...(decision === 'rejected' && reason ? { reason } : {}),
+      ...(items ? { items } : {}),
     });
     await dispatchPoDelivery({
       poId: po.id,

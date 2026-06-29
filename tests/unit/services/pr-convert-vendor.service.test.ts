@@ -121,9 +121,17 @@ async function insertApprovedPr(externalSource: string | null): Promise<number> 
     unit: 'pcs',
     estimatedPrice: 100,
     lineTotal: 200,
+    externalLineRef: 'PRL-4821',
     status: 'approved',
   } as any);
   return prId;
+}
+
+async function getPoLines(poId: number) {
+  return testDb
+    .select()
+    .from(schema.sqlitePurchaseOrderLines)
+    .where(eq(schema.sqlitePurchaseOrderLines.poId, poId));
 }
 
 async function getVendors() {
@@ -243,5 +251,13 @@ describe('convertPRToPO — Metaherb auto-vendor', () => {
   it('rejects a non-Metaherb PR with no vendor selected', async () => {
     const prId = await insertApprovedPr(null);
     await expect(convertPRToPO({ prId }, 1)).rejects.toThrow('VENDOR_REQUIRED');
+  });
+
+  it('copies externalLineRef from the PR line to the PO line on convert', async () => {
+    const prId = await insertApprovedPr('metaherb');
+    const res = await convertPRToPO({ prId }, 1);
+    const poLines = await getPoLines(res.poId);
+    expect(poLines).toHaveLength(1);
+    expect(poLines[0].externalLineRef).toBe('PRL-4821');
   });
 });
