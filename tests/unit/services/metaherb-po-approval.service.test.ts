@@ -282,21 +282,35 @@ describe('notifyMetaherbPoOwnerDecision', () => {
     expect(await getDeliveries(poId)).toHaveLength(0);
   });
 
-  it('POSTs owner decision to the derived po-owner-decision URL with correct body', async () => {
+  it('POSTs owner decision to the po-owner-decision URL with reason on reject', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal('fetch', fetchMock);
     const poId = await insertPo(metaherbVendorId, 'rejected', 'pending', 'rejected');
-    await notifyMetaherbPoOwnerDecision(poId, 'rejected', 'PO-OWNER-1');
+    await notifyMetaherbPoOwnerDecision(poId, 'rejected', 'PO-OWNER-1', 'ราคาสูงเกินไป');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, opts] = fetchMock.mock.calls[0];
-    // derived from po-submit URL by swapping the path segment.
     expect(url).toBe('https://api.x/api/erp/po-owner-decision/uat');
     expect(opts.headers['X-Webhook-Signature']).toBeTruthy();
     const body = JSON.parse(opts.body);
-    expect(body).toEqual({ erpPOID: poId, decision: 'rejected', poNumber: 'PO-OWNER-1' });
+    expect(body).toEqual({
+      erpPOID: poId,
+      decision: 'rejected',
+      poNumber: 'PO-OWNER-1',
+      reason: 'ราคาสูงเกินไป',
+    });
     const deliveries = await getDeliveries(poId);
     expect(deliveries).toHaveLength(1);
     expect(deliveries[0].eventType).toBe('po_owner_decision');
     expect(deliveries[0].status).toBe('processed');
+  });
+
+  it('omits reason on approve (reason only meaningful on reject)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal('fetch', fetchMock);
+    const poId = await insertPo(metaherbVendorId, 'pending_approval', 'pending', 'approved');
+    await notifyMetaherbPoOwnerDecision(poId, 'approved', 'PO-OWNER-2');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({ erpPOID: poId, decision: 'approved', poNumber: 'PO-OWNER-2' });
+    expect('reason' in body).toBe(false);
   });
 });

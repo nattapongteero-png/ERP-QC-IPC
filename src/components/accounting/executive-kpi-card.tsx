@@ -1,6 +1,7 @@
 'use client';
 
 import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,6 +20,12 @@ const statusStyles = {
 };
 
 export function ExecutiveKPICard({ kpi, onClick, className = '' }: ExecutiveKPICardProps) {
+  const t = useTranslations('accounting');
+  // The API sends an English label; translate by the stable kpi.id (e.g.
+  // "working-capital") and fall back to the API label if no key exists.
+  const labelKey = `dashboard.kpi.${kpi.id}`;
+  const translated = t(labelKey);
+  const label = translated === labelKey ? kpi.label : translated;
   const styles = statusStyles[kpi.status];
   const TrendIcon = kpi.trend === 'up' ? TrendingUp : kpi.trend === 'down' ? TrendingDown : Minus;
 
@@ -44,7 +51,7 @@ export function ExecutiveKPICard({ kpi, onClick, className = '' }: ExecutiveKPIC
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <p className="text-sm font-medium text-gray-600 truncate">{kpi.label}</p>
+            <p className="text-sm font-medium text-gray-600 truncate">{label}</p>
             {targetRange && (
               <TooltipProvider>
                 <Tooltip>

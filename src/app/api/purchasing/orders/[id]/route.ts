@@ -104,6 +104,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         paymentTerms,
         shippingAddress,
         notes,
+        rejectionReason,
       } = body;
 
       const poTable = getTableRef('purchaseOrders');
@@ -172,6 +173,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // ownerDecision is set when the owner approves/rejects a Metaherb PO, so we
       // fire the po-owner-decision webhook (after commit) back to Metaherb.
       let ownerDecision: 'approved' | 'rejected' | null = null;
+      const cleanReason = typeof rejectionReason === 'string' ? rejectionReason.trim() : '';
       if (
         isMetaherbPO &&
         existing.status === 'pending_approval' &&
@@ -189,6 +191,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } else if (status !== undefined) {
         // Non-Metaherb PO, or a non-approval transition — pass status through.
         updateData.status = status;
+      }
+
+      // Persist the rejection reason (no dedicated column → recorded in notes so
+      // it's visible on the PO and in the audit log). Applies to any reject.
+      if (status === 'rejected' && cleanReason) {
+        updateData.notes = `เหตุผลที่ปฏิเสธ: ${cleanReason}`;
       }
 
       if (vendorId !== undefined) updateData.vendorId = vendorId;
@@ -263,7 +271,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (ownerDecision) {
         try {
           const { notifyMetaherbPoOwnerDecision } = await import('@/lib/services/metaherb-po-webhook.service');
-          void notifyMetaherbPoOwnerDecision(poId, ownerDecision, existing.poNumber);
+          // Send the rejection reason too (only meaningful on reject).
+          void notifyMetaherbPoOwnerDecision(
+            poId,
+            ownerDecision,
+            existing.poNumber,
+            ownerDecision === 'rejected' ? cleanReason || undefined : undefined,
+          );
         } catch (err) {
           console.warn('Metaherb po-owner-decision webhook dispatch failed (non-fatal):', err);
         }

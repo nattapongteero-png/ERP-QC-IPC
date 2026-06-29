@@ -17,6 +17,29 @@
       "businessPerformance": "Business Performance",
       "quickAccess": "Quick Access"
     },
+    "kpi": {
+      "working-capital": "Working Capital",
+      "current-ratio": "Current Ratio",
+      "quick-ratio": "Quick Ratio",
+      "dso": "Days Sales Outstanding",
+      "gross-profit-margin": "Gross Profit Margin",
+      "operating-cash-flow": "Operating Cash Flow",
+      "dpo": "Days Payable Outstanding",
+      "inventory-turnover": "Inventory Turnover"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "critical": "Critical",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "moreAlerts": "+ {count} more alerts",
+      "managePeriods": "Manage Periods",
+      "periodClosePending": "Period Close Pending",
+      "periodCloseDetail": "Fiscal period \"{period}\" ended {days} days ago and is still open. Please review and close.",
+      "daysUnit": "days"
+    },
+    "expenseBreakdown": "Expense Breakdown",
+    "revenueVsExpenses": "Revenue vs Expenses Trend"
     "quickLinks": {
       "financialStatements": "Financial Statements",
       "trialBalance": "Trial Balance",

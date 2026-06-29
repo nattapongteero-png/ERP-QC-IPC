@@ -336,6 +336,11 @@ export default function PurchaseOrderDetailPage() {
   // Status transition state
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Reject-with-reason modal (owner reject of a Metaherb PO). The reason is
+  // stored on the PO and sent to Metaherb via the po-owner-decision webhook.
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
   const fetchPODetail = useCallback(async () => {
     try {
       const response = await fetch(`/api/purchasing/orders/${params.id}/detail`);
@@ -563,14 +568,21 @@ export default function PurchaseOrderDetailPage() {
   };
 
   // Transition PO status (Submit / Approve)
-  const transitionStatus = async (nextStatus: 'pending_approval' | 'approved' | 'rejected' | 'sent', confirmMsg: string) => {
-    if (!confirm(confirmMsg)) return;
+  const transitionStatus = async (
+    nextStatus: 'pending_approval' | 'approved' | 'rejected' | 'sent',
+    confirmMsg: string,
+    rejectionReason?: string,
+  ) => {
+    if (confirmMsg && !confirm(confirmMsg)) return;
     setIsTransitioning(true);
     try {
       const response = await fetch(`/api/purchasing/orders/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({
+          status: nextStatus,
+          ...(rejectionReason ? { rejectionReason } : {}),
+        }),
       });
       const result = await response.json();
       if (result.success) {
@@ -584,6 +596,19 @@ export default function PurchaseOrderDetailPage() {
     } finally {
       setIsTransitioning(false);
     }
+  };
+
+  // Owner reject with a required reason → PO becomes rejected + reason sent to Metaherb.
+  const submitReject = async () => {
+    const reason = rejectReason.trim();
+    if (!reason) {
+      alert('กรุณาระบุเหตุผลที่ปฏิเสธ');
+      return;
+    }
+    // No confirm() — the modal already is the confirmation step.
+    await transitionStatus('rejected', '', reason);
+    setShowRejectModal(false);
+    setRejectReason('');
   };
 
   // Delete PO
@@ -1076,7 +1101,7 @@ export default function PurchaseOrderDetailPage() {
                   type="danger"
                   stylingMode="contained"
                   disabled={isTransitioning}
-                  onClick={() => transitionStatus('rejected', `ยืนยันปฏิเสธ PO ${po.poNumber}? (ใบสั่งซื้อจะถูกปฏิเสธทั้งสองฝั่ง)`)}
+                  onClick={() => { setRejectReason(''); setShowRejectModal(true); }}
                   data-testid="po-reject-btn"
                 />
               )}
@@ -1960,6 +1985,48 @@ export default function PurchaseOrderDetailPage() {
                 onClick={handleDeletePO}
                 disabled={deletingPO}
                 data-testid="confirm-delete-po-btn"
+              />
+            </div>
+          </div>
+        </DxPopup>
+
+        {/* Reject PO with reason (owner side of Metaherb dual-approval) */}
+        <DxPopup
+          visible={showRejectModal}
+          onHiding={() => setShowRejectModal(false)}
+          title="ปฏิเสธใบสั่งซื้อ (Reject PO)"
+          width={460}
+          height={300}
+          showCloseButton={true}
+        >
+          <div className="p-4">
+            <p className="text-sm text-gray-600 mb-3">
+              ปฏิเสธใบสั่งซื้อ <strong>{po.poNumber}</strong> — ใบสั่งซื้อจะถูกปฏิเสธ และเหตุผลจะถูกส่งไปยัง Metaherb
+            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              เหตุผลที่ปฏิเสธ <span className="text-red-500">*</span>
+            </label>
+            <DxTextArea
+              value={rejectReason}
+              onValueChanged={(e) => setRejectReason(e.value ?? '')}
+              placeholder="ระบุเหตุผล เช่น ราคาสูงเกินไป / ของไม่ตรงสเปก"
+              height={90}
+              inputAttr={{ 'data-testid': 'po-reject-reason-input' }}
+            />
+            <div className="flex gap-2 justify-end mt-6">
+              <DxButton
+                text="ยกเลิก"
+                type="normal"
+                onClick={() => setShowRejectModal(false)}
+              />
+              <DxButton
+                text={isTransitioning ? 'กำลังปฏิเสธ...' : 'ยืนยันปฏิเสธ'}
+                type="danger"
+                stylingMode="contained"
+                icon="close"
+                onClick={submitReject}
+                disabled={isTransitioning || rejectReason.trim() === ''}
+                data-testid="confirm-reject-po-btn"
               />
             </div>
           </div>

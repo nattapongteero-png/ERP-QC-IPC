@@ -17,6 +17,29 @@
       "businessPerformance": "ผลประกอบการ",
       "quickAccess": "เข้าถึงด่วน"
     },
+    "kpi": {
+      "working-capital": "เงินทุนหมุนเวียน",
+      "current-ratio": "อัตราส่วนสภาพคล่อง",
+      "quick-ratio": "อัตราส่วนสภาพคล่องเร็ว",
+      "dso": "ระยะเวลาเก็บหนี้ (วัน)",
+      "gross-profit-margin": "อัตรากำไรขั้นต้น",
+      "operating-cash-flow": "กระแสเงินสดจากการดำเนินงาน",
+      "dpo": "ระยะเวลาชำระหนี้ (วัน)",
+      "inventory-turnover": "รอบหมุนสินค้าคงคลัง"
+    },
+    "alerts": {
+      "title": "การแจ้งเตือน",
+      "critical": "วิกฤต",
+      "expand": "ขยาย",
+      "collapse": "ย่อ",
+      "moreAlerts": "+ อีก {count} รายการ",
+      "managePeriods": "จัดการงวดบัญชี",
+      "periodClosePending": "ค้างปิดงวดบัญชี",
+      "periodCloseDetail": "งวดบัญชี \"{period}\" สิ้นสุดมาแล้ว {days} วัน และยังไม่ได้ปิด กรุณาตรวจสอบและปิดงวด",
+      "daysUnit": "วัน"
+    },
+    "expenseBreakdown": "สัดส่วนค่าใช้จ่าย",
+    "revenueVsExpenses": "แนวโน้มรายได้เทียบกับค่าใช้จ่าย"
     "quickLinks": {
       "financialStatements": "งบการเงิน",
       "trialBalance": "งบทดลอง",

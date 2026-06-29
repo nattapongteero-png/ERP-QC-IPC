@@ -53,6 +53,8 @@ export const metaherbPoOwnerDecisionBodySchema = z.object({
   erpPOID: z.number().int().positive(),
   decision: z.enum(['approved', 'rejected']),
   poNumber: z.string().min(1),
+  // The owner's rejection reason — present only on a 'rejected' decision.
+  reason: z.string().optional(),
 });
 
 export type MetaherbPoOwnerDecisionBody = z.infer<typeof metaherbPoOwnerDecisionBodySchema>;

@@ -344,7 +344,8 @@ export async function notifyMetaherbPoSubmit(poId: number): Promise<void> {
 export async function notifyMetaherbPoOwnerDecision(
   poId: number,
   decision: 'approved' | 'rejected',
-  poNumber: string
+  poNumber: string,
+  reason?: string
 ): Promise<void> {
   try {
     const po = await loadPoHeader(poId);
@@ -362,6 +363,8 @@ export async function notifyMetaherbPoOwnerDecision(
       erpPOID: po.id,
       decision,
       poNumber: poNumber || po.poNumber,
+      // Include the reason only on reject (and only when non-empty).
+      ...(decision === 'rejected' && reason ? { reason } : {}),
     });
     await dispatchPoDelivery({
       poId: po.id,
