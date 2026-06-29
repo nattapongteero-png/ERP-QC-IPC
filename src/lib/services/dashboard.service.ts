@@ -161,13 +161,84 @@ export async function getHRKpis(): Promise<HRKpis> {
         .where(eq(authorizationsTable.isActive, true));
       return Number(result[0]?.count || 0);
     }),
-    // Pending notifications
+    // Pending notifications — computed LIVE from source data, not from
+    // pre-generated hr_notifications rows. The notification rows are only
+    // created when a cron hits the /check endpoints, so counting them made the
+    // card read 0 even when employees were genuinely overdue. Instead we count,
+    // right now, the things that warrant attention so the card never silently
+    // misses a real event:
+    //   • training expired (expiry_date <= today)
+    //   • training expiring within 30 days
+    //   • health exam due/overdue (next_exam_due <= today)
+    //   • GMP authorization expiring within 30 days
+    // Any unread hr_notifications rows that DO exist are also included (max with
+    // the live count) so a cron-driven setup never under-reports either.
     executeDbOperation(async (db) => {
-      const result = await db
-        .select({ count: sql`count(*)` })
-        .from(notificationsTable)
-        .where(eq(notificationsTable.isRead, false));
-      return Number(result[0]?.count || 0);
+      const thirtyDaysAhead = new Date();
+      thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30);
+      const within30 = toQueryDate(thirtyDaysAhead);
+      const todayQ = toQueryDate(today);
+
+      const safeCount = async (run: () => Promise<unknown>): Promise<number> => {
+        try {
+          const r = (await run()) as Array<{ count?: number }>;
+          return Number(r[0]?.count || 0);
+        } catch {
+          return 0; // table may not exist on a fresh DB
+        }
+      };
+
+      const [trainingDue, healthDue, authExpiring, unreadRows] = await Promise.all([
+        // training expired OR expiring within 30 days (passed records only)
+        safeCount(() =>
+          db
+            .select({ count: sql`count(*)` })
+            .from(trainingRecordsTable)
+            .where(
+              and(
+                eq(trainingRecordsTable.result, 'pass'),
+                sql`${trainingRecordsTable.expiryDate} IS NOT NULL`,
+                lte(trainingRecordsTable.expiryDate, within30)
+              )
+            )
+        ),
+        // health exams due or overdue
+        safeCount(() =>
+          db
+            .select({ count: sql`count(*)` })
+            .from(healthRecordsTable)
+            .where(
+              and(
+                sql`${healthRecordsTable.nextExamDue} IS NOT NULL`,
+                lte(healthRecordsTable.nextExamDue, todayQ)
+              )
+            )
+        ),
+        // active GMP authorizations expiring within 30 days
+        safeCount(() =>
+          db
+            .select({ count: sql`count(*)` })
+            .from(authorizationsTable)
+            .where(
+              and(
+                eq(authorizationsTable.isActive, true),
+                sql`${authorizationsTable.effectiveTo} IS NOT NULL`,
+                gte(authorizationsTable.effectiveTo, todayQ),
+                lte(authorizationsTable.effectiveTo, within30)
+              )
+            )
+        ),
+        // any unread pre-generated notification rows
+        safeCount(() =>
+          db
+            .select({ count: sql`count(*)` })
+            .from(notificationsTable)
+            .where(eq(notificationsTable.isRead, false))
+        ),
+      ]);
+
+      const liveCount = trainingDue + healthDue + authExpiring;
+      return Math.max(liveCount, unreadRows);
     }),
   ]);
 
@@ -393,7 +464,7 @@ export async function getVMIKpis(): Promise<VMIKpis> {
           eq(itemsTable.isActive, true),
           eq(itemsTable.isVMI, true),
           sql`${itemsTable.reorderPoint} IS NOT NULL`,
-          sql`CAST(${itemsTable.onHand} AS DECIMAL(18,4)) < CAST(${itemsTable.reorderPoint} AS DECIMAL(18,4))`
+          sql`CAST(${itemsTable.onHand} AS REAL) < CAST(${itemsTable.reorderPoint} AS REAL)`
         )
       );
     return Number(result[0]?.count || 0);
