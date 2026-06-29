@@ -274,6 +274,9 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
 
 export async function getSalesKpis(): Promise<SalesKpis> {
   const soTable = getTableRef('salesOrders');
+  const itemsTable = getTableRef('items');
+  const lotsTable = getTableRef('inventoryLots');
+  const solTable = getTableRef('salesOrderLines');
   const monthStart = getMonthStartForQuery();
 
   const [
@@ -281,6 +284,7 @@ export async function getSalesKpis(): Promise<SalesKpis> {
     valueResult,
     fulfilledResult,
     totalOrdersResult,
+    atpShortageResult,
   ] = await Promise.all([
     // Pending SOs
     executeDbOperation(async (db) => {
@@ -321,6 +325,29 @@ export async function getSalesKpis(): Promise<SalesKpis> {
         .where(gte(soTable.createdAt, monthStart));
       return Number(result[0]?.count || 0);
     }),
+    // ATP (Available-To-Promise) shortages: count of active items where the
+    // open committed demand exceeds what's actually available to promise.
+    //   ATP          = items.on_hand − Σ(reserved_quantity across the item's lots)
+    //   open demand  = Σ(quantity − shipped_quantity) over lines of sales orders
+    //                  that are committed but not yet terminal (exclude draft —
+    //                  unconfirmed, and delivered/cancelled — already closed).
+    // An item is "short" when open_demand > ATP (and there is demand at all).
+    // Correlated subqueries are standard SQL and run on both MySQL and SQLite.
+    executeDbOperation(async (db) => {
+      const reserved = sql`COALESCE((SELECT SUM(${lotsTable.reservedQuantity}) FROM ${lotsTable} WHERE ${lotsTable.itemId} = ${itemsTable.id}), 0)`;
+      const openDemand = sql`COALESCE((SELECT SUM(${solTable.quantity} - ${solTable.shippedQuantity}) FROM ${solTable} INNER JOIN ${soTable} ON ${soTable.id} = ${solTable.soId} WHERE ${solTable.itemId} = ${itemsTable.id} AND ${soTable.status} NOT IN ('delivered', 'cancelled', 'draft')), 0)`;
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(itemsTable)
+        .where(
+          and(
+            eq(itemsTable.isActive, true),
+            sql`${openDemand} > 0`,
+            sql`${openDemand} > (${itemsTable.onHand} - ${reserved})`
+          )
+        );
+      return Number(result[0]?.count || 0);
+    }),
   ]);
 
   const fulfillmentRate = totalOrdersResult > 0
@@ -331,7 +358,7 @@ export async function getSalesKpis(): Promise<SalesKpis> {
     pendingSOs: pendingResult,
     soValueMtd: valueResult,
     ordersFulfilledMtd: fulfilledResult,
-    atpShortages: 0, // Would require ATP calculation
+    atpShortages: atpShortageResult,
     fulfillmentRate,
   };
 }
