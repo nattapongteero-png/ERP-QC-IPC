@@ -443,13 +443,15 @@ export async function getVMIKpis(): Promise<VMIKpis> {
   // getTableRef upper-cases the first letter → resolves to sqlite/mysqlVMIOrders.
   const vmiOrdersTable = getTableRef('vMIOrders');
 
-  // VMI items = items actually flagged for VMI (isVMI), not merely "has a
-  // reorder point". This is the real VMI-managed catalogue.
+  // VMI items = items actually flagged for VMI sync (vmiSyncEnabled), not
+  // merely "has a reorder point". This is the real VMI-managed catalogue.
+  // Note: the VMI flag on an item is `vmiSyncEnabled` — `isVMI` lives on the
+  // vendors table, not items.
   const vmiItemsResult = await executeDbOperation(async (db) => {
     const result = await db
       .select({ count: sql`count(*)` })
       .from(itemsTable)
-      .where(and(eq(itemsTable.isActive, true), eq(itemsTable.isVMI, true)));
+      .where(and(eq(itemsTable.isActive, true), eq(itemsTable.vmiSyncEnabled, true)));
     return Number(result[0]?.count || 0);
   });
 
@@ -462,7 +464,7 @@ export async function getVMIKpis(): Promise<VMIKpis> {
       .where(
         and(
           eq(itemsTable.isActive, true),
-          eq(itemsTable.isVMI, true),
+          eq(itemsTable.vmiSyncEnabled, true),
           sql`${itemsTable.reorderPoint} IS NOT NULL`,
           sql`CAST(${itemsTable.onHand} AS REAL) < CAST(${itemsTable.reorderPoint} AS REAL)`
         )
@@ -494,7 +496,7 @@ export async function getVMIKpis(): Promise<VMIKpis> {
     const result = await db
       .select({ last: sql`MAX(${itemsTable.lastVmiSyncAt})` })
       .from(itemsTable)
-      .where(eq(itemsTable.isVMI, true));
+      .where(eq(itemsTable.vmiSyncEnabled, true));
     return (result[0]?.last as string | null) ?? null;
   });
 
