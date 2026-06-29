@@ -298,14 +298,16 @@ export async function getSalesKpis(): Promise<SalesKpis> {
         .where(gte(soTable.createdAt, monthStart));
       return Number(result[0]?.total || 0);
     }),
-    // Orders fulfilled MTD
+    // Orders fulfilled MTD. The sales-order lifecycle uses 'delivered' as the
+    // terminal fulfilled state (the orders list counts 'delivered' too) — there
+    // is no 'fulfilled' status, so the old query always returned 0.
     executeDbOperation(async (db) => {
       const result = await db
         .select({ count: sql`count(*)` })
         .from(soTable)
         .where(
           and(
-            eq(soTable.status, 'fulfilled'),
+            eq(soTable.status, 'delivered'),
             gte(soTable.updatedAt, monthStart)
           )
         );
