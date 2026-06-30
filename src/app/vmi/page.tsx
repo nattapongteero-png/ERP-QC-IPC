@@ -109,9 +109,16 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   // priority is not stored in DB - skip urgentOrders
   const urgentOrders = 0;
 
-  // Process portals data
+  // Process portals data.
+  // /api/settings/vmi returns { isEnabled, connectionStatus }, NOT `isActive`.
+  // A portal counts as "connected" only when it is enabled AND its last
+  // connection check succeeded — guarding on the real fields (the old
+  // `p.isActive` was always undefined, so the dashboard showed 0/N forever).
   const portals = portalsData.success ? portalsData.data || [] : [];
-  const activePortals = portals.filter((p: { isActive: boolean }) => p.isActive).length;
+  const activePortals = portals.filter(
+    (p: { isEnabled?: boolean; connectionStatus?: string }) =>
+      p.isEnabled && p.connectionStatus === 'connected'
+  ).length;
 
   return {
     sync: {
@@ -145,7 +152,7 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
 
 export default function VmiPage() {
   const t = useTranslations('vmi');
-  const { data: stats, isLoading, refetch } = useQuery({
+  const { data: stats, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['vmi-dashboard'],
     queryFn: fetchDashboardStats,
     refetchInterval: 60000,
@@ -364,9 +371,11 @@ export default function VmiPage() {
                 </CardTitle>
                 <button
                   onClick={() => refetch()}
-                  className="h-8 w-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                  disabled={isFetching}
+                  title={t('syncStatus.title')}
+                  className="h-8 w-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors disabled:opacity-60"
                 >
-                  <RefreshCw className="h-4 w-4 text-gray-500" />
+                  <RefreshCw className={cn('h-4 w-4 text-gray-500', isFetching && 'animate-spin')} />
                 </button>
               </div>
             </CardHeader>

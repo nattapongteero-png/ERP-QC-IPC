@@ -596,18 +596,25 @@ export class VmiSyncService {
           }
           // Surface the Portal's real validation message instead of a bare
           // "HTTP 400" so the operator can see WHY the catalog push was rejected.
-          // VMI Portal returns either {error:{message}} or {message} or a Zod
-          // {error:{details:[...]}} / {issues:[...]} shape; fall back to the raw
-          // body (truncated) when none of those are present.
+          // Per docs/VMI-VENDOR-API.md the Portal returns a validation error as
+          //   { success:false, code, message, errors:[{field,message}] }
+          // but some endpoints use { error:{message,details} } / { issues:[] }.
+          // Accept all shapes; fall back to the raw body when none are present.
           const errObj = errorData.error as { message?: string; details?: unknown } | undefined;
-          const detailStr = errObj?.details
-            ? ` — ${JSON.stringify(errObj.details).slice(0, 300)}`
-            : errorData.issues
-              ? ` — ${JSON.stringify(errorData.issues).slice(0, 300)}`
+          const fieldErrors = (errorData.errors || errObj?.details || errorData.issues) as
+            | Array<{ field?: string; message?: string }>
+            | undefined;
+          const detailStr =
+            Array.isArray(fieldErrors) && fieldErrors.length > 0
+              ? ' — ' +
+                fieldErrors
+                  .map((e) => (e.field ? `${e.field}: ${e.message}` : e.message))
+                  .join('; ')
+                  .slice(0, 400)
               : '';
           const baseMsg =
-            errObj?.message ||
             (errorData.message as string | undefined) ||
+            errObj?.message ||
             (responseText ? responseText.slice(0, 300) : `HTTP ${response.status}`);
           const fullError = `HTTP ${response.status}: ${baseMsg}${detailStr}`;
           batch.forEach((item) => {

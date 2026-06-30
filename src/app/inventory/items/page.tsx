@@ -591,13 +591,31 @@ export default function ItemsPage() {
   }, [t]);
 
   const renderVmiCell = useCallback((data: { data: Item }) => {
-    const hasVmi = data.data.tppCode || data.data.ttmtCode;
-    return hasVmi ? (
-      <div className="flex items-center gap-1 text-emerald-600" title={`TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`}>
-        <CheckCircle className="h-4 w-4" />
-        <span className="text-xs font-medium">{t('items.grid.vmiReady')}</span>
-      </div>
-    ) : (
+    // "พร้อม" must mean the item will actually be pushed to the VMI Portal:
+    // that requires BOTH a standard code (TPP/TTMT) AND vmiSyncEnabled=true.
+    // The old check looked only at the codes, so items with a code but sync
+    // turned off showed a misleading "พร้อม" (e.g. FG-0003).
+    const hasCode = !!(data.data.tppCode || data.data.ttmtCode);
+    const syncOn = !!data.data.vmiSyncEnabled;
+    const title = `TPP: ${data.data.tppCode || '-'}, TTMT: ${data.data.ttmtCode || '-'}`;
+    if (hasCode && syncOn) {
+      return (
+        <div className="flex items-center gap-1 text-emerald-600" title={title}>
+          <CheckCircle className="h-4 w-4" />
+          <span className="text-xs font-medium">{t('items.grid.vmiReady')}</span>
+        </div>
+      );
+    }
+    if (hasCode && !syncOn) {
+      // Has a code but sync is off — not actually pushed. Show a muted "ปิดซิงค์".
+      return (
+        <div className="flex items-center gap-1 text-amber-600" title={`${title} (VMI sync ปิดอยู่)`}>
+          <XCircle className="h-4 w-4" />
+          <span className="text-xs">ปิดซิงค์</span>
+        </div>
+      );
+    }
+    return (
       <div className="flex items-center gap-1 text-gray-400">
         <XCircle className="h-4 w-4" />
         <span className="text-xs">-</span>
