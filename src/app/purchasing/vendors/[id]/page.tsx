@@ -10,6 +10,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
+import { VENDOR_PAYMENT_TERMS_OPTIONS } from '@/lib/constants/vendor-payment-terms';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
@@ -94,15 +95,8 @@ interface VendorDetail {
 
 type TabKey = 'overview' | 'orders' | 'items';
 
-const PAYMENT_TERMS_OPTIONS = [
-  { value: 'Cash', text: 'Cash' },
-  { value: 'Net 7', text: 'Net 7 วัน' },
-  { value: 'Net 15', text: 'Net 15 วัน' },
-  { value: 'Net 30', text: 'Net 30 วัน' },
-  { value: 'Net 45', text: 'Net 45 วัน' },
-  { value: 'Net 60', text: 'Net 60 วัน' },
-  { value: 'Net 90', text: 'Net 90 วัน' },
-];
+// Shared with the vendor CREATE page so both forms offer the same choices.
+const PAYMENT_TERMS_OPTIONS = VENDOR_PAYMENT_TERMS_OPTIONS;
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; labelTh: string }> = {
   draft: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Draft', labelTh: 'แบบร่าง' },

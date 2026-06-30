@@ -6,8 +6,10 @@ import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
+import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { PageHeader } from '@/components/ui/page-header';
+import { VENDOR_PAYMENT_TERMS_OPTIONS } from '@/lib/constants/vendor-payment-terms';
 
 // Generate vendor code: VND-YYYYMMDD-XXXX
 function generateVendorCode(): string {
@@ -183,10 +185,14 @@ export default function NewVendorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('vendors.form.paymentTerms')}
                 </label>
-                <DxTextBox
+                <DxSelectBox
+                  dataSource={VENDOR_PAYMENT_TERMS_OPTIONS}
                   value={form.paymentTerms}
                   onValueChange={(value) => setForm({ ...form, paymentTerms: value })}
+                  displayExpr="text"
+                  valueExpr="value"
                   placeholder={t('vendors.form.paymentTermsPlaceholder')}
+                  searchEnabled
                 />
               </div>
               <div className="md:col-span-2">
