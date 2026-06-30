@@ -213,11 +213,14 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   // Load active vendors for the "intended vendor" dropdown.
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/vendors?limit=200&status=active')
+    fetch('/api/vendors?limit=200&isActive=true')
       .then((r) => r.json())
       .then((res) => {
         if (cancelled) return;
-        const list = (res?.data?.vendors || res?.data || res?.vendors || [])
+        // API returns { success, data: { items, total, ... } }. Be defensive
+        // about the exact shape so a paginated wrapper doesn't empty the list.
+        const raw = res?.data?.items ?? res?.data?.vendors ?? res?.data ?? res?.vendors ?? [];
+        const list = (Array.isArray(raw) ? raw : [])
           .map((v: any) => ({ id: v.id, name: v.name, paymentTerms: v.paymentTerms }));
         setVendors(list);
       })

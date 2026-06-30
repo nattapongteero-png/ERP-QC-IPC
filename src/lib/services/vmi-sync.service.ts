@@ -594,11 +594,27 @@ export class VmiSyncService {
           } catch {
             // Not JSON response
           }
+          // Surface the Portal's real validation message instead of a bare
+          // "HTTP 400" so the operator can see WHY the catalog push was rejected.
+          // VMI Portal returns either {error:{message}} or {message} or a Zod
+          // {error:{details:[...]}} / {issues:[...]} shape; fall back to the raw
+          // body (truncated) when none of those are present.
+          const errObj = errorData.error as { message?: string; details?: unknown } | undefined;
+          const detailStr = errObj?.details
+            ? ` — ${JSON.stringify(errObj.details).slice(0, 300)}`
+            : errorData.issues
+              ? ` — ${JSON.stringify(errorData.issues).slice(0, 300)}`
+              : '';
+          const baseMsg =
+            errObj?.message ||
+            (errorData.message as string | undefined) ||
+            (responseText ? responseText.slice(0, 300) : `HTTP ${response.status}`);
+          const fullError = `HTTP ${response.status}: ${baseMsg}${detailStr}`;
           batch.forEach((item) => {
             errors.push({
               itemId: item.id,
               itemCode: item.code,
-              error: (errorData.error as { message?: string })?.message || `HTTP ${response.status}`,
+              error: fullError,
             });
           });
         }

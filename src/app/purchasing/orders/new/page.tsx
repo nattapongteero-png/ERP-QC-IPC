@@ -119,7 +119,7 @@ export default function NewPurchaseOrderPage() {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const res = await fetch('/api/vendors?limit=100&status=active');
+        const res = await fetch('/api/vendors?limit=100&isActive=true');
         const data = await res.json();
         if (data.success) {
           setVendors(data.data?.items || data.data || []);
