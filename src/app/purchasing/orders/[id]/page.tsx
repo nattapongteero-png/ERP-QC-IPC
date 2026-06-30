@@ -15,6 +15,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
+import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
 import { formatBaht } from '@/lib/utils/number-format';
 import {
   Send, Package, DollarSign, AlertTriangle,
@@ -1441,10 +1442,23 @@ export default function PurchaseOrderDetailPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">เงื่อนไขการชำระเงิน</label>
-                            <DxTextBox
+                            <DxSelectBox
+                              // Standard options (shared with the create form). If this PO
+                              // carries a legacy free-text value not in the list, surface it as
+                              // an extra option so a plain save doesn't drop it — but the user is
+                              // nudged to pick a standard term.
+                              items={
+                                editPOForm.paymentTerms &&
+                                !PAYMENT_TERMS_OPTIONS.some((o) => o.value === editPOForm.paymentTerms)
+                                  ? [
+                                      ...PAYMENT_TERMS_OPTIONS,
+                                      { value: editPOForm.paymentTerms, label: `${editPOForm.paymentTerms} (ค่าเดิม — ควรเปลี่ยนเป็นมาตรฐาน)` },
+                                    ]
+                                  : PAYMENT_TERMS_OPTIONS
+                              }
                               value={editPOForm.paymentTerms}
                               onValueChange={(v) => setEditPOForm({ ...editPOForm, paymentTerms: v })}
-                              placeholder="เช่น Net 30, COD"
+                              placeholder="-- เลือก --"
                             />
                           </div>
                           <div>

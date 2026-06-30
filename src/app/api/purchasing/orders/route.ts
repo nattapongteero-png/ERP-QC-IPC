@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizePaymentTerms } from '@/lib/constants/payment-terms';
 
 // Generate PO number
 function generatePONumber(): string {
@@ -117,6 +118,14 @@ export async function POST(request: NextRequest) {
         return errorResponse('At least one line item is required');
       }
 
+      // Normalize + whitelist payment terms (gate every write path, not just the
+      // UI). A legacy/free-text value is mapped to a canonical code; an
+      // unmappable value is rejected.
+      const normalizedPaymentTerms = normalizePaymentTerms(paymentTerms);
+      if (normalizedPaymentTerms === null) {
+        return errorResponse('เงื่อนไขการชำระเงินไม่ถูกต้อง — เลือกจากรายการมาตรฐาน (COD, Net 7/15/30/45/60)');
+      }
+
       const poTable = getTableRef('purchaseOrders');
       const poLinesTable = getTableRef('purchaseOrderLines');
 
@@ -146,7 +155,7 @@ export async function POST(request: NextRequest) {
           otherCharges: Number(otherCharges) || 0,
           vatAmount,
           currency: 'THB',
-          paymentTerms,
+          paymentTerms: normalizedPaymentTerms || null,
           shippingAddress,
           notes,
           createdBy: session.userId,

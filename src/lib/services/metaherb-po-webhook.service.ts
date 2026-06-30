@@ -23,6 +23,7 @@ import { randomUUID } from 'crypto';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb, getTodayStr } from '../db/date-utils';
 import { getMetaherbSsoConfig } from './metaherb-sso.service';
+import { normalizePaymentTerms } from '../constants/payment-terms';
 import { computeSignature } from './vmi-webhook-crypto';
 import {
   metaherbPoSubmitBodySchema,
@@ -220,13 +221,17 @@ export async function buildMetaherbPoSubmitBody(
   items: MetaherbPoItem[]
 ): Promise<MetaherbPoSubmitBody> {
   const poDate = formatDateFromDb(po.orderDate) || getTodayStr();
+  // Normalize a legacy/free-text paymentTerms to a canonical code so it passes
+  // the whitelist (and Metaherb never receives a non-standard value). An
+  // unmappable legacy value normalizes to '' → sent as undefined.
+  const normalizedTerms = normalizePaymentTerms(po.paymentTerms) || '';
   const body = {
     erpPOID: po.id,
     poNumber: po.poNumber,
     poDate,
     factory: factoryName ?? '',
     supplier: po.vendorName ?? '',
-    paymentTerms: po.paymentTerms ?? undefined,
+    paymentTerms: normalizedTerms || undefined,
     total: Number(po.totalAmount) || 0,
     items,
   };

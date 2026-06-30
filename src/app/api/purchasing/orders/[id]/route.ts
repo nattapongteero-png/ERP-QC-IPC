@@ -8,6 +8,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizePaymentTerms } from '@/lib/constants/payment-terms';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -202,7 +203,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (vendorId !== undefined) updateData.vendorId = vendorId;
       if (orderDate !== undefined) updateData.orderDate = parseDbDate(orderDate);
       if (expectedDate !== undefined) updateData.expectedDate = parseDbDate(expectedDate);
-      if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
+      if (paymentTerms !== undefined) {
+        // Normalize + whitelist (legacy/free-text → canonical; unmappable → 400).
+        const normalized = normalizePaymentTerms(paymentTerms);
+        if (normalized === null) {
+          return errorResponse('เงื่อนไขการชำระเงินไม่ถูกต้อง — เลือกจากรายการมาตรฐาน (COD, Net 7/15/30/45/60)', 400);
+        }
+        updateData.paymentTerms = normalized || null;
+      }
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
       if (notes !== undefined) updateData.notes = notes;
 

@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { PAYMENT_TERMS_VALUES } from '@/lib/constants/payment-terms';
 
 export const metaherbPoItemSchema = z.object({
   name: z.string(),
@@ -29,7 +30,9 @@ export const metaherbPoSubmitBodySchema = z.object({
   poDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
   factory: z.string(), // our company/factory name (may be '')
   supplier: z.string(), // vendor (METAHERB) name
-  paymentTerms: z.string().optional(),
+  // Whitelisted payment term (canonical code or empty). The PO value is
+  // normalized at build time, so a legacy free-text value can't leak to Metaherb.
+  paymentTerms: z.enum(PAYMENT_TERMS_VALUES).optional(),
   total: z.number(),
   items: z.array(metaherbPoItemSchema),
 });

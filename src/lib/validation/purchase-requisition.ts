@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { paymentTermsWriteSchema } from '@/lib/constants/payment-terms';
 
 /**
  * PR Status Enum
@@ -147,7 +148,8 @@ export const prToPOConvertSchema = z.object({
   vendorId: z.number().int().positive('Vendor ID is required').optional(),
   deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   deliveryAddress: z.string().max(500).optional(),
-  paymentTerms: z.string().max(100).optional(),
+  // Normalize + whitelist payment terms (legacy/free-text → canonical, else reject).
+  paymentTerms: paymentTermsWriteSchema,
   notes: z.string().max(1000).optional(),
 });
 

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { cn } from '@/lib/utils/cn';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
 import {
   Package,
   Building2,
@@ -594,15 +595,7 @@ export default function NewPurchaseOrderPage() {
                           {t('orders.form.wizard.paymentTerms')}
                         </label>
                         <DxSelectBox
-                          items={[
-                            { value: '', label: '-- เลือก --' },
-                            { value: 'COD', label: 'COD - ชำระเงินเมื่อรับสินค้า' },
-                            { value: 'Net 7', label: 'Net 7 - ชำระภายใน 7 วัน' },
-                            { value: 'Net 15', label: 'Net 15 - ชำระภายใน 15 วัน' },
-                            { value: 'Net 30', label: 'Net 30 - ชำระภายใน 30 วัน' },
-                            { value: 'Net 45', label: 'Net 45 - ชำระภายใน 45 วัน' },
-                            { value: 'Net 60', label: 'Net 60 - ชำระภายใน 60 วัน' },
-                          ]}
+                          items={PAYMENT_TERMS_OPTIONS}
                           value={formData.paymentTerms}
                           onValueChange={(value) => setFormData({ ...formData, paymentTerms: value })}
                           placeholder={t('orders.form.wizard.selectPaymentTerms')}
