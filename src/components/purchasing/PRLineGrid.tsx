@@ -135,14 +135,27 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
   return (
     <>
-      {/* Keep the grid clean: suppress DevExtreme's full-row invalid background
-          (it tinted even filled rows and looked broken). Validation still works
-          — the offending cell shows its own outline + message tooltip — we just
-          don't paint the whole row. Scoped to this grid. */}
+      {/* Plain edit cells: the user asked for no yellow row tint and no green
+          focus outline. DevExtreme paints a row background from several states
+          (invalid row, edit row, focused row/cell) and draws a green focus
+          overlay on the active cell — neutralise them all, scoped to this grid.
+          Validation still works (the field's tooltip message still appears). */}
       <style>{`
-        .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td {
-          background-color: transparent !important;
+        .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td,
+        .pr-line-grid .dx-datagrid-rowsview .dx-edit-row > td,
+        .pr-line-grid .dx-datagrid-rowsview .dx-row-focused > td,
+        .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-focused.dx-edit-row > td {
+          background-color: #fff !important;
         }
+        /* Kill the green focus overlay / highlight box on the active cell. */
+        .pr-line-grid .dx-datagrid-rowsview .dx-focused,
+        .pr-line-grid .dx-datagrid-rowsview td.dx-focused,
+        .pr-line-grid .dx-highlight-outline,
+        .pr-line-grid .dx-datagrid-focus-overlay {
+          box-shadow: none !important;
+          border-color: #e5e7eb !important; /* gray-200, like a normal cell */
+        }
+        .pr-line-grid .dx-datagrid-focus-overlay { border: none !important; }
       `}</style>
       <div className="pr-line-grid">
       <DataGrid
