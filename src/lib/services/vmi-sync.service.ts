@@ -553,18 +553,27 @@ export class VmiSyncService {
       const batch = items.slice(i, i + this.BATCH_SIZE);
       this.log(`[sendItemsToPortal] Processing batch ${batchNumber}/${totalBatches}`);
 
-      // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md)
-      const payload = batch.map((item) => ({
-        localCode: item.code,
-        name: item.nameTh,
-        unit: item.unit,
-        packSize: 1, // Default pack size
-        packUnit: item.unit,
-        tppCode: item.tppCode,
-        ttmtCode: item.ttmtCode,
-        category: item.category,
-        isActive: true,
-      }));
+      // Transform to VMI Portal format (per docs/VMI-VENDOR-API.md).
+      // The Portal's Zod schema treats tppCode/ttmtCode/category as OPTIONAL
+      // strings — it accepts the key being absent, but rejects an explicit
+      // `null` ("expected string, received null"). DB columns are nullable, so
+      // we must OMIT a field when it has no value rather than send null/"".
+      // One null in a batch fails the whole batch, which is why every item in
+      // the request was reported as failed even when only one had a null code.
+      const payload = batch.map((item) => {
+        const entry: Record<string, unknown> = {
+          localCode: item.code,
+          name: item.nameTh,
+          unit: item.unit,
+          packSize: 1, // Default pack size
+          packUnit: item.unit,
+          isActive: true,
+        };
+        if (item.tppCode) entry.tppCode = item.tppCode;
+        if (item.ttmtCode) entry.ttmtCode = item.ttmtCode;
+        if (item.category) entry.category = item.category;
+        return entry;
+      });
 
       const apiUrl = `${portal.portalUrl}/api/external/vendor/items`;
       this.log(`[sendItemsToPortal] Calling API: POST ${apiUrl}`);
