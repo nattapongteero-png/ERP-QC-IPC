@@ -135,13 +135,26 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
   return (
     <>
+      {/* Soften DevExtreme's default invalid-row highlight: a freshly added,
+          not-yet-filled line is "invalid" (required fields empty), which the
+          grid paints solid red across the whole row — alarming for a row the
+          user just opened. Tone it down to a gentle amber "needs input" tint
+          and only red-border the specific empty cell. Scoped to this grid. */}
+      <style>{`
+        .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td {
+          background-color: #fffbeb !important; /* amber-50 */
+        }
+        .pr-line-grid .dx-datagrid-invalid .dx-highlight-outline {
+          box-shadow: inset 0 0 0 1px #f59e0b; /* amber-500 */
+        }
+      `}</style>
+      <div className="pr-line-grid">
       <DataGrid
         dataSource={dataWithKeys}
         keyExpr="key"
         showBorders={true}
         showRowLines={true}
         columnAutoWidth={true}
-        rowAlternationEnabled={true}
         onRowInserted={handleRowInserted}
         onRowUpdated={handleRowUpdated}
         onRowRemoved={handleRowRemoved}
@@ -193,15 +206,15 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           width={110}
           alignment="right"
           format={{ type: 'fixedPoint', precision: 0 }}
-          // Render the in-cell editor as a proper number box with up/down
-          // spinners and right alignment, so the จำนวน field looks tidy instead
-          // of a bare cramped input that the validation tooltip overlaps.
+          // Number-box editor with spin buttons + right alignment so the จำนวน
+          // field is tidy. Keep the grid's default (filled) editor styling —
+          // forcing 'outlined' double-draws a border inside the cell and looks
+          // broken (DevExtreme grid editors are filled by design).
           editorOptions={{
             showSpinButtons: true,
             min: 0,
             step: 1,
             format: '#,##0.##',
-            stylingMode: 'outlined',
           }}
           validationRules={[
             { type: 'required', message: t('requisitions.form.validation.quantityRequired') },
@@ -227,12 +240,11 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           width={130}
           alignment="right"
           format={{ type: 'fixedPoint', precision: 2 }}
-          // Same tidy number-box editor for ราคาต่อหน่วย.
+          // Same tidy number-box editor for ราคาต่อหน่วย (filled, like the grid).
           editorOptions={{
             showSpinButtons: false,
             min: 0,
             format: '#,##0.00',
-            stylingMode: 'outlined',
           }}
           data-testid="col-unit-price"
         />
@@ -261,6 +273,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           />
         </Summary>
       </DataGrid>
+      </div>
 
       <ItemSearchDialog
         open={itemSearchOpen}
