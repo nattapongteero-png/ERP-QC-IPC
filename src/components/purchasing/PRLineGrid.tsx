@@ -190,7 +190,19 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           dataField="quantity"
           caption={t('requisitions.form.columns.quantity')}
           dataType="number"
-          width={80}
+          width={110}
+          alignment="right"
+          format={{ type: 'fixedPoint', precision: 0 }}
+          // Render the in-cell editor as a proper number box with up/down
+          // spinners and right alignment, so the จำนวน field looks tidy instead
+          // of a bare cramped input that the validation tooltip overlaps.
+          editorOptions={{
+            showSpinButtons: true,
+            min: 0,
+            step: 1,
+            format: '#,##0.##',
+            stylingMode: 'outlined',
+          }}
           validationRules={[
             { type: 'required', message: t('requisitions.form.validation.quantityRequired') },
             { type: 'range', min: 0.01, message: t('requisitions.form.validation.quantityPositive') },
@@ -212,13 +224,22 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           dataField="estimatedUnitPrice"
           caption={t('requisitions.form.columns.unitPrice')}
           dataType="number"
-          width={120}
+          width={130}
+          alignment="right"
           format={{ type: 'fixedPoint', precision: 2 }}
+          // Same tidy number-box editor for ราคาต่อหน่วย.
+          editorOptions={{
+            showSpinButtons: false,
+            min: 0,
+            format: '#,##0.00',
+            stylingMode: 'outlined',
+          }}
           data-testid="col-unit-price"
         />
         <Column
           caption={t('requisitions.form.columns.amount')}
-          width={120}
+          width={130}
+          alignment="right"
           calculateCellValue={calculateAmount}
           format={{ type: 'fixedPoint', precision: 2 }}
           allowEditing={false}
