@@ -135,17 +135,13 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
   return (
     <>
-      {/* Soften DevExtreme's default invalid-row highlight: a freshly added,
-          not-yet-filled line is "invalid" (required fields empty), which the
-          grid paints solid red across the whole row — alarming for a row the
-          user just opened. Tone it down to a gentle amber "needs input" tint
-          and only red-border the specific empty cell. Scoped to this grid. */}
+      {/* Keep the grid clean: suppress DevExtreme's full-row invalid background
+          (it tinted even filled rows and looked broken). Validation still works
+          — the offending cell shows its own outline + message tooltip — we just
+          don't paint the whole row. Scoped to this grid. */}
       <style>{`
         .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td {
-          background-color: #fffbeb !important; /* amber-50 */
-        }
-        .pr-line-grid .dx-datagrid-invalid .dx-highlight-outline {
-          box-shadow: inset 0 0 0 1px #f59e0b; /* amber-500 */
+          background-color: transparent !important;
         }
       `}</style>
       <div className="pr-line-grid">
@@ -206,14 +202,11 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           width={110}
           alignment="right"
           format={{ type: 'fixedPoint', precision: 0 }}
-          // Number-box editor with spin buttons + right alignment so the จำนวน
-          // field is tidy. Keep the grid's default (filled) editor styling —
-          // forcing 'outlined' double-draws a border inside the cell and looks
-          // broken (DevExtreme grid editors are filled by design).
+          // Right-aligned number editor. No spin buttons — they showed a cramped
+          // up/down control inside the narrow cell that looked like a stray
+          // artifact. Plain number entry is cleaner here.
           editorOptions={{
-            showSpinButtons: true,
             min: 0,
-            step: 1,
             format: '#,##0.##',
           }}
           validationRules={[
