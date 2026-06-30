@@ -125,6 +125,9 @@ export function ItemSearchDialog({
   const [search, setSearch] = useState('');
   const [allResults, setAllResults] = useState<Item[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // Monotonic id so a slow earlier fetch (e.g. raw_material) can't overwrite the
+  // results of a newer tab switch (e.g. packaging) when it lands late.
+  const searchSeqRef = useRef(0);
   const [selectedTypeTab, setSelectedTypeTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -208,6 +211,7 @@ export function ItemSearchDialog({
   };
 
   const searchItems = useCallback(async (query: string, type?: string) => {
+    const seq = ++searchSeqRef.current;
     setIsSearching(true);
     try {
       // All-tab pulls a larger page since it mixes every type;
@@ -232,6 +236,8 @@ export function ItemSearchDialog({
 
       const res = await fetch(`/api/items?${params}`);
       const data = await res.json();
+      // Stale response from an earlier tab/keystroke — discard.
+      if (seq !== searchSeqRef.current) return;
 
       if (data.success) {
         let items = data.data?.items || [];
@@ -247,10 +253,12 @@ export function ItemSearchDialog({
         setAllResults(items);
       }
     } catch (error) {
+      if (seq !== searchSeqRef.current) return;
       console.error('Failed to search items:', error);
       setAllResults([]);
     } finally {
-      setIsSearching(false);
+      // Only the latest in-flight request clears the spinner.
+      if (seq === searchSeqRef.current) setIsSearching(false);
     }
   }, [filterType, excludeType]);
 
@@ -560,12 +568,12 @@ export function ItemSearchDialog({
           </div>
         ) : filteredResults.length > 0 ? (
           <>
-          {/* Subtle refreshing overlay — keeps the grid visible underneath so
-              there is no jarring blink when changing tabs or typing. */}
+          {/* No overlay while refreshing — the previous tab's rows stay visible
+              underneath until the new ones arrive (race-guarded above), so
+              switching tabs swaps the list in place with no white flash. A thin
+              top progress bar signals the refresh without blanking the grid. */}
           {isSearching && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 pointer-events-none">
-              <DxLoadIndicator />
-            </div>
+            <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-emerald-400/80 animate-pulse pointer-events-none" />
           )}
           <DxDataGrid
             dataSource={filteredResults}
