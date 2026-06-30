@@ -51,6 +51,11 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   );
   const [description, setDescription] = useState(initialData?.description || '');
   const [justification, setJustification] = useState(initialData?.justification || '');
+  // Intended vendor + payment terms set at the PR stage (both optional). When
+  // filled, PR→PO conversion pre-fills the PO so the buyer doesn't re-pick them.
+  const [vendorId, setVendorId] = useState<number | null>(initialData?.vendorId ?? null);
+  const [paymentTerms, setPaymentTerms] = useState<string>(initialData?.paymentTerms || '');
+  const [vendors, setVendors] = useState<Array<{ id: number; name: string; paymentTerms?: string | null }>>([]);
   const [lines, setLines] = useState<PRLineInput[]>(
     initialData?.lines.map((l) => ({
       id: l.id,
@@ -95,6 +100,8 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
             requiredDate: requiredDate ? toLocalDateStr(requiredDate) : undefined,
             description,
             justification,
+            vendorId: vendorId ?? undefined,
+            paymentTerms: paymentTerms || undefined,
           }),
         });
 
@@ -130,6 +137,8 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
             requiredDate: requiredDate ? toLocalDateStr(requiredDate) : null,
             description,
             justification,
+            vendorId: vendorId,
+            paymentTerms: paymentTerms || null,
           }),
         });
 
@@ -199,7 +208,22 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [mode, currentPrId, priority, requiredDate, description, justification, lines, originalLineIds, router]);
+  }, [mode, currentPrId, priority, requiredDate, description, justification, vendorId, paymentTerms, lines, originalLineIds, router]);
+
+  // Load active vendors for the "intended vendor" dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/vendors?limit=200&status=active')
+      .then((r) => r.json())
+      .then((res) => {
+        if (cancelled) return;
+        const list = (res?.data?.vendors || res?.data || res?.vendors || [])
+          .map((v: any) => ({ id: v.id, name: v.name, paymentTerms: v.paymentTerms }));
+        setVendors(list);
+      })
+      .catch(() => { /* dropdown just stays empty on failure */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSubmitForApproval = useCallback(async () => {
     if (!currentPrId) {
@@ -297,6 +321,44 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
               value={totalAmount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })}
               readOnly={true}
               data-testid="total-amount"
+            />
+          </div>
+
+          {/* Intended vendor + payment terms (optional). When set, PR→PO
+              conversion pre-fills the PO so the buyer doesn't re-pick them. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">บริษัทผู้ขาย (ถ้าระบุ)</label>
+            <SelectBox
+              dataSource={vendors}
+              value={vendorId}
+              onValueChanged={(e) => {
+                const v = e.value as number | null;
+                setVendorId(v);
+                // Auto-fill payment terms from the chosen vendor's default if the
+                // field is still empty, as a convenience (user can override).
+                if (v && !paymentTerms) {
+                  const picked = vendors.find((x) => x.id === v);
+                  if (picked?.paymentTerms) setPaymentTerms(picked.paymentTerms);
+                }
+              }}
+              displayExpr="name"
+              valueExpr="id"
+              searchEnabled={true}
+              showClearButton={true}
+              placeholder="เลือกผู้ขาย (ไม่บังคับ)"
+              disabled={!isEditable}
+              data-testid="pr-vendor-select"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">เงื่อนไขการชำระเงิน (ถ้าระบุ)</label>
+            <TextBox
+              value={paymentTerms}
+              onValueChanged={(e) => setPaymentTerms(e.value)}
+              placeholder="เช่น Net 30, เงินสด"
+              disabled={!isEditable}
+              data-testid="pr-payment-terms"
             />
           </div>
         </div>

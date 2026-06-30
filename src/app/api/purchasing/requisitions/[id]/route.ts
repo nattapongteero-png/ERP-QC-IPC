@@ -69,6 +69,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       justification: parsed.justification ?? undefined,
       costCenterId: parsed.costCenterId ?? undefined,
       projectId: parsed.projectId ?? undefined,
+      vendorId: parsed.vendorId ?? undefined,
+      paymentTerms: parsed.paymentTerms ?? undefined,
     };
 
     await updatePR(prId, data);

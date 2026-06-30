@@ -158,6 +158,8 @@ export async function createPR(
           justification: data.justification || null,
           costCenterId: data.costCenterId || null,
           projectId: data.projectId || null,
+          vendorId: data.vendorId || null,
+          paymentTerms: data.paymentTerms || null,
           externalSource: data.externalSource || null,
           externalRef: data.externalRef || null,
           totalAmount: 0,
@@ -258,6 +260,18 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
     // approval history below is the source of truth.
     const approvedByName = await resolveEmployeeName(db, pr.approvedBy as number | null);
 
+    // Name of the intended vendor chosen on the PR (optional) so the detail page
+    // can show it without a second lookup.
+    let vendorName: string | null = null;
+    if (pr.vendorId) {
+      const vRes = await db
+        .select({ name: tables.vendors.name })
+        .from(tables.vendors)
+        .where(eq(tables.vendors.id, pr.vendorId as number))
+        .limit(1);
+      vendorName = (vRes[0]?.name as string | null) || null;
+    }
+
     // Lookup item codes for lines that have itemId
     const itemIds = lines
       .map((l: any) => l.itemId)
@@ -280,6 +294,7 @@ export async function getPRById(id: number): Promise<PRWithLines | null> {
       departmentName,
       createdByName,
       approvedByName,
+      vendorName,
       lines: lines.map((line: {
         id?: number;
         prId?: number;
@@ -512,6 +527,8 @@ export async function updatePR(
         ...(data.justification !== undefined && { justification: data.justification }),
         ...(data.costCenterId !== undefined && { costCenterId: data.costCenterId }),
         ...(data.projectId !== undefined && { projectId: data.projectId }),
+        ...(data.vendorId !== undefined && { vendorId: data.vendorId }),
+        ...(data.paymentTerms !== undefined && { paymentTerms: data.paymentTerms }),
         updatedAt: getNow(),
       })
       .where(eq(tables.requisitions.id, id));
@@ -1084,15 +1101,25 @@ export async function convertPRToPO(
       throw new Error('PR_NOT_APPROVED');
     }
 
-    // For Metaherb-originated PRs the supplier is always Metaherb — find-or-create
-    // that vendor and force it, ignoring whatever vendor the UI sent. Non-Metaherb
-    // PRs keep the user-selected vendor (existing behaviour) and still require one.
+    // Vendor resolution priority:
+    //  1. Metaherb-origin PRs → always Metaherb (find-or-create), UI value ignored.
+    //  2. Explicit vendor sent at convert time (input.vendorId) — overrides PR.
+    //  3. Vendor pre-selected on the PR itself (pr.vendorId) — so the buyer
+    //     doesn't have to re-pick it; this is the new convenience path.
+    //  4. None of the above → VENDOR_REQUIRED (unchanged behaviour).
     let vendorId = input.vendorId;
     if (isMetaherbOrigin(pr.externalSource)) {
       vendorId = await ensureMetaherbVendor(db);
     } else if (!vendorId) {
-      throw new Error('VENDOR_REQUIRED');
+      vendorId = pr.vendorId ?? undefined;
+      if (!vendorId) {
+        throw new Error('VENDOR_REQUIRED');
+      }
     }
+
+    // Payment terms for the PO: explicit convert-time value wins, else fall back
+    // to what was chosen on the PR (may be null → PO keeps vendor default).
+    const poPaymentTerms = input.paymentTerms ?? pr.paymentTerms ?? null;
 
     // Get lines to convert
     let linesQuery = db
@@ -1160,7 +1187,9 @@ export async function convertPRToPO(
         // PRs have no payment-terms field, so when the convert doesn't supply
         // one, inherit the vendor's default terms (e.g. "Net 30") instead of
         // leaving the PO blank. The user can still edit it on the PO page.
-        let resolvedPaymentTerms: string | null = input.paymentTerms || null;
+        // Priority: explicit convert-time value → terms chosen on the PR →
+        // the vendor's default terms. (poPaymentTerms already folds the first two.)
+        let resolvedPaymentTerms: string | null = poPaymentTerms || null;
         if (!resolvedPaymentTerms && vendorId) {
           const vRow = await db
             .select({ paymentTerms: tables.vendors.paymentTerms })

@@ -99,13 +99,18 @@ async function seedItem(): Promise<number> {
 }
 
 let prCounter = 0;
-async function insertApprovedPr(externalSource: string | null): Promise<number> {
+async function insertApprovedPr(
+  externalSource: string | null,
+  opts?: { vendorId?: number; paymentTerms?: string }
+): Promise<number> {
   prCounter++;
   const res = await testDb.insert(schema.sqlitePurchaseRequisitions).values({
     prNumber: `PR-${prCounter}`,
     requesterId: 1,
     status: 'approved',
     externalSource: externalSource ?? undefined,
+    vendorId: opts?.vendorId,
+    paymentTerms: opts?.paymentTerms,
     createdBy: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -251,6 +256,42 @@ describe('convertPRToPO — Metaherb auto-vendor', () => {
   it('rejects a non-Metaherb PR with no vendor selected', async () => {
     const prId = await insertApprovedPr(null);
     await expect(convertPRToPO({ prId }, 1)).rejects.toThrow('VENDOR_REQUIRED');
+  });
+
+  it('uses the vendor pre-selected on the PR when none is passed at convert', async () => {
+    const ins = await testDb.insert(schema.sqliteVendors).values({
+      code: 'PREF', name: 'Preferred Co', isApproved: true, isActive: true,
+      paymentTerms: 'Net 30',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any);
+    const prefId = ins.lastInsertRowid as number;
+
+    // PR carries the vendor + payment terms; convert is called WITHOUT a vendor.
+    const prId = await insertApprovedPr(null, { vendorId: prefId, paymentTerms: 'Net 45' });
+    const res = await convertPRToPO({ prId }, 1);
+
+    const po = await getPO(res.poId);
+    expect(po.vendorId).toBe(prefId);          // pulled from the PR, no re-pick
+    expect(po.paymentTerms).toBe('Net 45');    // PR's terms win over vendor default
+  });
+
+  it('lets an explicit convert-time vendor override the PR vendor', async () => {
+    const a = await testDb.insert(schema.sqliteVendors).values({
+      code: 'PRV', name: 'PR Vendor', isApproved: true, isActive: true,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any);
+    const prVendorId = a.lastInsertRowid as number;
+    const b = await testDb.insert(schema.sqliteVendors).values({
+      code: 'OVR', name: 'Override Vendor', isApproved: true, isActive: true,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any);
+    const overrideId = b.lastInsertRowid as number;
+
+    const prId = await insertApprovedPr(null, { vendorId: prVendorId });
+    const res = await convertPRToPO({ prId, vendorId: overrideId }, 1);
+
+    const po = await getPO(res.poId);
+    expect(po.vendorId).toBe(overrideId);
   });
 
   it('copies externalLineRef from the PR line to the PO line on convert', async () => {

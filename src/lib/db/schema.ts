@@ -5720,6 +5720,11 @@ export const sqlitePurchaseRequisitions = sqliteTable('purchase_requisitions', {
   approvedAt: text('approved_at'),
   rejectionReason: text('rejection_reason'),
   notes: text('notes'),
+  // Intended vendor + payment terms chosen at the PR stage. Optional: when set,
+  // PR→PO conversion pre-fills the PO with these so the buyer doesn't re-pick
+  // the vendor. Null keeps the old behaviour (vendor selected at convert time).
+  vendorId: integer('vendor_id').references(() => sqliteVendors.id),
+  paymentTerms: text('payment_terms'),
   // Origin tracking for partner integrations (e.g. Metaherb). When a PR was
   // created by an external system, externalSource names it (e.g. 'metaherb')
   // and externalRef holds that system's own id for correlation. The Metaherb
@@ -6494,6 +6499,11 @@ export const mysqlPurchaseRequisitions = mysqlTable('purchase_requisitions', {
   approvedAt: datetime('approved_at'),
   rejectionReason: mysqlText('rejection_reason'),
   notes: mysqlText('notes'),
+  // Intended vendor + payment terms chosen at the PR stage (see SQLite variant).
+  // Optional: when set, PR→PO conversion pre-fills the PO so the buyer doesn't
+  // re-pick the vendor. Null keeps the old convert-time selection behaviour.
+  vendorId: int('vendor_id').references(() => mysqlVendors.id),
+  paymentTerms: mysqlText('payment_terms'),
   // Origin tracking for partner integrations (e.g. Metaherb) — see SQLite
   // variant above. externalSource = 'metaherb' gates the PR-status webhook;
   // externalRef holds Metaherb's own PR id. Null for normal ERP PRs.

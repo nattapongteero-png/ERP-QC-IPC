@@ -42,6 +42,10 @@ export interface PRCreateInput {
   justification?: string;
   costCenterId?: number;
   projectId?: number;
+  // Intended vendor + payment terms chosen at the PR stage (both optional).
+  // When set, PR→PO conversion pre-fills the PO so the vendor isn't re-picked.
+  vendorId?: number;
+  paymentTerms?: string;
   // External-origin markers (e.g. Metaherb-created PRs). Drives the outbound
   // PR-status webhook — see isMetaherbOrigin() in metaherb-pr-webhook.service.
   externalSource?: string;
@@ -58,6 +62,9 @@ export interface PRUpdateInput {
   justification?: string;
   costCenterId?: number;
   projectId?: number;
+  // Editable intended vendor + payment terms (both optional).
+  vendorId?: number;
+  paymentTerms?: string;
 }
 
 /**
@@ -93,6 +100,10 @@ export interface PurchaseRequisition {
   justification?: string | null;
   costCenterId?: number | null;
   projectId?: number | null;
+  // Intended vendor + payment terms set at the PR stage (both optional).
+  vendorId?: number | null;
+  vendorName?: string | null;
+  paymentTerms?: string | null;
   totalAmount: number;
   approvalRequestId?: number | null;
   // createdBy = the user account that recorded the PR (distinct from
