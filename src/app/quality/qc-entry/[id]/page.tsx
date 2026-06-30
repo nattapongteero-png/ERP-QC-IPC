@@ -44,6 +44,8 @@ import {
   ChevronUp,
   FlaskConical,
   Paperclip,
+  Check,
+  X,
 } from 'lucide-react';
 import { parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
@@ -350,8 +352,11 @@ interface EditState {
   testId: number;
   /** Single-sample numeric value — used when criteria.sampleSize === 1. */
   numericResult: number | null;
-  /** Per-sample readings — used when criteria.sampleSize > 1. */
+  /** Per-sample numeric readings — used when criteria.sampleSize > 1. */
   sampleValues: Array<number | null>;
+  /** Per-sample pass/fail verdicts — used when criteriaType === 'pass_fail'
+   *  with sampleSize > 1 (parallel to sampleValues). */
+  sampleResults: Array<'pass' | 'fail' | null>;
   textResult: string;
   notes: string;
   /** Recording target round (1 = first attempt, 2+ = retest). */
@@ -512,11 +517,17 @@ export default function QcSampleDetailPage() {
       const existing = existingRound?.samples.find((s) => s.sampleNumber === i + 1);
       return existing?.numericValue ?? null;
     });
+    // Parallel pass/fail verdicts for pass_fail criteria (per-sample ✓/✗).
+    const sampleResults: Array<'pass' | 'fail' | null> = Array.from({ length: sampleSize }, (_, i) => {
+      const existing = existingRound?.samples.find((s) => s.sampleNumber === i + 1);
+      return existing?.result ?? null;
+    });
 
     setEditing({
       testId: test.id,
       numericResult: isMultiSample ? null : (existingRound?.samples[0]?.numericValue ?? test.numericResult),
       sampleValues,
+      sampleResults,
       textResult: test.textResult ?? '',
       notes: test.notes ?? '',
       testRound: round,
@@ -531,6 +542,7 @@ export default function QcSampleDetailPage() {
     if (!test) return;
     const sampleSize = Math.max(1, Number(test.criteriaSampleSize) || 1);
     const isMultiSample = sampleSize > 1;
+    const isPassFail = test.criteriaType === 'pass_fail';
 
     // Build payload — server prefers samples[] when provided, else falls back
     // to single numericResult/textResult.
@@ -547,7 +559,14 @@ export default function QcSampleDetailPage() {
       notes: editing.notes || null,
       testRound: editing.testRound,
     };
-    if (isMultiSample) {
+    if (isMultiSample && isPassFail) {
+      // pass_fail criteria record a per-sample verdict, not a number; the server
+      // schema accepts samples[].result ('pass'|'fail') and the scoring service
+      // (evaluateSampleResult/computeRoundResult) uses it directly.
+      payload.samples = editing.sampleResults
+        .map((r, idx) => ({ sampleNumber: idx + 1, result: r }))
+        .filter((s) => s.result === 'pass' || s.result === 'fail');
+    } else if (isMultiSample) {
       payload.samples = editing.sampleValues
         .map((v, idx) => ({
           sampleNumber: idx + 1,
@@ -1374,6 +1393,7 @@ export default function QcSampleDetailPage() {
                 // Master-data driven recording config for this test.
                 const sampleSize = Math.max(1, Number(test.criteriaSampleSize) || 1);
                 const isMultiSample = sampleSize > 1;
+                const isPassFail = test.criteriaType === 'pass_fail';
                 const tolerancePct = Number(test.criteriaTolerancePercent) || 0;
                 // maxRetestRounds = number of retests allowed (separate from
                 // the initial Round 1). Total possible rounds = 1 + retests.
@@ -1386,7 +1406,16 @@ export default function QcSampleDetailPage() {
                 // Live preview for the form being edited.
                 let livePreview: 'pass' | 'fail' | null = null;
                 if (isEditing && editing) {
-                  if (isMultiSample) {
+                  if (isMultiSample && isPassFail) {
+                    const filled = editing.sampleResults.filter(
+                      (r): r is 'pass' | 'fail' => r === 'pass' || r === 'fail',
+                    );
+                    if (filled.length === sampleSize) {
+                      const failCount = filled.filter((r) => r === 'fail').length;
+                      const failPct = (failCount / filled.length) * 100;
+                      livePreview = failPct <= tolerancePct ? 'pass' : 'fail';
+                    }
+                  } else if (isMultiSample) {
                     const filled = editing.sampleValues.filter(
                       (v): v is number => v != null && Number.isFinite(v),
                     );
@@ -1671,8 +1700,92 @@ export default function QcSampleDetailPage() {
                             </div>
                           </div>
 
-                          {/* Multi-sample numeric grid (sampleSize > 1) */}
-                          {isMultiSample && (
+                          {/* Multi-sample PASS/FAIL grid (criteriaType === 'pass_fail').
+                              Each sample gets ✓/✗ buttons instead of a number box,
+                              matching the Pass/Fail criteria set in master data. */}
+                          {isMultiSample && isPassFail && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('qcEntry.detail.recordForm.multiResultLabel', { count: sampleSize })}
+                              </label>
+                              {/* Bulk actions: pass all / fail all / clear */}
+                              <div className="flex gap-2 mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditing({ ...editing, sampleResults: editing.sampleResults.map(() => 'pass') })
+                                  }
+                                  className="px-3 py-1 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+                                >
+                                  ✓ {t('qcEntry.detail.recordForm.passAll')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditing({ ...editing, sampleResults: editing.sampleResults.map(() => 'fail') })
+                                  }
+                                  className="px-3 py-1 rounded-md text-xs font-medium bg-rose-600 text-white hover:bg-rose-700"
+                                >
+                                  ✗ {t('qcEntry.detail.recordForm.failAll')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditing({ ...editing, sampleResults: editing.sampleResults.map(() => null) })
+                                  }
+                                  className="px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200"
+                                >
+                                  {t('qcEntry.detail.recordForm.clearAll')}
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-5 gap-2">
+                                {editing.sampleResults.map((res, idx) => (
+                                  <div key={idx}>
+                                    <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = [...editing.sampleResults];
+                                          next[idx] = res === 'pass' ? null : 'pass';
+                                          setEditing({ ...editing, sampleResults: next });
+                                        }}
+                                        className={
+                                          'flex-1 h-8 rounded-md border flex items-center justify-center transition-colors ' +
+                                          (res === 'pass'
+                                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                                            : 'bg-white border-gray-200 text-emerald-600 hover:bg-emerald-50')
+                                        }
+                                        aria-label={`#${idx + 1} pass`}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = [...editing.sampleResults];
+                                          next[idx] = res === 'fail' ? null : 'fail';
+                                          setEditing({ ...editing, sampleResults: next });
+                                        }}
+                                        className={
+                                          'flex-1 h-8 rounded-md border flex items-center justify-center transition-colors ' +
+                                          (res === 'fail'
+                                            ? 'bg-rose-500 border-rose-500 text-white'
+                                            : 'bg-white border-gray-200 text-rose-600 hover:bg-rose-50')
+                                        }
+                                        aria-label={`#${idx + 1} fail`}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Multi-sample numeric grid (sampleSize > 1, non pass/fail) */}
+                          {isMultiSample && !isPassFail && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 {t('qcEntry.detail.recordForm.multiResultLabel', { count: sampleSize })}{test.unit ? t('qcEntry.detail.recordForm.unitSuffix', { unit: test.unit }) : ''}
@@ -1820,7 +1933,11 @@ export default function QcSampleDetailPage() {
                               onClick={handleSaveEdit}
                               disabled={(() => {
                                 if (working) return true;
-                                // Multi-sample: every input must be filled
+                                // Multi-sample pass/fail: every sample needs a verdict
+                                if (isMultiSample && isPassFail) {
+                                  return editing.sampleResults.some((r) => r == null);
+                                }
+                                // Multi-sample numeric: every input must be filled
                                 if (isMultiSample) {
                                   return editing.sampleValues.some((v) => v == null);
                                 }
