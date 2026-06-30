@@ -54,7 +54,9 @@ export const prCreateSchema = z.object({
   // Intended vendor + payment terms set at the PR stage (both optional). When
   // present, PR→PO conversion pre-fills the PO so the vendor isn't re-picked.
   vendorId: z.number().int().positive().optional(),
-  paymentTerms: z.string().max(100).optional(),
+  // Normalize + whitelist (legacy/free-text → canonical, else reject) — this PR
+  // value pre-fills the PO on convert, so keep it standardized at the source.
+  paymentTerms: paymentTermsWriteSchema,
   // Origin marker for PRs created by an external system (e.g. Metaherb sends
   // externalSource='METAHERB_WEB'). When externalSource starts with "metaherb"
   // the PR-status webhook fires back to Metaherb on approve/reject/convert/cancel.
@@ -76,7 +78,7 @@ export const prUpdateSchema = z.object({
   projectId: z.number().int().positive().optional().nullable(),
   // Editable intended vendor + payment terms (both optional).
   vendorId: z.number().int().positive().optional().nullable(),
-  paymentTerms: z.string().max(100).optional().nullable(),
+  paymentTerms: paymentTermsWriteSchema,
 });
 
 /**

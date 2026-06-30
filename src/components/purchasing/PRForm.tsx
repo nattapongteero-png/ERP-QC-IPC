@@ -17,6 +17,7 @@ import { Popup } from 'devextreme-react/popup';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { PRLineGrid } from './PRLineGrid';
+import { PAYMENT_TERMS_OPTIONS, normalizePaymentTerms } from '@/lib/constants/payment-terms';
 import type { PRWithLines, PRLineInput, PRPriority } from '@/types/purchase-requisition';
 
 interface PRFormProps {
@@ -341,7 +342,10 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
                 // field is still empty, as a convenience (user can override).
                 if (v && !paymentTerms) {
                   const picked = vendors.find((x) => x.id === v);
-                  if (picked?.paymentTerms) setPaymentTerms(picked.paymentTerms);
+                  // Normalize the vendor's stored default to a canonical term so it
+                  // matches a dropdown option (skip if it can't be mapped).
+                  const normalized = picked?.paymentTerms ? normalizePaymentTerms(picked.paymentTerms) : '';
+                  if (normalized) setPaymentTerms(normalized);
                 }
               }}
               displayExpr="name"
@@ -356,10 +360,20 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">เงื่อนไขการชำระเงิน (ถ้าระบุ)</label>
-            <TextBox
+            <SelectBox
+              // Same standard options as the PO forms (shared constant). A legacy
+              // free-text value not in the list is surfaced as an extra option so
+              // it isn't dropped, but the user is nudged to a standard term.
+              dataSource={
+                paymentTerms && !PAYMENT_TERMS_OPTIONS.some((o) => o.value === paymentTerms)
+                  ? [...PAYMENT_TERMS_OPTIONS, { value: paymentTerms, label: `${paymentTerms} (ค่าเดิม — ควรเปลี่ยนเป็นมาตรฐาน)` }]
+                  : PAYMENT_TERMS_OPTIONS
+              }
               value={paymentTerms}
-              onValueChanged={(e) => setPaymentTerms(e.value)}
-              placeholder="เช่น Net 30, เงินสด"
+              onValueChanged={(e) => setPaymentTerms(e.value ?? '')}
+              displayExpr="label"
+              valueExpr="value"
+              placeholder="-- เลือก --"
               disabled={!isEditable}
               data-testid="pr-payment-terms"
             />
