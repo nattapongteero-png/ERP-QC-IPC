@@ -142,6 +142,10 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           with .pr-line-grid so specificity beats the global !important rules.
           Validation still works (the field tooltip still appears). */}
       <style>{`
+        /* Every row cell → plain white, whatever the state (invalid red, edit,
+           focused, selected). High-specificity via .dx-datagrid-rowsview + the
+           state class beats the global theme's coloured rules. */
+        .pr-line-grid .dx-datagrid .dx-datagrid-rowsview .dx-data-row > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-edit-row > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-row-focused > td,
@@ -149,22 +153,29 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-focused.dx-edit-row > td {
           background-color: #fff !important;
         }
-        /* Remove the green focus underline the theme draws on filled editors. */
-        .pr-line-grid .dx-texteditor.dx-editor-filled::before,
-        .pr-line-grid .dx-texteditor.dx-editor-filled::after,
-        .pr-line-grid .dx-texteditor.dx-state-focused::before,
-        .pr-line-grid .dx-texteditor.dx-state-active::before {
-          border-bottom-color: #e5e7eb !important;
-          border-bottom: none !important;
+        /* In-cell editors: fill the cell edge-to-edge with a soft, EVEN gray
+           border on all four sides (the global theme's rounded green box only
+           showed a corner inside the square cell). No green ring, no radius. */
+        .pr-line-grid .dx-datagrid-rowsview .dx-editor-cell .dx-texteditor,
+        .pr-line-grid .dx-datagrid-rowsview .dx-editor-cell .dx-texteditor.dx-editor-filled,
+        .pr-line-grid .dx-datagrid-rowsview .dx-editor-cell .dx-texteditor.dx-state-focused,
+        .pr-line-grid .dx-datagrid-rowsview .dx-editor-cell .dx-texteditor.dx-state-hover,
+        .pr-line-grid .dx-datagrid-rowsview .dx-editor-cell .dx-texteditor.dx-state-active {
+          border: 1px solid #d1d5db !important;   /* gray-300, all sides */
+          border-radius: 4px !important;
+          box-shadow: none !important;
+          background-color: #fff !important;
         }
         /* Remove the cell focus overlay / highlight box. */
         .pr-line-grid .dx-datagrid-rowsview td.dx-focused,
-        .pr-line-grid .dx-highlight-outline,
-        .pr-line-grid .dx-datagrid-focus-overlay {
+        .pr-line-grid .dx-highlight-outline {
           box-shadow: none !important;
-          border-color: #e5e7eb !important;
+          border-color: #d1d5db !important;
         }
-        .pr-line-grid .dx-datagrid-focus-overlay { border: none !important; }
+        .pr-line-grid .dx-datagrid-focus-overlay {
+          border: none !important;
+          box-shadow: none !important;
+        }
       `}</style>
       <div className="pr-line-grid">
       <DataGrid
