@@ -14,6 +14,7 @@ import DataGrid, {
   Paging,
   Toolbar,
   Item,
+  Scrolling,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -188,8 +189,16 @@ export default function StandardCostsPage() {
             showBorders={true}
             rowAlternationEnabled={true}
             loadPanel={{ enabled: loading }}
+            // On narrow screens (tablet) the fixed-width columns squeezed the
+            // flexible "ชื่อสินค้า" column until its header overlapped its
+            // neighbours. Wrap header/cell text, give every column a minimum
+            // width, and let the grid scroll horizontally instead of crushing.
+            wordWrapEnabled={true}
+            columnMinWidth={90}
+            allowColumnResizing={true}
             data-testid="standard-costs-grid"
           >
+            <Scrolling columnRenderingMode="standard" showScrollbar="onHover" />
             <Paging defaultPageSize={10} />
             <Toolbar>
               <Item location="before">
@@ -214,7 +223,7 @@ export default function StandardCostsPage() {
             </Toolbar>
 
             <Column dataField="itemCode" caption={t('standardCosts.columns.itemCode')} width={120} />
-            <Column dataField="itemName" caption={t('standardCosts.columns.itemName')} />
+            <Column dataField="itemName" caption={t('standardCosts.columns.itemName')} minWidth={160} />
             <Column dataField="effectiveDate" caption={t('standardCosts.columns.effectiveDate')} dataType="date" width={120} />
             <Column
               dataField="materialCost"

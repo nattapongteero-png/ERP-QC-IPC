@@ -9,6 +9,11 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
 import type { EquipmentNotification } from '@/types/equipment-notifications';
+import { friendlyNotificationTitle } from '@/lib/utils/notification-title';
+
+// QC audit notifications live on their own surfaces; the bell mirrors the
+// maintenance inbox, so hide them here too.
+const QC_TYPES = new Set(['lot_received', 'wo_completed', 'deviation_opened']);
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -53,22 +58,29 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+        <>
+          {/* Tap-away backdrop (esp. useful on tablet/touch). */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Width caps to the viewport on narrow screens so the panel never
+              overflows the tablet edge; right-aligned but clamped. */}
+          <div className="absolute right-0 mt-2 w-[min(92vw,24rem)] max-w-[92vw] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
           <div className="p-3 border-b flex items-center justify-between">
-            <h3 className="font-medium">Notifications ({count})</h3>
+            <h3 className="font-medium">การแจ้งเตือน ({count})</h3>
             <Link
-              href="/notifications"
+              href="/premises/notifications"
               className="text-xs text-blue-600 hover:underline"
               onClick={() => setOpen(false)}
             >
-              View all
+              ดูทั้งหมด
             </Link>
           </div>
           <ul className="max-h-96 overflow-y-auto">
-            {(!list?.items || list.items.length === 0) && (
-              <li className="p-4 text-center text-sm text-gray-500">No open notifications</li>
-            )}
-            {list?.items.map((it) => {
+            {(() => {
+              const items = (list?.items ?? []).filter((it) => !QC_TYPES.has(it.type));
+              if (items.length === 0) {
+                return <li className="p-4 text-center text-sm text-gray-500">ไม่มีการแจ้งเตือน</li>;
+              }
+              return items.map((it) => {
               const color =
                 it.severity === 'overdue'
                   ? 'border-l-rose-500'
@@ -83,13 +95,13 @@ export function NotificationBell() {
                   className={`px-3 py-2 border-b border-l-4 ${color} hover:bg-gray-50`}
                 >
                   <Link
-                    href="/notifications"
+                    href="/premises/notifications"
                     onClick={() => setOpen(false)}
                     className="block"
                   >
-                    <div className="text-sm font-medium text-gray-900 truncate">{it.title}</div>
+                    <div className="text-sm font-medium text-gray-900 break-words">{friendlyNotificationTitle(it.title)}</div>
                     {it.body && (
-                      <div className="text-xs text-gray-600 truncate">{it.body}</div>
+                      <div className="text-xs text-gray-600 break-words">{it.body}</div>
                     )}
                     <div className="text-[11px] text-gray-400 mt-0.5">
                       {it.dueAt ? new Date(it.dueAt).toLocaleString('th-TH') : '—'}
@@ -97,9 +109,11 @@ export function NotificationBell() {
                   </Link>
                 </li>
               );
-            })}
+              });
+            })()}
           </ul>
         </div>
+        </>
       )}
     </div>
   );

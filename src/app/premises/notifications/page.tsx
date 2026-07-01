@@ -50,24 +50,8 @@ function monthOffset(yearMonth: string, delta: number): string {
 // phrasing (e.g. "OUT-OF-SPEC env inspection on room #5"). Translate the common
 // fixed phrases to Thai for readability — display only, the stored value is
 // untouched. Unknown text passes through unchanged.
-function friendlyTitle(raw: string): string {
-  if (!raw) return raw;
-  let s = raw;
-  const map: Array<[RegExp, string]> = [
-    [/OUT-OF-SPEC\s+env(ironmental)?\s+inspection\s+on\s+/gi, 'ตรวจสภาพแวดล้อมเกินเกณฑ์ที่ '],
-    [/Environmental\s+inspection\s+OVERDUE\s*—?\s*/gi, 'ตรวจสภาพแวดล้อมเกินกำหนด — '],
-    [/Water\s+quality\s+OUT-OF-SPEC\s+on\s+/gi, 'คุณภาพน้ำเกินเกณฑ์ที่ '],
-    [/Water\s+test\s+OVERDUE\s*—?\s*/gi, 'ตรวจคุณภาพน้ำเกินกำหนด — '],
-    [/Scale\s+(.+?)\s+FAILED\s+verification/gi, 'เครื่องชั่ง $1 ตรวจสอบไม่ผ่าน'],
-    [/calibration\s+due/gi, 'ถึงกำหนดสอบเทียบ'],
-    [/calibration\s+overdue/gi, 'เกินกำหนดสอบเทียบ'],
-    [/maintenance\s+due/gi, 'ถึงกำหนดบำรุงรักษา'],
-    [/\bstorage_area\b/gi, 'พื้นที่จัดเก็บ'],
-    [/\broom\b/gi, 'ห้อง'],
-  ];
-  for (const [re, th] of map) s = s.replace(re, th);
-  return s;
-}
+// Shared with the notification bell so both render identical Thai titles.
+import { friendlyNotificationTitle as friendlyTitle } from '@/lib/utils/notification-title';
 
 export default function MaintenanceAlertsPage() {
   const t = useTranslations('equipmentNotifications');
