@@ -435,7 +435,9 @@ describe('DashboardPage with i18n', () => {
         expect(screen.getByText('ล็อตในกักกัน')).toBeInTheDocument();
         expect(screen.getByText('ใบสั่งซื้อที่รอดำเนินการ')).toBeInTheDocument();
         expect(screen.getByText('ใบสั่งขายที่รอดำเนินการ')).toBeInTheDocument();
-        expect(screen.getByText('การเติบโตรายเดือน')).toBeInTheDocument();
+        // Monthly-growth card was removed from the dashboard (misleading
+        // negative % when the current month's sales lag last month's).
+        expect(screen.queryByText('การเติบโตรายเดือน')).not.toBeInTheDocument();
       });
     });
 

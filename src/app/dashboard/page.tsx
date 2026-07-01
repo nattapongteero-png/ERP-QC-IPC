@@ -21,7 +21,6 @@ import {
   Truck,
   Clock,
   Inbox,
-  TrendingUp,
   Calendar,
   Warehouse,
   Boxes,
@@ -226,7 +225,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Secondary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Link
                 href="/inventory/lots?status=quarantine"
                 data-testid="stat-link-lots-in-quarantine"
@@ -277,26 +276,6 @@ export default function DashboardPage() {
                   style={{ animationDelay: '300ms' }}
                 />
               </Link>
-
-              {(() => {
-                const growth = data?.summary.monthlyGrowthPercent ?? null;
-                const hasGrowth = growth !== null && Number.isFinite(growth);
-                const isUp = hasGrowth && growth >= 0;
-                const growthValue = hasGrowth
-                  ? `${isUp ? '+' : ''}${growth.toFixed(1)}%`
-                  : '—';
-                return (
-                  <StatCard
-                    label={t('kpis.monthlyGrowth.label')}
-                    value={growthValue}
-                    icon={<TrendingUp className="h-5 w-5" />}
-                    variant={!hasGrowth ? 'default' : isUp ? 'success' : 'danger'}
-                    size="md"
-                    className="motion-safe:animate-fade-in motion-reduce:animate-none"
-                    style={{ animationDelay: '350ms' }}
-                  />
-                );
-              })()}
             </div>
 
             {/* Module KPIs Tabs */}
