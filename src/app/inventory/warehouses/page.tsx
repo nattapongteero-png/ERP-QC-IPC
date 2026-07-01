@@ -300,6 +300,11 @@ export default function WarehousesPage() {
     },
     {
       dataField: 'name',
+      // Give the name column a floor width. Without it, on a narrow tablet the
+      // adaptive grid squeezed this (widthless) column to a few px and the text
+      // "Raw Material Warehouse" wrapped one letter per line (vertical). With a
+      // minWidth it collapses into the adaptive "…" row instead of crushing.
+      minWidth: 200,
       caption: t('warehouses.table.columns.name'),
       cellRender: (cellInfo) => (
         <div>
