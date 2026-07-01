@@ -2,7 +2,7 @@
  * Equipment Notification Service — CRUD + idempotent scan + counts
  * Feature: 022-equipment-notifications
  */
-import { eq, and, desc, sql, inArray, isNull, or, gte, lt } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, notInArray, isNull, or, gte, lt } from 'drizzle-orm';
 import { executeDbOperation, getTableRef, getInsertId } from '../db/db-helper';
 import { getNow, toDbDate, toQueryDate } from '../db/date-utils';
 import {
@@ -410,6 +410,9 @@ export async function getCalendarItems(
         and(
           gte(t.notifications.dueAt, toQueryDate(startStr)),
           lt(t.notifications.dueAt, toQueryDate(nextStr)),
+          // Maintenance calendar only — exclude cross-department QC audit
+          // notifications (they have no maintenance schedule to plan around).
+          notInArray(t.notifications.type, ['lot_received', 'wo_completed', 'deviation_opened']),
         ),
       );
 

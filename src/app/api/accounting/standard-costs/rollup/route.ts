@@ -11,8 +11,11 @@ import { rollupRequestSchema } from '@/lib/validation/variance';
 export async function POST(request: NextRequest) {
   return withAuth(request, async (session) => {
     try {
-      const body = await request.json();
-      const data = rollupRequestSchema.parse(body);
+      // The "รวมต้นทุนจาก BOM" button rolls up ALL BOM items and may POST with
+      // no body; guard so an empty/absent body doesn't blow up as
+      // "Cannot convert undefined or null to object" when Zod parses null.
+      const body = await request.json().catch(() => ({}));
+      const data = rollupRequestSchema.parse(body ?? {});
 
       // TODO: Get actual user ID from session
       const userId = session.userId;

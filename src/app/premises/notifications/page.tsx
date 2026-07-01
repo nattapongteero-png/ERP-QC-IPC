@@ -159,7 +159,12 @@ export default function MaintenanceAlertsPage() {
     },
   });
 
-  const items = data?.items ?? [];
+  // This page is the equipment MAINTENANCE inbox, so hide the cross-department
+  // QC audit notifications (lot received / WO completed / deviation opened) —
+  // they were drowning out the actual maintenance items and have their own
+  // surfaces. Filtering here keeps the tiles, list and calendar all consistent.
+  const QC_TYPES = new Set(['lot_received', 'wo_completed', 'deviation_opened']);
+  const items = (data?.items ?? []).filter((i) => !QC_TYPES.has(i.type));
   // Feed → newest first (highest id = most recent), numbered so the top row is #1.
   const numberedItems = [...items]
     .sort((a, b) => Number(b.id) - Number(a.id))
