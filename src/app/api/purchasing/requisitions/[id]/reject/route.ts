@@ -15,14 +15,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'กรุณาเข้าสู่ระบบ' }, { status: 401 });
     }
 
     const { id } = await params;
     const prId = parseInt(id, 10);
 
     if (isNaN(prId)) {
-      return NextResponse.json({ success: false, error: 'Invalid PR ID' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'รหัสใบขอซื้อไม่ถูกต้อง' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!reason) {
       return NextResponse.json(
-        { success: false, error: 'Rejection reason is required' },
+        { success: false, error: 'กรุณาระบุเหตุผลในการปฏิเสธ' },
         { status: 400 }
       );
     }
@@ -43,14 +43,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error: any) {
     console.error('Error rejecting PR:', error);
 
+    // Thai messages — shown directly to the operator in the UI toast.
     const errorMessages: Record<string, string> = {
-      PR_NOT_FOUND: 'PR not found',
-      PR_NOT_PENDING_APPROVAL: 'PR is not pending approval',
-      NO_APPROVAL_REQUEST: 'No approval request found',
-      NOT_AUTHORIZED: 'You are not authorized to reject this PR',
+      PR_NOT_FOUND: 'ไม่พบใบขอซื้อนี้',
+      PR_NOT_PENDING_APPROVAL: 'ใบขอซื้อนี้ไม่ได้อยู่ในสถานะรออนุมัติ',
+      NO_APPROVAL_REQUEST: 'ไม่พบคำขออนุมัติของใบขอซื้อนี้',
+      NOT_AUTHORIZED: 'คุณไม่มีสิทธิ์ปฏิเสธใบขอซื้อนี้',
     };
 
-    const message = errorMessages[error.message] || error.message || 'Failed to reject PR';
+    const message = errorMessages[error.message] || 'ไม่สามารถปฏิเสธใบขอซื้อได้';
     const status = error.message === 'PR_NOT_FOUND' ? 404 :
                    error.message === 'NOT_AUTHORIZED' ? 403 : 400;
 

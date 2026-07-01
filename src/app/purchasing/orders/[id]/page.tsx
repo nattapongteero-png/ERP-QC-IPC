@@ -809,19 +809,26 @@ export default function PurchaseOrderDetailPage() {
       dataField: 'actions',
       caption: '',
       width: 140,
-      cellRender: (cellInfo) => (
-        cellInfo.data.pendingQty > 0 ? (
+      cellRender: (cellInfo) => {
+        // Goods can only be received once the PO is approved. A draft / pending-
+        // approval PO must not be receivable, so disable the button (with a
+        // tooltip explaining why) instead of letting it fire.
+        const status = data?.purchaseOrder?.status;
+        const canReceive = status !== 'draft' && status !== 'pending_approval' && status !== 'cancelled';
+        return cellInfo.data.pendingQty > 0 ? (
           <DxButton
             text="รับสินค้า"
             icon="check"
             type="success"
             stylingMode="contained"
+            disabled={!canReceive}
+            hint={canReceive ? undefined : 'ต้องอนุมัติใบสั่งซื้อก่อนจึงจะรับสินค้าได้'}
             onClick={() => handleReceive(cellInfo.data)}
           />
         ) : (
           <Badge variant="success">ครบแล้ว</Badge>
-        )
-      ),
+        );
+      },
     },
   ];
 

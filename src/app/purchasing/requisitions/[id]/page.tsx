@@ -115,14 +115,30 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     }
   }, [showConvertModal, isMetaherbPR]);
 
+  // Entry point for the "แปลงเป็นใบสั่งซื้อ" button. If the vendor is already
+  // known — the PR carries one, or it's a Metaherb PR (forced server-side) —
+  // convert straight away without asking again. Only pop the vendor picker when
+  // there's genuinely no vendor to use.
+  const handleConvertClick = () => {
+    if (pr?.vendorId) {
+      runConvert(pr.vendorId);
+    } else if (isMetaherbPR) {
+      runConvert(null);
+    } else {
+      setShowConvertModal(true);
+    }
+  };
+
   const handleConvertToPO = async () => {
-    // Metaherb PRs force the Metaherb vendor server-side, so a vendor selection
-    // isn't required here. Every other PR must have one.
+    // Called from the dialog (vendor picked manually).
     if (!vendorId && !isMetaherbPR) {
-      setError('Please select a vendor');
+      setError('กรุณาเลือกผู้ขาย');
       return;
     }
+    await runConvert(vendorId);
+  };
 
+  const runConvert = async (useVendorId: number | null) => {
     try {
       setConverting(true);
       setError(null);
@@ -130,7 +146,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
       const response = await fetch(`/api/purchasing/requisitions/${id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(vendorId ? { vendorId } : {}),
+        body: JSON.stringify(useVendorId ? { vendorId: useVendorId } : {}),
       });
 
       const result = await response.json();
@@ -140,7 +156,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         setError(result.error);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to convert to PO');
+      setError(err.message || 'ไม่สามารถแปลงเป็นใบสั่งซื้อได้');
     } finally {
       setConverting(false);
     }
@@ -179,7 +195,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
         setError(result.error);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to process approval');
+      setError(err.message || 'ไม่สามารถดำเนินการอนุมัติ/ปฏิเสธได้');
     } finally {
       setProcessing(false);
     }
@@ -340,7 +356,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 type="default"
                 stylingMode="contained"
                 icon="export"
-                onClick={() => setShowConvertModal(true)}
+                onClick={handleConvertClick}
                 data-testid="convert-to-po-btn"
               />
             )}
@@ -384,7 +400,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           onHiding={() => setShowConvertModal(false)}
           title={t('requisitions.detail.convertModal.title')}
           width={400}
-          height={isMetaherbPR ? 280 : 250}
+          height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
@@ -439,7 +455,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           onHiding={() => setShowApprovalModal(false)}
           title={approvalAction === 'approve' ? t('requisitions.detail.approvalModal.approveTitle') : t('requisitions.detail.approvalModal.rejectTitle')}
           width={400}
-          height={300}
+          height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
@@ -479,7 +495,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           onHiding={() => setShowCancelModal(false)}
           title={t('requisitions.detail.cancelModal.title')}
           width={400}
-          height={300}
+          height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
@@ -523,7 +539,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           onHiding={() => setShowDeleteModal(false)}
           title={t('requisitions.detail.deleteModal.title')}
           width={400}
-          height={220}
+          height="auto"
           showCloseButton={true}
         >
           <div className="p-4">
