@@ -507,6 +507,19 @@ export default function PurchaseOrderDetailPage() {
   const handleReceive = async (line: POLine) => {
     setSelectedLine(line);
 
+    // Clear supplier lot fields up front — a partial receive may be followed by
+    // a NEXT receive from a different physical lot, so never carry the previous
+    // Vendor Lot No. / mfg / exp forward. (Reset again here, before the async
+    // next-lot fetch, so the fields blank immediately when the dialog opens.)
+    setReceiveForm({
+      lotNumber: '',
+      vendorLotNumber: '',
+      manufacturingDate: '',
+      quantity: line.pendingQty,
+      expiryDate: '',
+      warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
+    });
+
     // Pull a real, non-colliding running lot from the configured lot pattern.
     // Fall back to a timestamp-based suffix (never random) if the API fails,
     // so two receives in the same session can't generate the same lot.
@@ -559,6 +572,16 @@ export default function PurchaseOrderDetailPage() {
       if (result.success) {
         setShowReceiveModal(false);
         setSelectedLine(null);
+        // Blank the supplier-lot fields so the next receive starts clean and
+        // can't inherit this lot's Vendor Lot No. / mfg / exp dates.
+        setReceiveForm({
+          lotNumber: '',
+          vendorLotNumber: '',
+          manufacturingDate: '',
+          quantity: 0,
+          expiryDate: '',
+          warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
+        });
         fetchPODetail();
       }
     } catch (error) {
