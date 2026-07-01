@@ -7,6 +7,7 @@ import { isSqlite } from '../db';
 import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
 import { getTodayStr, toQueryDate } from '../db/date-utils';
+import { sqliteVmiSyncHistory, mysqlVmiSyncHistory } from '../db/schema';
 
 // ============================================
 // Types
@@ -491,12 +492,16 @@ export async function getVMIKpis(): Promise<VMIKpis> {
     return Number(result[0]?.total || 0);
   });
 
-  // Last sync = most recent per-item VMI sync timestamp.
+  // Last sync = the most recent COMPLETED VMI sync run, taken from the sync
+  // history table. (The old query used MAX(items.lastVmiSyncAt), but the sync
+  // flow never writes that column, so the dashboard always showed "never" even
+  // after a successful sync. The history table is the source of truth.)
+  const syncHistoryTable = isSqlite() ? sqliteVmiSyncHistory : mysqlVmiSyncHistory;
   const lastSyncResult = await executeDbOperation(async (db) => {
     const result = await db
-      .select({ last: sql`MAX(${itemsTable.lastVmiSyncAt})` })
-      .from(itemsTable)
-      .where(eq(itemsTable.vmiSyncEnabled, true));
+      .select({ last: sql`MAX(${syncHistoryTable.completedAt})` })
+      .from(syncHistoryTable)
+      .where(eq(syncHistoryTable.status, 'completed'));
     return (result[0]?.last as string | null) ?? null;
   });
 
