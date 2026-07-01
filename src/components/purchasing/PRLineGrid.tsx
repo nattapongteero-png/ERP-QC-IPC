@@ -135,25 +135,34 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
 
   return (
     <>
-      {/* Plain edit cells: the user asked for no yellow row tint and no green
-          focus outline. DevExtreme paints a row background from several states
-          (invalid row, edit row, focused row/cell) and draws a green focus
-          overlay on the active cell — neutralise them all, scoped to this grid.
-          Validation still works (the field's tooltip message still appears). */}
+      {/* Plain edit cells — no green row tint, no green focus underline/outline.
+          These override the GLOBAL emerald theme (src/styles/dx.emerald-override
+          .css) which paints .dx-row-focused > td green and a green ::before
+          underline on focused editors. We re-specify the SAME selectors prefixed
+          with .pr-line-grid so specificity beats the global !important rules.
+          Validation still works (the field tooltip still appears). */}
       <style>{`
         .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-invalid > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-edit-row > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-row-focused > td,
+        .pr-line-grid .dx-datagrid-rowsview .dx-selection.dx-row > td,
         .pr-line-grid .dx-datagrid-rowsview .dx-row.dx-row-focused.dx-edit-row > td {
           background-color: #fff !important;
         }
-        /* Kill the green focus overlay / highlight box on the active cell. */
-        .pr-line-grid .dx-datagrid-rowsview .dx-focused,
+        /* Remove the green focus underline the theme draws on filled editors. */
+        .pr-line-grid .dx-texteditor.dx-editor-filled::before,
+        .pr-line-grid .dx-texteditor.dx-editor-filled::after,
+        .pr-line-grid .dx-texteditor.dx-state-focused::before,
+        .pr-line-grid .dx-texteditor.dx-state-active::before {
+          border-bottom-color: #e5e7eb !important;
+          border-bottom: none !important;
+        }
+        /* Remove the cell focus overlay / highlight box. */
         .pr-line-grid .dx-datagrid-rowsview td.dx-focused,
         .pr-line-grid .dx-highlight-outline,
         .pr-line-grid .dx-datagrid-focus-overlay {
           box-shadow: none !important;
-          border-color: #e5e7eb !important; /* gray-200, like a normal cell */
+          border-color: #e5e7eb !important;
         }
         .pr-line-grid .dx-datagrid-focus-overlay { border: none !important; }
       `}</style>
