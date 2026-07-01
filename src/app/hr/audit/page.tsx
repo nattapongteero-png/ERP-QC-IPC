@@ -514,6 +514,34 @@ export default function AuditLogPage() {
           //   lines tall and overflowing the popup)
           // - an object → "key: value" lines
           // - anything else → as-is
+          // Map raw DB field names → Thai labels so the audit detail reads in
+          // plain language instead of "userId: null".
+          const FIELD_LABELS: Record<string, string> = {
+            userId: 'บัญชีผู้ใช้',
+            firstName: 'ชื่อ',
+            lastName: 'นามสกุล',
+            email: 'อีเมล',
+            phone: 'เบอร์โทร',
+            status: 'สถานะ',
+            hireDate: 'วันเริ่มงาน',
+            orgUnitId: 'หน่วยงาน',
+            positionId: 'ตำแหน่ง',
+            roleId: 'บทบาท',
+            employeeCode: 'รหัสพนักงาน',
+            isActive: 'ใช้งาน',
+            nationalId: 'เลขบัตรประชาชน',
+            address: 'ที่อยู่',
+            dateOfBirth: 'วันเกิด',
+            gender: 'เพศ',
+            salary: 'เงินเดือน',
+            departmentId: 'แผนก',
+          };
+          const humanValue = (v: unknown): string => {
+            if (v === null || v === undefined || v === '') return '(ว่าง)';
+            if (typeof v === 'boolean') return v ? 'ใช่' : 'ไม่ใช่';
+            if (Array.isArray(v)) return v.length ? v.join(', ') : '(ว่าง)';
+            return String(v);
+          };
           const formatJson = (value: string): string => {
             try {
               const parsed = JSON.parse(value);
@@ -522,10 +550,10 @@ export default function AuditLogPage() {
               }
               if (parsed && typeof parsed === 'object') {
                 return Object.entries(parsed)
-                  .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                  .map(([k, v]) => `${FIELD_LABELS[k] || k}: ${humanValue(v)}`)
                   .join('\n');
               }
-              return String(parsed);
+              return humanValue(parsed);
             } catch {
               return value;
             }
