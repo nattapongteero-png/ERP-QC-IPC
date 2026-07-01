@@ -793,26 +793,24 @@ export default function EmployeesPage() {
                 </span>
               )}
             />
+            {/* hidingPriority: DevExtreme hides the LOWEST priority first when the
+                grid is too narrow. The employee NAME is the most important column
+                so it must have the HIGHEST priority (hidden last / never); the
+                secondary columns (phone, hire date) get the lowest priorities so
+                they collapse into the adaptive row first. */}
             <Column
               caption={t('employees.employeeCol')}
               cellRender={renderEmployeeCell}
-              minWidth={280}
+              minWidth={220}
               calculateSortValue={(data: EmployeeWithDetails) => `${data.firstName} ${data.lastName}`}
-              hidingPriority={0}
+              hidingPriority={5}
             />
             <Column
               caption={t('employees.orgUnitPosition')}
               cellRender={renderOrgUnitCell}
-              minWidth={220}
+              minWidth={200}
               calculateSortValue={(data: EmployeeWithDetails) => data.orgUnitName || ''}
-              hidingPriority={2}
-            />
-            <Column
-              dataField="phone"
-              caption={t('employees.phoneCol')}
-              cellRender={renderPhoneCell}
-              width={160}
-              hidingPriority={4}
+              hidingPriority={3}
             />
             <Column
               dataField="status"
@@ -820,15 +818,22 @@ export default function EmployeesPage() {
               width={130}
               cellRender={renderStatusCell}
               alignment="center"
-              hidingPriority={1}
+              hidingPriority={2}
               groupIndex={-1}
+            />
+            <Column
+              dataField="phone"
+              caption={t('employees.phoneCol')}
+              cellRender={renderPhoneCell}
+              width={160}
+              hidingPriority={1}
             />
             <Column
               dataField="hireDate"
               caption={t('employees.hireDateLabel')}
               cellRender={renderHireDateCell}
               minWidth={180}
-              hidingPriority={3}
+              hidingPriority={0}
             />
           </DataGrid>
         </div>
