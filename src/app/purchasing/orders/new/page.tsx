@@ -134,6 +134,25 @@ export default function NewPurchaseOrderPage() {
     fetchVendors();
   }, []);
 
+  // Pre-fill the shipping address with OUR company address (from Settings →
+  // General), since goods are delivered to us, not to the vendor. Only fills an
+  // empty field so it never clobbers something the operator already typed.
+  useEffect(() => {
+    const fetchCompanyAddress = async () => {
+      try {
+        const res = await fetch('/api/settings/company');
+        const data = await res.json();
+        const addr = (data?.data?.address ?? '').trim();
+        if (addr) {
+          setFormData((prev) => (prev.shippingAddress ? prev : { ...prev, shippingAddress: addr }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch company address:', error);
+      }
+    };
+    fetchCompanyAddress();
+  }, []);
+
   const handleSelectItem = (item: Item) => {
     setSelectedItem(item);
     // Leave quantity empty; pre-fill price from the item's cost only if it has
@@ -604,25 +623,11 @@ export default function NewPurchaseOrderPage() {
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          {t('orders.form.wizard.shippingAddress')}
-                        </label>
-                        {/* Quick-fill from the selected vendor's saved address so
-                            the operator doesn't retype an address already on file.
-                            Still fully editable afterwards. */}
-                        {selectedVendor?.address && (
-                          <button
-                            type="button"
-                            className="text-xs text-emerald-700 hover:underline"
-                            onClick={() =>
-                              setFormData((prev) => ({ ...prev, shippingAddress: selectedVendor.address ?? '' }))
-                            }
-                          >
-                            {t('orders.form.wizard.useVendorAddress', { name: selectedVendor.name })}
-                          </button>
-                        )}
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('orders.form.wizard.shippingAddress')}
+                      </label>
+                      {/* Defaults to our company address (Settings → General);
+                          goods ship to us, not the vendor. Still editable. */}
                       <DxTextArea
                         value={formData.shippingAddress}
                         onValueChange={(value) => setFormData({ ...formData, shippingAddress: value })}
