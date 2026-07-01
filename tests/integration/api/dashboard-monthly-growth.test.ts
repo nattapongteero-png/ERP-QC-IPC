@@ -102,6 +102,18 @@ describe('Dashboard API — monthly growth (real data, not hardcoded)', () => {
     expect(summary.monthlyGrowthPercent).toBeNull();
   });
 
+  it('returns null (not -100%) when this month has no sales yet', async () => {
+    // Last month had sales, current month is empty (e.g. start of month).
+    // A naive formula would report a misleading -100%; we want "—" instead.
+    await seedSalesOrder(dateInMonth(-1), 100_000);
+
+    const summary = await fetchSummary();
+
+    expect(summary.lastMonthSales).toBe(100_000);
+    expect(summary.thisMonthSales).toBe(0);
+    expect(summary.monthlyGrowthPercent).toBeNull();
+  });
+
   it('excludes draft and cancelled orders from the totals', async () => {
     await seedSalesOrder(dateInMonth(-1), 100_000, 'confirmed');
     await seedSalesOrder(dateInMonth(0), 100_000, 'confirmed');

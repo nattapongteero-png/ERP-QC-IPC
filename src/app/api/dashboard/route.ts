@@ -150,8 +150,12 @@ export async function GET(request: NextRequest) {
         sumSalesInRange(startLastMonth, startThisMonth),
       ]);
 
+      // Growth is only meaningful once BOTH months have real sales. When the
+      // current month has no sales yet (start of month), a naive formula yields
+      // a misleading -100% — treat that as "no data" (null → UI shows "—")
+      // rather than implying the business collapsed.
       const monthlyGrowthPercent =
-        lastMonthSales > 0
+        lastMonthSales > 0 && thisMonthSales > 0
           ? ((thisMonthSales - lastMonthSales) / lastMonthSales) * 100
           : null;
 
