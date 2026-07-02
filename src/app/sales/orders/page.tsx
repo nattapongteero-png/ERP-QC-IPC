@@ -267,7 +267,11 @@ export default function SalesOrdersPage() {
       const matchesStatus = !statusFilter || order.status === statusFilter;
 
       return matchesSearch && matchesStatus;
-    }).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
+    })
+      // Newest first (highest id = most recently created), then number rows so
+      // #1 is the latest order at the top.
+      .sort((a, b) => b.id - a.id)
+      .map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [orders, search, statusFilter]);
 
   // Calculate statistics
@@ -852,9 +856,6 @@ export default function SalesOrdersPage() {
               responsiveColumns
               pageSize={20}
               virtualScrolling={filteredOrders.length > 100}
-              height={600}
-              mobileHeight={520}
-              tabletHeight={560}
               noDataText={t('orders.grid.noData')}
               onRowClick={handleRowClick}
               rowAlternationEnabled

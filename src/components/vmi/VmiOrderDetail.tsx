@@ -293,7 +293,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       },
     },
     { dataField: 'quantity', caption: 'จำนวน', width: 70, alignment: 'right' },
-    { dataField: 'unit', caption: 'หน่วย', width: 60 },
+    { dataField: 'unit', caption: 'หน่วย', width: 90 },
     {
       dataField: 'unitPrice',
       caption: 'ราคา',
@@ -532,7 +532,6 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         onHiding={() => setShowShipDialog(false)}
         title="จัดส่งคำสั่งซื้อ"
         width={400}
-        height={250}
       >
         <div className="p-4 space-y-4">
           <div>
