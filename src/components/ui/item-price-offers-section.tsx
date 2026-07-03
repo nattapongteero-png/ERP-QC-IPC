@@ -77,15 +77,31 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// effectiveDate/expiryDate are stored as datetimes pinned to midnight UTC, but
+// they represent whole calendar days, not instants. Comparing them against the
+// current instant makes an offer whose effective date is "today" look inactive
+// during the hours before that midnight-UTC boundary (e.g. before 07:00 in
+// Thailand, UTC+7). Compare by calendar day so a date-only offer is active for
+// the entire day it names, regardless of timezone.
+//
+// The stored value's day is read in UTC (that's the day the user picked, pinned
+// to 00:00 UTC). "Today" is read in the viewer's local timezone — the day the
+// user sees on their calendar.
+function storedDayNumber(dateInput: string | Date): number {
+  const d = new Date(dateInput);
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
+function localTodayNumber(): number {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
 function isOfferActive(offer: PriceOffer): boolean {
   if (!offer.isActive) return false;
-  const now = new Date();
-  const effectiveDate = new Date(offer.effectiveDate);
-  if (effectiveDate > now) return false;
-  if (offer.expiryDate) {
-    const expiryDate = new Date(offer.expiryDate);
-    if (expiryDate < now) return false;
-  }
+  const today = localTodayNumber();
+  if (storedDayNumber(offer.effectiveDate) > today) return false;
+  if (offer.expiryDate && storedDayNumber(offer.expiryDate) < today) return false;
   return true;
 }
 

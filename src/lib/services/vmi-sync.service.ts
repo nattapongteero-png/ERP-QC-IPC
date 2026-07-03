@@ -22,11 +22,40 @@ import {
 } from '@/lib/db/schema';
 import { decrypt, isValidCiphertext } from '@/lib/crypto/encrypt';
 import { getNow } from '../db/date-utils';
+import { isSqlite as isSqliteDb } from '@/lib/db';
 import type {
   VmiSyncType,
   VmiSyncTriggerType,
   VmiSyncStatus,
 } from '@/types/vmi';
+
+// Thailand is UTC+7 and has no DST. Price-offer effective/expiry values are
+// whole calendar days stored at midnight UTC, so "today" for activation must be
+// the Thai calendar day, not the server's UTC day (the app containers run UTC).
+const THAI_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * Day-boundary instants for "is this offer active today?" comparisons.
+ * Returns the start (00:00) and end (23:59:59.999) of the current Thai calendar
+ * day, expressed on the same midnight-UTC frame the offer dates are stored on,
+ * so an offer whose effectiveDate is "today" counts as active for the whole day
+ * regardless of the hour. Typed for the active DB (Date for MySQL, ISO string
+ * for SQLite).
+ */
+function getActiveDayBounds(): { rangeStart: Date | string; rangeEnd: Date | string } {
+  // Shift now into Thai local time, then take that calendar day's UTC midnight.
+  const thaiNow = new Date(Date.now() + THAI_UTC_OFFSET_MS);
+  const startMs = Date.UTC(
+    thaiNow.getUTCFullYear(),
+    thaiNow.getUTCMonth(),
+    thaiNow.getUTCDate()
+  );
+  const start = new Date(startMs);
+  const end = new Date(startMs + 24 * 60 * 60 * 1000 - 1);
+  return isSqliteDb()
+    ? { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+    : { rangeStart: start, rangeEnd: end };
+}
 
 // ============================================
 // Error Classes
@@ -1232,8 +1261,13 @@ export class VmiSyncService {
     const db = (await this.getDb()) as any;
     const { items, priceOffers } = this.getTables();
 
-    // Get current date for filtering active offers
-    const now = getNow();
+    // effectiveDate/expiryDate are whole calendar days stored at midnight UTC.
+    // Comparing them against the current instant drops an offer whose effective
+    // date is "today" during the hours before that midnight-UTC boundary
+    // (e.g. before 07:00 in Thailand). Compare against the day BOUNDARIES
+    // instead: an offer is in range when its effectiveDate is on/before the end
+    // of today and its expiryDate (if any) is on/after the start of today.
+    const { rangeStart, rangeEnd } = getActiveDayBounds();
 
     // Build conditions for items
     const itemConditions = [
@@ -1245,7 +1279,7 @@ export class VmiSyncService {
     }
 
     // Join items with vmi_price_offers
-    // Filter for active offers where effectiveDate <= now and (expiryDate is null OR expiryDate >= now)
+    // Filter for active offers whose day window overlaps "today".
     const records = await db
       .select({
         id: items.id,
@@ -1259,10 +1293,10 @@ export class VmiSyncService {
         and(
           ...itemConditions,
           eq(priceOffers.isActive, true),
-          lte(priceOffers.effectiveDate, now as any),
+          lte(priceOffers.effectiveDate, rangeEnd as any),
           or(
             isNull(priceOffers.expiryDate),
-            gte(priceOffers.expiryDate, now as any)
+            gte(priceOffers.expiryDate, rangeStart as any)
           )
         )
       );
