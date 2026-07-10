@@ -967,7 +967,10 @@ export default function WorkOrderDetailPage() {
           <CardTitle>{t('workOrderDetail.ebmr.weighing')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full border-collapse border">
+          <table
+            className="w-full border-collapse border"
+            data-testid="ebmr-weighing-table-numfmt"
+          >
             <thead>
               <tr className="ebmr-print-title-row">
                 <th colSpan={7}>{t('workOrderDetail.ebmr.weighing')}</th>
