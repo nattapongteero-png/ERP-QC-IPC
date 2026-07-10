@@ -475,7 +475,7 @@ export default function ProductionOutputPage() {
                       ? (workOrder.bulkOutputRecordedAt
                           ? new Date(workOrder.bulkOutputRecordedAt).toLocaleString('th-TH')
                           : '-')
-                      : (workOrder.yieldPercentage ? `${Number(workOrder.yieldPercentage).toFixed(2)}%` : '-')}
+                      : (workOrder.yieldPercentage ? `${formatNumber(Number(workOrder.yieldPercentage), 2)}%` : '-')}
                   </p>
                 </div>
               </div>
@@ -510,15 +510,15 @@ export default function ProductionOutputPage() {
                   </div>
                   <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-emerald-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.yieldPercent')}</p>
-                    <p className="text-lg font-bold text-gray-900">{yieldData.yieldPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-bold text-gray-900">{formatNumber(yieldData.yieldPercent, 2)}%</p>
                   </div>
                   <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.rejectPercent')}</p>
-                    <p className="text-lg font-semibold text-gray-900">{yieldData.rejectPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatNumber(yieldData.rejectPercent, 2)}%</p>
                   </div>
                   <div className="p-3 bg-white border border-gray-200 border-l-4 border-l-gray-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)]">
                     <p className="text-sm text-gray-500">{tw('yield.lossPercent')}</p>
-                    <p className="text-lg font-semibold text-gray-900">{yieldData.lossPercent.toFixed(2)}%</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatNumber(yieldData.lossPercent, 2)}%</p>
                   </div>
                 </div>
 
@@ -526,7 +526,7 @@ export default function ProductionOutputPage() {
                 <div className="mt-4">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm text-gray-500">{tw('yield.yieldPercent')}</span>
-                    <span className="text-sm font-medium">{yieldData.yieldPercent.toFixed(2)}%</span>
+                    <span className="text-sm font-medium">{formatNumber(yieldData.yieldPercent, 2)}%</span>
                   </div>
                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div
@@ -562,10 +562,10 @@ export default function ProductionOutputPage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
                     <span className="font-semibold">🎯 BOM Target</span>
                     {workOrder.bomYieldTarget != null && (
-                      <span>Yield ≥ <strong>{Number(workOrder.bomYieldTarget).toFixed(2)}%</strong></span>
+                      <span>Yield ≥ <strong>{formatNumber(Number(workOrder.bomYieldTarget), 2)}%</strong></span>
                     )}
                     {workOrder.bomLossAllowance != null && (
-                      <span>Loss ≤ <strong>{Number(workOrder.bomLossAllowance).toFixed(2)}%</strong></span>
+                      <span>Loss ≤ <strong>{formatNumber(Number(workOrder.bomLossAllowance), 2)}%</strong></span>
                     )}
                   </div>
                   <div className="border-t border-emerald-200 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
@@ -809,7 +809,7 @@ export default function ProductionOutputPage() {
                             liveYieldPercent >= 90 ? 'text-green-700' :
                             liveYieldPercent >= 80 ? 'text-amber-700' :
                             'text-red-700'
-                          }`}>{liveYieldPercent.toFixed(2)}%</span>
+                          }`}>{formatNumber(liveYieldPercent, 2)}%</span>
                         </div>
                         <div className="w-full h-2 bg-white/70 rounded-full overflow-hidden">
                           <div
@@ -824,7 +824,7 @@ export default function ProductionOutputPage() {
                         <div className="text-xs text-gray-600 mt-1">
                           เทียบแผน {formatNumber(workOrder.plannedQuantity)} {workOrder.unit}
                           {workOrder.bomYieldTarget != null && (
-                            <> · เป้า ≥ {Number(workOrder.bomYieldTarget).toFixed(2)}%</>
+                            <> · เป้า ≥ {formatNumber(Number(workOrder.bomYieldTarget), 2)}%</>
                           )}
                         </div>
                       </div>

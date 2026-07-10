@@ -21,6 +21,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { calculateReturn, type UnitConfig } from '@/lib/utils/unit-conversion';
+import { formatNumber } from '@/lib/utils/number-format';
 
 export type VarianceReason =
   | 'process_loss'
@@ -512,8 +513,8 @@ export function MaterialReturnDialog({
               </p>
             </div>
             <div className="text-right text-xs text-amber-700">
-              <p>{td('planned')}: <strong>{material?.plannedQty} {material?.unit}</strong></p>
-              <p>{td('weighed')}: <strong>{material?.weighedQty} {material?.unit}</strong></p>
+              <p>{td('planned')}: <strong>{formatNumber(material?.plannedQty)} {material?.unit}</strong></p>
+              <p>{td('weighed')}: <strong>{formatNumber(material?.weighedQty)} {material?.unit}</strong></p>
             </div>
           </div>
         </div>
@@ -523,7 +524,7 @@ export function MaterialReturnDialog({
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs text-emerald-700">
-                <strong>{td('threeLevelLabel')}:</strong> 1 {material.primaryUnit} = {Number(material.conversionRate).toLocaleString()} {material.secondaryUnit} ; 1 {material.secondaryUnit} = {Number(material.secondaryToWeightRate)} {material.weightUnit}
+                <strong>{td('threeLevelLabel')}:</strong> 1 {material.primaryUnit} = {formatNumber(material.conversionRate)} {material.secondaryUnit} ; 1 {material.secondaryUnit} = {formatNumber(material.secondaryToWeightRate)} {material.weightUnit}
               </div>
               <div className="inline-flex rounded-md overflow-hidden border border-emerald-300 text-xs">
                 <button
@@ -573,18 +574,18 @@ export function MaterialReturnDialog({
               <div className="text-sm bg-white border border-emerald-200 rounded-lg p-3 space-y-1">
                 <div className="text-emerald-900">
                   <strong>{td('actualUsed')}:</strong>{' '}
-                  {returnPreview.usedWU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {returnPreview.wu}{' '}
+                  {formatNumber(returnPreview.usedWU, 4)} {returnPreview.wu}{' '}
                   <span className="text-xs text-gray-500">
-                    (= {returnPreview.usedSU.toLocaleString(undefined, { maximumFractionDigits: 3 })} {returnPreview.su})
+                    (= {formatNumber(returnPreview.usedSU, 3)} {returnPreview.su})
                   </span>
                 </div>
                 <div className="text-emerald-900">
                   <strong>{td('returnToWarehouse')}:</strong>{' '}
                   <span className="font-semibold">
-                    {returnPreview.returnedPU.toLocaleString(undefined, { maximumFractionDigits: 4 })} {returnPreview.pu}
+                    {formatNumber(returnPreview.returnedPU, 4)} {returnPreview.pu}
                   </span>{' '}
                   <span className="text-xs text-gray-500">
-                    (= {returnPreview.returnedSU.toLocaleString(undefined, { maximumFractionDigits: 3 })} {returnPreview.su})
+                    (= {formatNumber(returnPreview.returnedSU, 3)} {returnPreview.su})
                   </span>
                   <span className="ml-2 text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">
                     {td('zeroCost')}
@@ -654,7 +655,7 @@ export function MaterialReturnDialog({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700">{td('variance')}</span>
             <span className="font-medium">
-              {variance.qty.toFixed(4)} {material?.unit} ({variance.pct.toFixed(2)}%)
+              {formatNumber(variance.qty, 4)} {material?.unit} ({formatNumber(variance.pct, 2)}%)
             </span>
           </div>
           {variance.pct > VARIANCE_HINT_THRESHOLD && (

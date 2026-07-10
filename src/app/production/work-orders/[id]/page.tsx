@@ -605,14 +605,14 @@ export default function WorkOrderDetailPage() {
       // Unit priority: workOrderMaterials.unit (from weighing/BOM record) → items.primaryUnit (fallback)
       // The `unit` column on work_order_materials is the source of truth for how the material
       // was planned/weighed. Only fall back to itemUnit if no unit was ever recorded.
-      cellRender: (cellInfo) => <span>{cellInfo.data.plannedQty} {cellInfo.data.unit || cellInfo.data.itemUnit}</span>,
+      cellRender: (cellInfo) => <span>{formatNumber(cellInfo.data.plannedQty)} {cellInfo.data.unit || cellInfo.data.itemUnit}</span>,
     },
     {
       dataField: 'actualQty',
       caption: t('workOrderDetail.materials.colActualQty'),
       cellRender: (cellInfo) => {
         const displayUnit = cellInfo.data.unit || cellInfo.data.itemUnit;
-        return <span>{cellInfo.data.actualQty || '-'} {cellInfo.data.actualQty ? displayUnit : ''}</span>;
+        return <span>{cellInfo.data.actualQty ? formatNumber(cellInfo.data.actualQty) : '-'} {cellInfo.data.actualQty ? displayUnit : ''}</span>;
       },
     },
     {
@@ -629,8 +629,8 @@ export default function WorkOrderDetailPage() {
         const unit = cellInfo.data.unit || cellInfo.data.itemUnit || '';
         return (
           <div className={color}>
-            <div className="font-medium">{sign}{v} {unit}</div>
-            <div className="text-xs opacity-75">({pctSign}{pct.toFixed(2)}%)</div>
+            <div className="font-medium">{sign}{formatNumber(v)} {unit}</div>
+            <div className="text-xs opacity-75">({pctSign}{formatNumber(pct, 2)}%)</div>
           </div>
         );
       },
@@ -641,7 +641,7 @@ export default function WorkOrderDetailPage() {
       cellRender: (cellInfo) => (
         cellInfo.data.consumptionPercent !== null ? (
           <Badge variant={cellInfo.data.consumptionPercent <= 100 ? 'primary' : 'danger'}>
-            {cellInfo.data.consumptionPercent}%
+            {formatNumber(cellInfo.data.consumptionPercent, 2)}%
           </Badge>
         ) : <span>-</span>
       ),
@@ -888,9 +888,9 @@ export default function WorkOrderDetailPage() {
                   <td className="border p-2 text-center text-gray-900 font-medium">{op.sequence}</td>
                   <td className="border p-2 text-gray-900 font-medium">{op.name}</td>
                   <td className="border p-2 text-gray-900">{op.description || '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{op.standardTime ?? '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{op.setupTime ?? '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{op.cleaningTime ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.standardTime != null ? formatNumber(op.standardTime) : '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.setupTime != null ? formatNumber(op.setupTime) : '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{op.cleaningTime != null ? formatNumber(op.cleaningTime) : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -990,8 +990,8 @@ export default function WorkOrderDetailPage() {
                     <div className="text-xs text-gray-500">{mat.itemCode}</div>
                   </td>
                   <td className="border p-2 text-gray-900 text-sm">{mat.lotNumber || '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{mat.plannedQty} {mat.unit}</td>
-                  <td className="border p-2 text-right text-gray-900">{mat.weighedQty ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{formatNumber(mat.plannedQty)} {mat.unit}</td>
+                  <td className="border p-2 text-right text-gray-900">{mat.weighedQty != null ? <>{formatNumber(mat.weighedQty)} {mat.unit}</> : '-'}</td>
                   <td className="border p-2 text-center">
                     <Badge variant={
                       mat.verifiedAt ? 'primary' :
@@ -1061,27 +1061,27 @@ export default function WorkOrderDetailPage() {
                     <td className="border p-2 text-gray-900">{mat.itemName}</td>
                     <td className="border p-2 text-gray-900">{mat.lotNumber || '-'}</td>
                     <td className="border p-2 text-right text-gray-900">
-                      {mat.plannedQty} {displayUnit}
+                      {formatNumber(mat.plannedQty)} {displayUnit}
                     </td>
                     <td className="border p-2 text-right text-gray-900">
-                      {issued != null ? <>{issued} {displayUnit}</> : '-'}
+                      {issued != null ? <>{formatNumber(issued)} {displayUnit}</> : '-'}
                     </td>
                     <td className="border p-2 text-right text-gray-900">
                       {hasWeighed ? (
-                        <>{weighed} {displayUnit}</>
+                        <>{formatNumber(weighed)} {displayUnit}</>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
                     <td className="border p-2 text-right text-gray-900">
                       {returned > 0 ? (
-                        <span className="text-amber-700">{returned} {displayUnit}</span>
+                        <span className="text-amber-700">{formatNumber(returned)} {displayUnit}</span>
                       ) : (
                         '-'
                       )}
                     </td>
                     <td className="border p-2 text-right text-gray-900 font-semibold">
-                      {netUsed != null ? <>{netUsed} {displayUnit}</> : '-'}
+                      {netUsed != null ? <>{formatNumber(netUsed)} {displayUnit}</> : '-'}
                     </td>
                     <td className="border p-2 text-right text-gray-900">
                       {hasWeighed ? (
@@ -1096,11 +1096,11 @@ export default function WorkOrderDetailPage() {
                             }
                           >
                             {variance! > 0 ? '+' : ''}
-                            {variance} {displayUnit}
+                            {formatNumber(variance)} {displayUnit}
                           </span>
                           {variancePct !== null && (
                             <span className="text-xs text-gray-500 ml-1">
-                              ({variancePct.toFixed(2)}%)
+                              ({formatNumber(variancePct, 2)}%)
                             </span>
                           )}
                         </>
@@ -1239,8 +1239,8 @@ export default function WorkOrderDetailPage() {
                   <td className="border p-2 text-gray-900 capitalize">{(log.phase || '').replace(/_/g, ' ')}</td>
                   <td className="border p-2 text-gray-900">{log.recordedDate || '-'}</td>
                   <td className="border p-2 text-gray-900">{log.recordedTime || '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{log.temperature ?? '-'}</td>
-                  <td className="border p-2 text-right text-gray-900">{log.humidity ?? '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{log.temperature != null ? formatNumber(log.temperature) : '-'}</td>
+                  <td className="border p-2 text-right text-gray-900">{log.humidity != null ? formatNumber(log.humidity) : '-'}</td>
                   <td className="border p-2 text-center">
                     {log.isNormal ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
                   </td>
@@ -1435,14 +1435,14 @@ export default function WorkOrderDetailPage() {
                 <div className="text-xs text-gray-600 flex gap-3">
                   <span>n={stats.count}</span>
                   {stats.mean != null && (
-                    <span>mean={stats.mean.toFixed(2)}</span>
+                    <span>mean={formatNumber(stats.mean, 2)}</span>
                   )}
                   {stats.stdDev != null && (
-                    <span>SD={stats.stdDev.toFixed(3)}</span>
+                    <span>SD={formatNumber(stats.stdDev, 3)}</span>
                   )}
                   {stats.min != null && (
                     <span>
-                      range={stats.min.toFixed(2)}…{stats.max!.toFixed(2)}
+                      range={formatNumber(stats.min, 2)}…{formatNumber(stats.max!, 2)}
                     </span>
                   )}
                 </div>
@@ -1474,11 +1474,11 @@ export default function WorkOrderDetailPage() {
                       </td>
                       <td className="border p-2 text-gray-900">
                         {test.specMinValue != null && test.specMaxValue != null
-                          ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`
+                          ? `${formatNumber(test.specMinValue)}–${formatNumber(test.specMaxValue)} ${test.specUnit || ''}`
                           : formatQcSpec(test.specSpecification)}
                       </td>
                       <td className="border p-2 text-right text-gray-900 font-medium">
-                        {test.numericResult ?? test.result ?? '-'}{' '}
+                        {test.numericResult != null ? formatNumber(test.numericResult) : (test.result ?? '-')}{' '}
                         {test.specUnit || ''}
                       </td>
                       <td className="border p-2 text-right text-gray-900">
@@ -1491,7 +1491,7 @@ export default function WorkOrderDetailPage() {
                             }
                           >
                             {dev > 0 ? '+' : ''}
-                            {dev.toFixed(2)}%
+                            {formatNumber(dev, 2)}%
                           </span>
                         ) : (
                           '-'
@@ -1554,11 +1554,11 @@ export default function WorkOrderDetailPage() {
               {tests.map((test: any, index: number) => {
                 const value =
                   test.numericResult != null
-                    ? `${test.numericResult} ${test.specUnit || ''}`.trim()
+                    ? `${formatNumber(test.numericResult)} ${test.specUnit || ''}`.trim()
                     : test.result || '-';
                 const specRange =
                   test.specMinValue != null && test.specMaxValue != null
-                    ? `${test.specMinValue}–${test.specMaxValue} ${test.specUnit || ''}`.trim()
+                    ? `${formatNumber(test.specMinValue)}–${formatNumber(test.specMaxValue)} ${test.specUnit || ''}`.trim()
                     : formatQcSpec(test.specSpecification);
                 return (
                   <tr key={index}>
@@ -2243,9 +2243,9 @@ export default function WorkOrderDetailPage() {
                             {line.itemCode ? `${line.itemCode} — ` : ''}{line.itemName || '-'}
                             {line.isOptional ? <span className="text-xs text-gray-400 ml-1">({t('workOrderDetail.ebmr.formulaOptional')})</span> : null}
                           </td>
-                          <td className="border p-2 text-right text-gray-900">{line.quantity ?? '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{line.quantity != null ? formatNumber(line.quantity) : '-'}</td>
                           <td className="border p-2 text-gray-900">{line.unit || '-'}</td>
-                          <td className="border p-2 text-right text-gray-900">{line.percentageInFormula != null ? `${line.percentageInFormula}%` : '-'}</td>
+                          <td className="border p-2 text-right text-gray-900">{line.percentageInFormula != null ? `${formatNumber(line.percentageInFormula, 2)}%` : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2404,19 +2404,19 @@ export default function WorkOrderDetailPage() {
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.plannedQty')}</p>
                     <p className="text-xl font-bold text-gray-900">
-                      {ebmr.plannedQty} {ebmr.productUnit || ''}
+                      {formatNumber(ebmr.plannedQty)} {ebmr.productUnit || ''}
                     </p>
                   </div>
                   <div className="border p-3 rounded-lg text-center">
                     <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.bulkOutput')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.bulkOutputQty != null
-                        ? <>{ebmr.bulkOutputQty} {ebmr.productUnit || ''}</>
+                        ? <>{formatNumber(ebmr.bulkOutputQty)} {ebmr.productUnit || ''}</>
                         : '-'}
                     </p>
                     {ebmr.bulkYieldPercent != null && (
                       <p className={`text-xs mt-0.5 ${ebmr.bulkYieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {t('workOrderDetail.ebmr.bulkYield', { percent: ebmr.bulkYieldPercent })}
+                        {t('workOrderDetail.ebmr.bulkYield', { percent: formatNumber(ebmr.bulkYieldPercent, 2) })}
                       </p>
                     )}
                   </div>
@@ -2424,12 +2424,12 @@ export default function WorkOrderDetailPage() {
                     <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.finishedOutput')}</p>
                     <p className="text-xl font-bold text-gray-900">
                       {ebmr.finishedOutputQty != null
-                        ? <>{ebmr.finishedOutputQty} {ebmr.productUnit || ''}</>
-                        : ebmr.actualQty || '-'}
+                        ? <>{formatNumber(ebmr.finishedOutputQty)} {ebmr.productUnit || ''}</>
+                        : (ebmr.actualQty != null ? formatNumber(ebmr.actualQty) : '-')}
                     </p>
                     {ebmr.yieldPercent != null && (
                       <p className={`text-xs mt-0.5 ${ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {t('workOrderDetail.ebmr.finalYield', { percent: ebmr.yieldPercent })}
+                        {t('workOrderDetail.ebmr.finalYield', { percent: formatNumber(ebmr.yieldPercent, 2) })}
                       </p>
                     )}
                   </div>
@@ -2450,10 +2450,10 @@ export default function WorkOrderDetailPage() {
                         <div>
                           <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.packagingLoss')}</p>
                           <p className="font-semibold text-gray-900">
-                            {ebmr.packagingLossQty} {ebmr.productUnit || ''}
+                            {formatNumber(ebmr.packagingLossQty)} {ebmr.productUnit || ''}
                             {ebmr.packagingLossPercent != null && (
                               <span className="text-xs text-amber-600 ml-1">
-                                ({ebmr.packagingLossPercent}%)
+                                ({formatNumber(ebmr.packagingLossPercent, 2)}%)
                               </span>
                             )}
                           </p>
@@ -2463,10 +2463,10 @@ export default function WorkOrderDetailPage() {
                         <div>
                           <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.totalLoss')}</p>
                           <p className="font-semibold text-gray-900">
-                            {ebmr.totalLossQty} {ebmr.productUnit || ''}
+                            {formatNumber(ebmr.totalLossQty)} {ebmr.productUnit || ''}
                             {ebmr.totalLossPercent != null && (
                               <span className="text-xs text-amber-600 ml-1">
-                                ({ebmr.totalLossPercent}%)
+                                ({formatNumber(ebmr.totalLossPercent, 2)}%)
                               </span>
                             )}
                           </p>
@@ -2640,7 +2640,7 @@ export default function WorkOrderDetailPage() {
                     id: lot.id,
                     label: t('workOrderDetail.dialogs.lotBalance', {
                       lotNumber: lot.lotNumber,
-                      balance: Number(lot.quantity) - Number(lot.reservedQuantity || 0),
+                      balance: formatNumber(Number(lot.quantity) - Number(lot.reservedQuantity || 0)),
                       unit: lot.unit,
                     }) + (lot.expiryDate ? t('workOrderDetail.dialogs.lotExpiry', { date: new Date(lot.expiryDate).toLocaleDateString() }) : '')
                   }))}

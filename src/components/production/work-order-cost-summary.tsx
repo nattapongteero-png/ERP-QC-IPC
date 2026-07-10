@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DataGrid, { Column } from 'devextreme-react/data-grid';
 import { Loader2, Package, Clock, Factory, Calculator, AlertCircle } from 'lucide-react';
 import type { ProductionCostSummary } from '@/types/unit-cost';
+import { formatNumber as fmtNumber, formatMoney } from '@/lib/utils/number-format';
 
 interface WorkOrderCostSummaryProps {
   workOrderId: number;
@@ -57,20 +58,16 @@ async function fetchCostSummary(workOrderId: number): Promise<CostSummaryRespons
   return json.data;
 }
 
+// SSR-safe wrappers around the shared helpers. Preserve the '-' placeholder
+// for null/undefined (the shared helpers render "0.00"/"" for those instead).
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
-  return new Intl.NumberFormat('th-TH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  }).format(value);
+  return formatMoney(value, 2);
 }
 
 function formatNumber(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
-  return new Intl.NumberFormat('th-TH', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
+  return fmtNumber(value);
 }
 
 export function WorkOrderCostSummary({ workOrderId, showDetails = true }: WorkOrderCostSummaryProps) {

@@ -674,7 +674,7 @@ export default function MaterialWeighingPage() {
               {materials.map((material) => {
                 const statusInfo = getStatusInfo(material);
                 const variance = material.weighedQty
-                  ? ((material.weighedQty - material.plannedQty) / material.plannedQty * 100).toFixed(1)
+                  ? (material.weighedQty - material.plannedQty) / material.plannedQty * 100
                   : null;
 
                 return (
@@ -703,15 +703,15 @@ export default function MaterialWeighingPage() {
                         <p className="font-medium text-[#064E3B]">{getDisplayName(material)}</p>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                           <span>
-                            {tw('material.planned')}: <strong>{material.plannedQty} {material.unit}</strong>
+                            {tw('material.planned')}: <strong>{formatNumber(material.plannedQty)} {material.unit}</strong>
                           </span>
                           {material.weighedQty && (
                             <>
                               <span>
-                                {tw('material.actual')}: <strong>{material.weighedQty} {material.unit}</strong>
+                                {tw('material.actual')}: <strong>{formatNumber(material.weighedQty)} {material.unit}</strong>
                               </span>
-                              <span className={variance && parseFloat(variance) !== 0 ? 'text-amber-600' : 'text-green-600'}>
-                                {tw('material.variance')}: {variance}%
+                              <span className={variance && variance !== 0 ? 'text-amber-600' : 'text-green-600'}>
+                                {tw('material.variance')}: {formatNumber(variance, 1)}%
                               </span>
                             </>
                           )}
@@ -773,7 +773,7 @@ export default function MaterialWeighingPage() {
                             >
                               <CheckCircle2 className="h-3 w-3" />
                               <span>
-                                คืนแล้ว {ret.totalQty.toFixed(3)} {ret.unit} · {statusText}
+                                คืนแล้ว {formatNumber(ret.totalQty, 3)} {ret.unit} · {statusText}
                               </span>
                             </div>
                           );
@@ -781,8 +781,8 @@ export default function MaterialWeighingPage() {
                         {/* Water quality info */}
                         {material.isWater && material.waterConductivity && (
                           <div className="mt-1 text-xs text-emerald-600">
-                            Conductivity: {material.waterConductivity} µS·cm⁻¹ |
-                            Temperature: {material.waterTemperature}°C |
+                            Conductivity: {formatNumber(material.waterConductivity)} µS·cm⁻¹ |
+                            Temperature: {formatNumber(material.waterTemperature)}°C |
                             Date: {material.waterDate}
                           </div>
                         )}
@@ -1037,7 +1037,7 @@ export default function MaterialWeighingPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm font-medium">{lot.lotNumber}</span>
                           <span className="text-xs text-gray-500">
-                            {lot.availableQty?.toFixed(2)} {lot.unit}
+                            {formatNumber(lot.availableQty, 2)} {lot.unit}
                           </span>
                         </div>
                         <div className="text-xs text-gray-400">
@@ -1059,7 +1059,7 @@ export default function MaterialWeighingPage() {
                 <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded px-3 py-1.5">
                   เลือก 1 lot ({selected.lotNumber})
                   {' — '}
-                  คงเหลือ {selected.availableQty?.toFixed(2)} {selected.unit}
+                  คงเหลือ {formatNumber(selected.availableQty, 2)} {selected.unit}
                 </div>
               );
             })()}
@@ -1080,7 +1080,7 @@ export default function MaterialWeighingPage() {
               <p className="text-sm">
                 {tw('material.variance')}:{' '}
                 <strong>
-                  {((formData.weighedQty - selectedMaterial.plannedQty) / selectedMaterial.plannedQty * 100).toFixed(2)}%
+                  {formatNumber((formData.weighedQty - selectedMaterial.plannedQty) / selectedMaterial.plannedQty * 100, 2)}%
                 </strong>
                 {Math.abs((formData.weighedQty - selectedMaterial.plannedQty) / selectedMaterial.plannedQty * 100) > 5 && (
                   <span className="text-amber-600 ml-2">({tw('form.varianceWarning')})</span>

@@ -11,6 +11,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
+import { formatNumber } from '@/lib/utils/number-format';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
@@ -857,7 +858,7 @@ export default function SOPExecutionPage() {
                 roundPass ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
               }`}>
                 <span className="font-semibold">
-                  รอบ {roundNum}{stage ? ` · Stage sample ${stage.sampleSize} · tolerance ${stage.tolerancePercent}%` : ''}
+                  รอบ {roundNum}{stage ? ` · Stage sample ${formatNumber(stage.sampleSize)} · tolerance ${formatNumber(stage.tolerancePercent)}%` : ''}
                 </span>
                 <span>
                   {passCount}/{rs.length} ผ่าน · {roundPass ? '✓' : '✗'}
@@ -878,7 +879,7 @@ export default function SOPExecutionPage() {
                         }`}
                       >
                         <div className="text-[9px] text-gray-400">#{s.sampleNumber}</div>
-                        <div className="font-mono font-semibold">{s.numericValue ?? '-'}</div>
+                        <div className="font-mono font-semibold">{s.numericValue != null ? `${formatNumber(s.numericValue)}${ipc.unit ? ` ${ipc.unit}` : ''}` : '-'}</div>
                       </div>
                     ))}
                   </div>

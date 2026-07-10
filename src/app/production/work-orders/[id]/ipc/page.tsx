@@ -39,6 +39,7 @@ import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-p
 import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/number-format';
 
 /**
  * Pass/Fail and Visual criteria are stored as per-sample 'pass'/'fail' just like
@@ -800,7 +801,7 @@ export default function IPCPage() {
                           {test.testMethod && <span>{test.testMethod} · </span>}
                           {test.specMinValue != null && test.specMaxValue != null && (
                             <span>
-                              {t('execution.range')}: {test.specMinValue} - {test.specMaxValue}
+                              {t('execution.range')}: {formatNumber(test.specMinValue)} - {formatNumber(test.specMaxValue)}
                               {test.specUnit ? ` ${test.specUnit}` : ''}
                             </span>
                           )}
@@ -808,7 +809,7 @@ export default function IPCPage() {
                             <span>{t('execution.spec')}: {test.specSpecification}</span>
                           )}
                           {hasSamples && (
-                            <span> · {test.sampleSize} {t('execution.samples')}</span>
+                            <span> · {formatNumber(test.sampleSize)} {t('execution.samples')}</span>
                           )}
                         </div>
                         {/* Linked GMP document — name + preview */}
@@ -844,7 +845,7 @@ export default function IPCPage() {
                       <div className="text-right mr-4">
                         <div className="text-sm font-medium">
                           {test.numericResult != null
-                            ? `${Number(test.numericResult).toFixed(2)}${test.specUnit ? ` ${test.specUnit}` : ''}`
+                            ? `${formatNumber(test.numericResult, 2)}${test.specUnit ? ` ${test.specUnit}` : ''}`
                             : test.result || '-'}
                         </div>
                       </div>
@@ -894,7 +895,7 @@ export default function IPCPage() {
                                   )}
                                   {round.avg != null && (
                                     <span className="text-xs text-gray-500">
-                                      Avg: <strong>{round.avg.toFixed(2)}</strong>{test.specUnit ? ` ${test.specUnit}` : ''}
+                                      Avg: <strong>{formatNumber(round.avg, 2)}</strong>{test.specUnit ? ` ${test.specUnit}` : ''}
                                     </span>
                                   )}
                                 </div>
@@ -940,7 +941,7 @@ export default function IPCPage() {
                                     <div className="font-medium">#{sample.sampleNumber}</div>
                                     <div>
                                       {sample.numericValue != null
-                                        ? Number(sample.numericValue).toFixed(2)
+                                        ? `${formatNumber(sample.numericValue, 2)}${test.specUnit ? ` ${test.specUnit}` : ''}`
                                         : sample.result === 'pass' ? 'Pass'
                                         : sample.result === 'fail' ? 'Fail'
                                         : sample.textValue || '-'}
@@ -1227,10 +1228,10 @@ export default function IPCPage() {
                             overallPass ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                           }`}>
                             <span>
-                              ผ่าน {passCount}/{totalCount} ตัวอย่าง ({(100 - failPct).toFixed(0)}%)
+                              ผ่าน {passCount}/{totalCount} ตัวอย่าง ({formatNumber(100 - failPct, 0)}%)
                             </span>
                             <span className="text-xs">
-                              Tolerance: ±{tolerancePct}% — {overallPass ? 'PASS' : 'FAIL'}
+                              Tolerance: ±{formatNumber(tolerancePct)}% — {overallPass ? 'PASS' : 'FAIL'}
                             </span>
                           </div>
                         );
@@ -1350,7 +1351,7 @@ function SpecInfoCard({ test }: { test: IPCTest }) {
       <div className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
         {test.specMinValue != null && test.specMaxValue != null && (
           <span>
-            Range: {test.specMinValue} - {test.specMaxValue}
+            Range: {formatNumber(test.specMinValue)} - {formatNumber(test.specMaxValue)}
             {test.specUnit ? ` ${test.specUnit}` : ''}
           </span>
         )}

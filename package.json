@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "prebuild": "tsx scripts/validate-i18n.ts || echo '[i18n] Warning: Missing translations detected. Build continues...'",
+    "prebuild": "tsx scripts/validate-i18n.ts || echo '[i18n] Warning: Missing translations detected. Build continues...' && tsx scripts/validate-number-format.ts",
     "build": "next build --webpack",
     "build:theme": "devextreme build-theme --input-file=devextreme-theme/emerald-metadata.json --output-file=public/css/dx.material.emerald.css",
     "start": "next start",
@@ -20,7 +20,9 @@
     "db:seed": "DB_TYPE=sqlite tsx src/lib/db/seed.ts",
     "i18n:check": "tsx scripts/validate-i18n.ts",
     "i18n:check:verbose": "tsx scripts/validate-i18n.ts --verbose",
-    "i18n:fix": "tsx scripts/validate-i18n.ts --fix"
+    "i18n:fix": "tsx scripts/validate-i18n.ts --fix",
+    "numfmt:check": "tsx scripts/validate-number-format.ts",
+    "numfmt:check:verbose": "tsx scripts/validate-number-format.ts --verbose"
   },
   "dependencies": {
     "@devexpress/analytics-core": "25.2.3",

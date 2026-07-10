@@ -14,6 +14,7 @@ import { NumberBox } from 'devextreme-react/number-box';
 import { TextBox } from 'devextreme-react/text-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { AlertTriangle, Send } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 import type { CreateIssuanceInput, IssuanceDetail } from '@/types/packaging';
 
 interface BomPackagingOption {
@@ -162,7 +163,7 @@ export function PackagingIssuanceDialog({
           <label className="block text-sm font-medium mb-1">{t('form.sourceLot.label')} *</label>
           <SelectBox
             dataSource={lots}
-            displayExpr={(l: LotOption | null) => (l ? `${l.lotNumber} (คงเหลือ ${l.quantity})` : '')}
+            displayExpr={(l: LotOption | null) => (l ? `${l.lotNumber} (คงเหลือ ${formatNumber(l.quantity)})` : '')}
             valueExpr="id"
             value={form.sourceLotId}
             placeholder={t('form.sourceLot.placeholder')}

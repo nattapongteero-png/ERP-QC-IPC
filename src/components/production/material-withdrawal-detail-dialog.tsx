@@ -16,6 +16,7 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { CheckCircle, Clock, XCircle, Ban, FileText, PackageCheck } from 'lucide-react';
 import type { MaterialWithdrawalRequestDetail, WithdrawalStatus } from '@/types/material-withdrawal';
+import { formatNumber } from '@/lib/utils/number-format';
 
 export interface MaterialWithdrawalDetailDialogProps {
   visible: boolean;
@@ -150,16 +151,16 @@ export function MaterialWithdrawalDetailDialog({
                             `#${it.materialId}`
                           )}
                         </td>
-                        <td className="px-2 py-1 text-right">{it.quantityRequested}</td>
+                        <td className="px-2 py-1 text-right">{formatNumber(it.quantityRequested)}</td>
                         <td
                           className={`px-2 py-1 text-right ${short ? 'text-rose-600 font-medium' : 'text-gray-700'}`}
                         >
-                          {available === undefined ? '—' : available}
+                          {available === undefined ? '—' : formatNumber(available)}
                           {short && (
                             <span className="block text-xs text-rose-600">ไม่พอ</span>
                           )}
                         </td>
-                        <td className="px-2 py-1 text-right">{it.quantityApproved ?? '—'}</td>
+                        <td className="px-2 py-1 text-right">{it.quantityApproved != null ? formatNumber(it.quantityApproved) : '—'}</td>
                         <td className="px-2 py-1">{it.unit}</td>
                       </tr>
                     );

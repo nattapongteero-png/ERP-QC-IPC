@@ -15,6 +15,7 @@ import { TextBox } from 'devextreme-react/text-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
 import { AlertTriangle, Undo2 } from 'lucide-react';
+import { formatNumber } from '@/lib/utils/number-format';
 import type {
   CreateReturnInput,
   ReturnDetail,
@@ -143,7 +144,7 @@ export function PackagingReturnDialog({
       <div className="p-4 space-y-3">
         {issuance && (
           <div className="rounded-md bg-[#F4FBF7] text-emerald-900 px-3 py-2 text-sm">
-            <strong>Issued: {issuance.quantity} {issuance.unit}</strong>
+            <strong>Issued: {formatNumber(issuance.quantity)} {issuance.unit}</strong>
             {issuance.containerLabel && (
               <> · Container: <code>{issuance.containerLabel}</code></>
             )}

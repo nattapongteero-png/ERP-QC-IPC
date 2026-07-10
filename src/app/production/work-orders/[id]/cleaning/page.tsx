@@ -20,6 +20,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
+import { formatNumber } from '@/lib/utils/number-format';
 import { SwitchTypes } from 'devextreme-react/switch';
 import {
   Sparkles,
@@ -354,12 +355,12 @@ export default function CleaningPage() {
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="text-amber-800">
-                <span className="text-xl font-bold">{progress.completed}</span>
-                <span className="text-xs">/{progress.total} Cleaned</span>
+                <span className="text-xl font-bold">{formatNumber(progress.completed)}</span>
+                <span className="text-xs">/{formatNumber(progress.total)} Cleaned</span>
               </div>
               <div className="text-emerald-800">
-                <span className="text-xl font-bold">{progress.verified}</span>
-                <span className="text-xs">/{progress.total} Verified</span>
+                <span className="text-xl font-bold">{formatNumber(progress.verified)}</span>
+                <span className="text-xs">/{formatNumber(progress.total)} Verified</span>
               </div>
               {progress.verified === progress.total && progress.total > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium text-xs">

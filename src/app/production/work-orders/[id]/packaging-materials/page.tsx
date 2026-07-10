@@ -14,6 +14,7 @@ import { PackagingIssuanceDialog } from '@/components/production/packaging-issua
 import { PackagingReturnDialog } from '@/components/production/packaging-return-dialog';
 import { ElectronicSignatureDialog } from '@/components/shared/ElectronicSignatureDialog';
 import type { IssuanceDetail, ReturnDetail } from '@/types/packaging';
+import { formatNumber } from '@/lib/utils/number-format';
 
 interface PackagingMaterialsPageProps {
   params: Promise<{ id: string }>;
@@ -172,7 +173,7 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
                 >
                   <div className="text-sm">
                     <div className="font-medium">
-                      #{i.id} — {i.itemName} · {i.quantity} {i.unit}
+                      #{i.id} — {i.itemName} · {formatNumber(i.quantity)} {i.unit}
                     </div>
                     <div className="text-gray-500 text-xs">
                       Container: <code>{i.containerLabel}</code> · {i.operator.name}
@@ -205,7 +206,7 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
                 >
                   <div className="text-sm">
                     <div className="font-medium">
-                      #{i.id} — {i.itemName} · {i.quantity} {i.unit}
+                      #{i.id} — {i.itemName} · {formatNumber(i.quantity)} {i.unit}
                     </div>
                     <div className="text-gray-500 text-xs">
                       Container: <code>{i.containerLabel}</code>
@@ -243,8 +244,8 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
                 >
                   <div className="text-sm">
                     <div className="font-medium">
-                      #{r.id} — {r.itemName} · used {r.usedQty} / return {r.returnQty} / variance{' '}
-                      {r.varianceQty}
+                      #{r.id} — {r.itemName} · used {formatNumber(r.usedQty)} / return {formatNumber(r.returnQty)} / variance{' '}
+                      {formatNumber(r.varianceQty)}
                     </div>
                     <div className="text-gray-500 text-xs">
                       Returner: {r.returner.name} · {t(`form.proposedStatus.options.${r.proposedStatus}`)}
@@ -276,7 +277,7 @@ export default function PackagingMaterialsPage({ params }: PackagingMaterialsPag
                 >
                   <div className="text-sm">
                     <div className="font-medium">
-                      #{r.id} — {r.itemName} · Variance {r.varianceQty} ({r.variancePercent.toFixed(2)}%)
+                      #{r.id} — {r.itemName} · Variance {formatNumber(r.varianceQty)} ({formatNumber(r.variancePercent, 2)}%)
                       {r.outsideTolerance && (
                         <span className="ml-2 text-red-600">⚠ outside tolerance</span>
                       )}

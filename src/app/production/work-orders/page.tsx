@@ -623,7 +623,7 @@ export default function WorkOrdersPage() {
     const yield_pct = Number(data.data.yieldPercentage);
     if (!yield_pct || yield_pct === 0 || isNaN(yield_pct)) return <span className="text-gray-400">-</span>;
     const colorClass = yield_pct >= 95 ? 'text-emerald-600' : yield_pct >= 85 ? 'text-amber-600' : 'text-red-600';
-    return <span className={`font-semibold ${colorClass}`}>{yield_pct.toFixed(1)}%</span>;
+    return <span className={`font-semibold ${colorClass}`}>{formatNumber(yield_pct, 1)}%</span>;
   }, []);
 
   const renderStatusCell = useCallback((data: { data: WorkOrder }) => {
@@ -895,7 +895,7 @@ export default function WorkOrdersPage() {
                   <span className="text-sm font-medium text-emerald-700">{t('workOrders.charts.completionRate')}</span>
                 </div>
                 <span className="text-lg font-bold text-emerald-600">
-                  {Number(stats.completionRate).toFixed(1)}%
+                  {formatNumber(Number(stats.completionRate), 1)}%
                 </span>
               </div>
             </div>
@@ -913,7 +913,7 @@ export default function WorkOrdersPage() {
                 stats.avgYield >= 95 ? 'text-emerald-600' :
                 stats.avgYield >= 85 ? 'text-amber-600' : 'text-red-600'
               }`}>
-                {stats.avgYield > 0 ? `${Number(stats.avgYield).toFixed(1)}%` : 'N/A'}
+                {stats.avgYield > 0 ? `${formatNumber(Number(stats.avgYield), 1)}%` : 'N/A'}
               </span>
             </div>
 

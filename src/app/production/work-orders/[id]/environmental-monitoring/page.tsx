@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -556,7 +557,7 @@ export default function EnvironmentalMonitoringPage() {
               />
               {condition && (
                 <p className="text-xs text-gray-500 mt-1">
-                  ค่าที่กำหนด: {condition.temperatureMin}-{condition.temperatureMax}°C
+                  ค่าที่กำหนด: {formatNumber(condition.temperatureMin)}-{formatNumber(condition.temperatureMax)}°C
                 </p>
               )}
             </div>
@@ -574,7 +575,7 @@ export default function EnvironmentalMonitoringPage() {
               />
               {condition && (
                 <p className="text-xs text-gray-500 mt-1">
-                  สูงสุด: ≤{condition.humidityMax}% RH
+                  สูงสุด: ≤{formatNumber(condition.humidityMax)}% RH
                 </p>
               )}
             </div>

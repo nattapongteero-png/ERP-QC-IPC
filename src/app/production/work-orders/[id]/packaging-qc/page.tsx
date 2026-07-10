@@ -27,6 +27,7 @@ import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
+import { formatNumber } from '@/lib/utils/number-format';
 import { SwitchTypes } from 'devextreme-react/switch';
 import {
   Scale,
@@ -421,27 +422,27 @@ export default function PackagingQCPage() {
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.minWeight')}</div>
                       <div className="text-xl font-bold text-emerald-700">
-                        {criteria.weightMin}
+                        {formatNumber(criteria.weightMin)}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.maxWeight')}</div>
                       <div className="text-xl font-bold text-emerald-700">
-                        {criteria.weightMax}
+                        {formatNumber(criteria.weightMax)}
                         <span className="text-sm font-normal text-gray-500 ml-1">g</span>
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.sampleSize')}</div>
                       <div className="text-xl font-bold text-emerald-700">
-                        {criteria.sampleSize}
+                        {formatNumber(criteria.sampleSize)}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 mb-1">{t('weight.maxFailures')}</div>
                       <div className="text-xl font-bold text-amber-600">
-                        {criteria.maxFailures}
+                        {formatNumber(criteria.maxFailures)}
                       </div>
                     </div>
                   </div>
@@ -474,25 +475,25 @@ export default function PackagingQCPage() {
             <StatCard
               icon={<Activity className="h-5 w-5" />}
               label={t('weight.totalChecks')}
-              value={totalChecks}
+              value={formatNumber(totalChecks)}
               tone="emerald"
             />
             <StatCard
               icon={<CheckCircle2 className="h-5 w-5" />}
               label={t('weight.passed')}
-              value={passedChecks}
+              value={formatNumber(passedChecks)}
               tone="emerald"
             />
             <StatCard
               icon={<XCircle className="h-5 w-5" />}
               label={t('weight.failed')}
-              value={failedChecks}
+              value={formatNumber(failedChecks)}
               tone="rose"
             />
             <StatCard
               icon={<TrendingUp className="h-5 w-5" />}
               label={t('weight.passRate')}
-              value={`${passRate}%`}
+              value={`${formatNumber(passRate)}%`}
               tone={passRate >= 95 ? 'emerald' : passRate >= 80 ? 'amber' : 'rose'}
             />
           </div>
@@ -509,7 +510,7 @@ export default function PackagingQCPage() {
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-1 w-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" />
-                <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({totalChecks})</h3>
+                <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({formatNumber(totalChecks)})</h3>
               </div>
 
               {weightLoading ? (
@@ -612,19 +613,19 @@ export default function PackagingQCPage() {
                           <div className="grid grid-cols-3 gap-2 mb-3 p-2.5 rounded-xl bg-white/70 border border-gray-100">
                             <StatChip
                               label={t('weight.avg')}
-                              value={`${avg.toFixed(2)}g`}
+                              value={`${formatNumber(avg, 2)}g`}
                               tone="emerald"
                             />
                             <StatChip
                               label={t('weight.min')}
-                              value={`${minW.toFixed(2)}g`}
+                              value={`${formatNumber(minW, 2)}g`}
                               tone={
                                 criteria && minW < criteria.weightMin ? 'rose' : 'emerald'
                               }
                             />
                             <StatChip
                               label={t('weight.max')}
-                              value={`${maxW.toFixed(2)}g`}
+                              value={`${formatNumber(maxW, 2)}g`}
                               tone={
                                 criteria && maxW > criteria.weightMax ? 'rose' : 'emerald'
                               }
@@ -650,7 +651,7 @@ export default function PackagingQCPage() {
                                   #{i + 1}
                                 </div>
                                 <div className="font-mono font-bold text-sm leading-tight">
-                                  {Number(w).toFixed(2)}
+                                  {formatNumber(w, 2)}
                                 </div>
                               </div>
                             );
@@ -710,16 +711,16 @@ export default function PackagingQCPage() {
                   <div>
                     <span className="text-gray-500">{t('weight.criteriaRange')}</span>{' '}
                     <strong className="text-emerald-800">
-                      {criteria.weightMin}–{criteria.weightMax}g
+                      {formatNumber(criteria.weightMin)}–{formatNumber(criteria.weightMax)}g
                     </strong>
                   </div>
                   <div>
                     <span className="text-gray-500">{t('weight.criteriaSample')}</span>{' '}
-                    <strong>{criteria.sampleSize}</strong>
+                    <strong>{formatNumber(criteria.sampleSize)}</strong>
                   </div>
                   <div>
                     <span className="text-gray-500">{t('weight.criteriaMaxFail')}</span>{' '}
-                    <strong className="text-amber-700">{criteria.maxFailures}</strong>
+                    <strong className="text-amber-700">{formatNumber(criteria.maxFailures)}</strong>
                   </div>
                 </div>
               </div>
@@ -835,7 +836,7 @@ export default function PackagingQCPage() {
                     </div>
                     <div className="text-xs text-gray-600">
                       {t('weight.failedSamples', { count: weightResult.failedCount })}{' '}
-                      / {t('weight.maxFailures')}: {criteria?.maxFailures || 0}
+                      / {t('weight.maxFailures')}: {formatNumber(criteria?.maxFailures || 0)}
                     </div>
                   </div>
                 </div>
@@ -1009,25 +1010,25 @@ export default function PackagingQCPage() {
           <StatCard
             icon={<Activity className="h-5 w-5" />}
             label={t('integrity.totalChecks')}
-            value={totalIntegrity}
+            value={formatNumber(totalIntegrity)}
             tone="purple"
           />
           <StatCard
             icon={<CheckCircle2 className="h-5 w-5" />}
             label={t('integrity.allPass')}
-            value={allPassIntegrity}
+            value={formatNumber(allPassIntegrity)}
             tone="emerald"
           />
           <StatCard
             icon={<AlertTriangle className="h-5 w-5" />}
             label={t('integrity.issues')}
-            value={issuesIntegrity}
+            value={formatNumber(issuesIntegrity)}
             tone="rose"
           />
           <StatCard
             icon={<TrendingUp className="h-5 w-5" />}
             label={t('integrity.passRate')}
-            value={`${integrityRate}%`}
+            value={`${formatNumber(integrityRate)}%`}
             tone={integrityRate >= 95 ? 'emerald' : integrityRate >= 80 ? 'amber' : 'rose'}
           />
         </div>
@@ -1037,7 +1038,7 @@ export default function PackagingQCPage() {
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-1 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-              <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({totalIntegrity})</h3>
+              <h3 className="font-bold text-[#064E3B]">{t('common.history')} ({formatNumber(totalIntegrity)})</h3>
             </div>
 
             {integrityLoading ? (

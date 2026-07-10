@@ -27,6 +27,7 @@ import type {
   WithdrawalReasonType,
 } from '@/types/material-withdrawal';
 import { WITHDRAWAL_REASON_TYPES } from '@/types/material-withdrawal';
+import { formatNumber } from '@/lib/utils/number-format';
 
 export interface BomMaterialOption {
   itemId: number;
@@ -206,7 +207,7 @@ export function MaterialWithdrawalRequestDialog({
           <SelectBox
             dataSource={bomMaterials}
             displayExpr={(item: BomMaterialOption | null) =>
-              item ? `${item.itemName} (planned: ${item.plannedQuantity} ${item.unit})` : ''
+              item ? `${item.itemName} (planned: ${formatNumber(item.plannedQuantity)} ${item.unit})` : ''
             }
             valueExpr="itemId"
             value={form.materialId}
@@ -354,7 +355,7 @@ export function MaterialWithdrawalRequestDialog({
                 <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
                   ปริมาณรวมที่ขอเบิกเพิ่ม ~{' '}
-                  <strong>{projected.toFixed(1)}%</strong> ของ BOM
+                  <strong>{formatNumber(projected, 1)}%</strong> ของ BOM
                   {isHigh && ' (เกิน soft cap — ระบบจะแจ้งเตือนผู้อนุมัติเป็นพิเศษ)'}
                 </div>
               </div>

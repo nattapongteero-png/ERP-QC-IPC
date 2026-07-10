@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
@@ -418,7 +419,7 @@ export default function FinishedInspectionPage() {
                   <div className="text-right">
                     <p className="text-sm text-gray-600">ตัวอย่าง</p>
                     <p className="text-lg font-medium">
-                      ทดสอบ: {inspection.sampleQtyForTest} | สำรอง: {inspection.sampleQtyForRetention}
+                      ทดสอบ: {formatNumber(inspection.sampleQtyForTest)} | สำรอง: {formatNumber(inspection.sampleQtyForRetention)}
                     </p>
                   </div>
                   {!isEditing && inspection.status !== 'passed' && (

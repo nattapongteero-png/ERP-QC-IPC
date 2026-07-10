@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { ExecutionDashboard } from '@/components/production/ExecutionDashboard';
+import { formatNumber } from '@/lib/utils/number-format';
 import { ClipboardCheck } from 'lucide-react';
 
 interface WorkOrderBasic {
@@ -113,8 +114,8 @@ export default function WorkOrderExecutionPage() {
                 {workOrder.status.replace('_', ' ').toUpperCase()}
               </span>
               <span className="text-gray-600">
-                Planned: <strong>{workOrder.plannedQuantity}</strong> |
-                Actual: <strong>{workOrder.actualQuantity || 0}</strong>
+                Planned: <strong>{formatNumber(workOrder.plannedQuantity)}</strong> |
+                Actual: <strong>{formatNumber(workOrder.actualQuantity || 0)}</strong>
               </span>
             </div>
             <div className="text-sm text-[#4B7163]">
