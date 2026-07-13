@@ -147,11 +147,16 @@ export default function CompetencyMatrixPage() {
       const Icon = config.icon;
 
       return (
-        <div className={'flex items-center justify-center p-1 rounded ' + config.bgColor}>
-          <Icon className={'h-4 w-4 ' + config.color} />
-          {isRequired && (
-            <span className="ml-1 text-xs text-red-500">*</span>
-          )}
+        <div className="flex items-center justify-center">
+          <span
+            className={
+              'inline-flex h-7 w-7 items-center justify-center rounded-full ' + config.bgColor
+            }
+            title={t(config.labelKey)}
+          >
+            <Icon className={'h-4 w-4 ' + config.color} />
+          </span>
+          {isRequired && <span className="ml-0.5 text-xs text-red-500">*</span>}
         </div>
       );
     };
@@ -270,7 +275,7 @@ export default function CompetencyMatrixPage() {
       </div>
 
       {/* Matrix Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="competency-matrix-grid bg-white rounded-xl border border-gray-200 overflow-hidden">
         <DataGrid
           dataSource={gridData}
           keyExpr="employeeId"
@@ -282,8 +287,9 @@ export default function CompetencyMatrixPage() {
           hoverStateEnabled
           loadPanel={{ enabled: isLoading }}
           columnAutoWidth={false}
+          data-testid="competency-matrix-grid"
         >
-          <Scrolling mode="standard" columnRenderingMode="virtual" />
+          <Scrolling mode="standard" columnRenderingMode="virtual" showScrollbar="always" />
           <ColumnFixing enabled />
           <Paging enabled={false} />
 
@@ -291,6 +297,7 @@ export default function CompetencyMatrixPage() {
             dataField="employeeName"
             caption={t('training.matrix.employeeColumn')}
             width={200}
+            minWidth={160}
             fixed
             fixedPosition="left"
           />
@@ -300,12 +307,14 @@ export default function CompetencyMatrixPage() {
               key={course.id}
               dataField={'course_' + course.id}
               caption={course.code}
-              width={80}
+              width={110}
+              minWidth={110}
               alignment="center"
+              allowSorting={false}
               cellRender={renderStatusCell(course.id)}
               headerCellRender={() => (
-                <div className="text-center">
-                  <div className="font-medium text-xs">{course.code}</div>
+                <div className="flex flex-col items-center justify-center gap-0.5 leading-tight">
+                  <span className="font-medium text-xs whitespace-nowrap">{course.code}</span>
                   {course.isMandatory && (
                     <Badge variant="danger" className="text-[10px] px-1 py-0">{t('training.matrix.mandatoryBadge')}</Badge>
                   )}
@@ -313,6 +322,10 @@ export default function CompetencyMatrixPage() {
               )}
             />
           ))}
+
+          {/* Spacer: absorbs any leftover width so the last real course
+              column keeps its fixed size instead of being stretched. */}
+          <Column caption="" allowSorting={false} allowResizing={false} cssClass="matrix-spacer-col" />
         </DataGrid>
       </div>
     </div>

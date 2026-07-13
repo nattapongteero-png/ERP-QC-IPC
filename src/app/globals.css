@@ -1261,6 +1261,39 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
 }
 
 /* =========================================================
+   Competency Matrix grid (HR › Training › Matrix)
+   ---------------------------------------------------------
+   This grid has many narrow fixed-width course columns whose
+   captions (TRN-GACP-002 …) are wider than the column. The
+   global "headers may overflow so Thai captions wrap" rule
+   above therefore let the header row spill outside the card
+   border. Here we clip instead: each header keeps its code on
+   one line, centred, and the whole grid scrolls horizontally.
+   ========================================================= */
+.competency-matrix-grid .dx-datagrid-headers .dx-header-row > td {
+  overflow: hidden !important;
+  vertical-align: middle;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.competency-matrix-grid .dx-datagrid-headers .dx-datagrid-text-content {
+  overflow: hidden !important;
+  white-space: normal !important;
+  width: 100%;
+}
+/* keep the horizontal scrollbar inside the rounded card */
+.competency-matrix-grid .dx-datagrid {
+  border-radius: inherit;
+}
+/* Spacer column: soaks up leftover width when few courses are shown
+   (e.g. "mandatory only" is ticked) so real course columns keep their
+   fixed width. It must read as empty table space, not as a column. */
+.competency-matrix-grid td.matrix-spacer-col {
+  border-left: none !important;
+  background: transparent !important;
+}
+
+/* =========================================================
    Realtime sync — flash highlight
    ---------------------------------------------------------
    Briefly tints rows that just changed via SSE event so other
