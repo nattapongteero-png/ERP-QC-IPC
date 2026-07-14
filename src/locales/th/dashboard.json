@@ -191,13 +191,6 @@
       }
     },
     "gmp": {
-      "complianceScore": {
-        "label": "คะแนนการปฏิบัติตาม",
-        "subtitle": "คะแนน GMP โดยรวม",
-        "excellent": "ยอดเยี่ยม",
-        "good": "ดี",
-        "needsAttention": "ต้องติดตาม"
-      },
       "openDeviations": {
         "label": "ความเบี่ยงเบนที่เปิดอยู่",
         "subtitle": "รอการแก้ไข"
@@ -212,6 +205,10 @@
       },
       "trainingGaps": {
         "label": "ช่องว่างการอบรม"
+      },
+      "openIssues": {
+        "label": "งาน GMP ที่ค้างอยู่",
+        "subtitle": "ความเบี่ยงเบน + CAPA + ข้อพบ + การอบรม"
       }
     }
   },
@@ -297,5 +294,13 @@
         "minStock": "สต็อกขั้นต่ำ"
       }
     }
+  },
+  "inventoryValue": {
+    "finishedGoods": "สินค้าสำเร็จรูปในคลัง",
+    "rawMaterials": "วัตถุดิบในคลัง",
+    "expiringSoon": "ใกล้หมดอายุ (30 วัน)",
+    "itemsAndLots": "{items} รายการ · {lots} ล็อต",
+    "uncostedWarning": "ยังไม่มีต้นทุน {count} ล็อต — มูลค่าจริงสูงกว่านี้",
+    "alreadyExpired": "หมดอายุแล้ว {lots} ล็อต · {value}"
   }
 }

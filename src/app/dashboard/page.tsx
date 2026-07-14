@@ -12,7 +12,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { KPICard, KPICardSkeleton } from '@/components/ui/kpi-card';
 import { StatCard, StatCardSkeleton } from '@/components/ui/stat-card';
 import { ModuleKpiTabs } from '@/components/dashboard/module-kpi-tabs';
-import type { DashboardModuleKpis } from '@/lib/services/dashboard.service';
+import { InventoryValueCards } from '@/components/dashboard/inventory-value-cards';
+import type {
+  DashboardModuleKpis,
+  InventoryValueKpis,
+} from '@/lib/services/dashboard.service';
 import {
   Package,
   Factory,
@@ -92,6 +96,7 @@ interface DashboardData {
     totalQuantity: number;
   }>;
   moduleKpis: DashboardModuleKpis | null;
+  inventoryValue: InventoryValueKpis | null;
 }
 
 export default function DashboardPage() {
@@ -277,6 +282,9 @@ export default function DashboardPage() {
                 />
               </Link>
             </div>
+
+            {/* Stock on hand by category, with baht values */}
+            <InventoryValueCards data={data?.inventoryValue || null} />
 
             {/* Module KPIs Tabs */}
             <ModuleKpiTabs

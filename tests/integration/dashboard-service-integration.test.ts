@@ -40,7 +40,8 @@ describe('Dashboard Service Integration', () => {
     expect(typeof kpis.approvedPOs).toBe('number');
     expect(typeof kpis.poValueMtd).toBe('number');
     expect(typeof kpis.activeVendors).toBe('number');
-    expect(typeof kpis.onTimeDeliveryRate).toBe('number');
+    // Not measurable from current data — must be null, never a stand-in number.
+    expect(kpis.onTimeDeliveryRate).toBeNull();
     expect(typeof kpis.avlCoverage).toBe('number');
   });
 
@@ -73,15 +74,19 @@ describe('Dashboard Service Integration', () => {
     const kpis = await getGMPKpis();
 
     expect(kpis).toBeDefined();
-    expect(typeof kpis.overallScore).toBe('number');
+    expect(typeof kpis.openIssues).toBe('number');
     expect(typeof kpis.openDeviations).toBe('number');
     expect(typeof kpis.openCapas).toBe('number');
     expect(typeof kpis.openAuditFindings).toBe('number');
     expect(typeof kpis.trainingGaps).toBe('number');
 
-    // Overall score should be 0-100
-    expect(kpis.overallScore).toBeGreaterThanOrEqual(0);
-    expect(kpis.overallScore).toBeLessThanOrEqual(100);
+    // openIssues is a real sum of open work, not a synthesised score.
+    expect(kpis.openIssues).toBe(
+      kpis.openDeviations +
+        kpis.openCapas +
+        kpis.openAuditFindings +
+        kpis.trainingGaps,
+    );
   });
 
   it('should get all dashboard module KPIs', async () => {

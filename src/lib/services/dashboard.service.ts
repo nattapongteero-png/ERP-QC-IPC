@@ -4,7 +4,7 @@
  */
 
 import { isSqlite } from '../db';
-import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, inArray } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
 import { getTodayStr, toQueryDate } from '../db/date-utils';
 import { sqliteVmiSyncHistory, mysqlVmiSyncHistory } from '../db/schema';
@@ -27,7 +27,8 @@ export interface PurchaseKpis {
   approvedPOs: number;
   poValueMtd: number;
   activeVendors: number;
-  onTimeDeliveryRate: number;
+  /** Null when not measurable — no actual delivery date is recorded on POs. */
+  onTimeDeliveryRate: number | null;
   avlCoverage: number; // percentage
 }
 
@@ -48,12 +49,29 @@ export interface VMIKpis {
 }
 
 export interface GMPKpis {
-  overallScore: number;
+  /** Sum of the four counts below — a workload figure, NOT a compliance score. */
+  openIssues: number;
   openDeviations: number;
   openCapas: number;
   openAuditFindings: number;
   trainingGaps: number;
 }
+
+/**
+ * Non-terminal statuses — anything not in these lists is finished work.
+ * Kept explicit (rather than `!= 'closed'`) so that adding a status to a schema
+ * enum forces a deliberate decision here instead of silently changing a
+ * GMP-facing count.
+ */
+const OPEN_DEVIATION_STATUSES = ['open', 'investigating'];
+const OPEN_CAPA_STATUSES = [
+  'open',
+  'investigation',
+  'action_pending',
+  'verification',
+  'pending_approval',
+];
+const OPEN_FINDING_STATUSES = ['open', 'capa_assigned'];
 
 export interface DashboardModuleKpis {
   hr: HRKpis;
@@ -335,7 +353,13 @@ export async function getPurchaseKpis(): Promise<PurchaseKpis> {
     approvedPOs: approvedResult,
     poValueMtd: valueResult,
     activeVendors: vendorResult,
-    onTimeDeliveryRate: 95, // Placeholder - would require delivery tracking
+    // Null, not a number: purchase_orders records an expectedDate but no actual
+    // receipt date, so on-time delivery cannot be computed from the data we
+    // have. This previously returned a hardcoded 95, which rendered as a green
+    // "95%" KPI indistinguishable from a real measurement. Null makes the UI
+    // show "—" (no data). To implement for real, capture an actual delivery
+    // date on receipt and compare it against expectedDate.
+    onTimeDeliveryRate: null,
     avlCoverage,
   };
 }
@@ -531,37 +555,34 @@ export async function getGMPKpis(): Promise<GMPKpis> {
     findingsResult,
     trainingGapsResult,
   ] = await Promise.all([
-    // Open deviations
+    // Unresolved deviations. Counts every status before resolution — a
+    // deviation under investigation is still open. Filtering to status='open'
+    // alone hid `investigating` records and let the card read "all clear"
+    // while investigations were outstanding.
     executeDbOperation(async (db) => {
       const result = await db
         .select({ count: sql`count(*)` })
         .from(deviationsTable)
-        .where(eq(deviationsTable.status, 'open'));
+        .where(inArray(deviationsTable.status, OPEN_DEVIATION_STATUSES));
       return Number(result[0]?.count || 0);
     }),
-    // Open CAPAs
+    // Unresolved CAPAs — every non-terminal state, not just 'open'. A CAPA in
+    // action_pending or pending_approval is outstanding work.
     executeDbOperation(async (db) => {
-      try {
-        const result = await db
-          .select({ count: sql`count(*)` })
-          .from(capaTable)
-          .where(eq(capaTable.status, 'open'));
-        return Number(result[0]?.count || 0);
-      } catch {
-        return 0; // Table may not exist
-      }
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(capaTable)
+        .where(inArray(capaTable.status, OPEN_CAPA_STATUSES));
+      return Number(result[0]?.count || 0);
     }),
-    // Open audit findings
+    // Unresolved audit findings. `capa_assigned` is still unremediated — only
+    // `closed` is done.
     executeDbOperation(async (db) => {
-      try {
-        const result = await db
-          .select({ count: sql`count(*)` })
-          .from(auditFindingsTable)
-          .where(eq(auditFindingsTable.status, 'open'));
-        return Number(result[0]?.count || 0);
-      } catch {
-        return 0; // Table may not exist
-      }
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(auditFindingsTable)
+        .where(inArray(auditFindingsTable.status, OPEN_FINDING_STATUSES));
+      return Number(result[0]?.count || 0);
     }),
     // Training gaps (expired training)
     executeDbOperation(async (db) => {
@@ -582,16 +603,203 @@ export async function getGMPKpis(): Promise<GMPKpis> {
     }),
   ]);
 
-  // Calculate overall compliance score (simplified)
-  const totalIssues = deviationsResult + capasResult + findingsResult + trainingGapsResult;
-  const overallScore = totalIssues === 0 ? 100 : Math.max(0, 100 - (totalIssues * 5));
+  // No overall "compliance score" is reported. The previous formula was
+  // 100 - (issues * 5): the 5-point weight was invented, tied to no GMP chapter
+  // or standard, and returned a perfect 100 on an empty database. Presenting an
+  // unfounded number as a GMP compliance score to an inspector is worse than
+  // presenting none, so the UI now shows the four counts that ARE measured and
+  // omits the score. A real weighted score belongs in
+  // compliance-dashboard-service.ts, which scores against actual GMP chapters.
+  const openIssues = deviationsResult + capasResult + findingsResult + trainingGapsResult;
 
   return {
-    overallScore,
+    openIssues,
     openDeviations: deviationsResult,
     openCapas: capasResult,
     openAuditFindings: findingsResult,
     trainingGaps: trainingGapsResult,
+  };
+}
+
+// ============================================
+// Inventory Value KPIs
+// ============================================
+
+/**
+ * Stock on hand for one item category, as both a count and a baht value.
+ *
+ * `value` only sums lots that actually carry a unit cost. Lots with a NULL
+ * cost contribute their quantity but no value, so `value` is a FLOOR, not the
+ * true worth of the stock. `uncostedLots` says how many lots are missing a
+ * cost — callers must surface it, otherwise the figure reads as complete when
+ * it isn't. Finished-goods lots are routinely uncosted (a lot is only costed
+ * once its work order closes and posts a cost), so this gap is normal there
+ * and must not be silently rounded away.
+ */
+export interface StockValue {
+  /** Distinct items with stock on hand. */
+  items: number;
+  /** Lots with quantity > 0. */
+  lots: number;
+  /** Total quantity across those lots. */
+  quantity: number;
+  /** Baht value of the costed lots only — a lower bound when uncostedLots > 0. */
+  value: number;
+  /** Lots counted in `quantity` but excluded from `value` (cost IS NULL). */
+  uncostedLots: number;
+}
+
+export interface ExpiringStock extends StockValue {
+  /** Lots whose expiry date has already passed. */
+  expiredLots: number;
+  /** Baht value already lost to expiry (costed lots only). */
+  expiredValue: number;
+}
+
+export interface InventoryValueKpis {
+  finishedGoods: StockValue;
+  rawMaterials: StockValue;
+  packaging: StockValue;
+  /** Unexpired stock expiring within the next 30 days. */
+  expiringSoon: ExpiringStock;
+  generatedAt: string;
+}
+
+/** Stock statuses that represent sellable/usable inventory an owner would value. */
+const VALUED_LOT_STATUSES = ['quarantine', 'under_test', 'released'] as const;
+
+const EMPTY_STOCK_VALUE: StockValue = {
+  items: 0,
+  lots: 0,
+  quantity: 0,
+  value: 0,
+  uncostedLots: 0,
+};
+
+/**
+ * Value the stock on hand for a set of item types.
+ *
+ * Excludes `rejected` and `blocked` lots — that stock is awaiting disposal and
+ * carrying it as inventory value would overstate the balance sheet. Also
+ * excludes zero-quantity lots, which are fully consumed and would otherwise
+ * inflate the lot count.
+ */
+async function getStockValueForTypes(types: string[]): Promise<StockValue> {
+  const itemsTable = getTableRef('items');
+  const lotsTable = getTableRef('inventoryLots');
+
+  return executeDbOperation(async (db) => {
+    const result = await db
+      .select({
+        items: sql<number>`COUNT(DISTINCT ${lotsTable.itemId})`,
+        lots: sql<number>`COUNT(*)`,
+        quantity: sql<number>`COALESCE(SUM(${lotsTable.quantity}), 0)`,
+        // COALESCE inside SUM, not outside: a NULL-cost lot must contribute 0
+        // to the value rather than poisoning the whole SUM to NULL.
+        value: sql<number>`COALESCE(SUM(${lotsTable.quantity} * COALESCE(${lotsTable.cost}, 0)), 0)`,
+        uncostedLots: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.cost} IS NULL THEN 1 ELSE 0 END), 0)`,
+      })
+      .from(lotsTable)
+      .innerJoin(itemsTable, eq(itemsTable.id, lotsTable.itemId))
+      .where(
+        and(
+          inArray(itemsTable.type, types),
+          inArray(lotsTable.status, [...VALUED_LOT_STATUSES]),
+          sql`${lotsTable.quantity} > 0`
+        )
+      );
+
+    const row = result[0];
+    if (!row) return { ...EMPTY_STOCK_VALUE };
+
+    return {
+      items: Number(row.items) || 0,
+      lots: Number(row.lots) || 0,
+      quantity: Number(row.quantity) || 0,
+      value: Number(row.value) || 0,
+      uncostedLots: Number(row.uncostedLots) || 0,
+    };
+  });
+}
+
+/**
+ * Stock at risk from expiry: already-expired lots, plus lots expiring within
+ * the next 30 days. Reports the baht value at stake, not just a lot count —
+ * "8 lots expiring" tells an owner nothing about whether that is ฿800 or ฿800k.
+ *
+ * The two windows are disjoint: a lot is counted as expired OR expiring-soon,
+ * never both.
+ */
+async function getExpiringStock(): Promise<ExpiringStock> {
+  const lotsTable = getTableRef('inventoryLots');
+
+  return executeDbOperation(async (db) => {
+    const todayStr = getTodayStr();
+    const thirtyDaysAhead = new Date();
+    thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30);
+
+    const today = toQueryDate(todayStr);
+    const horizon = toQueryDate(thirtyDaysAhead);
+
+    const costedValue = sql`${lotsTable.quantity} * COALESCE(${lotsTable.cost}, 0)`;
+
+    const result = await db
+      .select({
+        // Expiring soon: [today, today+30]
+        items: sql<number>`COUNT(DISTINCT CASE WHEN ${lotsTable.expiryDate} >= ${today} THEN ${lotsTable.itemId} END)`,
+        lots: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} >= ${today} THEN 1 ELSE 0 END), 0)`,
+        quantity: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} >= ${today} THEN ${lotsTable.quantity} ELSE 0 END), 0)`,
+        value: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} >= ${today} THEN ${costedValue} ELSE 0 END), 0)`,
+        uncostedLots: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} >= ${today} AND ${lotsTable.cost} IS NULL THEN 1 ELSE 0 END), 0)`,
+        // Already expired: expiry < today
+        expiredLots: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} < ${today} THEN 1 ELSE 0 END), 0)`,
+        expiredValue: sql<number>`COALESCE(SUM(CASE WHEN ${lotsTable.expiryDate} < ${today} THEN ${costedValue} ELSE 0 END), 0)`,
+      })
+      .from(lotsTable)
+      .where(
+        and(
+          inArray(lotsTable.status, [...VALUED_LOT_STATUSES]),
+          sql`${lotsTable.quantity} > 0`,
+          sql`${lotsTable.expiryDate} IS NOT NULL`,
+          lte(lotsTable.expiryDate, horizon)
+        )
+      );
+
+    const row = result[0];
+    if (!row) {
+      return { ...EMPTY_STOCK_VALUE, expiredLots: 0, expiredValue: 0 };
+    }
+
+    return {
+      items: Number(row.items) || 0,
+      lots: Number(row.lots) || 0,
+      quantity: Number(row.quantity) || 0,
+      value: Number(row.value) || 0,
+      uncostedLots: Number(row.uncostedLots) || 0,
+      expiredLots: Number(row.expiredLots) || 0,
+      expiredValue: Number(row.expiredValue) || 0,
+    };
+  });
+}
+
+/**
+ * Stock on hand broken down by category, with baht values — what an owner
+ * needs to answer "what is sitting in my warehouse and what is it worth".
+ */
+export async function getInventoryValueKpis(): Promise<InventoryValueKpis> {
+  const [finishedGoods, rawMaterials, packaging, expiringSoon] = await Promise.all([
+    getStockValueForTypes(['finished_goods']),
+    getStockValueForTypes(['raw_material']),
+    getStockValueForTypes(['packaging']),
+    getExpiringStock(),
+  ]);
+
+  return {
+    finishedGoods,
+    rawMaterials,
+    packaging,
+    expiringSoon,
+    generatedAt: new Date().toISOString(),
   };
 }
 

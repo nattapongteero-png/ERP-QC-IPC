@@ -7,7 +7,10 @@ import {
   serverErrorResponse,
   withAuth,
 } from '@/lib/api-utils';
-import { getDashboardModuleKpis } from '@/lib/services/dashboard.service';
+import {
+  getDashboardModuleKpis,
+  getInventoryValueKpis,
+} from '@/lib/services/dashboard.service';
 
 /**
  * Sum the value of non-draft, non-cancelled sales orders whose orderDate
@@ -56,6 +59,7 @@ export async function GET(request: NextRequest) {
         pendingSOs,
         openDeviations,
         moduleKpis,
+        inventoryValue,
       ] = await Promise.all([
         // Total active items
         executeDbOperation(async (db) => {
@@ -135,6 +139,9 @@ export async function GET(request: NextRequest) {
 
         // Module KPIs
         getDashboardModuleKpis(),
+
+        // Stock on hand by category, with baht values
+        getInventoryValueKpis(),
       ]);
 
       // Monthly sales growth: this calendar month vs last calendar month.
@@ -233,6 +240,7 @@ export async function GET(request: NextRequest) {
         workOrdersByStatus,
         inventoryByWarehouseType,
         moduleKpis,
+        inventoryValue,
       });
     } catch (error) {
       return serverErrorResponse(error);

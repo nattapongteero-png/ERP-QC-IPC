@@ -189,8 +189,8 @@ describe('Audit Dashboard Service Real Integration Tests', () => {
         (1, 'RM001', 'วัตถุดิบ A', 'Raw Material A', 'raw_material', 'kg', 100, 50, 75),
         (2, 'RM002', 'วัตถุดิบ B', 'Raw Material B', 'material', 'kg', 30, 40, 60),
         (3, 'PK001', 'บรรจุภัณฑ์ A', 'Packaging A', 'packaging', 'pcs', 500, 100, 200),
-        (4, 'FG001', 'ผลิตภัณฑ์สำเร็จ A', 'Finished Good A', 'finished_good', 'bottle', 200, 50, 100),
-        (5, 'FG002', 'ผลิตภัณฑ์สำเร็จ B', 'Finished Good B', 'product', 'bottle', 150, 30, 50)
+        (4, 'FG001', 'ผลิตภัณฑ์สำเร็จ A', 'Finished Good A', 'finished_goods', 'bottle', 200, 50, 100),
+        (5, 'FG002', 'ผลิตภัณฑ์สำเร็จ B', 'Finished Good B', 'finished_goods', 'bottle', 150, 30, 50)
     `);
 
     // Create test BOM (required for work orders)
@@ -694,7 +694,7 @@ describe('Audit Dashboard Service Real Integration Tests', () => {
       // Add test data for cancelled work order test
       sqlite.exec(`
         INSERT INTO items (id, code, name_th, name_en, type, primary_unit, on_hand)
-        VALUES (10, 'TEST001', 'Test', 'Test', 'finished_good', 'pcs', 100)
+        VALUES (10, 'TEST001', 'Test', 'Test', 'finished_goods', 'pcs', 100)
       `);
       sqlite.exec(`
         INSERT INTO bom (id, code, name, product_id, batch_size, batch_unit)

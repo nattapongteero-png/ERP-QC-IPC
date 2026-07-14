@@ -136,7 +136,7 @@ const mockData: DashboardModuleKpis = {
     outstandingOrderValue: 150000,
   },
   gmp: {
-    overallScore: 92,
+    openIssues: 4,
     openDeviations: 2,
     openCapas: 1,
     openAuditFindings: 3,

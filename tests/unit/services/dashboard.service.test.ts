@@ -220,7 +220,10 @@ describe('Dashboard Service', () => {
       expect(typeof kpis.approvedPOs).toBe('number');
       expect(typeof kpis.poValueMtd).toBe('number');
       expect(typeof kpis.activeVendors).toBe('number');
-      expect(typeof kpis.onTimeDeliveryRate).toBe('number');
+      // Null, not a number: POs record no actual delivery date, so this is not
+      // measurable. Asserting only `typeof === 'number'` is what allowed a
+      // hardcoded 95 to pass here for months.
+      expect(kpis.onTimeDeliveryRate).toBeNull();
       expect(typeof kpis.avlCoverage).toBe('number');
     });
 
@@ -287,22 +290,27 @@ describe('Dashboard Service', () => {
     it('should return GMP KPIs structure', async () => {
       const kpis = await getGMPKpis();
 
-      expect(kpis).toHaveProperty('overallScore');
+      expect(kpis).toHaveProperty('openIssues');
       expect(kpis).toHaveProperty('openDeviations');
       expect(kpis).toHaveProperty('openCapas');
       expect(kpis).toHaveProperty('openAuditFindings');
       expect(kpis).toHaveProperty('trainingGaps');
 
       // All values should be numbers
-      expect(typeof kpis.overallScore).toBe('number');
+      expect(typeof kpis.openIssues).toBe('number');
       expect(typeof kpis.openDeviations).toBe('number');
       expect(typeof kpis.openCapas).toBe('number');
       expect(typeof kpis.openAuditFindings).toBe('number');
       expect(typeof kpis.trainingGaps).toBe('number');
 
-      // Overall score should be percentage (0-100)
-      expect(kpis.overallScore).toBeGreaterThanOrEqual(0);
-      expect(kpis.overallScore).toBeLessThanOrEqual(100);
+      // openIssues is the sum of the four open counts — a workload figure,
+      // never a synthesised "score".
+      expect(kpis.openIssues).toBe(
+        kpis.openDeviations +
+          kpis.openCapas +
+          kpis.openAuditFindings +
+          kpis.trainingGaps,
+      );
     });
 
     it('should return correct counts from test data', async () => {

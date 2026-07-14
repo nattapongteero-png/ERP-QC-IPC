@@ -12,14 +12,7 @@ import {
   Package,
 } from 'lucide-react';
 
-interface PurchaseKpis {
-  pendingPOs: number;
-  approvedPOs: number;
-  poValueMtd: number;
-  activeVendors: number;
-  onTimeDeliveryRate: number;
-  avlCoverage: number;
-}
+import type { PurchaseKpis } from '@/lib/services/dashboard.service';
 
 interface PurchaseKpiSectionProps {
   data: PurchaseKpis;
@@ -93,11 +86,24 @@ export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
           variant="success"
           size="md"
         />
+        {/* Null until POs record an actual delivery date. Renders "—" in a
+            neutral card rather than the old hardcoded green "95%", which was
+            indistinguishable from a real measurement. */}
         <StatCard
           label={t('onTimeDelivery.label')}
-          value={`${data.onTimeDeliveryRate}%`}
+          value={
+            data.onTimeDeliveryRate === null
+              ? '—'
+              : `${data.onTimeDeliveryRate}%`
+          }
           icon={<TrendingUp className="h-5 w-5" />}
-          variant={data.onTimeDeliveryRate >= 90 ? 'success' : 'warning'}
+          variant={
+            data.onTimeDeliveryRate === null
+              ? 'default'
+              : data.onTimeDeliveryRate >= 90
+                ? 'success'
+                : 'warning'
+          }
           size="md"
         />
       </div>

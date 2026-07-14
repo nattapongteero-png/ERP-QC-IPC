@@ -12,13 +12,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 
-interface GMPKpis {
-  overallScore: number;
-  openDeviations: number;
-  openCapas: number;
-  openAuditFindings: number;
-  trainingGaps: number;
-}
+import type { GMPKpis } from '@/lib/services/dashboard.service';
 
 interface GMPKpiSectionProps {
   data: GMPKpis;
@@ -27,33 +21,22 @@ interface GMPKpiSectionProps {
 export function GMPKpiSection({ data }: GMPKpiSectionProps) {
   const t = useTranslations('dashboard.moduleKpis.gmp');
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return { bg: 'bg-green-100', text: 'text-green-600' };
-    if (score >= 70) return { bg: 'bg-yellow-100', text: 'text-yellow-600' };
-    return { bg: 'bg-red-100', text: 'text-red-600' };
-  };
-
-  const scoreColor = getScoreColor(data.overallScore);
-
-  const complianceTrendValue = (() => {
-    if (data.overallScore >= 90) return t('complianceScore.excellent');
-    if (data.overallScore >= 70) return t('complianceScore.good');
-    return t('complianceScore.needsAttention');
-  })();
+  const hasOpenIssues = data.openIssues > 0;
 
   return (
     <div className="space-y-4">
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Outstanding GMP work, not a "compliance score". The score this
+            replaced was 100 - (issues * 5): an invented weight, tied to no GMP
+            chapter, that read a perfect 100% on an empty database. */}
         <KPICard
-          label={t('complianceScore.label')}
-          value={`${data.overallScore}%`}
-          subtitle={t('complianceScore.subtitle')}
+          label={t('openIssues.label')}
+          value={data.openIssues}
+          subtitle={t('openIssues.subtitle')}
           icon={<Shield className="h-6 w-6" />}
-          iconBgColor={scoreColor.bg}
-          iconColor={scoreColor.text}
-          trend={data.overallScore >= 90 ? 'up' : data.overallScore >= 70 ? 'neutral' : 'down'}
-          trendValue={complianceTrendValue}
+          iconBgColor={hasOpenIssues ? 'bg-yellow-100' : 'bg-green-100'}
+          iconColor={hasOpenIssues ? 'text-yellow-600' : 'text-green-600'}
         />
         <KPICard
           label={t('openDeviations.label')}

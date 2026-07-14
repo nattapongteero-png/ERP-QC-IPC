@@ -191,13 +191,6 @@
       }
     },
     "gmp": {
-      "complianceScore": {
-        "label": "Compliance Score",
-        "subtitle": "Overall GMP compliance",
-        "excellent": "Excellent",
-        "good": "Good",
-        "needsAttention": "Needs attention"
-      },
       "openDeviations": {
         "label": "Open Deviations",
         "subtitle": "Pending resolution"
@@ -212,6 +205,10 @@
       },
       "trainingGaps": {
         "label": "Training Gaps"
+      },
+      "openIssues": {
+        "label": "Open GMP Issues",
+        "subtitle": "Deviations + CAPAs + findings + training"
       }
     }
   },
@@ -297,5 +294,13 @@
         "minStock": "Min Stock"
       }
     }
+  },
+  "inventoryValue": {
+    "finishedGoods": "Finished Goods in Stock",
+    "rawMaterials": "Raw Materials in Stock",
+    "expiringSoon": "Expiring Soon (30 days)",
+    "itemsAndLots": "{items} items · {lots} lots",
+    "uncostedWarning": "{count} lots have no cost — actual value is higher",
+    "alreadyExpired": "Already expired: {lots} lots · {value}"
   }
 }

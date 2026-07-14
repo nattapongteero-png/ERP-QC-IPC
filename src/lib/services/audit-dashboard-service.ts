@@ -582,7 +582,10 @@ export async function getFgApproved(): Promise<FgApproved> {
   const lotsTable = getTableRef('inventoryLots');
   const itemsTable = getTableRef('items');
   const yearStart = getYearStart();
-  const finishedGoodTypes = ['finished_good', 'product'];
+  // 'finished_goods' (plural) is the canonical items.type value. This filtered
+  // on 'finished_good'/'product' — neither exists in the enum — so the card
+  // reported 0 batches forever regardless of how much FG was released.
+  const finishedGoodTypes = ['finished_goods'];
 
   // Get YTD totals
   const totals = await executeDbOperation(async (db) => {

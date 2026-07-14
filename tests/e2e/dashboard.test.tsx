@@ -138,7 +138,7 @@ const mockDashboardResponse = {
         approvedPOs: 25,
         poValueMtd: 500000,
         activeVendors: 15,
-        onTimeDeliveryRate: 92,
+        onTimeDeliveryRate: null,
         avlCoverage: 75,
       },
       sales: {
@@ -156,7 +156,7 @@ const mockDashboardResponse = {
         outstandingOrderValue: 150000,
       },
       gmp: {
-        overallScore: 92,
+        openIssues: 4,
         openDeviations: 3,
         openCapas: 1,
         openAuditFindings: 3,
