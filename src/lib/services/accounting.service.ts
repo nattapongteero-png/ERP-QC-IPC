@@ -317,6 +317,55 @@ export async function isPeriodOpen(periodId: number): Promise<boolean> {
 }
 
 // ============================================
+// GL Account Lookup
+// ============================================
+
+/**
+ * Look up a GL account by code for posting, enforcing that it is postable.
+ *
+ * Rollup/parent accounts (1130 Inventory, 2110 Accounts Payable, 5100 COGS, ...) are
+ * seeded with isPostable = false. The trial balance skips non-postable accounts, so a
+ * journal line against one is silently dropped from the TB while still showing on the
+ * balance sheet — the two reports then disagree. Always post to the leaf.
+ *
+ * @param code - GL account code (must be a postable leaf, e.g. '1131' not '1130')
+ * @param label - Thai account name used in the error message
+ * @returns The account id
+ * @throws If the account is missing, inactive, or is a non-postable rollup parent
+ */
+export async function getPostableAccountByCode(
+  code: string,
+  label: string
+): Promise<{ id: number }> {
+  const { glAccounts } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const [account] = await database
+    .select({
+      id: glAccounts.id,
+      isPostable: glAccounts.isPostable,
+      isActive: glAccounts.isActive,
+    })
+    .from(glAccounts)
+    .where(eq(glAccounts.code, code))
+    .limit(1);
+
+  if (!account) {
+    throw new Error(`ไม่พบ${label} (${code})`);
+  }
+  if (!account.isActive) {
+    throw new Error(`${label} (${code}) ถูกปิดใช้งาน ไม่สามารถบันทึกบัญชีได้`);
+  }
+  if (!account.isPostable) {
+    throw new Error(
+      `${label} (${code}) เป็นบัญชีคุมยอด (parent) ไม่สามารถบันทึกรายการได้ กรุณาใช้บัญชีย่อย`
+    );
+  }
+
+  return { id: account.id };
+}
+
+// ============================================
 // Journal Entry CRUD
 // ============================================
 
@@ -2026,23 +2075,14 @@ export async function approveAPInvoice(
     }
   }
 
-  // Find AP liability account (code 2111 - Accounts Payable)
-  const [apAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '2111'))
-    .limit(1);
+  // AP liability account (2111 - AP Domestic, postable leaf)
+  const apAccount = await getPostableAccountByCode('2111', 'บัญชีเจ้าหนี้การค้า');
 
-  if (!apAccount) {
-    throw new Error('Accounts Payable GL account (2111) not found');
-  }
-
-  // Find Input VAT account (code 1141 - Input VAT Receivable)
-  const [vatAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1141'))
-    .limit(1);
+  // Input VAT account (1141) - only needed when the invoice carries VAT
+  const vatAccount =
+    invoice.vatAmount > 0
+      ? await getPostableAccountByCode('1141', 'บัญชีภาษีซื้อ')
+      : null;
 
   // Build journal entry lines
   const journalLines: JournalLineCreate[] = [];
@@ -3175,23 +3215,14 @@ export async function confirmARInvoice(
     throw new Error('Invoice has no lines');
   }
 
-  // Find AR receivable account (code 1121 - Accounts Receivable)
-  const [arAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1121'))
-    .limit(1);
+  // AR receivable account (1121 - AR Domestic, postable leaf)
+  const arAccount = await getPostableAccountByCode('1121', 'บัญชีลูกหนี้การค้า');
 
-  if (!arAccount) {
-    throw new Error('Accounts Receivable GL account (1121) not found');
-  }
-
-  // Find Output VAT account (code 2131 - Output VAT Payable)
-  const [vatAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '2131'))
-    .limit(1);
+  // Output VAT account (2131) - only needed when the invoice carries VAT
+  const vatAccount =
+    invoice.vatAmount > 0
+      ? await getPostableAccountByCode('2131', 'บัญชีภาษีขาย')
+      : null;
 
   // Build journal entry lines
   const journalLines: JournalLineCreate[] = [];
@@ -4799,8 +4830,7 @@ export interface SOShipmentJournalInput {
  */
 export interface SOShipmentJournalResult {
   success: boolean;
-  salesJournalEntryId: number;
-  salesJournalEntryNumber: string;
+  /** COGS entry (DR COGS / CR Finished Goods). Absent when cost of goods sold is 0. */
   cogsJournalEntryId?: number;
   cogsJournalEntryNumber?: string;
   message: string;
@@ -4820,105 +4850,18 @@ export async function createSOShipmentJournalEntry(
   input: SOShipmentJournalInput,
   createdBy: number
 ): Promise<SOShipmentJournalResult> {
-  const { glAccounts } = getAccountingTables();
-  const database = (await getDb()) as any;
+  // Shipment books ONLY the cost side. Revenue, AR and Output VAT are booked exactly
+  // once, by the AR invoice (confirmARInvoice) — the billing event. Booking them here
+  // as well would double-count revenue and AR on every shipment.
+  //
+  //   Shipment:    DR COGS (5110)          / CR Finished Goods (1133)
+  //   AR invoice:  DR AR (1121)            / CR Sales (4110) + CR Output VAT (2131)
+  //
+  // Cost of Goods Sold (5110 - Raw Materials Used; 5100 is a non-postable rollup)
+  const cogsAccount = await getPostableAccountByCode('5110', 'บัญชีต้นทุนขาย');
 
-  // Find required GL accounts
-  // AR - Accounts Receivable (1121)
-  const [arAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1121'))
-    .limit(1);
-
-  if (!arAccount) {
-    throw new Error('ไม่พบบัญชีลูกหนี้การค้า (1121)');
-  }
-
-  // Sales Revenue (4110)
-  const [salesAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '4110'))
-    .limit(1);
-
-  if (!salesAccount) {
-    throw new Error('ไม่พบบัญชีรายได้จากการขาย (4110)');
-  }
-
-  // Output VAT (2131)
-  const [vatAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '2131'))
-    .limit(1);
-
-  if (!vatAccount) {
-    throw new Error('ไม่พบบัญชีภาษีขาย (2131)');
-  }
-
-  // COGS - Cost of Goods Sold (5100)
-  const [cogsAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '5100'))
-    .limit(1);
-
-  if (!cogsAccount) {
-    throw new Error('ไม่พบบัญชีต้นทุนขาย (5100)');
-  }
-
-  // Inventory (1130)
-  const [inventoryAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1130'))
-    .limit(1);
-
-  if (!inventoryAccount) {
-    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
-  }
-
-  // Create Sales Revenue Journal Entry
-  // DR: AR (total with VAT)
-  // CR: Sales Revenue (net)
-  // CR: Output VAT (VAT amount)
-  const salesJournalLines: JournalLineCreate[] = [
-    {
-      glAccountId: arAccount.id,
-      debit: input.totalAmount,
-      credit: 0,
-      description: `ลูกหนี้ - ${input.customerName}`,
-    },
-    {
-      glAccountId: salesAccount.id,
-      debit: 0,
-      credit: input.netAmount,
-      description: `รายได้จากการขาย - ${input.soNumber}`,
-    },
-  ];
-
-  // Add VAT line only if VAT > 0
-  if (input.vatAmount > 0) {
-    salesJournalLines.push({
-      glAccountId: vatAccount.id,
-      debit: 0,
-      credit: input.vatAmount,
-      description: `ภาษีขาย 7% - ${input.soNumber}`,
-    });
-  }
-
-  const salesJournalEntry = await createJournalEntry({
-    entryDate: input.shipmentDate,
-    description: `ขายสินค้า: ${input.soNumber} - ${input.customerName} (Delivery: ${input.deliveryNumber})`,
-    sourceType: 'SO_SHIPMENT',
-    sourceId: input.deliveryId,
-    lines: salesJournalLines,
-    createdBy,
-  });
-
-  // Post the sales journal entry
-  await postJournalEntry(salesJournalEntry.id, createdBy);
+  // Finished Goods (1133 - postable leaf; 1130 is a non-postable rollup)
+  const inventoryAccount = await getPostableAccountByCode('1133', 'บัญชีสินค้าสำเร็จรูป');
 
   // Create COGS Journal Entry (only if COGS > 0)
   let cogsJournalEntry: JournalEntry | null = null;
@@ -4949,32 +4892,31 @@ export async function createSOShipmentJournalEntry(
 
     // Post the COGS journal entry
     await postJournalEntry(cogsJournalEntry.id, createdBy);
-  }
 
-  // Create audit log
-  await createAuditLog({
-    action: 'CREATE',
-    tableName: 'journal_entry',
-    recordId: salesJournalEntry.id,
-    userId: createdBy,
-    newValue: {
-      type: 'SO_SHIPMENT',
-      deliveryId: input.deliveryId,
-      deliveryNumber: input.deliveryNumber,
-      soId: input.soId,
-      soNumber: input.soNumber,
-      totalAmount: input.totalAmount,
-      costOfGoodsSold: input.costOfGoodsSold,
-    },
-  });
+    // Create audit log
+    await createAuditLog({
+      action: 'CREATE',
+      tableName: 'journal_entry',
+      recordId: cogsJournalEntry.id,
+      userId: createdBy,
+      newValue: {
+        type: 'SO_SHIPMENT',
+        deliveryId: input.deliveryId,
+        deliveryNumber: input.deliveryNumber,
+        soId: input.soId,
+        soNumber: input.soNumber,
+        costOfGoodsSold: input.costOfGoodsSold,
+      },
+    });
+  }
 
   return {
     success: true,
-    salesJournalEntryId: salesJournalEntry.id,
-    salesJournalEntryNumber: salesJournalEntry.entryNumber,
     cogsJournalEntryId: cogsJournalEntry?.id,
     cogsJournalEntryNumber: cogsJournalEntry?.entryNumber,
-    message: `สร้างรายการบัญชีสำเร็จ: ${salesJournalEntry.entryNumber}${cogsJournalEntry ? ` และ ${cogsJournalEntry.entryNumber}` : ''}`,
+    message: cogsJournalEntry
+      ? `สร้างรายการต้นทุนขายสำเร็จ: ${cogsJournalEntry.entryNumber} (รายได้/ลูกหนี้บันทึกที่ใบแจ้งหนี้)`
+      : 'ไม่มีต้นทุนขายที่ต้องบันทึก (ต้นทุน = 0)',
   };
 }
 
@@ -5014,10 +4956,18 @@ export interface POReceiptJournalResult {
 
 /**
  * Create and post journal entry for PO receipt (goods received)
- * Creates journal entry:
- * DR: Inventory (1130) - net amount
- * DR: Input VAT (1141) - VAT amount (if applicable)
- * CR: Accounts Payable (2110) - total amount
+ *
+ * Goods receipt records the ARRIVAL of stock, not the liability to the vendor —
+ * the liability is created by the vendor invoice. Booking AP here as well as on the
+ * invoice would double-count both inventory and AP. So the receipt credits the
+ * GR/IR clearing account, and the invoice later debits it back out:
+ *
+ *   Receipt:  DR Raw Materials (1131)   /  CR GR/IR Clearing (2113)   [net amount]
+ *   Invoice:  DR GR/IR Clearing (2113)
+ *             DR Input VAT (1141)       /  CR AP - Domestic (2111)    [total amount]
+ *
+ * Input VAT is claimable only against a tax invoice, so it is NOT booked at receipt.
+ * A non-zero GR/IR balance = goods received but not yet invoiced.
  *
  * @param input - PO receipt details
  * @param createdBy - User ID who created
@@ -5027,51 +4977,16 @@ export async function createPOReceiptJournalEntry(
   input: POReceiptJournalInput,
   createdBy: number
 ): Promise<POReceiptJournalResult> {
-  const { glAccounts } = getAccountingTables();
-  const database = (await getDb()) as any;
+  // Raw Materials (1131) — postable leaf. 1130 is a non-postable rollup parent and
+  // is excluded from the trial balance, so posting to it silently breaks the TB.
+  const inventoryAccount = await getPostableAccountByCode('1131', 'บัญชีวัตถุดิบ');
 
-  // Find required GL accounts
-  // Inventory (1130)
-  const [inventoryAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1130'))
-    .limit(1);
-
-  if (!inventoryAccount) {
-    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
-  }
-
-  // Accounts Payable (2110)
-  const [apAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '2110'))
-    .limit(1);
-
-  if (!apAccount) {
-    throw new Error('ไม่พบบัญชีเจ้าหนี้การค้า (2110)');
-  }
-
-  // Input VAT (1141) - only needed if VAT > 0
-  let vatAccount = null;
-  if (input.vatAmount > 0) {
-    const [vatAcct] = await database
-      .select({ id: glAccounts.id })
-      .from(glAccounts)
-      .where(eq(glAccounts.code, '1141'))
-      .limit(1);
-
-    if (!vatAcct) {
-      throw new Error('ไม่พบบัญชีภาษีซื้อ (1141)');
-    }
-    vatAccount = vatAcct;
-  }
+  // GR/IR Clearing (2113)
+  const grirAccount = await getPostableAccountByCode('2113', 'บัญชีพักรับสินค้า (GR/IR)');
 
   // Create journal entry lines
   // DR: Inventory (net amount)
-  // DR: Input VAT (if applicable)
-  // CR: Accounts Payable (total amount)
+  // CR: GR/IR Clearing (net amount)
   const journalLines: JournalLineCreate[] = [
     {
       glAccountId: inventoryAccount.id,
@@ -5079,25 +4994,13 @@ export async function createPOReceiptJournalEntry(
       credit: 0,
       description: `รับสินค้า ${input.itemCode} - Lot: ${input.lotNumber}`,
     },
+    {
+      glAccountId: grirAccount.id,
+      debit: 0,
+      credit: input.netAmount,
+      description: `พักรับสินค้า - ${input.vendorName} (${input.poNumber})`,
+    },
   ];
-
-  // Add VAT line only if VAT > 0
-  if (input.vatAmount > 0 && vatAccount) {
-    journalLines.push({
-      glAccountId: vatAccount.id,
-      debit: input.vatAmount,
-      credit: 0,
-      description: `ภาษีซื้อ 7% - ${input.poNumber}`,
-    });
-  }
-
-  // Add AP line
-  journalLines.push({
-    glAccountId: apAccount.id,
-    debit: 0,
-    credit: input.totalAmount,
-    description: `เจ้าหนี้ - ${input.vendorName}`,
-  });
 
   // Create journal entry
   const journalEntry = await createJournalEntry({
@@ -5188,19 +5091,11 @@ export async function createAPInvoiceFromPOReceipt(
   input: APInvoiceFromReceiptInput,
   createdBy: number
 ): Promise<APInvoiceFromReceiptResult> {
-  const { glAccounts } = getAccountingTables();
-  const database = (await getDb()) as any;
-
-  // Find Inventory account (1130)
-  const [inventoryAccount] = await database
-    .select({ id: glAccounts.id })
-    .from(glAccounts)
-    .where(eq(glAccounts.code, '1130'))
-    .limit(1);
-
-  if (!inventoryAccount) {
-    throw new Error('ไม่พบบัญชีสินค้าคงเหลือ (1130)');
-  }
+  // The vendor invoice clears the GR/IR balance raised at goods receipt — it does NOT
+  // debit inventory again (the stock was already capitalised on receipt).
+  //   Receipt:  DR Raw Materials  / CR GR/IR
+  //   Invoice:  DR GR/IR + DR Input VAT / CR AP
+  const grirAccount = await getPostableAccountByCode('2113', 'บัญชีพักรับสินค้า (GR/IR)');
 
   // Generate AP invoice number and create invoice with retry to prevent duplicate numbers
   const MAX_AP_RETRIES = 3;
@@ -5221,7 +5116,7 @@ export async function createAPInvoiceFromPOReceipt(
             {
               description: `${input.itemCode} - ${input.itemName}`,
               itemId: input.itemId,
-              glAccountId: inventoryAccount.id,  // Debit Inventory
+              glAccountId: grirAccount.id, // Debit GR/IR clearing (not inventory again)
               quantity: input.quantity,
               unitPrice: input.unitPrice,
               isCapitalizable: false,

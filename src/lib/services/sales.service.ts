@@ -609,13 +609,13 @@ export async function fulfillSalesOrderLine(
         userId
       );
 
-      salesJournalEntryId = accountingResult.salesJournalEntryId;
-      salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
       cogsJournalEntryId = accountingResult.cogsJournalEntryId;
       cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
       accountingMessage = accountingResult.message;
 
-      // 2. Create AR Invoice (due in 30 days)
+      // 2. Create AR Invoice (due in 30 days).
+      // The AR invoice — not the shipment — books revenue, AR and Output VAT, so its
+      // journal entry IS the sales journal entry.
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 30);
       const dueDateStr = dueDate.toISOString().split('T')[0];
@@ -652,6 +652,9 @@ export async function fulfillSalesOrderLine(
         arInvoiceNumber = arResult.arInvoiceNumber;
         taxInvoiceNumber = arResult.taxInvoiceNumber;
         arInvoiceMessage = arResult.message;
+        // The AR invoice's JE is the revenue/AR entry for this shipment
+        salesJournalEntryId = arResult.journalEntryId;
+        salesJournalEntryNumber = arResult.journalEntryNumber;
       } catch (arError) {
         console.error('Failed to create AR invoice:', arError);
         arInvoiceMessage = `ไม่สามารถสร้างใบแจ้งหนี้ AR ได้: ${arError instanceof Error ? arError.message : 'Unknown error'}`;
@@ -807,8 +810,6 @@ export async function retryAccountingForDelivery(
       },
       userId,
     );
-    salesJournalEntryId = accountingResult.salesJournalEntryId;
-    salesJournalEntryNumber = accountingResult.salesJournalEntryNumber;
     cogsJournalEntryId = accountingResult.cogsJournalEntryId;
     cogsJournalEntryNumber = accountingResult.cogsJournalEntryNumber;
   }
@@ -844,6 +845,9 @@ export async function retryAccountingForDelivery(
     arInvoiceId = arResult.arInvoiceId;
     arInvoiceNumber = arResult.arInvoiceNumber;
     taxInvoiceNumber = arResult.taxInvoiceNumber;
+    // The AR invoice's JE is the revenue/AR entry for this shipment
+    salesJournalEntryId = arResult.journalEntryId;
+    salesJournalEntryNumber = arResult.journalEntryNumber;
   }
 
   return {

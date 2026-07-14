@@ -13,6 +13,8 @@ import type {
   ExecutiveMetrics,
   ExecutiveAlert,
   AlertPriority,
+  ExpenseCategory,
+  ExpenseBreakdownData,
 } from '@/types/accounting';
 
 // ============================================
@@ -188,11 +190,150 @@ export function getDateRange(
 
 /**
  * Get cash balance as of a specific date
- * Cash accounts start with '11' (current assets - cash and cash equivalents)
+ * Cash accounts are '111x' (Cash on Hand, Bank Savings, Bank Current, Petty Cash)
  * @param asOfDate - The date to calculate balance as of
  * @returns Cash balance amount
  */
 export async function getCashBalance(asOfDate: string): Promise<number> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const result = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .where(
+      and(
+        sql`${glAccounts.code} LIKE '111%'`,
+        eq(journalEntries.status, 'posted'),
+        lte(journalEntries.entryDate, toQueryDate(asOfDate))
+      )
+    );
+
+  const debitTotal = Number(result[0]?.debitTotal || 0);
+  const creditTotal = Number(result[0]?.creditTotal || 0);
+
+  // Cash is a debit-balance account
+  return debitTotal - creditTotal;
+}
+
+/**
+ * Get accounts receivable balance as of a specific date
+ * AR accounts are '112x' (AR Domestic, AR Foreign, Allowance for Doubtful Accounts).
+ * NOTE: '12xx' is Non-Current Assets, NOT receivables.
+ * @param asOfDate - The date to calculate balance as of
+ * @returns AR balance amount
+ */
+export async function getARBalance(asOfDate: string): Promise<number> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const result = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .where(
+      and(
+        sql`${glAccounts.code} LIKE '112%'`,
+        eq(journalEntries.status, 'posted'),
+        lte(journalEntries.entryDate, toQueryDate(asOfDate))
+      )
+    );
+
+  const debitTotal = Number(result[0]?.debitTotal || 0);
+  const creditTotal = Number(result[0]?.creditTotal || 0);
+
+  // AR is a debit-balance account
+  return debitTotal - creditTotal;
+}
+
+/**
+ * Get accounts payable balance as of a specific date
+ * AP (trade payables) accounts are '211x' (AP Domestic, AP Foreign).
+ * NOTE: '21xx' is ALL current liabilities (incl. taxes, accruals, ST loans) —
+ * use getCurrentLiabilities() for that.
+ * @param asOfDate - The date to calculate balance as of
+ * @returns AP balance amount
+ */
+export async function getAPBalance(asOfDate: string): Promise<number> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const result = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .where(
+      and(
+        sql`${glAccounts.code} LIKE '211%'`,
+        eq(journalEntries.status, 'posted'),
+        lte(journalEntries.entryDate, toQueryDate(asOfDate))
+      )
+    );
+
+  const debitTotal = Number(result[0]?.debitTotal || 0);
+  const creditTotal = Number(result[0]?.creditTotal || 0);
+
+  // AP is a credit-balance account
+  return creditTotal - debitTotal;
+}
+
+/**
+ * Get inventory balance as of a specific date
+ * Inventory accounts are '113x' (Raw Materials, WIP, Finished Goods, Packaging, Supplies).
+ * NOTE: no account starts with '14' or '15' in the chart of accounts —
+ * the old prefixes matched nothing, so inventory turnover was always 0.
+ * @param asOfDate - The date to calculate balance as of
+ * @returns Inventory balance amount
+ */
+export async function getInventoryBalance(asOfDate: string): Promise<number> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const result = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .where(
+      and(
+        sql`${glAccounts.code} LIKE '113%'`,
+        eq(journalEntries.status, 'posted'),
+        lte(journalEntries.entryDate, toQueryDate(asOfDate))
+      )
+    );
+
+  const debitTotal = Number(result[0]?.debitTotal || 0);
+  const creditTotal = Number(result[0]?.creditTotal || 0);
+
+  // Inventory is a debit-balance account
+  return debitTotal - creditTotal;
+}
+
+/**
+ * Get current assets balance as of a specific date
+ * Current assets are the '11xx' block: 111x Cash, 112x AR, 113x Inventory, 114x Other CA.
+ * NOTE: '12xx' is Non-Current Assets (PP&E, accum. depreciation, intangibles) and must
+ * be excluded — including it overstated current assets by the entire fixed-asset base.
+ * @param asOfDate - The date to calculate balance as of
+ * @returns Current assets balance
+ */
+export async function getCurrentAssets(asOfDate: string): Promise<number> {
   const { glAccounts, journalEntries, journalLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
@@ -215,144 +356,14 @@ export async function getCashBalance(asOfDate: string): Promise<number> {
   const debitTotal = Number(result[0]?.debitTotal || 0);
   const creditTotal = Number(result[0]?.creditTotal || 0);
 
-  // Cash is a debit-balance account
-  return debitTotal - creditTotal;
-}
-
-/**
- * Get accounts receivable balance as of a specific date
- * AR accounts start with '12' (current assets - receivables)
- * @param asOfDate - The date to calculate balance as of
- * @returns AR balance amount
- */
-export async function getARBalance(asOfDate: string): Promise<number> {
-  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
-  const database = (await getDb()) as any;
-
-  const result = await database
-    .select({
-      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
-      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
-    })
-    .from(journalLines)
-    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
-    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
-    .where(
-      and(
-        sql`${glAccounts.code} LIKE '12%'`,
-        eq(journalEntries.status, 'posted'),
-        lte(journalEntries.entryDate, toQueryDate(asOfDate))
-      )
-    );
-
-  const debitTotal = Number(result[0]?.debitTotal || 0);
-  const creditTotal = Number(result[0]?.creditTotal || 0);
-
-  // AR is a debit-balance account
-  return debitTotal - creditTotal;
-}
-
-/**
- * Get accounts payable balance as of a specific date
- * AP accounts start with '21' (current liabilities)
- * @param asOfDate - The date to calculate balance as of
- * @returns AP balance amount
- */
-export async function getAPBalance(asOfDate: string): Promise<number> {
-  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
-  const database = (await getDb()) as any;
-
-  const result = await database
-    .select({
-      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
-      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
-    })
-    .from(journalLines)
-    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
-    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
-    .where(
-      and(
-        sql`${glAccounts.code} LIKE '21%'`,
-        eq(journalEntries.status, 'posted'),
-        lte(journalEntries.entryDate, toQueryDate(asOfDate))
-      )
-    );
-
-  const debitTotal = Number(result[0]?.debitTotal || 0);
-  const creditTotal = Number(result[0]?.creditTotal || 0);
-
-  // AP is a credit-balance account
-  return creditTotal - debitTotal;
-}
-
-/**
- * Get inventory balance as of a specific date
- * Inventory accounts start with '14' or '15' (current assets - inventory)
- * @param asOfDate - The date to calculate balance as of
- * @returns Inventory balance amount
- */
-export async function getInventoryBalance(asOfDate: string): Promise<number> {
-  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
-  const database = (await getDb()) as any;
-
-  const result = await database
-    .select({
-      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
-      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
-    })
-    .from(journalLines)
-    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
-    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
-    .where(
-      and(
-        sql`(${glAccounts.code} LIKE '14%' OR ${glAccounts.code} LIKE '15%')`,
-        eq(journalEntries.status, 'posted'),
-        lte(journalEntries.entryDate, toQueryDate(asOfDate))
-      )
-    );
-
-  const debitTotal = Number(result[0]?.debitTotal || 0);
-  const creditTotal = Number(result[0]?.creditTotal || 0);
-
-  // Inventory is a debit-balance account
-  return debitTotal - creditTotal;
-}
-
-/**
- * Get current assets balance as of a specific date
- * Current asset accounts start with '11', '12', '13', '14', '15'
- * @param asOfDate - The date to calculate balance as of
- * @returns Current assets balance
- */
-export async function getCurrentAssets(asOfDate: string): Promise<number> {
-  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
-  const database = (await getDb()) as any;
-
-  const result = await database
-    .select({
-      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
-      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
-    })
-    .from(journalLines)
-    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
-    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
-    .where(
-      and(
-        sql`(${glAccounts.code} LIKE '11%' OR ${glAccounts.code} LIKE '12%' OR ${glAccounts.code} LIKE '13%' OR ${glAccounts.code} LIKE '14%' OR ${glAccounts.code} LIKE '15%')`,
-        eq(journalEntries.status, 'posted'),
-        lte(journalEntries.entryDate, toQueryDate(asOfDate))
-      )
-    );
-
-  const debitTotal = Number(result[0]?.debitTotal || 0);
-  const creditTotal = Number(result[0]?.creditTotal || 0);
-
   return debitTotal - creditTotal;
 }
 
 /**
  * Get current liabilities balance as of a specific date
- * Current liability accounts start with '21'
+ * Current liabilities are the '21xx' block: 211x AP, 212x other payables,
+ * 213x taxes payable, 2140 short-term loans, 2150 current portion of LT debt.
+ * ('22xx' is Non-Current Liabilities and is correctly excluded.)
  * @param asOfDate - The date to calculate balance as of
  * @returns Current liabilities balance
  */
@@ -461,6 +472,103 @@ export async function getCOGS(startDate: string, endDate: string): Promise<numbe
   return debitTotal - creditTotal;
 }
 
+/**
+ * Get depreciation and amortization expense for a period.
+ * Depreciation lives in two places in the chart of accounts:
+ *   5140 - Depreciation - Machinery (factory, inside COGS)
+ *   6270 - Depreciation - Office (inside administrative expenses)
+ * This is a non-cash expense and must be added back when deriving operating cash flow.
+ * @param startDate - Period start date
+ * @param endDate - Period end date
+ * @returns Depreciation expense for the period
+ */
+export async function getDepreciationExpense(
+  startDate: string,
+  endDate: string
+): Promise<number> {
+  const { glAccounts, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const result = await database
+    .select({
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .where(
+      and(
+        sql`(${glAccounts.code} = '5140' OR ${glAccounts.code} = '6270')`,
+        eq(journalEntries.status, 'posted'),
+        gte(journalEntries.entryDate, toQueryDate(startDate)),
+        lte(journalEntries.entryDate, toQueryDate(endDate))
+      )
+    );
+
+  const debitTotal = Number(result[0]?.debitTotal || 0);
+  const creditTotal = Number(result[0]?.creditTotal || 0);
+
+  // Depreciation is a debit-balance expense
+  return debitTotal - creditTotal;
+}
+
+/**
+ * Get operating cash flow for a period using the indirect method:
+ *
+ *   Net income
+ *   + Depreciation & amortization (non-cash add-back)
+ *   - Increase in AR         (revenue booked but not yet collected)
+ *   - Increase in Inventory  (cash spent on stock not yet sold)
+ *   + Increase in AP         (expenses incurred but not yet paid)
+ *   = Operating cash flow
+ *
+ * Balances are taken at the period's opening and closing dates so the working-capital
+ * movements reflect the period, not the cumulative balance.
+ *
+ * @param startDate - Period start date
+ * @param endDate - Period end date
+ * @returns Operating cash flow for the period
+ */
+export async function getOperatingCashFlow(
+  startDate: string,
+  endDate: string
+): Promise<number> {
+  // Opening balances = closing balances of the day before the period starts
+  const openingDate = new Date(startDate);
+  openingDate.setDate(openingDate.getDate() - 1);
+  const openingDateStr = openingDate.toISOString().split('T')[0];
+
+  const [
+    revenue,
+    expenses,
+    depreciation,
+    arOpen,
+    arClose,
+    invOpen,
+    invClose,
+    apOpen,
+    apClose,
+  ] = await Promise.all([
+    getPeriodTotals(startDate, endDate, 'revenue'),
+    getPeriodTotals(startDate, endDate, 'expense'),
+    getDepreciationExpense(startDate, endDate),
+    getARBalance(openingDateStr),
+    getARBalance(endDate),
+    getInventoryBalance(openingDateStr),
+    getInventoryBalance(endDate),
+    getAPBalance(openingDateStr),
+    getAPBalance(endDate),
+  ]);
+
+  const netIncome = revenue - expenses;
+  const deltaAR = arClose - arOpen;
+  const deltaInventory = invClose - invOpen;
+  const deltaAP = apClose - apOpen;
+
+  return netIncome + depreciation - deltaAR - deltaInventory + deltaAP;
+}
+
 // ============================================
 // Sparkline Data Generation
 // ============================================
@@ -515,7 +623,9 @@ export async function getExecutiveMetrics(
   const dateRange = getDateRange(period, asOfDate, customStart);
   const { startDate, endDate, daysInPeriod } = dateRange;
 
-  // Get current period balances
+  // Get current period balances.
+  // Total expenses is no longer needed here — operating cash flow is now derived by the
+  // indirect method inside getOperatingCashFlow(), not as (revenue - expenses).
   const [
     cashBalance,
     arBalance,
@@ -524,7 +634,6 @@ export async function getExecutiveMetrics(
     currentAssets,
     currentLiabilities,
     revenue,
-    expenses,
     cogs,
   ] = await Promise.all([
     getCashBalance(asOfDate),
@@ -534,7 +643,6 @@ export async function getExecutiveMetrics(
     getCurrentAssets(asOfDate),
     getCurrentLiabilities(asOfDate),
     getPeriodTotals(startDate, endDate, 'revenue'),
-    getPeriodTotals(startDate, endDate, 'expense'),
     getCOGS(startDate, endDate),
   ]);
 
@@ -573,7 +681,6 @@ export async function getExecutiveMetrics(
     prevCurrentAssets,
     prevCurrentLiabilities,
     prevRevenue,
-    prevExpenses,
     prevCogs,
   ] = await Promise.all([
     getCashBalance(prevEndDateStr),
@@ -583,7 +690,6 @@ export async function getExecutiveMetrics(
     getCurrentAssets(prevEndDateStr),
     getCurrentLiabilities(prevEndDateStr),
     getPeriodTotals(prevStartDateStr, prevEndDateStr, 'revenue'),
-    getPeriodTotals(prevStartDateStr, prevEndDateStr, 'expense'),
     getCOGS(prevStartDateStr, prevEndDateStr),
   ]);
 
@@ -611,9 +717,12 @@ export async function getExecutiveMetrics(
   const grossProfitMargin = revenue > 0 ? ((revenue - cogs) / revenue) * 100 : 0;
   const prevGrossProfitMargin = prevRevenue > 0 ? ((prevRevenue - prevCogs) / prevRevenue) * 100 : 0;
 
-  // 6. Operating Cash Flow = Revenue - Expenses (simplified)
-  const operatingCashFlow = revenue - expenses;
-  const prevOperatingCashFlow = prevRevenue - prevExpenses;
+  // 6. Operating Cash Flow (indirect method):
+  //    net income + depreciation - ΔAR - ΔInventory + ΔAP
+  const [operatingCashFlow, prevOperatingCashFlow] = await Promise.all([
+    getOperatingCashFlow(startDate, endDate),
+    getOperatingCashFlow(prevStartDateStr, prevEndDateStr),
+  ]);
 
   // 7. DPO = (AP / COGS) x Days in period
   const dpo = cogs > 0 ? (apBalance / cogs) * daysInPeriod : 0;
@@ -674,9 +783,7 @@ export async function getExecutiveMetrics(
       const endDateObj = new Date(date);
       const startDateObj = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1);
       const startStr = startDateObj.toISOString().split('T')[0];
-      const rev = await getPeriodTotals(startStr, date, 'revenue');
-      const exp = await getPeriodTotals(startStr, date, 'expense');
-      return rev - exp;
+      return getOperatingCashFlow(startStr, date);
     }, asOfDate),
     generateSparklineData(async (date) => {
       const endDateObj = new Date(date);
@@ -894,7 +1001,7 @@ export async function getExecutiveAlerts(
       value: cashReserveDays,
       formattedValue: formatDays(cashReserveDays),
       threshold: 30,
-      actionLink: '/accounting/cash-flow',
+      actionLink: '/accounting/reports/cash-flow',
       actionLabel: 'View Cash Flow',
       createdAt: now,
     });
@@ -916,7 +1023,7 @@ export async function getExecutiveAlerts(
       value: marginDrop,
       formattedValue: formatPercentage(marginDrop),
       threshold: 2,
-      actionLink: '/accounting/profitability',
+      actionLink: '/accounting/reports/income-statement',
       actionLabel: 'Analyze Profitability',
       createdAt: now,
     });
@@ -955,7 +1062,7 @@ export async function getExecutiveAlerts(
         value: daysPastEnd,
         formattedValue: formatDays(daysPastEnd),
         threshold: 5,
-        actionLink: '/accounting/fiscal-periods',
+        actionLink: '/accounting/period-close',
         actionLabel: 'Manage Periods',
         createdAt: now,
       });
@@ -972,4 +1079,139 @@ export async function getExecutiveAlerts(
   alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
   return alerts;
+}
+
+// ============================================
+// Dashboard Chart Data
+// ============================================
+
+/**
+ * Monthly revenue / COGS / opex / net income trend for the current year.
+ *
+ * Computed from posted journal lines — one row per month from January through the month
+ * containing asOfDate. (The dashboard previously fabricated this with Math.random().)
+ *
+ * @param asOfDate - Reference date; the trend runs from Jan 1 of this year to this date
+ * @returns One data point per elapsed month
+ */
+export async function getRevenueExpenseTrend(asOfDate: string): Promise<
+  Array<{
+    month: string;
+    revenue: number;
+    cogs: number;
+    operatingExpenses: number;
+    netIncome: number;
+  }>
+> {
+  const MONTH_LABELS = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  const asOf = new Date(asOfDate);
+  const year = asOf.getFullYear();
+  const lastMonth = asOf.getMonth(); // 0-indexed
+
+  const months = Array.from({ length: lastMonth + 1 }, (_, monthIndex) => {
+    const start = new Date(year, monthIndex, 1);
+    // Day 0 of the next month = last day of this month
+    const end = new Date(year, monthIndex + 1, 0);
+    // Never look past asOfDate for the current (partial) month
+    const effectiveEnd = end > asOf ? asOf : end;
+    return {
+      label: MONTH_LABELS[monthIndex],
+      startStr: start.toISOString().split('T')[0],
+      endStr: effectiveEnd.toISOString().split('T')[0],
+    };
+  });
+
+  return Promise.all(
+    months.map(async ({ label, startStr, endStr }) => {
+      const [revenue, expenses, cogs] = await Promise.all([
+        getPeriodTotals(startStr, endStr, 'revenue'),
+        getPeriodTotals(startStr, endStr, 'expense'),
+        getCOGS(startStr, endStr),
+      ]);
+
+      // 'expense' category covers both COGS (type 5) and operating expenses (type 6),
+      // so operating expenses is the remainder after backing COGS out.
+      const operatingExpenses = expenses - cogs;
+
+      return {
+        month: label,
+        revenue,
+        cogs,
+        operatingExpenses,
+        netIncome: revenue - expenses,
+      };
+    })
+  );
+}
+
+/**
+ * Expense breakdown by GL account for a period, computed from posted journal lines.
+ *
+ * Groups every expense-category account (COGS type 5 + operating expenses type 6) that
+ * actually has activity. (The dashboard previously hardcoded six categories with fake
+ * GL account ids.) Accounts with no postings in the period are omitted.
+ *
+ * @param startDate - Period start date
+ * @param endDate - Period end date
+ * @returns Categories sorted by amount descending, with percentage of total
+ */
+export async function getExpenseBreakdown(
+  startDate: string,
+  endDate: string
+): Promise<ExpenseBreakdownData> {
+  const { glAccounts, glAccountTypes, journalEntries, journalLines } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const rows = await database
+    .select({
+      accountId: glAccounts.id,
+      accountName: glAccounts.nameTh,
+      debitTotal: sql<number>`COALESCE(SUM(${journalLines.debit}), 0)`,
+      creditTotal: sql<number>`COALESCE(SUM(${journalLines.credit}), 0)`,
+    })
+    .from(journalLines)
+    .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+    .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
+    .innerJoin(glAccountTypes, eq(glAccounts.accountTypeId, glAccountTypes.id))
+    .where(
+      and(
+        eq(glAccountTypes.category, 'expense'),
+        eq(journalEntries.status, 'posted'),
+        gte(journalEntries.entryDate, toQueryDate(startDate)),
+        lte(journalEntries.entryDate, toQueryDate(endDate))
+      )
+    )
+    .groupBy(glAccounts.id, glAccounts.nameTh);
+
+  // Expenses are debit-balance; drop accounts that net to zero (or credit) for the period
+  const categories = rows
+    .map((row: any) => ({
+      categoryName: row.accountName as string,
+      glAccountIds: [Number(row.accountId)],
+      amount: Number(row.debitTotal || 0) - Number(row.creditTotal || 0),
+      percentage: 0,
+    }))
+    .filter((c: ExpenseCategory) => c.amount > 0)
+    .sort((a: ExpenseCategory, b: ExpenseCategory) => b.amount - a.amount);
+
+  const totalExpenses = categories.reduce(
+    (sum: number, c: ExpenseCategory) => sum + c.amount,
+    0
+  );
+
+  for (const category of categories) {
+    category.percentage =
+      totalExpenses > 0 ? (category.amount / totalExpenses) * 100 : 0;
+  }
+
+  return {
+    periodStart: startDate,
+    periodEnd: endDate,
+    categories,
+    totalExpenses,
+  };
 }

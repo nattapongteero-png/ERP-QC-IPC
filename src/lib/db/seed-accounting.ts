@@ -151,6 +151,10 @@ const defaultChartOfAccounts = [
   { code: '2110', nameTh: 'เจ้าหนี้การค้า', nameEn: 'Accounts Payable', typeCode: '2', parentCode: '2100', isPostable: false, level: 2 },
   { code: '2111', nameTh: 'เจ้าหนี้การค้า - ในประเทศ', nameEn: 'AP - Domestic', typeCode: '2', parentCode: '2110', isPostable: true, level: 3 },
   { code: '2112', nameTh: 'เจ้าหนี้การค้า - ต่างประเทศ', nameEn: 'AP - Foreign', typeCode: '2', parentCode: '2110', isPostable: true, level: 3 },
+  // GR/IR clearing: bridges goods receipt and vendor invoice so neither inventory
+  // nor AP is booked twice. Receipt: Dr Inventory / Cr 2113. Invoice: Dr 2113 / Cr AP.
+  // A non-zero balance means goods received but not yet invoiced (or vice versa).
+  { code: '2113', nameTh: 'พักรับสินค้า (รับของแล้วรอใบแจ้งหนี้)', nameEn: 'GR/IR Clearing', typeCode: '2', parentCode: '2110', isPostable: true, level: 3 },
 
   { code: '2120', nameTh: 'เจ้าหนี้อื่น', nameEn: 'Other Payables', typeCode: '2', parentCode: '2100', isPostable: false, level: 2 },
   { code: '2121', nameTh: 'ค่าใช้จ่ายค้างจ่าย', nameEn: 'Accrued Expenses', typeCode: '2', parentCode: '2120', isPostable: true, level: 3 },

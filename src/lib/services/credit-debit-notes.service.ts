@@ -7,6 +7,13 @@ import { eq, and, or, like, gte, lte, desc, asc, sql, isNull } from 'drizzle-orm
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import { submitForApproval } from './approval-workflow.service';
+import {
+  createJournalEntry,
+  postJournalEntry,
+  getPostableAccountByCode,
+  createVATTransaction,
+} from './accounting.service';
+import type { JournalLineCreate } from '@/types/accounting';
 import type {
   CreditDebitNote,
   CreditDebitNoteLine,
@@ -779,191 +786,152 @@ export async function postNote(
       return { success: false, error: 'Can only post approved notes' };
     }
 
-    // Generate journal entry number
-    const year = new Date().getFullYear();
-    const countResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(tables.journalEntries);
-    const count = Number(countResult[0]?.count || 0) + 1;
-    const entryNumber = `JE${year}-${count.toString().padStart(6, '0')}`;
-
-    // Create journal entry
     const isAR = note.noteType.startsWith('ar_');
     const isCredit = note.noteType.includes('credit');
 
-    // Determine accounts
-    // For AR Credit Note: Dr Revenue, Dr VAT Output, Cr AR
-    // For AP Credit Note: Dr AP, Cr Expense, Cr VAT Input
-    // For AR Debit Note: Dr AR, Cr Revenue, Cr VAT Output
-    // For AP Debit Note: Dr Expense, Dr VAT Input, Cr AP
+    // Resolve the control accounts from the chart of accounts by CODE.
+    // (They were previously hardcoded to row ids 103/107/201/211, which are not the
+    // seeded accounts at all.) getPostableAccountByCode also refuses non-postable
+    // rollup parents, which the trial balance would silently exclude.
+    const [arAccount, apAccount, vatOutputAccount, vatInputAccount] = await Promise.all([
+      isAR ? getPostableAccountByCode('1121', 'บัญชีลูกหนี้การค้า') : Promise.resolve(null),
+      !isAR ? getPostableAccountByCode('2111', 'บัญชีเจ้าหนี้การค้า') : Promise.resolve(null),
+      isAR && note.vatAmount > 0
+        ? getPostableAccountByCode('2131', 'บัญชีภาษีขาย')
+        : Promise.resolve(null),
+      !isAR && note.vatAmount > 0
+        ? getPostableAccountByCode('1141', 'บัญชีภาษีซื้อ')
+        : Promise.resolve(null),
+    ]);
 
-    const jeResult = await db.insert(tables.journalEntries).values({
-      entryNumber,
-      entryDate: note.noteDate,
-      description: `${isCredit ? 'Credit Note' : 'Debit Note'}: ${note.noteNumber}`,
-      reference: note.noteNumber,
-      totalDebit: note.totalAmount,
-      totalCredit: note.totalAmount,
-      status: 'posted',
-      sourceType: note.noteType,
-      sourceId: note.id,
-      postedBy: userId,
-      postedAt: now,
-      createdBy: userId,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // Build the journal lines.
+    //
+    // A credit note reverses the original invoice; a debit note adds to it. So the two
+    // are mirror images — same accounts, debit and credit swapped:
+    //
+    //   AR credit note:  Dr Revenue + Dr Output VAT  / Cr AR      (reduce what they owe)
+    //   AR debit  note:  Dr AR                       / Cr Revenue + Cr Output VAT
+    //   AP credit note:  Dr AP                       / Cr Expense + Cr Input VAT
+    //   AP debit  note:  Dr Expense + Dr Input VAT   / Cr AP      (increase what we owe)
+    //
+    // The previous implementation emitted lines only for the two CREDIT branches, so a
+    // debit note posted a header with no lines at all.
+    const journalLines: JournalLineCreate[] = [];
+    const noteLabel = isCredit ? 'ใบลดหนี้' : 'ใบเพิ่มหนี้';
+    const refLabel = `${noteLabel} ${note.noteNumber} อ้างอิง ${note.referenceInvoiceNumber}`;
 
-    const journalEntryId = getInsertId(jeResult);
+    // Which side do the revenue/expense (and VAT) legs take?
+    //   AR credit note: revenue is credit-normal, so reversing it means DEBIT   -> true
+    //   AR debit  note: adds revenue, so CREDIT                                 -> false
+    //   AP credit note: expense is debit-normal, so reversing it means CREDIT   -> false
+    //   AP debit  note: adds expense, so DEBIT                                  -> true
+    // The control (AR/AP) leg always takes the opposite side.
+    const incomeLegIsDebit = isAR ? isCredit : !isCredit;
 
-    // Create journal entry lines
-    let lineNumber = 0;
-
-    if (isAR && isCredit) {
-      // AR Credit Note: reduces AR and Revenue
-      // Dr Revenue (reduce revenue)
-      for (const line of note.lines) {
-        lineNumber++;
-        await db.insert(tables.journalLines).values({
-          journalEntryId,
-          lineNumber,
-          accountId: line.glAccountId, // Revenue account
-          description: line.description,
-          debitAmount: line.lineTotal,
-          creditAmount: 0,
-          createdAt: now,
-        });
-      }
-
-      // Dr VAT Output (reduce VAT liability)
-      if (note.vatAmount > 0) {
-        lineNumber++;
-        const vatOutputAccountId = 211; // VAT Output account - should be configured
-        await db.insert(tables.journalLines).values({
-          journalEntryId,
-          lineNumber,
-          accountId: vatOutputAccountId,
-          description: 'VAT adjustment',
-          debitAmount: note.vatAmount,
-          creditAmount: 0,
-          createdAt: now,
-        });
-      }
-
-      // Cr AR (reduce receivable)
-      lineNumber++;
-      const arAccountId = 103; // AR account - should be configured
-      await db.insert(tables.journalLines).values({
-        journalEntryId,
-        lineNumber,
-        accountId: arAccountId,
-        description: `Credit Note for ${note.referenceInvoiceNumber}`,
-        debitAmount: 0,
-        creditAmount: note.totalAmount,
-        createdAt: now,
+    // Revenue / expense legs, one per note line
+    for (const line of note.lines) {
+      journalLines.push({
+        glAccountId: line.glAccountId,
+        debit: incomeLegIsDebit ? line.lineTotal : 0,
+        credit: incomeLegIsDebit ? 0 : line.lineTotal,
+        description: line.description,
       });
-    } else if (!isAR && isCredit) {
-      // AP Credit Note: reduces AP and Expense
-      // Dr AP (reduce payable)
-      lineNumber++;
-      const apAccountId = 201; // AP account - should be configured
-      await db.insert(tables.journalLines).values({
-        journalEntryId,
-        lineNumber,
-        accountId: apAccountId,
-        description: `Credit Note for ${note.referenceInvoiceNumber}`,
-        debitAmount: note.totalAmount,
-        creditAmount: 0,
-        createdAt: now,
-      });
+    }
 
-      // Cr Expense (reduce expense)
-      for (const line of note.lines) {
-        lineNumber++;
-        await db.insert(tables.journalLines).values({
-          journalEntryId,
-          lineNumber,
-          accountId: line.glAccountId, // Expense account
-          description: line.description,
-          debitAmount: 0,
-          creditAmount: line.lineTotal,
-          createdAt: now,
-        });
-      }
-
-      // Cr VAT Input (reduce VAT asset)
-      if (note.vatAmount > 0) {
-        lineNumber++;
-        const vatInputAccountId = 107; // VAT Input account - should be configured
-        await db.insert(tables.journalLines).values({
-          journalEntryId,
-          lineNumber,
-          accountId: vatInputAccountId,
-          description: 'VAT adjustment',
-          debitAmount: 0,
-          creditAmount: note.vatAmount,
-          createdAt: now,
+    // VAT leg — always moves with the revenue/expense legs
+    if (note.vatAmount > 0) {
+      const vatAccount = isAR ? vatOutputAccount : vatInputAccount;
+      if (vatAccount) {
+        journalLines.push({
+          glAccountId: vatAccount.id,
+          debit: incomeLegIsDebit ? note.vatAmount : 0,
+          credit: incomeLegIsDebit ? 0 : note.vatAmount,
+          description: `ปรับปรุงภาษี - ${note.noteNumber}`,
         });
       }
     }
 
-    // Create VAT transaction
-    const vatTransactionResult = await db.insert(tables.vatTransactions).values({
-      transactionType: isAR ? 'output' : 'input',
-      transactionDate: note.noteDate,
-      documentType: note.noteType,
-      documentId: note.id,
-      documentNumber: note.noteNumber,
-      vendorId: note.vendorId,
-      customerId: note.customerId,
-      taxableAmount: isCredit ? -note.subtotal : note.subtotal,
-      vatRate: note.vatRate,
-      vatAmount: isCredit ? -note.vatAmount : note.vatAmount,
-      journalEntryId,
-      createdBy: userId,
-      createdAt: now,
+    // AR / AP control leg — the balancing side, for the gross total
+    const controlAccount = isAR ? arAccount : apAccount;
+    if (!controlAccount) {
+      return {
+        success: false,
+        error: isAR ? 'ไม่พบบัญชีลูกหนี้การค้า (1121)' : 'ไม่พบบัญชีเจ้าหนี้การค้า (2111)',
+      };
+    }
+    journalLines.push({
+      glAccountId: controlAccount.id,
+      debit: incomeLegIsDebit ? 0 : note.totalAmount,
+      credit: incomeLegIsDebit ? note.totalAmount : 0,
+      description: refLabel,
     });
 
-    const vatTransactionId = getInsertId(vatTransactionResult);
+    // Create + post through the double-entry core so we get debit=credit validation,
+    // fiscal-period resolution, the closed-period guard, and a collision-safe entry
+    // number — none of which the previous raw-insert path had.
+    const journalEntry = await createJournalEntry({
+      entryDate: formatDateFromDb(note.noteDate),
+      description: `${noteLabel}: ${note.noteNumber}`,
+      sourceType: 'MANUAL',
+      sourceId: note.id,
+      lines: journalLines,
+      createdBy: userId,
+    });
+    await postJournalEntry(journalEntry.id, userId);
 
-    // Update invoice balance
+    const journalEntryId = journalEntry.id;
+
+    // Create VAT transaction
+    // Record the VAT adjustment through the shared helper.
+    //
+    // The previous hand-rolled insert wrote columns that do not exist on vat_transactions
+    // (documentType / documentId / documentNumber / journalEntryId / createdBy) while
+    // omitting six that are NOT NULL (taxInvoiceNumber, taxInvoiceDate, taxPeriod,
+    // partyName, partyTaxId, totalAmount) — so it threw on every post.
+    //
+    // Amounts are signed: a credit note reduces the VAT originally reported, a debit
+    // note adds to it.
+    const { id: vatTransactionId } = await createVATTransaction({
+      transactionType: isAR ? 'output' : 'input',
+      arInvoiceId: isAR ? note.referenceInvoiceId : null,
+      apInvoiceId: isAR ? null : note.referenceInvoiceId,
+      customerId: note.customerId ?? null,
+      vendorId: note.vendorId ?? null,
+      taxInvoiceNumber: note.noteNumber,
+      taxInvoiceDate: formatDateFromDb(note.noteDate),
+      taxableAmount: isCredit ? -note.subtotal : note.subtotal,
+      vatAmount: isCredit ? -note.vatAmount : note.vatAmount,
+      partyName: (isAR ? note.customerName : note.vendorName) ?? '',
+    });
+
+    // Adjust the referenced invoice.
+    //
+    // There is no `balanceDue` column on ap_invoices/ar_invoices — the previous code
+    // read and wrote one, which does not exist in the schema. The outstanding balance is
+    // derived as (totalAmount - paidAmount), so a note adjusts totalAmount:
+    // a credit note reduces what is owed, a debit note increases it.
+    const invoiceTable = isAR ? tables.arInvoices : tables.apInvoices;
+    const signedAmount = isCredit ? -note.totalAmount : note.totalAmount;
+
+    const invoiceResults = await db
+      .select({
+        totalAmount: invoiceTable.totalAmount,
+        paidAmount: invoiceTable.paidAmount,
+      })
+      .from(invoiceTable)
+      .where(eq(invoiceTable.id, note.referenceInvoiceId))
+      .limit(1);
+
     let invoiceNewBalance = 0;
-    if (isAR) {
-      const invoiceResults = await db
-        .select({ balanceDue: tables.arInvoices.balanceDue })
-        .from(tables.arInvoices)
-        .where(eq(tables.arInvoices.id, note.referenceInvoiceId))
-        .limit(1);
+    if (invoiceResults.length > 0) {
+      const newTotal = Number(invoiceResults[0].totalAmount || 0) + signedAmount;
+      const paid = Number(invoiceResults[0].paidAmount || 0);
+      invoiceNewBalance = newTotal - paid;
 
-      if (invoiceResults.length > 0) {
-        const currentBalance = Number(invoiceResults[0].balanceDue || 0);
-        invoiceNewBalance = isCredit
-          ? currentBalance - note.totalAmount
-          : currentBalance + note.totalAmount;
-
-        await db
-          .update(tables.arInvoices)
-          .set({ balanceDue: invoiceNewBalance, updatedAt: now })
-          .where(eq(tables.arInvoices.id, note.referenceInvoiceId));
-      }
-    } else {
-      const invoiceResults = await db
-        .select({ balanceDue: tables.apInvoices.balanceDue })
-        .from(tables.apInvoices)
-        .where(eq(tables.apInvoices.id, note.referenceInvoiceId))
-        .limit(1);
-
-      if (invoiceResults.length > 0) {
-        const currentBalance = Number(invoiceResults[0].balanceDue || 0);
-        invoiceNewBalance = isCredit
-          ? currentBalance - note.totalAmount
-          : currentBalance + note.totalAmount;
-
-        await db
-          .update(tables.apInvoices)
-          .set({ balanceDue: invoiceNewBalance, updatedAt: now })
-          .where(eq(tables.apInvoices.id, note.referenceInvoiceId));
-      }
+      await db
+        .update(invoiceTable)
+        .set({ totalAmount: newTotal, updatedAt: now })
+        .where(eq(invoiceTable.id, note.referenceInvoiceId));
     }
 
     // Update note status
@@ -981,7 +949,7 @@ export async function postNote(
     return {
       success: true,
       journalEntryId,
-      journalEntryNumber: entryNumber,
+      journalEntryNumber: journalEntry.entryNumber,
       vatTransactionId,
       invoiceNewBalance,
     };

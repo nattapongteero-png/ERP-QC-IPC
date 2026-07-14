@@ -34,6 +34,7 @@ export const ACCT_TEST_IDS = {
   INPUT_VAT: 203,
   INPUT_VAT_RECV: 204, // 1141 for approveAPInvoice
   WHT_PAYABLE: 205, // 2143 for payments
+  GRIR_CLEARING: 206, // 2113 GR/IR clearing — bridges goods receipt and vendor invoice
   SHARE_CAPITAL: 301,
   RETAINED_EARNINGS: 302,
   SALES_REVENUE: 401,
@@ -128,6 +129,7 @@ export function seedGLAccounts(sqlite: Database.Database): void {
       (${ACCT_TEST_IDS.AP_DOMESTIC}, '2111', 'เจ้าหนี้การค้า', 'Accounts Payable', ${ACCT_TEST_IDS.LIABILITY_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.OUTPUT_VAT}, '2131', 'ภาษีขาย', 'Output VAT', ${ACCT_TEST_IDS.LIABILITY_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${ACCT_TEST_IDS.WHT_PAYABLE}, '2143', 'ภาษีหัก ณ ที่จ่าย', 'WHT Payable', ${ACCT_TEST_IDS.LIABILITY_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.GRIR_CLEARING}, '2113', 'พักรับสินค้า', 'GR/IR Clearing', ${ACCT_TEST_IDS.LIABILITY_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
       -- Equity
       (${ACCT_TEST_IDS.SHARE_CAPITAL}, '3120', 'ทุนที่ออกและชำระแล้ว', 'Paid-up Capital', ${ACCT_TEST_IDS.EQUITY_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

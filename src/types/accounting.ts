@@ -1080,9 +1080,18 @@ export interface CashFlowStatementReport {
     section: CashFlowSection;
     netCashFromFinancing: number;
   };
+  /** Actual movement on the cash accounts (ending - beginning), not the sum of sections */
   netChangeInCash: number;
   beginningCashBalance: number;
   endingCashBalance: number;
+  /**
+   * netChangeInCash minus (operating + investing + financing).
+   * Non-zero means an account is unclassified or double-counted — the statement does
+   * not reconcile and should not be relied on until this is 0.
+   */
+  unreconciledDifference: number;
+  /** True when |unreconciledDifference| < 0.01 */
+  isReconciled: boolean;
 }
 
 // ============================================

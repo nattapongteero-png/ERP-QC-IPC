@@ -10,7 +10,7 @@ import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, ne, lt } from 'drizzle-orm';
 import { getAccountingTables, generateEntryNumber, createJournalEntry, postJournalEntry, getCurrentFiscalPeriod, getPeriodByDate } from './accounting.service';
-import { getTableRef } from '../db/db-helper';
+import { getTableRef, getInsertId } from '../db/db-helper';
 import { createAuditLog } from '../audit';
 import type {
   FiscalPeriodStatus,
@@ -1089,6 +1089,108 @@ export async function getFiscalPeriodById(id: number): Promise<(FiscalPeriod & {
     ...(result[0].period as unknown as FiscalPeriod),
     fiscalYear: result[0].year as unknown as FiscalYear,
   };
+}
+
+/**
+ * Create a fiscal year together with its 12 monthly periods.
+ *
+ * Journal entries cannot be created for a date with no fiscal period — createJournalEntry
+ * throws. So a year whose periods were never generated silently blocks ALL posting from
+ * the first missing month onward. This creates the year and every period in one step.
+ *
+ * @param year - Calendar year, e.g. 2026
+ * @param createdBy - User ID performing the action
+ * @param options.setCurrent - Mark this year as the current one (clears the flag on others)
+ * @returns The created fiscal year with its periods
+ * @throws If the fiscal year already exists
+ */
+export async function createFiscalYear(
+  year: number,
+  createdBy: number,
+  options: { setCurrent?: boolean } = {}
+): Promise<FiscalYear & { periods: FiscalPeriod[] }> {
+  const { fiscalYears, fiscalPeriods } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const yearCode = `FY${year}`;
+
+  const existing = await database
+    .select({ id: fiscalYears.id })
+    .from(fiscalYears)
+    .where(eq(fiscalYears.yearCode, yearCode))
+    .limit(1);
+
+  if (existing.length > 0) {
+    throw new Error(`ปีบัญชี ${yearCode} มีอยู่แล้ว`);
+  }
+
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  // Build the 12 monthly periods. Local Date arithmetic (not UTC) so the boundaries land
+  // on the intended calendar days; day 0 of month N+1 is the last day of month N.
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const periodSpecs = MONTH_NAMES.map((name, index) => {
+    const lastDay = new Date(year, index + 1, 0).getDate();
+    return {
+      periodNumber: index + 1,
+      periodName: `${name} ${year}`,
+      startDate: `${year}-${pad(index + 1)}-01`,
+      endDate: `${year}-${pad(index + 1)}-${pad(lastDay)}`,
+    };
+  });
+
+  const setCurrent = options.setCurrent ?? false;
+
+  // Only one year may be flagged current
+  if (setCurrent) {
+    await database
+      .update(fiscalYears)
+      .set({ isCurrent: false, updatedAt: getNow() })
+      .where(eq(fiscalYears.isCurrent, true));
+  }
+
+  const yearResult = await database.insert(fiscalYears).values({
+    yearCode,
+    startDate: toDbDate(`${year}-01-01`),
+    endDate: toDbDate(`${year}-12-31`),
+    isCurrent: setCurrent,
+    status: 'open',
+    createdAt: getNow(),
+    updatedAt: getNow(),
+  });
+
+  const fiscalYearId = getInsertId(yearResult);
+
+  await database.insert(fiscalPeriods).values(
+    periodSpecs.map((spec) => ({
+      fiscalYearId,
+      periodNumber: spec.periodNumber,
+      periodName: spec.periodName,
+      startDate: toDbDate(spec.startDate),
+      endDate: toDbDate(spec.endDate),
+      status: 'open' as const,
+      createdAt: getNow(),
+      updatedAt: getNow(),
+    }))
+  );
+
+  await createAuditLog({
+    action: 'CREATE',
+    tableName: 'fiscal_years',
+    recordId: fiscalYearId,
+    userId: createdBy,
+    newValue: { yearCode, periodsCreated: periodSpecs.length },
+  });
+
+  const created = await getFiscalYearById(fiscalYearId);
+  if (!created) {
+    throw new Error(`สร้างปีบัญชี ${yearCode} ไม่สำเร็จ`);
+  }
+
+  return { ...created, periods: created.periods ?? [] };
 }
 
 /**

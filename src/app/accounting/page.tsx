@@ -52,38 +52,27 @@ async function fetchAlerts(): Promise<ExecutiveAlert[]> {
   return data.data || [];
 }
 
-// Mock data for charts (to be replaced with real API data later)
-function generateTrendData(metrics: ExecutiveMetrics | undefined) {
-  // Generate 12-month trend data based on real YTD data
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentMonth = new Date().getMonth();
-
-  // Scale based on actual metrics if available
-  const baseRevenue = metrics?.grossProfitMargin?.sparklineData?.[5] || 500000;
-  const baseCogs = baseRevenue * 0.6;
-  const baseOpex = baseRevenue * 0.25;
-
-  return months.slice(0, currentMonth + 1).map((month) => {
-    const variance = 0.8 + Math.random() * 0.4; // 80%-120% variance
-    return {
-      month,
-      revenue: Math.round(baseRevenue * variance),
-      cogs: Math.round(baseCogs * variance),
-      operatingExpenses: Math.round(baseOpex * variance),
-      netIncome: Math.round((baseRevenue - baseCogs - baseOpex) * variance),
-    };
-  });
+interface TrendDataPoint {
+  month: string;
+  revenue: number;
+  cogs: number;
+  operatingExpenses: number;
+  netIncome: number;
+  [key: string]: string | number; // Index signature for recharts compatibility
 }
 
-function generateExpenseData(): ExpenseCategory[] {
-  return [
-    { categoryName: 'Raw Materials', glAccountIds: [5101, 5102], amount: 450000, percentage: 35 },
-    { categoryName: 'Labor', glAccountIds: [5201, 5202], amount: 320000, percentage: 25 },
-    { categoryName: 'Utilities', glAccountIds: [5301], amount: 128000, percentage: 10 },
-    { categoryName: 'Quality/Compliance', glAccountIds: [5401, 5402], amount: 192000, percentage: 15 },
-    { categoryName: 'Maintenance', glAccountIds: [5501], amount: 128000, percentage: 10 },
-    { categoryName: 'Other', glAccountIds: [5901], amount: 64000, percentage: 5 },
-  ];
+interface DashboardChartData {
+  trend: TrendDataPoint[];
+  expenseBreakdown: { categories: ExpenseCategory[]; totalExpenses: number };
+}
+
+// Fetch chart data from API — computed from posted journal lines
+async function fetchChartData(): Promise<DashboardChartData> {
+  const today = toLocalDateStr(new Date());
+  const res = await fetch(`/api/accounting/dashboard/charts?asOfDate=${today}`);
+  if (!res.ok) throw new Error('Failed to fetch chart data');
+  const data = await res.json();
+  return data.data;
 }
 
 export default function AccountingDashboardPage() {
@@ -139,6 +128,16 @@ export default function AccountingDashboardPage() {
   });
 
   const {
+    data: chartData,
+    isLoading: chartsLoading,
+    refetch: refetchCharts,
+  } = useQuery({
+    queryKey: ['executive-charts'],
+    queryFn: fetchChartData,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const {
     data: alerts = [],
     isLoading: alertsLoading,
     refetch: refetchAlerts,
@@ -152,11 +151,12 @@ export default function AccountingDashboardPage() {
   const handleRefresh = () => {
     refetchMetrics();
     refetchAlerts();
+    refetchCharts();
   };
 
-  const trendData = generateTrendData(metrics);
-  const expenseData = generateExpenseData();
-  const totalExpenses = expenseData.reduce((sum, e) => sum + e.amount, 0);
+  const trendData = chartData?.trend ?? [];
+  const expenseData = chartData?.expenseBreakdown.categories ?? [];
+  const totalExpenses = chartData?.expenseBreakdown.totalExpenses ?? 0;
 
   const kpiRow1 = metrics
     ? [metrics.workingCapital, metrics.currentRatio, metrics.quickRatio, metrics.dso]
@@ -272,13 +272,13 @@ export default function AccountingDashboardPage() {
           <>
             <RevenueExpensesTrend
               data={trendData}
-              isLoading={metricsLoading}
+              isLoading={chartsLoading}
               className="lg:col-span-2"
             />
             <ExpenseBreakdownChart
               data={expenseData}
               totalExpenses={totalExpenses}
-              isLoading={metricsLoading}
+              isLoading={chartsLoading}
             />
           </>
         )}

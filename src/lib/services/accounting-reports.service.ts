@@ -710,7 +710,11 @@ export async function generateCashFlowStatement(
     return debitTotal - creditTotal;
   }
 
-  // Helper to get balance at a specific date for cash accounts
+  // Helper to get cumulative cash balance at a specific date.
+  // Cash accounts are '111x' (Cash on Hand, Bank Savings, Bank Current, Petty Cash).
+  // NOTE: this previously joined on glAccountTypes.code = 'CASH', but the seeded account
+  // type codes are '1'..'7' (Assets, Liabilities, ...) — there is no 'CASH' type, so the
+  // join matched nothing and beginning/ending cash were always 0.
   async function getCashBalance(asOfDate: string): Promise<number> {
     const result = await database
       .select({
@@ -720,10 +724,9 @@ export async function generateCashFlowStatement(
       .from(journalLines)
       .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
       .innerJoin(glAccounts, eq(journalLines.glAccountId, glAccounts.id))
-      .innerJoin(glAccountTypes, eq(glAccounts.accountTypeId, glAccountTypes.id))
       .where(
         and(
-          eq(glAccountTypes.code, 'CASH'),
+          sql`${glAccounts.code} LIKE '111%'`,
           eq(journalEntries.status, 'posted'),
           lte(journalEntries.entryDate, toQueryDate(asOfDate))
         )
@@ -742,11 +745,26 @@ export async function generateCashFlowStatement(
   const adjustmentItems: Array<{ description: string; amount: number }> = [];
   let adjustmentsTotal = 0;
 
-  // Add back depreciation (typically account code 6200 or similar expense)
-  const depreciationChange = await getBalanceChange('62');
+  // Sign convention for everything below:
+  //   getBalanceChange() returns (debit - credit) for the period.
+  //   - For a DEBIT-normal account (assets, expenses), a rising balance is POSITIVE.
+  //   - For a CREDIT-normal account (liabilities, equity), a rising balance is NEGATIVE.
+  // Cash effect:
+  //   - Asset UP   => cash DOWN  => -change
+  //   - Liability UP (i.e. change is negative) => cash UP => -change as well.
+  // So `-change` is the correct cash effect for BOTH sides, which is why AP/accruals/debt
+  // use the same form as AR/inventory. (The old code had the same expression but described
+  // it backwards in the comments; the fixes here are the account CODES and the tie-out.)
+
+  // Add back depreciation & amortization — a non-cash expense.
+  // 5140 = Depreciation - Machinery (in COGS), 6270 = Depreciation - Office (in admin).
+  // NOTE: this previously used prefix '62', which is ALL Administrative Expenses
+  // (salaries, rent, utilities, ...) — not depreciation.
+  const depreciationChange =
+    (await getBalanceChange('5140')) + (await getBalanceChange('6270'));
   if (depreciationChange !== 0) {
     adjustmentItems.push({
-      description: 'Depreciation Expense',
+      description: 'Depreciation & Amortization',
       amount: depreciationChange,
     });
     adjustmentsTotal += depreciationChange;
@@ -756,8 +774,8 @@ export async function generateCashFlowStatement(
   const wcItems: Array<{ description: string; amount: number }> = [];
   let wcTotal = 0;
 
-  // Accounts Receivable change (1120)
-  const arChange = await getBalanceChange('1120');
+  // Accounts Receivable change (112x — AR domestic/foreign/allowance)
+  const arChange = await getBalanceChange('112');
   if (arChange !== 0) {
     wcItems.push({
       description: 'Change in Accounts Receivable',
@@ -766,8 +784,8 @@ export async function generateCashFlowStatement(
     wcTotal -= arChange;
   }
 
-  // Inventory change (1130)
-  const invChange = await getBalanceChange('1130');
+  // Inventory change (113x — raw materials, WIP, finished goods, packaging, supplies)
+  const invChange = await getBalanceChange('113');
   if (invChange !== 0) {
     wcItems.push({
       description: 'Change in Inventory',
@@ -776,18 +794,18 @@ export async function generateCashFlowStatement(
     wcTotal -= invChange;
   }
 
-  // Accounts Payable change (2110)
-  const apChange = await getBalanceChange('2110');
+  // Accounts Payable change (211x — includes GR/IR clearing 2113)
+  const apChange = await getBalanceChange('211');
   if (apChange !== 0) {
     wcItems.push({
       description: 'Change in Accounts Payable',
-      amount: -apChange, // Decrease in AP (credit balance decreases) reduces cash
+      amount: -apChange, // Increase in AP is a source of cash
     });
     wcTotal -= apChange;
   }
 
-  // Accrued expenses change (2120)
-  const accrChange = await getBalanceChange('2120');
+  // Other payables / accrued expenses change (212x)
+  const accrChange = await getBalanceChange('212');
   if (accrChange !== 0) {
     wcItems.push({
       description: 'Change in Accrued Expenses',
@@ -796,14 +814,37 @@ export async function generateCashFlowStatement(
     wcTotal -= accrChange;
   }
 
+  // Taxes payable change (213x — output VAT, WHT, corporate income tax, SSO)
+  const taxChange = await getBalanceChange('213');
+  if (taxChange !== 0) {
+    wcItems.push({
+      description: 'Change in Taxes Payable',
+      amount: -taxChange,
+    });
+    wcTotal -= taxChange;
+  }
+
+  // Other current assets change (114x — input VAT, prepaid expenses, deposits)
+  const otherCAChange = await getBalanceChange('114');
+  if (otherCAChange !== 0) {
+    wcItems.push({
+      description: 'Change in Other Current Assets',
+      amount: -otherCAChange,
+    });
+    wcTotal -= otherCAChange;
+  }
+
   const netCashFromOperating = netIncome + adjustmentsTotal + wcTotal;
 
   // Investing Activities
   const investingItems: Array<{ description: string; amount: number }> = [];
   let investingTotal = 0;
 
-  // Fixed assets (15xx accounts)
-  const fixedAssetChange = await getBalanceChange('15');
+  // Non-current assets (12xx — PP&E 121x, accumulated depreciation 122x, intangibles 123x).
+  // NOTE: this previously used prefix '15', which matches no account in the chart at all,
+  // so investing activities were always empty. Accumulated depreciation (a contra-asset)
+  // is inside 12xx, which correctly nets out the depreciation added back above.
+  const fixedAssetChange = await getBalanceChange('12');
   if (fixedAssetChange !== 0) {
     investingItems.push({
       description: 'Purchase of Fixed Assets',
@@ -816,22 +857,27 @@ export async function generateCashFlowStatement(
   const financingItems: Array<{ description: string; amount: number }> = [];
   let financingTotal = 0;
 
-  // Long-term debt (22xx accounts)
+  // Short-term & long-term borrowings (2140, 2150 current portion, 22xx long-term).
+  // These are financing, not operating — 214x/215x sit inside current liabilities but are
+  // debt, so they are deliberately excluded from the working-capital section above.
+  const stDebtChange =
+    (await getBalanceChange('2140')) + (await getBalanceChange('2150'));
   const ltDebtChange = await getBalanceChange('22');
-  if (ltDebtChange !== 0) {
+  const debtChange = stDebtChange + ltDebtChange;
+  if (debtChange !== 0) {
     financingItems.push({
-      description: 'Change in Long-term Debt',
-      amount: -ltDebtChange, // Credit balance increase is cash inflow
+      description: 'Change in Borrowings',
+      amount: -debtChange, // Increase in debt is a cash inflow
     });
-    financingTotal -= ltDebtChange;
+    financingTotal -= debtChange;
   }
 
-  // Equity changes (3xxx accounts)
-  const equityChange = await getBalanceChange('31');
+  // Equity changes (3xxx — share capital, retained earnings, dividends)
+  const equityChange = await getBalanceChange('3');
   if (equityChange !== 0) {
     financingItems.push({
-      description: 'Changes in Share Capital',
-      amount: -equityChange, // Credit balance increase is cash inflow
+      description: 'Changes in Equity',
+      amount: -equityChange, // Increase in equity is a cash inflow
     });
     financingTotal -= equityChange;
   }
@@ -843,7 +889,16 @@ export async function generateCashFlowStatement(
 
   const beginningCashBalance = await getCashBalance(beginningDate);
   const endingCashBalance = await getCashBalance(periodEnd);
-  const netChangeInCash = netCashFromOperating + investingTotal + financingTotal;
+
+  // Net change in cash is the ACTUAL movement on the cash accounts — not the sum of the
+  // three activity sections. Deriving it from the sections (as before) meant the statement
+  // could never fail to "tie out", which hid the fact that it didn't reconcile at all.
+  const netChangeInCash = endingCashBalance - beginningCashBalance;
+
+  // The three sections should reconstruct that movement. Any gap means some account is
+  // not classified into a section (or is double-counted) — surface it instead of hiding it.
+  const sectionsTotal = netCashFromOperating + investingTotal + financingTotal;
+  const unreconciledDifference = netChangeInCash - sectionsTotal;
 
   return {
     periodStart,
@@ -881,6 +936,8 @@ export async function generateCashFlowStatement(
     netChangeInCash,
     beginningCashBalance,
     endingCashBalance,
+    unreconciledDifference,
+    isReconciled: Math.abs(unreconciledDifference) < 0.01,
   };
 }
 
