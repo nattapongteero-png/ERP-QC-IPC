@@ -55,6 +55,19 @@ interface Lot {
   vendorId: number | null;
   vendorName?: string;
   cost: number | null;
+  // Returned by /api/inventory/lots and rendered by the grid, but previously
+  // absent from this interface — the grid reaches them through DevExtreme's
+  // untyped cellInfo.data, so nothing type-checked them.
+  manufacturerName?: string | null;
+  retestDate?: string | null;
+}
+
+/** Days a lot has sat since it was received. Null when there is no received date. */
+function getAgingDays(receivedDate: string | null): number | null {
+  if (!receivedDate) return null;
+  const received = new Date(receivedDate);
+  if (isNaN(received.getTime())) return null;
+  return Math.floor((Date.now() - received.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // Item type labels
@@ -271,28 +284,49 @@ export default function LotsPage() {
   ];
 
   // Export the lots the operator currently sees (post-filter) to xlsx.
+  //
+  // Columns mirror the on-screen register. The three the grid derives or shows
+  // but the export used to omit — total value (qty x unit cost), aging days,
+  // manufacturer and retest date — are included, so the file matches what is on
+  // the screen instead of being a narrower, different table.
   const handleDownloadLots = () => {
-    const rows = filteredLots.map((l) => ({
-      'เลข Lot': l.lotNumber,
-      'รหัสสินค้า': l.itemCode || '',
-      'ชื่อสินค้า': l.itemName || '',
-      'ประเภท': l.itemType || '',
-      'คลังสินค้า': l.warehouseName || '',
-      'จำนวน': l.quantity,
-      'คงค้าง (Reserved)': l.reservedQuantity,
-      'หน่วย': l.unit,
-      'สถานะ': l.status,
-      'วันผลิต': l.manufacturingDate || '',
-      'วันหมดอายุ': l.expiryDate || '',
-      'วันรับเข้า': l.receivedDate || '',
-      'เลข Lot ผู้ขาย': l.vendorLotNumber || '',
-      'ผู้ขาย': l.vendorName || '',
-      'ราคาต่อหน่วย': l.cost ?? '',
-    }));
+    const rows = filteredLots.map((l, index) => {
+      const qty = Number(l.quantity) || 0;
+      const unitCost = Number(l.cost) || 0;
+
+      return {
+        '#': index + 1,
+        'เลข Lot': l.lotNumber,
+        'เลข Lot ผู้ขาย': l.vendorLotNumber || '',
+        'วันรับเข้า': l.receivedDate || '',
+        'อายุ (วัน)': getAgingDays(l.receivedDate) ?? '',
+        'รหัสสินค้า': l.itemCode || '',
+        'ชื่อสินค้า': l.itemName || '',
+        'ประเภท': l.itemType || '',
+        'จำนวน': qty,
+        'คงค้าง (Reserved)': l.reservedQuantity,
+        'หน่วย': l.unit,
+        // Same derivation as the grid's "มูลค่า" column.
+        'มูลค่ารวม (฿)': qty * unitCost,
+        'ราคาต่อหน่วย (฿)': l.cost ?? '',
+        'คลังสินค้า': l.warehouseName || '',
+        'วันผลิต': l.manufacturingDate || '',
+        'วันหมดอายุ': l.expiryDate || '',
+        'ผู้ผลิต': l.manufacturerName || '',
+        'วันตรวจซ้ำ (Retest)': l.retestDate || '',
+        'ผู้ขาย': l.vendorName || '',
+        'สถานะ': l.status,
+      };
+    });
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = Array(15).fill({ wch: 18 });
-    XLSX.utils.book_append_sheet(wb, ws, 'Lots');
+    ws['!cols'] = [
+      { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 9 },
+      { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 12 },
+      { wch: 8 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 12 },
+      { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 12 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'ทะเบียน Lot');
     const ts = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `lots-${ts}.xlsx`);
   };
@@ -949,12 +983,9 @@ export default function LotsPage() {
       hideOnMobile: true,
       hideOnTablet: true,
       cellRender: (cellInfo) => {
-        const rd = cellInfo.data.receivedDate;
-        if (!rd) return <span className="text-gray-400">-</span>;
-        const received = new Date(rd);
-        if (isNaN(received.getTime())) return <span className="text-gray-400">-</span>;
-        const diffMs = Date.now() - received.getTime();
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        // Same helper the xlsx export uses, so the screen and the file can't drift.
+        const days = getAgingDays(cellInfo.data.receivedDate);
+        if (days === null) return <span className="text-gray-400">-</span>;
         const color = days > 180 ? 'text-red-600 bg-red-50' : days > 90 ? 'text-amber-600 bg-amber-50' : 'text-gray-700 bg-gray-50';
         return <span className={`text-xs font-medium px-2 py-0.5 rounded ${color}`}>{days} {t('lots.days')}</span>;
       },

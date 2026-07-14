@@ -359,7 +359,8 @@
       "newTransaction": "New Transaction",
       "apply": "Apply",
       "cancel": "Cancel",
-      "create": "Create Transaction"
+      "create": "Create Transaction",
+      "export": "Export Excel"
     },
     "search": {
       "placeholder": "Search by transaction #, lot, or item...",

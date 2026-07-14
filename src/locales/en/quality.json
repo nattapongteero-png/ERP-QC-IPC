@@ -182,7 +182,8 @@
       "open": "Open",
       "investigating": "Investigating",
       "resolved": "Resolved",
-      "closed": "Closed"
+      "closed": "Closed",
+      "active": "In Progress"
     },
     "severity": {
       "minor": "Minor",

@@ -182,7 +182,8 @@
       "open": "เปิด",
       "investigating": "กำลังสอบสวน",
       "resolved": "แก้ไขแล้ว",
-      "closed": "ปิด"
+      "closed": "ปิด",
+      "active": "กำลังดำเนินการ"
     },
     "severity": {
       "minor": "เล็กน้อย",

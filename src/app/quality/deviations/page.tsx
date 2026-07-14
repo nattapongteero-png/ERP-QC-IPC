@@ -62,7 +62,12 @@ interface Deviation {
 }
 
 type ViewMode = 'grid' | 'cards' | 'analytics';
-type StatusTab = '' | 'open' | 'investigating' | 'resolved' | 'closed';
+// 'active' is not a stored status — it is the union of open + investigating,
+// i.e. everything still being worked. It exists so the "กำลังดำเนินการ" stat
+// card can filter the list down to exactly what that card counts.
+type StatusTab = '' | 'active' | 'open' | 'investigating' | 'resolved' | 'closed';
+
+const ACTIVE_STATUSES = ['open', 'investigating'];
 
 // ============================================================================
 // Configuration Constants (labels removed - use t() instead)
@@ -138,6 +143,10 @@ const SOURCE_CONFIG = {
 // Status tabs (used for scroll-snap filter row)
 const STATUS_TABS: Array<{ key: StatusTab; color: string; bgActive: string }> = [
   { key: '', color: 'text-white', bgActive: 'bg-gray-900' },
+  // Mirrors the "กำลังดำเนินการ" stat card (open + investigating). Without a tab
+  // for it, clicking that card would filter the grid while leaving every tab
+  // unhighlighted — the user could see the filtered list but not what applied it.
+  { key: 'active', color: 'text-white', bgActive: 'bg-amber-600' },
   { key: 'open', color: 'text-white', bgActive: 'bg-blue-600' },
   { key: 'investigating', color: 'text-white', bgActive: 'bg-amber-500' },
   { key: 'resolved', color: 'text-white', bgActive: 'bg-cyan-600' },
@@ -236,7 +245,11 @@ export default function DeviationsPage() {
       const matchesSearch = !search ||
         dev.deviationNumber?.toLowerCase().includes(search.toLowerCase()) ||
         dev.title?.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = !statusFilter || dev.status === statusFilter;
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === 'active'
+          ? ACTIVE_STATUSES.includes(dev.status)
+          : dev.status === statusFilter);
       const matchesSeverity = !severityFilter || dev.severity === severityFilter;
       const matchesSource = !sourceFilter || dev.sourceType === sourceFilter;
 
@@ -251,12 +264,16 @@ export default function DeviationsPage() {
   const statusCounts = useMemo(() => {
     const counts: Record<StatusTab, number> = {
       '': deviations.length,
+      active: 0,
       open: 0,
       investigating: 0,
       resolved: 0,
       closed: 0,
     };
     deviations.forEach((d) => {
+      // 'active' overlaps open/investigating on purpose — it is the union, so a
+      // deviation counts toward both its own status and the active roll-up.
+      if (ACTIVE_STATUSES.includes(d.status)) counts.active++;
       if (d.status === 'open') counts.open++;
       else if (d.status === 'investigating') counts.investigating++;
       else if (d.status === 'resolved') counts.resolved++;
@@ -503,6 +520,21 @@ export default function DeviationsPage() {
   // Render Functions
   // ============================================================================
 
+  // Each card filters the grid below to exactly the rows it counts, so the
+  // number on the card and the list under it can never disagree. Clicking the
+  // same card again clears the filter.
+  const showOnly = (next: { status?: StatusTab; severity?: string }) => {
+    const nextStatus = next.status ?? '';
+    const nextSeverity = next.severity ?? '';
+    const alreadyApplied =
+      statusFilter === nextStatus && severityFilter === nextSeverity;
+
+    setSearch('');
+    setSourceFilter('');
+    setStatusFilter(alreadyApplied ? '' : nextStatus);
+    setSeverityFilter(alreadyApplied ? '' : nextSeverity);
+  };
+
   const renderStatCards = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       <StatCard
@@ -512,6 +544,7 @@ export default function DeviationsPage() {
         icon={FileWarning}
         tone="blue"
         isLoading={isLoading}
+        onClick={() => showOnly({})}
       />
       <StatCard
         data-testid="stat-in-progress"
@@ -521,6 +554,7 @@ export default function DeviationsPage() {
         tone="amber"
         trend={stats.activeTotal > 0 ? { value: String(stats.activeTotal), direction: 'neutral' } : undefined}
         isLoading={isLoading}
+        onClick={() => showOnly({ status: 'active' })}
       />
       <StatCard
         data-testid="stat-critical"
@@ -530,6 +564,7 @@ export default function DeviationsPage() {
         tone="rose"
         trend={stats.critical > 0 ? { value: String(stats.critical), direction: 'down' } : undefined}
         isLoading={isLoading}
+        onClick={() => showOnly({ severity: 'critical' })}
       />
       <StatCard
         data-testid="stat-resolution-rate"
@@ -539,6 +574,7 @@ export default function DeviationsPage() {
         tone="emerald"
         trend={stats.resolutionRate >= 80 ? { value: String(stats.resolutionRate), direction: 'up' } : undefined}
         isLoading={isLoading}
+        onClick={() => showOnly({ status: 'resolved' })}
       />
     </div>
   );

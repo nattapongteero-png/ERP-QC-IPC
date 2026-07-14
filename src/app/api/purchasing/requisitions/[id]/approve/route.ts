@@ -40,11 +40,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       PR_NOT_PENDING_APPROVAL: 'ใบขอซื้อนี้ไม่ได้อยู่ในสถานะรออนุมัติ',
       NO_APPROVAL_REQUEST: 'ไม่พบคำขออนุมัติของใบขอซื้อนี้',
       NOT_AUTHORIZED: 'คุณไม่มีสิทธิ์อนุมัติใบขอซื้อนี้',
+      ALREADY_PROCESSED: 'ใบขอซื้อนี้ถูกดำเนินการไปแล้ว',
+      INVALID_REQUEST: 'ไม่พบคำขออนุมัติของใบขอซื้อนี้',
     };
 
-    const message = errorMessages[error.message] || 'ไม่สามารถอนุมัติใบขอซื้อได้';
-    const status = error.message === 'PR_NOT_FOUND' ? 404 :
-                   error.message === 'NOT_AUTHORIZED' ? 403 : 400;
+    // Same as the reject route: the workflow engine throws 'CODE: english
+    // detail' while this service throws a bare 'CODE'. Key on the code prefix
+    // so the prefixed ones don't leak their English sentence into the Thai UI.
+    const code = String(error?.message ?? '').split(':')[0].trim();
+
+    const message = errorMessages[code] || 'ไม่สามารถอนุมัติใบขอซื้อได้';
+    const status = code === 'PR_NOT_FOUND' ? 404 :
+                   code === 'NOT_AUTHORIZED' ? 403 : 400;
 
     return NextResponse.json({ success: false, error: message }, { status });
   }

@@ -359,7 +359,8 @@
       "newTransaction": "บันทึกรายการใหม่",
       "apply": "ใช้ตัวกรอง",
       "cancel": "ยกเลิก",
-      "create": "สร้างรายการ"
+      "create": "สร้างรายการ",
+      "export": "ส่งออก Excel"
     },
     "search": {
       "placeholder": "ค้นหาด้วยเลขที่รายการ, ล็อต หรือสินค้า...",
@@ -984,7 +985,6 @@
       "confidentialityLevel": "ระดับความลับ",
       "defaultConfidential": "ค่าเริ่มต้นเป็นความลับใน BOM",
       "type": "ประเภท",
-      "shelfLife": "อายุการเก็บ",
       "vmiStatus": "สถานะ VMI"
     },
     "placeholders": {

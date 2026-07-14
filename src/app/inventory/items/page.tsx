@@ -447,17 +447,44 @@ export default function ItemsPage() {
     setDialogOpen(true);
   };
 
-  // "Download Excel" button — export ALL visible items (flat xlsx) without
-  // going through the DataGrid toolbar. Keeps the current type/search filter
-  // so the operator gets what they see.
+  // "Download Excel" button — export the items the operator currently sees
+  // (current type/search filter applied).
+  //
+  // Two sheets, because the two audiences want different things:
+  //   "ทะเบียนสินค้า" — the register, column-for-column what the grid shows.
+  //     This is what you print or hand to an auditor. It previously did not
+  //     exist: the only sheet was the import template, whose columns are a
+  //     different set (no คงเหลือ / มูลค่า / ราคาทุนต่อหน่วย / กักกัน), so the
+  //     file never matched the screen.
+  //   "สำหรับนำเข้า" — the import-template column set, so the file still
+  //     round-trips: edit the rows and re-import them.
   const handleDownloadData = () => {
-    // Export current items using the SAME column set as the import template, so
-    // the file round-trips: edit the exported rows and re-import them directly.
-    // Booleans render as 'true'/'false'; an extra 'ประเภท (Type)' col is added
-    // up front so a single sheet captures all types (import reads per-sheet, so
-    // this export sheet is for review/edit — split per type before re-import).
+    // Sheet 1 — mirrors the on-screen register, same columns in the same order.
+    const registerRows = filteredItems.map((it, index) => {
+      const onHand = Number(it.onHand) || 0;
+      const onHandCost = Number(it.onHandCost) || 0;
+      // Same derivation as the grid's "ราคาทุน/หน่วย" column: total value over
+      // quantity on hand. Blank rather than 0 when there is no stock to divide.
+      const avgCost = onHand > 0 ? onHandCost / onHand : '';
+
+      return {
+        '#': index + 1,
+        'รหัส': it.code ?? '',
+        'ชื่อ': it.nameTh ?? '',
+        'ประเภท': it.type ?? '',
+        'หมวดหมู่': it.category ?? '',
+        'คงเหลือ (ปริมาณ)': onHand,
+        'มูลค่ารวม (฿)': onHandCost,
+        'ราคาทุน/หน่วย (฿)': avgCost,
+        'กักกัน': Number(it.quarantineQty) || 0,
+        'หน่วย': it.primaryUnit ?? '',
+        'สถานะ': it.isActive ? 'Active' : 'Inactive',
+      };
+    });
+
+    // Sheet 2 — import-template columns, unchanged, so re-import still works.
     const boolKeys = new Set(ITEM_COLUMNS.filter(c => c.kind === 'boolean').map(c => c.field));
-    const rows = filteredItems.map((it) => {
+    const importRows = filteredItems.map((it) => {
       const rec = it as unknown as Record<string, unknown>;
       const out: Record<string, string | number> = { 'ประเภท (Type)': String(rec.type ?? '') };
       for (const col of ITEM_COLUMNS) {
@@ -466,16 +493,23 @@ export default function ItemsPage() {
           ? (v ? 'true' : 'false')
           : (v === null || v === undefined ? '' : (v as string | number));
       }
-      // useful read-only context columns
-      out['คงเหลือ (on_hand)'] = (rec.onHand as number) ?? '';
-      out['มูลค่า (on_hand_cost)'] = (rec.onHandCost as number) ?? '';
-      out['สถานะ (Status)'] = rec.isActive ? 'Active' : 'Inactive';
       return out;
     });
+
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = Array(ITEM_COLUMNS.length + 4).fill({ wch: 20 });
-    XLSX.utils.book_append_sheet(wb, ws, 'Items');
+
+    const wsRegister = XLSX.utils.json_to_sheet(registerRows);
+    wsRegister['!cols'] = [
+      { wch: 5 }, { wch: 14 }, { wch: 34 }, { wch: 14 }, { wch: 16 },
+      { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 8 },
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsRegister, 'ทะเบียนสินค้า');
+
+    const wsImport = XLSX.utils.json_to_sheet(importRows);
+    wsImport['!cols'] = Array(ITEM_COLUMNS.length + 1).fill({ wch: 20 });
+    XLSX.utils.book_append_sheet(wb, wsImport, 'สำหรับนำเข้า');
+
     const ts = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `items-${ts}.xlsx`);
   };

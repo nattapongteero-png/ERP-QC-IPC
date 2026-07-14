@@ -30,6 +30,7 @@ import {
   Warehouse,
   SearchX,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils/cn';
 import { formatNumber } from '@/lib/utils/number-format';
 
@@ -258,6 +259,46 @@ export default function TransactionsPage() {
       return true;
     })
     .map((txn, index) => ({ ...txn, _rowNumber: index + 1 }));
+
+  // Export the movements the operator currently sees (post-filter) to xlsx —
+  // same convention as /inventory/lots, so what is on screen is what lands in
+  // the file. Quantity keeps its sign so incoming/outgoing survive the export;
+  // the on-screen grid shows the magnitude with a +/- prefix instead.
+  const handleExportTransactions = () => {
+    const rows = filteredTransactions.map((txn) => {
+      const config = TYPE_CONFIG[normalizeType(txn.type) as TransactionTypeFilter];
+      return {
+        '#': txn._rowNumber,
+        'เลขที่รายการ': txn.transactionNumber || '',
+        'ประเภท': config
+          ? t(`transactions.types.${config.translationKey}`)
+          : txn.type,
+        'เลข Lot': txn.lotNumber || '',
+        'รหัสสินค้า': txn.itemCode || '',
+        'ชื่อสินค้า': txn.itemName || '',
+        'จำนวน': txn.quantity,
+        'หน่วย': txn.unit || '',
+        'คลังต้นทาง': txn.fromWarehouseName || '',
+        'คลังปลายทาง': txn.toWarehouseName || '',
+        'ประเภทอ้างอิง': txn.referenceType || '',
+        'เลขอ้างอิง': txn.referenceId ?? '',
+        'หมายเหตุ': txn.notes || '',
+        'ผู้ทำรายการ': txn.createdByName || '',
+        'วันที่': txn.createdAt || '',
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 5 }, { wch: 18 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+      { wch: 28 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 18 },
+      { wch: 14 }, { wch: 10 }, { wch: 28 }, { wch: 18 }, { wch: 20 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    const ts = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `inventory-transactions-${ts}.xlsx`);
+  };
 
   // Calculate counts for tabs (case-insensitive)
   const typeCounts: Record<TransactionTypeFilter, number> = {
@@ -557,6 +598,14 @@ export default function TransactionsPage() {
                 stylingMode="outlined"
                 onClick={() => router.push('/inventory/lots')}
                 className="hidden md:inline-flex"
+              />
+              <DxButton
+                icon="xlsxfile"
+                text={t('transactions.actions.export')}
+                stylingMode="outlined"
+                onClick={handleExportTransactions}
+                disabled={filteredTransactions.length === 0}
+                elementAttr={{ 'data-testid': 'btn-export-transactions' }}
               />
               <DxButton
                 text={t('transactions.actions.newTransaction')}
