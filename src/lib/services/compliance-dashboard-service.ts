@@ -16,9 +16,13 @@ import {
   sqliteStabilityStudies,
   sqliteDeviations,
   sqliteUsers,
+  sqliteWorkOrders,
+  sqliteVendors,
   mysqlStabilityStudies,
   mysqlDeviations,
   mysqlUsers,
+  mysqlWorkOrders,
+  mysqlVendors,
 } from '../db/schema';
 
 import {
@@ -38,12 +42,16 @@ function getTables() {
       stabilityStudies: sqliteStabilityStudies,
       deviations: sqliteDeviations,
       users: sqliteUsers,
+      workOrders: sqliteWorkOrders,
+      vendors: sqliteVendors,
     };
   }
   return {
     stabilityStudies: mysqlStabilityStudies,
     deviations: mysqlDeviations,
     users: mysqlUsers,
+    workOrders: mysqlWorkOrders,
+    vendors: mysqlVendors,
   };
 }
 
@@ -408,15 +416,23 @@ async function evaluateChapter6(
   requirements: ComplianceRequirement[],
   gaps: ComplianceGap[]
 ): Promise<void> {
+  const db = await getDb();
+  const { workOrders } = getTables();
+
   // Requirement 6.1: Production work orders tracked
-  // Placeholder - assume not implemented yet
-  const workOrdersTracked = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const workOrderRows = await (db as any)
+    .select({ count: count() })
+    .from(workOrders);
+
+  const workOrderCount = workOrderRows[0]?.count || 0;
+  const workOrdersTracked = workOrderCount > 0;
 
   requirements.push({
     id: '6.1',
     description: 'Production work orders tracked in system',
     isMet: workOrdersTracked,
-    evidence: 'Module not implemented',
+    evidence: `Work orders recorded: ${workOrderCount}`,
   });
 
   if (!workOrdersTracked) {
@@ -425,9 +441,9 @@ async function evaluateChapter6(
       requirement: 'Production work orders tracked in system',
       chapter: 6,
       chapterName: GMP_CHAPTERS[6].name,
-      currentStatus: 'Production module not yet implemented',
+      currentStatus: 'No work orders recorded yet',
       affectedRecords: [],
-      remediation: 'Implement production work order tracking module to manage batch records and manufacturing processes.',
+      remediation: 'Create production work orders so batch records and manufacturing processes are traceable.',
       priority: 'low',
     });
   }
@@ -478,21 +494,32 @@ async function evaluateChapter7(
 
 /**
  * Chapter 8: Contract Manufacturing
- * - Vendor qualification (placeholder - not yet implemented)
+ * - Vendor qualification, evidenced by vendors flagged `isApproved`
  */
 async function evaluateChapter8(
   requirements: ComplianceRequirement[],
   gaps: ComplianceGap[]
 ): Promise<void> {
-  // Requirement 8.1: Vendor qualification records
-  // Placeholder - assume not implemented yet
-  const vendorQualificationTracked = false;
+  const db = await getDb();
+  const { vendors } = getTables();
+
+  // Requirement 8.1: Vendor qualification records.
+  // A vendor counts as qualified only when it has been through approval —
+  // a bare vendor row is contact data, not a qualification record.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const approvedRows = await (db as any)
+    .select({ count: count() })
+    .from(vendors)
+    .where(eq(vendors.isApproved, true));
+
+  const approvedVendorCount = approvedRows[0]?.count || 0;
+  const vendorQualificationTracked = approvedVendorCount > 0;
 
   requirements.push({
     id: '8.1',
     description: 'Contract vendor qualification records maintained',
     isMet: vendorQualificationTracked,
-    evidence: 'Module not implemented',
+    evidence: `Approved vendors: ${approvedVendorCount}`,
   });
 
   if (!vendorQualificationTracked) {
@@ -501,9 +528,9 @@ async function evaluateChapter8(
       requirement: 'Contract vendor qualification records maintained',
       chapter: 8,
       chapterName: GMP_CHAPTERS[8].name,
-      currentStatus: 'Vendor management module not yet implemented',
+      currentStatus: 'No approved (qualified) vendors on record',
       affectedRecords: [],
-      remediation: 'Implement vendor qualification module if contract manufacturing is used. Maintain qualification records and periodic audits.',
+      remediation: 'Qualify contract vendors and mark them approved. Maintain qualification records and periodic audits.',
       priority: 'low',
     });
   }

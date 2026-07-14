@@ -15,6 +15,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { ItemSearchDialog } from '@/components/ui/item-search-dialog';
 import { cn } from '@/lib/utils/cn';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Package,
@@ -200,17 +201,27 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   const [trackingNumber, setTrackingNumber] = useState('');
   const [carrier, setCarrier] = useState('');
 
-  // TODO: Get actual user ID from session
-  const userId = 1;
+  // Real session user — a VMI match/confirm/ship writes an audit trail, so it
+  // must name the operator who actually acted. Actions stay disabled until the
+  // session resolves rather than falling back to a placeholder id.
+  const { data: currentUser } = useCurrentUser();
+  const userId = currentUser?.id;
 
   const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['vmi-order', orderId],
     queryFn: () => fetchOrderDetail(orderId),
   });
 
+  // Refuse to write an audit trail we cannot attribute. Buttons are also
+  // disabled while the session loads, so this is a backstop, not the UX.
+  const requireUserId = (): number => {
+    if (!userId) throw new Error('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่');
+    return userId;
+  };
+
   const matchMutation = useMutation({
     mutationFn: ({ lineId, itemId }: { lineId: number; itemId: number }) =>
-      matchLine(orderId, lineId, itemId, userId),
+      matchLine(orderId, lineId, itemId, requireUserId()),
     onSuccess: () => {
       setMatchingLine(null);
       refetch();
@@ -219,7 +230,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   });
 
   const confirmMutation = useMutation({
-    mutationFn: () => confirmOrder(orderId, userId),
+    mutationFn: () => confirmOrder(orderId, requireUserId()),
     onSuccess: () => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ['vmi-orders'] });
@@ -228,7 +239,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   });
 
   const shipMutation = useMutation({
-    mutationFn: () => shipOrder(orderId, userId, { trackingNumber, carrier }),
+    mutationFn: () => shipOrder(orderId, requireUserId(), { trackingNumber, carrier }),
     onSuccess: () => {
       setShowShipDialog(false);
       refetch();
@@ -470,7 +481,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 type="success"
                 icon="check"
                 onClick={() => confirmMutation.mutate()}
-                disabled={confirmMutation.isPending}
+                disabled={confirmMutation.isPending || !userId}
               />
             )}
             {canShip && (
@@ -568,7 +579,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               text={shipMutation.isPending ? 'กำลังจัดส่ง...' : 'ยืนยันการจัดส่ง'}
               type="success"
               onClick={() => shipMutation.mutate()}
-              disabled={shipMutation.isPending}
+              disabled={shipMutation.isPending || !userId}
             />
           </div>
         </div>

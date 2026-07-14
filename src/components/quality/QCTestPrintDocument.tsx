@@ -20,14 +20,14 @@
 
 import * as React from 'react';
 import { formatSpecInline } from '@/lib/master-data/ipc-spec-payload';
+import { getFactoryInfo } from '@/lib/utils/factory-info';
 
 // ── Company / factory header (mirrors other print documents) ──────────────
-const FACTORY = {
-  nameTh: 'โรงงานผลิตยาสมุนไพร',
-  nameEn: 'Herbal Medicine Manufacturing',
-  address: '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-  licenseNo: 'GMP-XXXX/XXXX',
-};
+// Real values come from env (see getFactoryInfo). Address and licence number
+// default to empty and are omitted from the printout when unset — printing a
+// placeholder licence number on a document that reaches a regulator or customer
+// is a compliance problem, not a cosmetic one.
+const FACTORY = getFactoryInfo();
 
 // ── Minimal shape of the QC sample detail used by this document ───────────
 // Kept local because the page's QcSampleDetail type is not exported. Only the
@@ -216,10 +216,14 @@ export function QCTestPrintDocument({ detail }: { detail: QCPrintDetail }) {
         <div className="qc-print-company">
           <div className="qc-print-company-name">{FACTORY.nameTh}</div>
           <div className="qc-print-company-en">{FACTORY.nameEn}</div>
-          <div className="qc-print-company-meta">{FACTORY.address}</div>
-          <div className="qc-print-company-meta">
-            ใบอนุญาตผลิต GMP เลขที่ {FACTORY.licenseNo}
-          </div>
+          {FACTORY.address && (
+            <div className="qc-print-company-meta">{FACTORY.address}</div>
+          )}
+          {FACTORY.licenseNo && (
+            <div className="qc-print-company-meta">
+              ใบอนุญาตผลิต GMP เลขที่ {FACTORY.licenseNo}
+            </div>
+          )}
         </div>
         <div className="qc-print-title-block">
           <div className="qc-print-doc-title">รายงานผลการตรวจสอบคุณภาพ</div>

@@ -109,5 +109,13 @@
         "removeMember": "Remove Member"
       }
     }
+  },
+  "hub": {
+    "title": "Administration",
+    "subtitle": "System-level settings and data access control",
+    "confidentialGroups": {
+      "title": "Confidential Groups",
+      "desc": "Manage confidential data groups and access"
+    }
   }
 }

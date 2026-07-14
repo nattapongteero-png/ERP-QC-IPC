@@ -1907,5 +1907,49 @@
         "rowNum": "#"
       }
     }
+  },
+  "hub": {
+    "title": "GMP Compliance",
+    "subtitle": "GMP quality system — documents, changes, CAPA, complaints and audits",
+    "documents": {
+      "title": "Quality Documents",
+      "desc": "SOP document register and version control"
+    },
+    "assistant": {
+      "title": "SOP Assistant",
+      "desc": "Draft SOP documents from standard templates"
+    },
+    "changes": {
+      "title": "Change Control",
+      "desc": "Change requests and approvals"
+    },
+    "capa": {
+      "title": "CAPA",
+      "desc": "Corrective & Preventive Action"
+    },
+    "complaints": {
+      "title": "Complaints",
+      "desc": "Record and track customer complaints"
+    },
+    "recalls": {
+      "title": "Product Recalls",
+      "desc": "Manage product recalls and follow-up"
+    },
+    "stability": {
+      "title": "Stability Studies",
+      "desc": "Stability protocols and study results"
+    },
+    "internalAudit": {
+      "title": "Internal Audit",
+      "desc": "Audit plans, results and findings"
+    },
+    "contracts": {
+      "title": "Contract Manufacturing",
+      "desc": "Contract register and vendor qualification"
+    },
+    "pqr": {
+      "title": "PQR",
+      "desc": "Annual Product Quality Review"
+    }
   }
 }
