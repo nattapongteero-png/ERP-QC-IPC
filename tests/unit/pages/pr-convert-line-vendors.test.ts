@@ -25,7 +25,8 @@ describe('PR convert dialog — per-line vendor', () => {
   const code = codeOnly(source);
 
   it('keeps a lineVendors state keyed by line id', () => {
-    expect(code).toMatch(/lineVendors.*useState<Record<number, number>>/s);
+    // [\s\S] rather than the /s flag: tsconfig targets below es2018.
+    expect(code).toMatch(/lineVendors[\s\S]*?useState<Record<number, number>>/);
   });
 
   it('renders a vendor picker for each PR line', () => {

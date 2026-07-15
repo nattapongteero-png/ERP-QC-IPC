@@ -16,7 +16,7 @@ import { DxPopup } from '@/components/ui/dx-popup';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
-import { formatBaht } from '@/lib/utils/number-format';
+import { formatBaht, formatNumber } from '@/lib/utils/number-format';
 import {
   Send, Package, DollarSign, AlertTriangle,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
@@ -1364,10 +1364,13 @@ export default function PurchaseOrderDetailPage() {
           <div className="border-b border-gray-200 overflow-x-auto">
             <nav className="flex gap-1 px-4 min-w-max">
               {[
-                { id: 'overview', label: 'ข้อมูลทั่วไป', icon: FileText },
-                { id: 'lines', label: `รายการสินค้า (${lines.length})`, icon: Package },
+                // "ข้อมูลทั่วไป" was ambiguous on a purchase order — every tab
+                // here is general information about something. Name it for what
+                // it holds: the order itself.
+                { id: 'overview', label: 'ข้อมูลคำสั่งซื้อ', icon: FileText },
+                { id: 'lines', label: `รายการสินค้า (${formatNumber(lines.length)})`, icon: Package },
                 { id: 'receiving', label: 'รับสินค้า', icon: Truck },
-                { id: 'lots', label: `Lot ที่รับ (${receivedLots.length})`, icon: FileCheck },
+                { id: 'lots', label: `Lot ที่รับ (${formatNumber(receivedLots.length)})`, icon: FileCheck },
               ].map((tab) => (
                 <button
                   key={tab.id}
