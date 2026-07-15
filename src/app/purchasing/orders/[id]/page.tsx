@@ -704,11 +704,36 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'จำนวน',
-      width: 120,
+      caption: 'สั่งซื้อ',
+      width: 110,
       cellRender: (cellInfo) => (
         <span className="font-medium">
-          {cellInfo.data.quantity.toLocaleString()} {cellInfo.data.itemUnit}
+          {formatNumber(cellInfo.data.quantity)} {cellInfo.data.itemUnit}
+        </span>
+      ),
+    },
+    // Received / pending live in the SAME table as the price: one row per item
+    // now answers both "what did we order and what did it cost" and "has it
+    // arrived". They used to be two tables over two tabs, built from the same
+    // `lines` array, so checking a delivery against its price meant flipping
+    // back and forth.
+    {
+      dataField: 'receivedQty',
+      caption: 'รับแล้ว',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className="text-green-600 font-medium">
+          {formatNumber(cellInfo.data.receivedQty || 0)}
+        </span>
+      ),
+    },
+    {
+      dataField: 'pendingQty',
+      caption: 'ค้างส่ง',
+      width: 100,
+      cellRender: (cellInfo) => (
+        <span className={cellInfo.data.pendingQty > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}>
+          {formatNumber(cellInfo.data.pendingQty || 0)}
         </span>
       ),
     },
@@ -808,7 +833,9 @@ export default function PurchaseOrderDetailPage() {
       dataField: 'quantity',
       caption: 'สั่งซื้อ',
       width: 100,
-      cellRender: (cellInfo) => `${cellInfo.data.quantity.toLocaleString()} ${cellInfo.data.itemUnit}`,
+      // formatNumber, not toLocaleString: the latter is SSR-unsafe and
+      // locale-dependent, and the project bans it.
+      cellRender: (cellInfo) => `${formatNumber(cellInfo.data.quantity)} ${cellInfo.data.itemUnit}`,
     },
     {
       dataField: 'receivedQty',
@@ -882,7 +909,7 @@ export default function PurchaseOrderDetailPage() {
       dataField: 'quantity',
       caption: 'จำนวน',
       width: 100,
-      cellRender: (cellInfo) => cellInfo.data.quantity.toLocaleString(),
+      cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
     {
       dataField: 'status',
@@ -1316,7 +1343,7 @@ export default function PurchaseOrderDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">สั่งซื้อ</p>
-                <p className="text-lg font-bold">{summary.totalOrdered?.toLocaleString() || 0}</p>
+                <p className="text-lg font-bold">{formatNumber(summary.totalOrdered || 0)}</p>
               </div>
             </div>
           </Card>
@@ -1327,7 +1354,7 @@ export default function PurchaseOrderDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">รับแล้ว</p>
-                <p className="text-lg font-bold text-green-600">{summary.totalReceived?.toLocaleString() || 0}</p>
+                <p className="text-lg font-bold text-green-600">{formatNumber(summary.totalReceived || 0)}</p>
               </div>
             </div>
           </Card>
@@ -1338,7 +1365,7 @@ export default function PurchaseOrderDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">คงเหลือ</p>
-                <p className="text-lg font-bold text-orange-600">{summary.totalPending?.toLocaleString() || 0}</p>
+                <p className="text-lg font-bold text-orange-600">{formatNumber(summary.totalPending || 0)}</p>
               </div>
             </div>
           </Card>
