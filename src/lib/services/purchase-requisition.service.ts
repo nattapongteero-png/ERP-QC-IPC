@@ -5,7 +5,7 @@
 
 import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
-import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
+import { getNow, toDbDate, formatDateFromDb, getTodayStr } from '../db/date-utils';
 import { submitForApproval, approveRequest, rejectRequest } from './approval-workflow.service';
 import { notifyMetaherbPrStatus, isMetaherbOrigin } from './metaherb-pr-webhook.service';
 import type {
@@ -1102,20 +1102,22 @@ export async function convertPRToPO(
       throw new Error('PR_NOT_APPROVED');
     }
 
-    // Vendor resolution priority:
+    // PR-level fallback vendor, used only for lines that name no vendor of
+    // their own:
     //  1. Metaherb-origin PRs → always Metaherb (find-or-create), UI value ignored.
     //  2. Explicit vendor sent at convert time (input.vendorId) — overrides PR.
-    //  3. Vendor pre-selected on the PR itself (pr.vendorId) — so the buyer
-    //     doesn't have to re-pick it; this is the new convenience path.
-    //  4. None of the above → VENDOR_REQUIRED (unchanged behaviour).
+    //  3. Vendor pre-selected on the PR itself (pr.vendorId).
+    //
+    // Deliberately does NOT throw when all three are absent: a PR whose lines
+    // each name their own vendor is perfectly valid and used to be rejected
+    // here before the per-line vendors were ever looked at. The check now lives
+    // per line (LINE_VENDOR_REQUIRED), which is the only place that can know
+    // whether a vendor is actually missing.
     let vendorId = input.vendorId;
     if (isMetaherbOrigin(pr.externalSource)) {
       vendorId = await ensureMetaherbVendor(db);
     } else if (!vendorId) {
       vendorId = pr.vendorId ?? undefined;
-      if (!vendorId) {
-        throw new Error('VENDOR_REQUIRED');
-      }
     }
 
     // Payment terms for the PO: explicit convert-time value wins, else fall back
@@ -1240,14 +1242,19 @@ export async function convertPRToPO(
       for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
         try {
           const candidate = await nextPoNumber();
+          // Column names must match the schema exactly: purchase_orders has
+          // expectedDate/shippingAddress and NO prId — inserting deliveryDate /
+          // deliveryAddress / prId (as this did) makes the driver throw and the
+          // whole conversion fail. The PR link lives on the PR lines'
+          // convertedPoLineId instead.
           const poResult = await db.insert(tables.purchaseOrders).values({
             poNumber: candidate,
             vendorId: poVendorId,
             status: 'draft',
-            prId: input.prId,
+            orderDate: toDbDate(getTodayStr()),
             totalAmount: poTotal,
-            deliveryDate: resolvedDeliveryDate ? toDbDate(resolvedDeliveryDate) : null,
-            deliveryAddress: input.deliveryAddress || null,
+            expectedDate: resolvedDeliveryDate ? toDbDate(resolvedDeliveryDate) : null,
+            shippingAddress: input.deliveryAddress || null,
             paymentTerms: resolvedPaymentTerms,
             notes: input.notes || null,
             createdBy,
