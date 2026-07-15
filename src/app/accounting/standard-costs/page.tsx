@@ -71,13 +71,38 @@ export default function StandardCostsPage() {
     }
   }, []);
 
+  /**
+   * Products the item picker offers.
+   *
+   * Two bugs lived here: the URL was `/api/inventory/items`, which does not
+   * exist and 404s (so the picker was always empty), and the response was read
+   * as `result.data` when the payload is `{ items, total, ... }` — an object,
+   * not the array the SelectBox needs.
+   *
+   * Scoped to finished goods + WIP: a standard cost is what a MANUFACTURED
+   * product should cost, so offering raw materials and packaging here would
+   * invite costing something that is never produced.
+   */
   const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch('/api/inventory/items?limit=1000');
-      const result = await response.json();
-      if (result.success) {
-        setItems(result.data);
-      }
+      const types = ['finished_goods', 'wip'];
+      const responses = await Promise.all(
+        types.map((type) =>
+          fetch(`/api/items?type=${type}&limit=1000`).then((r) => r.json()),
+        ),
+      );
+
+      const all = responses.flatMap((result) =>
+        result?.success ? (result.data?.items ?? []) : [],
+      );
+
+      setItems(
+        all.map((it: { id: number; code: string; nameTh?: string; name?: string }) => ({
+          id: it.id,
+          code: it.code,
+          name: it.nameTh || it.name || it.code,
+        })),
+      );
     } catch (error) {
       console.error('Error fetching items:', error);
     }

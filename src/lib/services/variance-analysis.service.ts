@@ -430,35 +430,47 @@ export async function rollupStandardCosts(
 
     const targetDate = effectiveDate || getTodayStr();
 
-    // Get items with BOMs (finished goods)
-    let bomItemsQuery = db
+    // Get products with an approved BOM.
+    //
+    // This function referenced three columns that do not exist on `bom`:
+    // `bom.itemId` (the column is `productId`) and `bom.isActive` (the table
+    // has `status`, not a boolean flag). Selecting an undefined column makes
+    // Drizzle throw "Cannot convert undefined or null to object", so EVERY
+    // roll-up failed — the button could never have worked.
+    //
+    // 'approved' matches how production.service.ts picks a usable BOM: rolling
+    // standard costs off a draft or obsolete recipe would cost the wrong thing.
+    const bomConditions = [eq(tables.bom.status, 'approved')];
+    if (itemIds && itemIds.length > 0) {
+      bomConditions.push(inArray(tables.bom.productId, itemIds));
+    }
+
+    // Both predicates go into ONE where(): calling .where() twice on a Drizzle
+    // builder REPLACES the first condition rather than adding to it.
+    const bomItems = await db
       .select({
-        itemId: tables.bom.itemId,
+        itemId: tables.bom.productId,
         itemCode: tables.items.code,
       })
       .from(tables.bom)
-      .leftJoin(tables.items, eq(tables.bom.itemId, tables.items.id))
-      .where(eq(tables.bom.isActive, true));
-
-    if (itemIds && itemIds.length > 0) {
-      bomItemsQuery = bomItemsQuery.where(inArray(tables.bom.itemId, itemIds)) as any;
-    }
-
-    const bomItems = await bomItemsQuery;
+      .leftJoin(tables.items, eq(tables.bom.productId, tables.items.id))
+      .where(and(...bomConditions));
 
     for (const bomItem of bomItems) {
       result.itemsProcessed++;
 
       try {
-        // Get BOM lines for this item
+        // Get BOM lines for this item. The component column on bom_lines is
+        // `itemId` — selecting a non-existent `componentId` made Drizzle throw
+        // "Cannot convert undefined or null to object" for every roll-up.
         const bomLines = await db
           .select({
-            componentId: tables.bomLines.componentId,
+            componentId: tables.bomLines.itemId,
             quantity: tables.bomLines.quantity,
           })
           .from(tables.bomLines)
           .leftJoin(tables.bom, eq(tables.bomLines.bomId, tables.bom.id))
-          .where(eq(tables.bom.itemId, bomItem.itemId));
+          .where(eq(tables.bom.productId, bomItem.itemId));
 
         let totalMaterialCost = 0;
 
