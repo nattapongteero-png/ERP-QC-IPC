@@ -38,7 +38,9 @@
       "total": "Total",
       "open": "Open",
       "received": "Received",
-      "closed": "Closed"
+      "closed": "Closed",
+      "totalValue": "Total Value",
+      "openValue": "Open Value"
     },
     "grid": {
       "columns": {

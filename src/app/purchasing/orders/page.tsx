@@ -25,6 +25,7 @@ import {
   FileText,
   Clock,
   CheckCircle,
+  Coins,
   Send,
   PackageCheck,
   Package,
@@ -299,7 +300,27 @@ export default function PurchaseOrdersPage() {
     const closed = orders.filter((o) =>
       ['received', 'cancelled'].includes(normalizeStatus(o.status))
     ).length;
-    return { total, open, received, closed };
+
+    // Spend, excluding cancelled/rejected orders: money on an order that will
+    // never be placed is not spend, and folding it in would overstate the
+    // total. Same rule the purchase report uses, so the two agree.
+    const VOID = ['cancelled', 'rejected'];
+    const liveOrders = orders.filter((o) => !VOID.includes(normalizeStatus(o.status)));
+    const totalValue = liveOrders.reduce(
+      (sum, o) => sum + (Number(o.totalAmount) || 0),
+      0,
+    );
+    // What is still committed but not yet received — the number a buyer needs
+    // to know what is out with vendors right now.
+    const openValue = orders
+      .filter((o) =>
+        ['draft', 'pending_approval', 'approved', 'sent', 'partial'].includes(
+          normalizeStatus(o.status),
+        ),
+      )
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+    return { total, open, received, closed, totalValue, openValue };
   }, [orders]);
 
   const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
@@ -533,6 +554,30 @@ export default function PurchaseOrdersPage() {
           </div>
         }
       />
+
+      {/* Value KPIs — the PO list showed counts only, which says nothing about
+          how much money is committed. Cancelled/rejected orders are excluded
+          from both figures. */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4" data-testid="po-value-cards">
+        <StatCard
+          label={t('orders.kpi.totalValue')}
+          value={formatBaht(stats.totalValue)}
+          icon={Coins}
+          iconColor="text-emerald-500"
+          accentColor="border-emerald-500"
+          isLoading={isLoading}
+          data-testid="po-total-value"
+        />
+        <StatCard
+          label={t('orders.kpi.openValue')}
+          value={formatBaht(stats.openValue)}
+          icon={Clock}
+          iconColor="text-amber-500"
+          accentColor="border-amber-500"
+          isLoading={isLoading}
+          data-testid="po-open-value"
+        />
+      </div>
 
       {/* KPI Stat Cards - Total / Open / Received / Closed */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
