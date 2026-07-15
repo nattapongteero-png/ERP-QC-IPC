@@ -138,6 +138,27 @@ export function ItemSearchDialog({
   const excludeIdsRef = useRef(excludeIds);
   excludeIdsRef.current = excludeIds;
 
+  /**
+   * filterType, flattened to a stable primitive.
+   *
+   * Callers pass it inline — e.g. filterType={['finished_goods', 'wip']} — which
+   * is a BRAND NEW array on every parent render. Depending on the array itself
+   * made useMemo/useCallback miss, which re-ran the search effect, which
+   * re-fetched, which re-rendered: the dialog flickered and hammered /api/items
+   * for as long as it stayed open.
+   *
+   * A string key compares by value, so the memos hold until the caller really
+   * changes the types. Same class of bug excludeIds already worked around above.
+   */
+  const filterTypeKey = Array.isArray(filterType)
+    ? filterType.join(',')
+    : filterType ?? '';
+
+  const filterTypes = useMemo(
+    () => (filterTypeKey ? filterTypeKey.split(',') : []),
+    [filterTypeKey],
+  );
+
   // Track last clicked row for manual double-click detection (more reliable with virtual scrolling)
   const lastClickRef = useRef<{ id: number | null; time: number }>({ id: null, time: 0 });
 
@@ -149,14 +170,8 @@ export function ItemSearchDialog({
     // (pinned to a small set, rendered as individual tabs so the user can
     // switch between them — used by BOM new to offer both finished_goods
     // and WIP as valid products).
-    if (filterType) {
-      const types = Array.isArray(filterType) ? filterType : [filterType];
-      if (types.length === 1) {
-        const t = types[0];
-        const config = itemTypeConfig[t] || { label: t };
-        return [{ text: config.label, value: t }];
-      }
-      return types.map((t) => {
+    if (filterTypes.length > 0) {
+      return filterTypes.map((t) => {
         const config = itemTypeConfig[t] || { label: t };
         return { text: config.label, value: t };
       });
@@ -170,7 +185,8 @@ export function ItemSearchDialog({
       tabs.push({ text: config.label, value: type });
     });
     return tabs;
-  }, [filterType, excludeType]);
+    // filterTypes is memoised off the string key, so this holds across renders.
+  }, [filterTypes, excludeType]);
 
   // Server already filtered by type + search; no client filter needed
   const filteredResults = allResults;
@@ -219,12 +235,7 @@ export function ItemSearchDialog({
       // When filterType is an array the selected tab value (`type` arg) is
       // authoritative — collapsing the whole array into a single query param
       // would produce "finished_goods,wip" which the API doesn't understand.
-      const pinnedType =
-        typeof filterType === 'string'
-          ? filterType
-          : Array.isArray(filterType) && filterType.length === 1
-            ? filterType[0]
-            : '';
+      const pinnedType = filterTypes.length === 1 ? filterTypes[0] : '';
       const effectiveType = pinnedType || type || '';
       const params = new URLSearchParams({ limit: effectiveType ? '200' : '500' });
       if (query && query.trim()) {
@@ -260,7 +271,9 @@ export function ItemSearchDialog({
       // Only the latest in-flight request clears the spinner.
       if (seq === searchSeqRef.current) setIsSearching(false);
     }
-  }, [filterType, excludeType]);
+    // filterTypes, not filterType: the raw prop is a fresh array each render and
+    // would rebuild this callback every time, re-running the search effect.
+  }, [filterTypes, excludeType]);
 
   // Load items when dialog opens, tab switches, or search changes.
   // Single useEffect avoids duplicate fetches and re-fetches per tab.

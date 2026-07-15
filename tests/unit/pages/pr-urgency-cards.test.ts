@@ -83,8 +83,9 @@ describe('PR urgency cards — wiring', () => {
 
   it('keeps the same day thresholds as this test', () => {
     // If someone edits the maths, this fails next to the table above.
-    expect(code).toMatch(/days <= 7.*'urgent'/s);
-    expect(code).toMatch(/days <= 30.*'normal'/s);
+    // [\s\S] rather than the /s flag: tsconfig targets below es2018.
+    expect(code).toMatch(/days <= 7[\s\S]*?'urgent'/);
+    expect(code).toMatch(/days <= 30[\s\S]*?'normal'/);
   });
 
   it('counts open requisitions only', () => {
