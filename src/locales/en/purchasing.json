@@ -25,7 +25,9 @@
       "partial": "Partial",
       "partiallyReceived": "Partially Received",
       "received": "Received",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "pending_approval": "Pending Approval",
+      "rejected": "Rejected"
     },
     "stats": {
       "total": "total",

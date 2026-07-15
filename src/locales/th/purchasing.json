@@ -25,7 +25,9 @@
       "partial": "รับบางส่วน",
       "partiallyReceived": "รับบางส่วน",
       "received": "รับครบแล้ว",
-      "cancelled": "ยกเลิก"
+      "cancelled": "ยกเลิก",
+      "pending_approval": "รออนุมัติ",
+      "rejected": "ปฏิเสธ"
     },
     "stats": {
       "total": "รวม",

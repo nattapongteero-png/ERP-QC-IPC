@@ -57,5 +57,61 @@
     "toDate": "To Date",
     "category": "Category",
     "department": "Department"
+  },
+  "orderReport": {
+    "purchase": {
+      "title": "Purchase Report",
+      "subtitle": "Purchase orders by status, vendor and month"
+    },
+    "sales": {
+      "title": "Sales Report",
+      "subtitle": "Sales orders by status, customer and month"
+    },
+    "kpi": {
+      "orders": "Orders",
+      "value": "Total Value",
+      "avg": "Avg / Order",
+      "parties": "Trading Partners",
+      "voided": "Cancelled / Rejected"
+    },
+    "section": {
+      "byStatus": "By Status",
+      "byVendor": "Top Vendors",
+      "byCustomer": "Top Customers",
+      "byMonth": "Monthly Trend"
+    },
+    "table": {
+      "status": "Status",
+      "orders": "Orders",
+      "value": "Value",
+      "code": "Code",
+      "orderNumber": "Order No.",
+      "orderDate": "Order Date",
+      "vendor": "Vendor",
+      "customer": "Customer",
+      "expectedDate": "Expected",
+      "requiredDate": "Required",
+      "shippedDate": "Shipped"
+    },
+    "filter": {
+      "from": "From",
+      "to": "To",
+      "clear": "Clear"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "export": "Export Excel"
+    },
+    "voidedNote": "Excludes {count} cancelled/rejected order(s) worth {value} from the totals above",
+    "empty": "No data for the selected period",
+    "export": {
+      "sheetSummary": "Summary",
+      "sheetStatus": "By Status",
+      "sheetParty": "By Partner",
+      "sheetDetail": "Detail",
+      "voidedValue": "Cancelled/Rejected value",
+      "dateFrom": "From",
+      "dateTo": "To"
+    }
   }
 }

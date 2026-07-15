@@ -195,6 +195,7 @@ const navigation: NavItem[] = [
       { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
+      { name: 'Purchase Report', href: '/purchasing/reports', icon: FileText },
       { name: 'Herbal Market', href: '/api/sso/metaherb', icon: LogIn, external: true },
     ],
   },
@@ -207,6 +208,7 @@ const navigation: NavItem[] = [
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
       { name: 'VMI Orders', href: '/sales/vmi-orders', icon: Share2 },
       { name: 'Customers', href: '/sales/customers', icon: UserCheck },
+      { name: 'Sales Report', href: '/sales/reports', icon: FileText },
     ],
   },
   {

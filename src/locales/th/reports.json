@@ -57,5 +57,61 @@
     "toDate": "ถึงวันที่",
     "category": "หมวดหมู่",
     "department": "แผนก"
+  },
+  "orderReport": {
+    "purchase": {
+      "title": "รายงานการจัดซื้อ",
+      "subtitle": "สรุปยอดสั่งซื้อตามสถานะ ผู้ขาย และรายเดือน"
+    },
+    "sales": {
+      "title": "รายงานการขาย",
+      "subtitle": "สรุปยอดขายตามสถานะ ลูกค้า และรายเดือน"
+    },
+    "kpi": {
+      "orders": "จำนวนใบสั่ง",
+      "value": "มูลค่ารวม",
+      "avg": "มูลค่าเฉลี่ย/ใบ",
+      "parties": "จำนวนคู่ค้า",
+      "voided": "ยกเลิก/ปฏิเสธ"
+    },
+    "section": {
+      "byStatus": "แยกตามสถานะ",
+      "byVendor": "ผู้ขายสูงสุด",
+      "byCustomer": "ลูกค้าสูงสุด",
+      "byMonth": "แนวโน้มรายเดือน"
+    },
+    "table": {
+      "status": "สถานะ",
+      "orders": "ใบสั่ง",
+      "value": "มูลค่า",
+      "code": "รหัส",
+      "orderNumber": "เลขที่ใบสั่ง",
+      "orderDate": "วันที่สั่ง",
+      "vendor": "ผู้ขาย",
+      "customer": "ลูกค้า",
+      "expectedDate": "กำหนดรับ",
+      "requiredDate": "กำหนดส่ง",
+      "shippedDate": "วันที่ส่ง"
+    },
+    "filter": {
+      "from": "ตั้งแต่วันที่",
+      "to": "ถึงวันที่",
+      "clear": "ล้างตัวกรอง"
+    },
+    "actions": {
+      "refresh": "รีเฟรช",
+      "export": "ส่งออก Excel"
+    },
+    "voidedNote": "ไม่รวมใบที่ยกเลิก/ปฏิเสธ {count} ใบ มูลค่า {value} ในยอดรวมด้านบน",
+    "empty": "ไม่มีข้อมูลในช่วงเวลาที่เลือก",
+    "export": {
+      "sheetSummary": "สรุป",
+      "sheetStatus": "ตามสถานะ",
+      "sheetParty": "ตามคู่ค้า",
+      "sheetDetail": "รายละเอียด",
+      "voidedValue": "มูลค่าที่ยกเลิก/ปฏิเสธ",
+      "dateFrom": "ตั้งแต่วันที่",
+      "dateTo": "ถึงวันที่"
+    }
   }
 }
