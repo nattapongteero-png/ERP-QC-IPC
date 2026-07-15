@@ -12,6 +12,7 @@ import { StatusStepper } from '@/components/shared';
 import { PRForm } from '@/components/purchasing/PRForm';
 import { PRApprovalTimeline } from '@/components/purchasing/PRApprovalTimeline';
 import { PRPrintDocument } from '@/components/purchasing/PRPrintDocument';
+import { formatNumber } from '@/lib/utils/number-format';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
@@ -39,6 +40,12 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
   const [converting, setConverting] = useState(false);
   const [vendorId, setVendorId] = useState<number | null>(null);
   const [vendors, setVendors] = useState<{ id: number; name: string; code?: string; isActive?: boolean }[]>([]);
+  /**
+   * Vendor ticked per PR line in the convert dialog, keyed by line id.
+   * A PR can list items from several companies — each company must get its own
+   * PO — so the buyer picks a vendor per line when the line has none.
+   */
+  const [lineVendors, setLineVendors] = useState<Record<number, number>>({});
 
   // Approval action state
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -129,10 +136,25 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
     }
   };
 
+  /** Lines that still need a company before the convert can run. */
+  const linesMissingVendor = (pr?.lines ?? []).filter(
+    (l) => !l.suggestedVendorId && !lineVendors[l.id],
+  );
+
+  /** How many POs the current picks would produce — one per distinct vendor. */
+  const plannedPoCount = isMetaherbPR
+    ? 1
+    : new Set(
+        (pr?.lines ?? [])
+          .map((l) => lineVendors[l.id] ?? l.suggestedVendorId ?? vendorId)
+          .filter(Boolean),
+      ).size;
+
   const handleConvertToPO = async () => {
-    // Called from the dialog (vendor picked manually).
-    if (!vendorId && !isMetaherbPR) {
-      setError('กรุณาเลือกผู้ขาย');
+    // A vendor may come from the header pick, the line itself, or the per-line
+    // tick — only block when a line would end up with none of them.
+    if (!isMetaherbPR && !vendorId && linesMissingVendor.length > 0) {
+      setError('กรุณาระบุบริษัทผู้ขายของแต่ละรายการ');
       return;
     }
     await runConvert(vendorId);
@@ -146,12 +168,24 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
       const response = await fetch(`/api/purchasing/requisitions/${id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(useVendorId ? { vendorId: useVendorId } : {}),
+        body: JSON.stringify({
+          ...(useVendorId ? { vendorId: useVendorId } : {}),
+          // Only send ticks the buyer actually made.
+          ...(Object.keys(lineVendors).length > 0 ? { lineVendors } : {}),
+        }),
       });
 
       const result = await response.json();
       if (result.success) {
-        router.push(`/purchasing/orders/${result.data.poId}`);
+        // One PR can now produce SEVERAL POs (one per company). Jumping
+        // straight into the first one would hide the rest, so go to the PO list
+        // when the split produced more than one.
+        const pos = result.data.purchaseOrders ?? [];
+        if (pos.length > 1) {
+          router.push('/purchasing/orders');
+        } else {
+          router.push(`/purchasing/orders/${result.data.poId}`);
+        }
       } else {
         setError(result.error);
       }
@@ -430,7 +464,80 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                   ผู้ขายถูกกำหนดเป็น METAHERB อัตโนมัติ (ใบขอซื้อจาก Metaherb)
                 </p>
               )}
+              {!isMetaherbPR && (
+                <p className="mt-1 text-xs text-gray-500">
+                  ใช้กับรายการที่ยังไม่ได้ระบุบริษัทด้านล่าง
+                </p>
+              )}
             </div>
+
+            {/* Per-line vendor. A PR can list items from several companies and
+                each company gets its own PO, so the vendor is chosen per line. */}
+            {!isMetaherbPR && (pr?.lines?.length ?? 0) > 0 && (
+              <div className="mb-4" data-testid="line-vendor-section">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  บริษัทผู้ขายของแต่ละรายการ
+                </label>
+
+                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  {(pr?.lines ?? []).map((line) => {
+                    const picked = lineVendors[line.id] ?? line.suggestedVendorId ?? vendorId ?? null;
+                    const fromPR = !!line.suggestedVendorId && !lineVendors[line.id];
+                    return (
+                      <div
+                        key={line.id}
+                        className="rounded-lg border border-gray-200 p-2"
+                        data-testid={`line-vendor-row-${line.id}`}
+                      >
+                        <div className="mb-1 flex items-baseline justify-between gap-2">
+                          <span className="truncate text-xs font-medium" title={line.description}>
+                            {line.itemCode ? `${line.itemCode} · ` : ''}{line.description}
+                          </span>
+                          <span className="shrink-0 text-xs text-gray-500 tabular-nums">
+                            {formatNumber(line.quantity)} {line.unitOfMeasure}
+                          </span>
+                        </div>
+                        <SelectBox
+                          dataSource={vendors}
+                          value={picked}
+                          onValueChanged={(e) =>
+                            setLineVendors((prev) => ({ ...prev, [line.id]: e.value }))
+                          }
+                          displayExpr={(v: { code?: string; name?: string } | null) =>
+                            v ? (v.code ? `${v.code} - ${v.name}` : v.name ?? '') : ''
+                          }
+                          valueExpr="id"
+                          placeholder="เลือกบริษัทผู้ขาย"
+                          searchEnabled
+                          data-testid={`line-vendor-select-${line.id}`}
+                        />
+                        {fromPR && (
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            มาจากที่ระบุไว้ในใบขอซื้อ
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tell the buyer how many POs this will make BEFORE they press
+                    convert — the split is otherwise invisible until it happens. */}
+                {plannedPoCount > 1 && (
+                  <p
+                    className="mt-2 rounded bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
+                    data-testid="planned-po-count"
+                  >
+                    จะสร้างใบสั่งซื้อ {formatNumber(plannedPoCount)} ใบ (แยกตามบริษัท)
+                  </p>
+                )}
+                {linesMissingVendor.length > 0 && !vendorId && (
+                  <p className="mt-2 text-xs text-rose-600" data-testid="missing-vendor-warning">
+                    ยังไม่ได้ระบุบริษัท {formatNumber(linesMissingVendor.length)} รายการ
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end mt-6">
               <Button
