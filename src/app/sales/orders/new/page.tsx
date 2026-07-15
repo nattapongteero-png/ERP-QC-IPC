@@ -16,7 +16,6 @@ import SelectBox from 'devextreme-react/select-box';
 import DataGrid, {
   Column,
   Paging,
-  Editing,
   Summary,
   TotalItem,
 } from 'devextreme-react/data-grid';
@@ -560,7 +559,11 @@ export default function NewSalesOrderPage() {
                       elementAttr={{ 'data-testid': 'so-lines-grid' }}
                     >
                       <Paging enabled={false} />
-                      <Editing mode="cell" allowUpdating={false} />
+                      {/* No <Editing>: the quantity/price cells render their own
+                          NumberBox and write straight to `lines` state. Declaring
+                          Editing mode="cell" allowUpdating={false} put the grid's
+                          own (disabled) cell editor in front of those inputs, so
+                          typing was swallowed and the value snapped back to 1. */}
 
                       <Column
                         dataField="itemCode"
