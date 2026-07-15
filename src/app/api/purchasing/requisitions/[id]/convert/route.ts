@@ -36,11 +36,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error: any) {
     console.error('Error converting PR to PO:', error);
 
+    // Thai — these reach the operator directly in the convert dialog.
     const errorMessages: Record<string, string> = {
-      PR_NOT_FOUND: 'PR not found',
-      PR_NOT_APPROVED: 'PR is not approved. Only approved PRs can be converted to POs',
-      NO_LINES_TO_CONVERT: 'No approved lines available for conversion',
-      VENDOR_REQUIRED: 'Please select a vendor',
+      PR_NOT_FOUND: 'ไม่พบใบขอซื้อนี้',
+      PR_NOT_APPROVED: 'ใบขอซื้อยังไม่ได้รับการอนุมัติ ต้องอนุมัติก่อนจึงจะแปลงเป็นใบสั่งซื้อได้',
+      NO_LINES_TO_CONVERT: 'ไม่มีรายการที่อนุมัติแล้วสำหรับแปลงเป็นใบสั่งซื้อ',
+      VENDOR_REQUIRED: 'กรุณาเลือกผู้ขาย',
+      LINE_VENDOR_REQUIRED: 'กรุณาระบุบริษัทผู้ขายของแต่ละรายการ',
     };
 
     if (error.name === 'ZodError') {

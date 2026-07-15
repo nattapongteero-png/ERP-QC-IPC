@@ -219,16 +219,41 @@ export interface PRToPOConvertInput {
   deliveryAddress?: string;
   paymentTerms?: string;
   notes?: string;
+  /**
+   * Vendor chosen per PR line at convert time, keyed by PR line id.
+   * Used when a line has no preferredVendorId on the PR itself — the buyer
+   * ticks the company for each item in the convert dialog. Takes precedence
+   * over the line's preferredVendorId.
+   */
+  lineVendors?: Record<number, number>;
+}
+
+/** One purchase order produced by a conversion. */
+export interface ConvertedPO {
+  poId: number;
+  poNumber: string;
+  vendorId: number;
+  vendorName?: string;
+  lineCount: number;
+  totalAmount: number;
 }
 
 /**
  * PR to PO Conversion Response
+ *
+ * A single PR can produce SEVERAL purchase orders — one per vendor — because
+ * each line may be bought from a different company. `poId`/`poNumber` are kept
+ * pointing at the first PO so existing callers keep working.
  */
 export interface PRToPOConvertResponse {
   success: boolean;
+  /** @deprecated Use `purchaseOrders`. First PO created, for backwards compat. */
   poId: number;
+  /** @deprecated Use `purchaseOrders`. First PO created, for backwards compat. */
   poNumber: string;
   convertedLineCount: number;
+  /** Every PO created by this conversion, one per vendor. */
+  purchaseOrders: ConvertedPO[];
 }
 
 /**

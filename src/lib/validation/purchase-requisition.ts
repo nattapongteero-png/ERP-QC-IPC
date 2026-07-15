@@ -153,6 +153,12 @@ export const prToPOConvertSchema = z.object({
   // Normalize + whitelist payment terms (legacy/free-text → canonical, else reject).
   paymentTerms: paymentTermsWriteSchema,
   notes: z.string().max(1000).optional(),
+  // Vendor ticked per PR line in the convert dialog, keyed by PR line id.
+  // Needed when a line carries no preferredVendorId; without this in the schema
+  // Zod would strip it and every line would fall back to one vendor.
+  // JSON object keys are always strings, so the key schema must be a string;
+  // the service reads it back with a numeric line id.
+  lineVendors: z.record(z.string(), z.number().int().positive()).optional(),
 });
 
 /**

@@ -21,6 +21,7 @@ import type {
   PRSubmitResponse,
   PRToPOConvertInput,
   PRToPOConvertResponse,
+  ConvertedPO,
   PRDashboardSummary,
   PRApprovalInput,
   PRTimelineEntry,
@@ -1153,110 +1154,164 @@ export async function convertPRToPO(
       throw new Error('NO_LINES_TO_CONVERT');
     }
 
-    // Calculate PO total
-    let poTotal = 0;
+    // Split the lines into one bucket per vendor: a PR may list items bought
+    // from different companies, and each company must get its OWN purchase
+    // order. Previously every line was forced onto a single PO addressed to one
+    // vendor, so a mixed PR produced a PO ordering goods from a company that
+    // does not sell them.
+    //
+    // Vendor for a line, in priority order:
+    //   1. lineVendors[lineId]      — ticked by the buyer in the convert dialog
+    //   2. line.preferredVendorId   — chosen on the PR itself, per line
+    //   3. vendorId                 — the PR/convert-level vendor (resolved above)
+    //
+    // Metaherb-origin PRs ignore per-line vendors entirely: the whole PR belongs
+    // to Metaherb, so it stays one PO to that vendor.
+    const metaherbOrigin = isMetaherbOrigin(pr.externalSource);
+    const linesByVendor = new Map<number, typeof lines>();
+
     for (const line of lines) {
-      poTotal += Number(line.lineTotal) || 0;
+      const lineVendor = metaherbOrigin
+        ? vendorId
+        : input.lineVendors?.[line.id] ?? line.preferredVendorId ?? vendorId;
+
+      if (!lineVendor) {
+        // Reached only when a line has no vendor anywhere and the PR has none
+        // either — the UI must ask the buyer to tick a company for each item.
+        throw new Error('LINE_VENDOR_REQUIRED');
+      }
+
+      const bucket = linesByVendor.get(lineVendor);
+      if (bucket) bucket.push(line);
+      else linesByVendor.set(lineVendor, [line]);
     }
 
     const now = getNow();
 
-    // Generate PO number and create PO header in a transaction to prevent duplicates
-    const MAX_PO_RETRIES = 3;
-    let poNumber: string = '';
-    let poId: number = 0;
-    for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
-      try {
-        const year = new Date().getFullYear();
-        const poPrefix = `PO${year}-`;
-        const lastPO = await db
-          .select({ poNumber: tables.purchaseOrders.poNumber })
-          .from(tables.purchaseOrders)
-          .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
-          .orderBy(desc(tables.purchaseOrders.id))
-          .limit(1);
+    // The expected-receipt date on the PO comes from the PR's required date
+    // unless the buyer overrides it at convert time — re-typing a date the PR
+    // already carries is how the two documents drift apart.
+    const resolvedDeliveryDate = input.deliveryDate ?? pr.requiredDate ?? null;
 
-        let nextPONumber: string;
-        if (lastPO.length === 0) {
-          nextPONumber = `${poPrefix}0001`;
-        } else {
-          const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
-          nextPONumber = `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
-        }
+    /** Next PO number, read fresh so numbering stays unique across the loop. */
+    async function nextPoNumber(): Promise<string> {
+      const year = new Date().getFullYear();
+      const poPrefix = `PO${year}-`;
+      const lastPO = await db
+        .select({ poNumber: tables.purchaseOrders.poNumber })
+        .from(tables.purchaseOrders)
+        .where(like(tables.purchaseOrders.poNumber, `${poPrefix}%`))
+        .orderBy(desc(tables.purchaseOrders.id))
+        .limit(1);
 
-        // PRs have no payment-terms field, so when the convert doesn't supply
-        // one, inherit the vendor's default terms (e.g. "Net 30") instead of
-        // leaving the PO blank. The user can still edit it on the PO page.
-        // Priority: explicit convert-time value → terms chosen on the PR →
-        // the vendor's default terms. (poPaymentTerms already folds the first two.)
-        let resolvedPaymentTerms: string | null = poPaymentTerms || null;
-        if (!resolvedPaymentTerms && vendorId) {
-          const vRow = await db
-            .select({ paymentTerms: tables.vendors.paymentTerms })
-            .from(tables.vendors)
-            .where(eq(tables.vendors.id, vendorId))
-            .limit(1);
-          resolvedPaymentTerms = (vRow[0]?.paymentTerms as string | null) || null;
-        }
-
-        const poResult = await db.insert(tables.purchaseOrders).values({
-          poNumber: nextPONumber,
-          vendorId: vendorId,
-          status: 'draft',
-          prId: input.prId,
-          totalAmount: poTotal,
-          deliveryDate: input.deliveryDate ? toDbDate(input.deliveryDate) : null,
-          deliveryAddress: input.deliveryAddress || null,
-          paymentTerms: resolvedPaymentTerms,
-          notes: input.notes || null,
-          createdBy,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        poId = getInsertId(poResult);
-        poNumber = nextPONumber;
-        break;
-      } catch (error: any) {
-        if (attempt < MAX_PO_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
-          continue;
-        }
-        throw error;
-      }
+      if (lastPO.length === 0) return `${poPrefix}0001`;
+      const seq = parseInt(lastPO[0].poNumber.replace(poPrefix, ''), 10);
+      return `${poPrefix}${(seq + 1).toString().padStart(4, '0')}`;
     }
 
-    // Create PO lines and update PR lines
-    let poLineNumber = 0;
-    for (const prLine of lines) {
-      poLineNumber++;
+    const createdPOs: ConvertedPO[] = [];
 
-      // Create PO line (map PR line fields to PO line schema)
-      const qty = Number(prLine.quantity) || 0;
-      const price = Number(prLine.estimatedPrice) || 0;
-      const poLineResult = await db.insert(tables.purchaseOrderLines).values({
+    // One purchase order per vendor.
+    for (const [poVendorId, vendorLines] of linesByVendor) {
+      const poTotal = vendorLines.reduce(
+        (sum: number, l: { lineTotal: unknown }) => sum + (Number(l.lineTotal) || 0),
+        0,
+      );
+
+      // PRs have no payment-terms field, so when the convert doesn't supply
+      // one, inherit the vendor's default terms (e.g. "Net 30") instead of
+      // leaving the PO blank. The user can still edit it on the PO page.
+      // Priority: explicit convert-time value → terms chosen on the PR →
+      // THIS vendor's default terms (each PO follows its own vendor).
+      let resolvedPaymentTerms: string | null = poPaymentTerms || null;
+      if (!resolvedPaymentTerms) {
+        const vRow = await db
+          .select({ paymentTerms: tables.vendors.paymentTerms })
+          .from(tables.vendors)
+          .where(eq(tables.vendors.id, poVendorId))
+          .limit(1);
+        resolvedPaymentTerms = (vRow[0]?.paymentTerms as string | null) || null;
+      }
+
+      // Retry only the number collision — the number is read fresh each attempt.
+      const MAX_PO_RETRIES = 3;
+      let poNumber = '';
+      let poId = 0;
+      for (let attempt = 0; attempt < MAX_PO_RETRIES; attempt++) {
+        try {
+          const candidate = await nextPoNumber();
+          const poResult = await db.insert(tables.purchaseOrders).values({
+            poNumber: candidate,
+            vendorId: poVendorId,
+            status: 'draft',
+            prId: input.prId,
+            totalAmount: poTotal,
+            deliveryDate: resolvedDeliveryDate ? toDbDate(resolvedDeliveryDate) : null,
+            deliveryAddress: input.deliveryAddress || null,
+            paymentTerms: resolvedPaymentTerms,
+            notes: input.notes || null,
+            createdBy,
+            createdAt: now,
+            updatedAt: now,
+          });
+          poId = getInsertId(poResult);
+          poNumber = candidate;
+          break;
+        } catch (error: any) {
+          if (
+            attempt < MAX_PO_RETRIES - 1 &&
+            (error.code === 'ER_DUP_ENTRY' ||
+              error.message?.includes('UNIQUE constraint failed'))
+          ) {
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      // Create PO lines and mark the PR lines converted.
+      for (const prLine of vendorLines) {
+        const qty = Number(prLine.quantity) || 0;
+        const price = Number(prLine.estimatedPrice) || 0;
+        const poLineResult = await db.insert(tables.purchaseOrderLines).values({
+          poId,
+          itemId: prLine.itemId,
+          quantity: qty,
+          unit: prLine.unit || 'pcs',
+          unitPrice: price,
+          totalPrice: qty * price,
+          notes: prLine.description || null,
+          // Carry the partner line ref through to the PO so the po-submit webhook
+          // can echo it back to Metaherb for line-level correlation.
+          externalLineRef: prLine.externalLineRef || null,
+          createdAt: now,
+        });
+
+        const poLineId = getInsertId(poLineResult);
+
+        await db
+          .update(tables.lines)
+          .set({
+            status: 'converted',
+            convertedPoLineId: poLineId,
+          })
+          .where(eq(tables.lines.id, prLine.id));
+      }
+
+      const vName = await db
+        .select({ name: tables.vendors.name })
+        .from(tables.vendors)
+        .where(eq(tables.vendors.id, poVendorId))
+        .limit(1);
+
+      createdPOs.push({
         poId,
-        itemId: prLine.itemId,
-        quantity: qty,
-        unit: prLine.unit || 'pcs',
-        unitPrice: price,
-        totalPrice: qty * price,
-        notes: prLine.description || null,
-        // Carry the partner line ref through to the PO so the po-submit webhook
-        // can echo it back to Metaherb for line-level correlation.
-        externalLineRef: prLine.externalLineRef || null,
-        createdAt: now,
+        poNumber,
+        vendorId: poVendorId,
+        vendorName: (vName[0]?.name as string | undefined) ?? undefined,
+        lineCount: vendorLines.length,
+        totalAmount: poTotal,
       });
-
-      const poLineId = getInsertId(poLineResult);
-
-      // Update PR line status
-      await db
-        .update(tables.lines)
-        .set({
-          status: 'converted',
-          convertedPoLineId: poLineId,
-        })
-        .where(eq(tables.lines.id, prLine.id));
     }
 
     // Check if all lines are converted
@@ -1284,9 +1339,11 @@ export async function convertPRToPO(
 
     return {
       success: true,
-      poId,
-      poNumber,
+      // First PO, kept so existing callers that read poId/poNumber still work.
+      poId: createdPOs[0].poId,
+      poNumber: createdPOs[0].poNumber,
       convertedLineCount: lines.length,
+      purchaseOrders: createdPOs,
     };
   });
 
