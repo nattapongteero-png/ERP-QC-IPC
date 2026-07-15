@@ -427,12 +427,30 @@
       "rejected": "ถูกปฏิเสธ"
     },
     "items": {
-      "gownClean": { "label": "ชุดสะอาด", "description": "สวมชุดปฏิบัติงานที่สะอาดและถูกต้องตามข้อกำหนด" },
-      "glovesOn": { "label": "สวมถุงมือ", "description": "สวมถุงมือสะอาดก่อนเข้าพื้นที่ผลิต" },
-      "maskOn": { "label": "สวมหน้ากาก", "description": "สวมหน้ากากปิดจมูกและปากอย่างถูกต้อง" },
-      "hairnetOn": { "label": "สวมหมวกคลุมผม", "description": "สวมหมวก/ตาข่ายคลุมผมให้มิดชิด" },
-      "shoeCoverOn": { "label": "สวมที่หุ้มรองเท้า", "description": "สวมที่หุ้มรองเท้าหรือรองเท้าเฉพาะพื้นที่ผลิต" },
-      "handsSanitized": { "label": "ฆ่าเชื้อมือ", "description": "ล้างและฆ่าเชื้อมือก่อนเข้าพื้นที่ผลิต" }
+      "gownClean": {
+        "label": "ชุดสะอาด",
+        "description": "สวมชุดปฏิบัติงานที่สะอาดและถูกต้องตามข้อกำหนด"
+      },
+      "glovesOn": {
+        "label": "สวมถุงมือ",
+        "description": "สวมถุงมือสะอาดก่อนเข้าพื้นที่ผลิต"
+      },
+      "maskOn": {
+        "label": "สวมหน้ากาก",
+        "description": "สวมหน้ากากปิดจมูกและปากอย่างถูกต้อง"
+      },
+      "hairnetOn": {
+        "label": "สวมหมวกคลุมผม",
+        "description": "สวมหมวก/ตาข่ายคลุมผมให้มิดชิด"
+      },
+      "shoeCoverOn": {
+        "label": "สวมที่หุ้มรองเท้า",
+        "description": "สวมที่หุ้มรองเท้าหรือรองเท้าเฉพาะพื้นที่ผลิต"
+      },
+      "handsSanitized": {
+        "label": "ฆ่าเชื้อมือ",
+        "description": "ล้างและฆ่าเชื้อมือก่อนเข้าพื้นที่ผลิต"
+      }
     },
     "meaning": {
       "perform": "ข้าพเจ้ายืนยันว่าได้ตรวจสอบรายการแต่งกายทั้งหมดด้วยตนเองและแต่งกายถูกต้องพร้อมเข้าผลิต",
@@ -570,20 +588,62 @@
       "description": "ใบสั่งผลิตนี้ยังไม่ได้ตั้งค่า BOM กรุณาตั้งค่าห้อง อุปกรณ์ ขั้นตอน SOP และข้อกำหนดอื่น ๆ ก่อนเริ่มการดำเนินการผลิต"
     },
     "cards": {
-      "materialRequisition": { "title": "ใบเบิกวัตถุดิบ", "description": "ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง" },
-      "preProductionCleaning": { "title": "ทำความสะอาดก่อนการผลิต", "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ก่อนการผลิต" },
-      "preProductionEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (ก่อนการผลิต)", "description": "บันทึกอุณหภูมิและความชื้นก่อนการผลิต" },
-      "materialWeighing": { "title": "การชั่งวัตถุดิบ", "description": "ชั่งและตรวจสอบวัตถุดิบทั้งหมดตาม BOM" },
-      "gowning": { "title": "การตรวจสอบการแต่งกาย", "description": "ตรวจสอบการแต่งกายและ PPE ก่อนเข้าผลิต" },
-      "productionCleaning": { "title": "ทำความสะอาดระหว่างการผลิต", "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ระหว่างการผลิต" },
-      "productionEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (ระหว่างการผลิต)", "description": "บันทึกอุณหภูมิและความชื้นระหว่างการผลิต" },
-      "postProductionCleaning": { "title": "ทำความสะอาดหลังการผลิต", "description": "ทำความสะอาดห้องและอุปกรณ์หลังการผลิต" },
-      "bulkProductYield": { "title": "ผลผลิตบัลก์", "description": "บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์" },
-      "packagingCleaning": { "title": "ทำความสะอาดการบรรจุ", "description": "Line clearance + ความสะอาดพื้นที่บรรจุ" },
-      "packagingEnvironmental": { "title": "ตรวจสอบสภาพแวดล้อม (การบรรจุ)", "description": "บันทึกอุณหภูมิและความชื้นระหว่างการบรรจุ" },
-      "finishedInspection": { "title": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป", "description": "รายการตรวจสอบ 15 จุด" },
-      "productionOutput": { "title": "ผลผลิต / Yield", "description": "บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG" },
-      "sopExecution": { "title": "การดำเนินการ SOP", "description": "ดำเนินขั้นตอนการผลิตพร้อมบันทึกค่าพารามิเตอร์" }
+      "materialRequisition": {
+        "title": "ใบเบิกวัตถุดิบ",
+        "description": "ส่งใบเบิกวัตถุดิบให้คลังอนุมัติก่อนชั่ง"
+      },
+      "preProductionCleaning": {
+        "title": "ทำความสะอาดก่อนการผลิต",
+        "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ก่อนการผลิต"
+      },
+      "preProductionEnvironmental": {
+        "title": "ตรวจสอบสภาพแวดล้อม (ก่อนการผลิต)",
+        "description": "บันทึกอุณหภูมิและความชื้นก่อนการผลิต"
+      },
+      "materialWeighing": {
+        "title": "การชั่งวัตถุดิบ",
+        "description": "ชั่งและตรวจสอบวัตถุดิบทั้งหมดตาม BOM"
+      },
+      "gowning": {
+        "title": "การตรวจสอบการแต่งกาย",
+        "description": "ตรวจสอบการแต่งกายและ PPE ก่อนเข้าผลิต"
+      },
+      "productionCleaning": {
+        "title": "ทำความสะอาดระหว่างการผลิต",
+        "description": "ตรวจสอบความสะอาดของห้องและอุปกรณ์ระหว่างการผลิต"
+      },
+      "productionEnvironmental": {
+        "title": "ตรวจสอบสภาพแวดล้อม (ระหว่างการผลิต)",
+        "description": "บันทึกอุณหภูมิและความชื้นระหว่างการผลิต"
+      },
+      "postProductionCleaning": {
+        "title": "ทำความสะอาดหลังการผลิต",
+        "description": "ทำความสะอาดห้องและอุปกรณ์หลังการผลิต"
+      },
+      "bulkProductYield": {
+        "title": "ผลผลิตบัลก์",
+        "description": "บันทึกจำนวนผลิตภัณฑ์บัลก์หลังกระบวนการผลิต ก่อนเข้าสู่การบรรจุภัณฑ์"
+      },
+      "packagingCleaning": {
+        "title": "ทำความสะอาดการบรรจุ",
+        "description": "Line clearance + ความสะอาดพื้นที่บรรจุ"
+      },
+      "packagingEnvironmental": {
+        "title": "ตรวจสอบสภาพแวดล้อม (การบรรจุ)",
+        "description": "บันทึกอุณหภูมิและความชื้นระหว่างการบรรจุ"
+      },
+      "finishedInspection": {
+        "title": "การตรวจสอบผลิตภัณฑ์สำเร็จรูป",
+        "description": "รายการตรวจสอบ 15 จุด"
+      },
+      "productionOutput": {
+        "title": "ผลผลิต / Yield",
+        "description": "บันทึกจำนวนผลิตภัณฑ์สำเร็จรูปหลัง Inspection เพื่อเข้าคลัง FG"
+      },
+      "sopExecution": {
+        "title": "การดำเนินการ SOP",
+        "description": "ดำเนินขั้นตอนการผลิตพร้อมบันทึกค่าพารามิเตอร์"
+      }
     },
     "materialWeighing": "การชั่งวัตถุดิบ",
     "cleaning": "รายการตรวจสอบการทำความสะอาด",
@@ -835,7 +895,11 @@
       "yield": "ผลผลิต",
       "productionTime": "เวลาการผลิต",
       "qcTesting": "การทดสอบ QC",
-      "passed": "ผ่าน"
+      "passed": "ผ่าน",
+      "fgExpiry": "วันหมดอายุ (คาดการณ์)",
+      "shelfLifeDays": "อายุการเก็บ {days} วัน",
+      "noShelfLife": "ยังไม่กำหนด",
+      "setShelfLifeHint": "ตั้งค่าอายุการเก็บที่ข้อมูลสินค้า"
     },
     "overview": {
       "productInfo": "ข้อมูลผลิตภัณฑ์",
@@ -1086,7 +1150,9 @@
       "approveFailed": "Approve ไม่สำเร็จ",
       "qaSigned": "ลงนามอนุมัติ QA แล้ว",
       "ebmrLocked": "eBMR ถูกล็อกแล้ว",
-      "confirmQaApprove": "ยืนยันการ approve eBMR เป็น QA?\n(ระบบจะตรวจ Triple Independence ก่อนบันทึก)"
+      "confirmQaApprove": "ยืนยันการ approve eBMR เป็น QA?\n(ระบบจะตรวจ Triple Independence ก่อนบันทึก)",
+      "confirmStartWithExpiry": "เริ่มการผลิต?\n\nสินค้าสำเร็จรูปที่ผลิตจะมีวันหมดอายุ: {expiry}",
+      "confirmStartNoExpiry": "เริ่มการผลิต?\n\n⚠️ สินค้านี้ยังไม่ได้กำหนดอายุการเก็บ — ล็อตที่ผลิตจะไม่มีวันหมดอายุ\nแนะนำให้ตั้งค่าอายุการเก็บที่ข้อมูลสินค้าก่อน"
     },
     "dialogs": {
       "selectMaterial": "เลือกวัตถุดิบ",

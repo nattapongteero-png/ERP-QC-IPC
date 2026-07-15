@@ -28,6 +28,17 @@ import {
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils/number-format';
 
+// projectedExpiry / projectedMfd arrive from the API as plain YYYY-MM-DD
+// strings. Format them here rather than importing formatDateFromDb from
+// @/lib/db/date-utils — that barrel pulls in the server-only db/auth chain
+// (next/headers) and would break this client component's build.
+function formatYmd(value: string | null | undefined): string {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString('th-TH');
+}
+
 interface WOAssignee {
   id: number;
   employeeId: number;
@@ -97,6 +108,11 @@ interface WorkOrderDetail {
     bomCode?: string | null;
     bomName?: string | null;
     bomVersion?: string | null;
+    // FG shelf life, projected from MFD + product.shelfLifeDays. Same value the
+    // lot will carry at output. Null when the product has no shelf life set.
+    productShelfLifeDays?: number | null;
+    projectedMfd?: string | null;
+    projectedExpiry?: string | null;
   };
   materials: Array<{
     id: number;
@@ -490,6 +506,19 @@ export default function WorkOrderDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    // Starting production stamps the finished-goods expiry. Surface it (or its
+    // absence) at that moment so the operator confirms the shelf-life before
+    // committing, rather than discovering it only after output is recorded.
+    if (newStatus === 'in_progress' && data?.workOrder) {
+      const wo = data.workOrder;
+      const msg = wo.projectedExpiry
+        ? t('workOrderDetail.toast.confirmStartWithExpiry', {
+            expiry: formatYmd(wo.projectedExpiry),
+          })
+        : t('workOrderDetail.toast.confirmStartNoExpiry');
+      if (!confirm(msg)) return;
+    }
+
     try {
       const response = await fetch(`/api/production/work-orders/${params.id}/status`, {
         method: 'PUT',
@@ -1745,7 +1774,7 @@ export default function WorkOrderDetailPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 no-print">
           <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4">
             <div className="text-center">
               <p className="text-sm text-gray-500">{t('workOrderDetail.summary.plannedQty')}</p>
@@ -1783,6 +1812,32 @@ export default function WorkOrderDetailPage() {
                 {summary.qcPassCount}/{summary.qcTestCount}
               </p>
               <p className="text-xs text-gray-500">{t('workOrderDetail.summary.passed')}</p>
+            </div>
+          </div>
+          {/* Projected finished-goods expiry (MFD + shelf life). Shows the
+              shelf-life the output lot WILL carry, before production starts.
+              Amber when the product has no shelf life configured — that would
+              otherwise silently produce a lot with no expiry. */}
+          <div className={`bg-white border border-gray-200 border-l-4 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-4 ${workOrder.projectedExpiry ? 'border-l-purple-500' : 'border-l-amber-500'}`}>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">{t('workOrderDetail.summary.fgExpiry')}</p>
+              {workOrder.projectedExpiry ? (
+                <>
+                  <p className="text-2xl font-bold text-gray-900" data-testid="wo-fg-expiry">
+                    {formatYmd(workOrder.projectedExpiry)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {t('workOrderDetail.summary.shelfLifeDays', { days: formatNumber(workOrder.productShelfLifeDays) })}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-amber-600" data-testid="wo-fg-expiry">
+                    {t('workOrderDetail.summary.noShelfLife')}
+                  </p>
+                  <p className="text-xs text-gray-500">{t('workOrderDetail.summary.setShelfLifeHint')}</p>
+                </>
+              )}
             </div>
           </div>
         </div>

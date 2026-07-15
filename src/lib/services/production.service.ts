@@ -5,7 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toDateSafe, getNow, getTodayStr } from '../db/date-utils';
+import { toDateSafe, getNow, getTodayStr, calculateExpiryDate } from '../db/date-utils';
 
 /**
  * Format any date-like value to YYYY-MM-DD.
@@ -758,14 +758,12 @@ export async function recordProductionOutput(
     getTodayStr();
   const manufacturingDate = mfdSource;
 
-  // Calculate expiry date FROM MFD (audit #25 — was wrongly using today)
-  let expiryDate: string | null = expiryDateOverride ?? null;
-  if (!expiryDate && product?.shelfLifeDays && manufacturingDate) {
-    const mfdDate = new Date(manufacturingDate);
-    const expiry = new Date(mfdDate);
-    expiry.setDate(expiry.getDate() + product.shelfLifeDays);
-    expiryDate = expiry.toISOString().split('T')[0];
-  }
+  // Calculate expiry date FROM MFD (audit #25 — was wrongly using today).
+  // Same helper the WO screen uses to project this before production, so the
+  // date shown up front matches the date stamped on the lot here.
+  const expiryDate: string | null =
+    expiryDateOverride ??
+    calculateExpiryDate(manufacturingDate, product?.shelfLifeDays);
 
   // Update work order — finished stage audit + legacy fields
   await database

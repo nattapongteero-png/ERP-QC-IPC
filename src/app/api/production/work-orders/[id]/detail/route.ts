@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { eq, asc, and } from 'drizzle-orm';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
+import { calculateExpiryDate, formatDateFromDb, getTodayStr } from '@/lib/db/date-utils';
 import {
   getWOSOPExecution,
   getWOCleaningLogs,
@@ -41,6 +42,7 @@ export async function GET(
             productUnit: items.primaryUnit,
             productSecondaryUnit: items.secondaryUnit,
             productConversionRate: items.conversionRate,
+            productShelfLifeDays: items.shelfLifeDays,
             ttmtCode: items.ttmtCode,
             drugCode24: items.drugCode24,
             gRegNumber: items.gRegNumber,
@@ -89,6 +91,25 @@ export async function GET(
       // (จำนวนที่วางแผน / จำนวนจริง) read the real values instead of 0.
       workOrder.plannedQty = workOrder.plannedQuantity;
       workOrder.actualQty = workOrder.actualQuantity;
+
+      // Project the finished-goods expiry the lot WILL get at output, so the
+      // operator sees the shelf-life before starting rather than only after.
+      // MFD priority mirrors recordProductionOutput (actual start -> planned
+      // start -> today); calculateExpiryDate is the same helper output uses, so
+      // the projection here equals the date stamped on the lot later.
+      const projectedMfd =
+        (workOrder.actualStartDate
+          ? formatDateFromDb(workOrder.actualStartDate as string)
+          : null) ||
+        (workOrder.plannedStartDate
+          ? formatDateFromDb(workOrder.plannedStartDate as string)
+          : null) ||
+        getTodayStr();
+      workOrder.projectedMfd = projectedMfd;
+      workOrder.projectedExpiry = calculateExpiryDate(
+        projectedMfd,
+        workOrder.productShelfLifeDays as number | null,
+      );
 
       // Get BOM info (code, name, version) + yield/loss settings if BOM is linked
       if (workOrder.bomId) {

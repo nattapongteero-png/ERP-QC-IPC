@@ -419,21 +419,49 @@
     "signing": "Signing...",
     "approve": "Approve",
     "reject": "Reject",
-    "status": { "notStarted": "Not Started", "pending": "In Progress", "performed": "Awaiting Verification", "verified": "Verified", "rejected": "Rejected" },
+    "status": {
+      "notStarted": "Not Started",
+      "pending": "In Progress",
+      "performed": "Awaiting Verification",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
     "items": {
-      "gownClean": { "label": "Gown Clean", "description": "Wearing a clean, compliant production gown" },
-      "glovesOn": { "label": "Gloves On", "description": "Clean gloves worn before entering the production area" },
-      "maskOn": { "label": "Mask On", "description": "Face mask covering nose and mouth correctly" },
-      "hairnetOn": { "label": "Hairnet On", "description": "Hair fully covered with a hairnet/cap" },
-      "shoeCoverOn": { "label": "Shoe Cover On", "description": "Shoe covers or production-area footwear worn" },
-      "handsSanitized": { "label": "Hands Sanitized", "description": "Hands washed and sanitized before entry" }
+      "gownClean": {
+        "label": "Gown Clean",
+        "description": "Wearing a clean, compliant production gown"
+      },
+      "glovesOn": {
+        "label": "Gloves On",
+        "description": "Clean gloves worn before entering the production area"
+      },
+      "maskOn": {
+        "label": "Mask On",
+        "description": "Face mask covering nose and mouth correctly"
+      },
+      "hairnetOn": {
+        "label": "Hairnet On",
+        "description": "Hair fully covered with a hairnet/cap"
+      },
+      "shoeCoverOn": {
+        "label": "Shoe Cover On",
+        "description": "Shoe covers or production-area footwear worn"
+      },
+      "handsSanitized": {
+        "label": "Hands Sanitized",
+        "description": "Hands washed and sanitized before entry"
+      }
     },
     "meaning": {
       "perform": "I confirm I have personally verified all gowning items and am properly attired for production.",
       "approve": "I confirm I have reviewed and approved this gowning verification.",
       "reject": "I have reviewed and reject this gowning verification."
     },
-    "toast": { "performed": "Gowning recorded successfully", "verified": "Gowning verified successfully", "rejected": "Gowning rejected" }
+    "toast": {
+      "performed": "Gowning recorded successfully",
+      "verified": "Gowning verified successfully",
+      "rejected": "Gowning rejected"
+    }
   },
   "batchRecords": {
     "title": "Electronic Batch Records (eBMR)",
@@ -560,20 +588,62 @@
       "description": "This work order's BOM has not been configured. Please configure rooms, equipment, SOP steps, and other requirements before starting execution."
     },
     "cards": {
-      "materialRequisition": { "title": "Material Requisition", "description": "Submit material requisition for warehouse approval before weighing" },
-      "preProductionCleaning": { "title": "Pre-Production Cleaning", "description": "Verify room and equipment cleanliness before production" },
-      "preProductionEnvironmental": { "title": "Environmental Monitoring (Pre-Production)", "description": "Record temperature and humidity before production" },
-      "materialWeighing": { "title": "Material Weighing", "description": "Weigh and verify all raw materials according to BOM" },
-      "gowning": { "title": "Gowning Verification", "description": "Verify attire & PPE before entering production" },
-      "productionCleaning": { "title": "Production Cleaning", "description": "Verify room and equipment cleanliness during production" },
-      "productionEnvironmental": { "title": "Environmental Monitoring (Production)", "description": "Record temperature and humidity during production" },
-      "postProductionCleaning": { "title": "Post-Production Cleaning", "description": "Clean room and equipment after production" },
-      "bulkProductYield": { "title": "Bulk Product Yield", "description": "Record bulk product yield after production, before packaging" },
-      "packagingCleaning": { "title": "Packaging Cleaning", "description": "Line clearance + packaging area cleanliness" },
-      "packagingEnvironmental": { "title": "Environmental Monitoring (Packaging)", "description": "Record temperature and humidity during packaging" },
-      "finishedInspection": { "title": "Finished Product Inspection", "description": "15-point inspection checklist" },
-      "productionOutput": { "title": "Production Output / Yield", "description": "Record finished product output after inspection for FG warehouse entry" },
-      "sopExecution": { "title": "SOP Execution", "description": "Execute production steps with parameter recording" }
+      "materialRequisition": {
+        "title": "Material Requisition",
+        "description": "Submit material requisition for warehouse approval before weighing"
+      },
+      "preProductionCleaning": {
+        "title": "Pre-Production Cleaning",
+        "description": "Verify room and equipment cleanliness before production"
+      },
+      "preProductionEnvironmental": {
+        "title": "Environmental Monitoring (Pre-Production)",
+        "description": "Record temperature and humidity before production"
+      },
+      "materialWeighing": {
+        "title": "Material Weighing",
+        "description": "Weigh and verify all raw materials according to BOM"
+      },
+      "gowning": {
+        "title": "Gowning Verification",
+        "description": "Verify attire & PPE before entering production"
+      },
+      "productionCleaning": {
+        "title": "Production Cleaning",
+        "description": "Verify room and equipment cleanliness during production"
+      },
+      "productionEnvironmental": {
+        "title": "Environmental Monitoring (Production)",
+        "description": "Record temperature and humidity during production"
+      },
+      "postProductionCleaning": {
+        "title": "Post-Production Cleaning",
+        "description": "Clean room and equipment after production"
+      },
+      "bulkProductYield": {
+        "title": "Bulk Product Yield",
+        "description": "Record bulk product yield after production, before packaging"
+      },
+      "packagingCleaning": {
+        "title": "Packaging Cleaning",
+        "description": "Line clearance + packaging area cleanliness"
+      },
+      "packagingEnvironmental": {
+        "title": "Environmental Monitoring (Packaging)",
+        "description": "Record temperature and humidity during packaging"
+      },
+      "finishedInspection": {
+        "title": "Finished Product Inspection",
+        "description": "15-point inspection checklist"
+      },
+      "productionOutput": {
+        "title": "Production Output / Yield",
+        "description": "Record finished product output after inspection for FG warehouse entry"
+      },
+      "sopExecution": {
+        "title": "SOP Execution",
+        "description": "Execute production steps with parameter recording"
+      }
     },
     "materialWeighing": "Material Weighing",
     "cleaning": "Cleaning Checklist",
@@ -825,7 +895,11 @@
       "yield": "Yield",
       "productionTime": "Production Time",
       "qcTesting": "QC Testing",
-      "passed": "passed"
+      "passed": "passed",
+      "fgExpiry": "FG Expiry (Projected)",
+      "shelfLifeDays": "Shelf life {days} days",
+      "noShelfLife": "Not set",
+      "setShelfLifeHint": "Set shelf life on the product record"
     },
     "overview": {
       "productInfo": "Product Information",
@@ -1022,7 +1096,11 @@
       "ipcPhasePostProduction": "Post-Production",
       "ipcPhasePackaging": "Packaging",
       "ipcPhaseInspection": "Inspection",
-      "ipcStatusValue": { "pass": "Pass", "fail": "Fail", "pending": "Pending" },
+      "ipcStatusValue": {
+        "pass": "Pass",
+        "fail": "Fail",
+        "pending": "Pending"
+      },
       "noData": "No data",
       "formula": "Manufacturing Formula",
       "formulaSeq": "Seq",
@@ -1041,7 +1119,11 @@
       "healthFitness": "Fitness",
       "healthRestrictions": "Restrictions",
       "healthNextDue": "Next Exam Due",
-      "fitness": { "fit": "Fit for Work", "restricted": "Restricted", "unfit": "Unfit" },
+      "fitness": {
+        "fit": "Fit for Work",
+        "restricted": "Restricted",
+        "unfit": "Unfit"
+      },
       "gowning": "Gowning Verification",
       "gowningGownClean": "Gown Clean",
       "gowningGlovesOn": "Gloves",
@@ -1068,7 +1150,9 @@
       "approveFailed": "Approve failed",
       "qaSigned": "QA approval signed",
       "ebmrLocked": "eBMR has been locked",
-      "confirmQaApprove": "Confirm approving eBMR as QA?\n(The system will check Triple Independence before saving)"
+      "confirmQaApprove": "Confirm approving eBMR as QA?\n(The system will check Triple Independence before saving)",
+      "confirmStartWithExpiry": "Start production?\n\nThe finished goods produced will expire on: {expiry}",
+      "confirmStartNoExpiry": "Start production?\n\n⚠️ This product has no shelf life set — the output lot will have no expiry date.\nConsider setting shelf life on the product record first."
     },
     "dialogs": {
       "selectMaterial": "Select Material",

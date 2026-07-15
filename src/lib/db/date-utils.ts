@@ -54,6 +54,29 @@ export function getTodayStr(): string {
 }
 
 /**
+ * Finished-goods expiry date = manufacturing date + product shelf life.
+ *
+ * Single source of truth so the expiry PROJECTED on the work-order screen
+ * before production and the expiry actually STAMPED on the FG lot at output
+ * are computed the same way — otherwise the operator sees one date up front and
+ * the lot carries another.
+ *
+ * @param manufacturingDate  MFD as YYYY-MM-DD (or null)
+ * @param shelfLifeDays      product.shelfLifeDays (or null)
+ * @returns expiry as YYYY-MM-DD, or null when either input is missing
+ */
+export function calculateExpiryDate(
+  manufacturingDate: string | null | undefined,
+  shelfLifeDays: number | null | undefined,
+): string | null {
+  if (!manufacturingDate || !shelfLifeDays) return null;
+  const mfd = new Date(manufacturingDate);
+  if (isNaN(mfd.getTime())) return null;
+  mfd.setDate(mfd.getDate() + shelfLifeDays);
+  return mfd.toISOString().split('T')[0];
+}
+
+/**
  * Convert a date string to database format, with fallback to today.
  * Useful for optional date fields that should default to today.
  *
