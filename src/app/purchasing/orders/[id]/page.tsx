@@ -1608,14 +1608,6 @@ export default function PurchaseOrderDetailPage() {
                   </Card>
                 </div>
 
-                {/* Document Attachments */}
-                <DocumentAttachment
-                  moduleName="purchase_order"
-                  entityId={po.id}
-                  title="เอกสารแนบ"
-                  categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
-                />
-
                 {/* ผู้ดำเนินการ — ผู้จัดทำ / ผู้อนุมัติ พร้อมวันเวลา */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t" data-testid="po-actors">
                   <div className="flex items-start gap-2.5">
@@ -1736,10 +1728,21 @@ export default function PurchaseOrderDetailPage() {
                   <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <AlertCircle className="h-5 w-5 text-yellow-600" />
                     <span className="text-yellow-800">
-                      คงเหลือรอรับ <strong>{summary.totalPending.toLocaleString()}</strong> หน่วย
+                      คงเหลือรอรับ <strong>{formatNumber(summary.totalPending)}</strong> หน่วย
                     </span>
                   </div>
                 )}
+
+                {/* Attachments live with receiving, not on the overview tab:
+                    the papers that matter here — delivery note, invoice, COA —
+                    arrive WITH the goods, so they belong where the goods are
+                    booked in. */}
+                <DocumentAttachment
+                  moduleName="purchase_order"
+                  entityId={po.id}
+                  title="เอกสารแนบ (ใบส่งของ / ใบแจ้งหนี้ / COA)"
+                  categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
+                />
                 <DxDataGrid
                   dataSource={lines}
                   keyExpr="id"
