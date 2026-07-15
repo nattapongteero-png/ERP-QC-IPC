@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
+import { useEnterToNextField } from '@/hooks/use-enter-to-next-field';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
@@ -268,8 +269,13 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   const isSavedDraft = currentPrId != null;
   const canSubmit = isSavedDraft && lines.length > 0;
 
+  const formRef = useEnterToNextField<HTMLDivElement>();
+
   return (
-    <div className="space-y-6">
+    // Enter moves to the next field instead of submitting: this form is keyed
+    // straight through by data-entry staff, and a stray Enter used to save a
+    // half-filled requisition.
+    <div className="space-y-6" ref={formRef} data-testid="pr-form-root">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           {mode === 'edit' ? t('requisitions.form.editTitle') : t('requisitions.form.createTitle')}
