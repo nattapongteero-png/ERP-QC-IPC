@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { MainLayout } from '@/components/layout/main-layout';
 import { OrderReportView, type OrderReport } from '@/components/reports/OrderReportView';
 import type { DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge, getStatusVariant } from '@/components/ui/badge';
@@ -87,7 +88,8 @@ export default function SalesReportPage() {
   ];
 
   return (
-    <OrderReportView<SalesRow>
+    <MainLayout>
+      <OrderReportView<SalesRow>
       title={tr('sales.title')}
       subtitle={tr('sales.subtitle')}
       data={data}
@@ -110,6 +112,7 @@ export default function SalesReportPage() {
         [tr('table.status')]: statusLabel(r.status),
         [tr('table.value')]: r.totalAmount,
       })}
-    />
+      />
+    </MainLayout>
   );
 }
