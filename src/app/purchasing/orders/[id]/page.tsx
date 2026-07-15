@@ -255,7 +255,9 @@ export default function PurchaseOrderDetailPage() {
   const t = useTranslations('purchasing');
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'lines' | 'receiving' | 'lots'>('overview');
+  // 'lines' is gone: the order lines render under the order info on the
+  // overview tab rather than behind their own tab.
+  const [activeTab, setActiveTab] = useState<'overview' | 'receiving' | 'lots'>('overview');
   // VAT display preference, persisted across sessions per browser.
   //   'split'     — show ยอดก่อน VAT / VAT 7% / ยอดรวมสุทธิ (3 lines)
   //   'inclusive' — show only ยอดรวม (รวม VAT) (1 line)
@@ -1366,9 +1368,12 @@ export default function PurchaseOrderDetailPage() {
               {[
                 // "ข้อมูลทั่วไป" was ambiguous on a purchase order — every tab
                 // here is general information about something. Name it for what
-                // it holds: the order itself.
+                // it holds: the order itself, now including its lines.
+                //
+                // The separate "รายการสินค้า" tab is gone: the lines render
+                // under the order info instead, so reading an order no longer
+                // means switching tabs to see what was actually ordered.
                 { id: 'overview', label: 'ข้อมูลคำสั่งซื้อ', icon: FileText },
-                { id: 'lines', label: `รายการสินค้า (${formatNumber(lines.length)})`, icon: Package },
                 { id: 'receiving', label: 'รับสินค้า', icon: Truck },
                 { id: 'lots', label: `Lot ที่รับ (${formatNumber(receivedLots.length)})`, icon: FileCheck },
               ].map((tab) => (
@@ -1646,8 +1651,15 @@ export default function PurchaseOrderDetailPage() {
               </div>
             )}
 
-            {activeTab === 'lines' && (
-              <div className="space-y-4">
+            {/* Lines sit UNDER the order info on the same tab: what was ordered
+                is part of reading the order, not a separate place to visit.
+                Rendered as its own section so the order header stays scannable
+                above it. */}
+            {activeTab === 'overview' && (
+              <div className="space-y-4 pt-6 mt-6 border-t border-gray-200" data-testid="po-lines-section">
+                <h3 className="text-sm font-bold text-gray-900">
+                  รายการสินค้า ({formatNumber(lines.length)})
+                </h3>
                 {isEditable && (
                   <div className="flex justify-end">
                     <DxButton
