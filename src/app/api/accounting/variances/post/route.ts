@@ -27,6 +27,19 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      // Posting is deliberately disabled: it produced journal entries with no
+      // journal_lines behind them. 501 (not implemented), not 500 — this is a
+      // known unfinished feature, not an unexpected crash.
+      if ((error as Error).message === 'VARIANCE_POSTING_DISABLED') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'ระบบปิดการลงบัญชีผลต่างไว้ชั่วคราว เนื่องจากยังสร้างใบสำคัญที่ไม่มีรายการบรรทัด กรุณาติดต่อผู้ดูแลระบบ',
+          },
+          { status: 501 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: (error as Error).message },
         { status: 500 }

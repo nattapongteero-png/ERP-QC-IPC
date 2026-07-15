@@ -523,9 +523,38 @@ export async function rollupStandardCosts(
 // ==========================================
 
 /**
- * Post variances to General Ledger by creating journal entries
+ * Post variances to General Ledger by creating journal entries.
+ *
+ * DISABLED — this function wrote a journal entry HEADER with totalDebit /
+ * totalCredit and status:'posted', but never inserted a single row into
+ * journal_lines, and never picked a Dr/Cr account at all. The result was a
+ * posted JE claiming Dr=Cr=X with no detail behind it: the trial balance
+ * (which reads journal_lines) could not see it, so the header count and the
+ * line sum would silently disagree and no auditor could trace the amount.
+ *
+ * Verified against the UAT database on 2026-07-15: zero VAR-% entries and zero
+ * line-less entries exist, so nothing has been corrupted yet — this throws
+ * before that can change.
+ *
+ * To re-enable, the following must be true first:
+ *   1. calculateWorkOrderVariances must return real numbers. Today all four
+ *      variances hardcode actual = standard (lines ~308/332/356/379), so every
+ *      amount posted here would be exactly 0.
+ *   2. Dr/Cr accounts must be resolved per variance type — the cost_gl_mapping
+ *      table already has a 'variance' transaction type but nothing reads it.
+ *   3. journal_lines rows must be inserted inside the same transaction as the
+ *      header, and the header must only be marked 'posted' once they exist.
  */
 export async function postVariances(
+  _varianceIds: number[] | undefined,
+  _periodId: number | undefined,
+  _createdBy: number
+): Promise<PostVarianceResult> {
+  throw new Error('VARIANCE_POSTING_DISABLED');
+}
+
+/** @deprecated Kept for reference until posting is implemented correctly. */
+async function postVariancesUnsafe_DO_NOT_USE(
   varianceIds: number[] | undefined,
   periodId: number | undefined,
   createdBy: number
