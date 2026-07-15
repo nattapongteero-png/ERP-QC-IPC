@@ -14,6 +14,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard, DateRangeFilter } from '@/components/shared';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -171,6 +172,40 @@ const STATUS_ORDER: PRStatusFilter[] = ['', 'draft', 'submitted', 'pending_appro
 // Helper function to normalize status for comparison
 const normalizeStatus = (status: string): string => status?.toLowerCase() || '';
 
+/**
+ * How soon a requisition is needed, derived from its required date.
+ *
+ *   <= 7 days   เร่งด่วน  (urgent)
+ *   8 - 30 days ปกติ      (normal)
+ *   > 30 days   ต่ำ        (low)
+ *
+ * Thresholds come from the buyers: <=7 urgent, 15-30 normal, >30 low. That
+ * leaves 8-14 unstated, so it is folded into "normal" — the nearest band — and
+ * an already-overdue PR counts as urgent, which is what the 7-day rule means
+ * once the date has passed.
+ *
+ * Returns null when there is no required date: a draft without one is not
+ * evidence of low urgency, and guessing would be worse than not counting it.
+ */
+export type UrgencyLevel = 'urgent' | 'normal' | 'low';
+
+const urgencyOf = (requiredDate: string | Date | null | undefined): UrgencyLevel | null => {
+  if (!requiredDate) return null;
+  const due = new Date(requiredDate);
+  if (isNaN(due.getTime())) return null;
+
+  // Compare whole days, so "due today" is not urgent-or-not depending on the
+  // clock time the row happens to carry.
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const days = Math.round(
+    (startOfDay(due).getTime() - startOfDay(new Date()).getTime()) / 86_400_000,
+  );
+
+  if (days <= 7) return 'urgent';
+  if (days <= 30) return 'normal';
+  return 'low';
+};
+
 // Normalize a DB date value to a YYYY-MM-DD string (local) for range comparison.
 const toDateKey = (dateStr: string | Date | null | undefined): string => {
   if (!dateStr) return '';
@@ -278,6 +313,24 @@ export default function PurchaseRequisitionsPage() {
   const closedCount = requisitions.filter((r) =>
     ['converted', 'cancelled', 'rejected'].includes(normalizeStatus(r.status))
   ).length;
+
+  // Urgency is DERIVED from how soon the goods are needed, not from the
+  // priority someone typed on the form: a PR marked "normal" that is due in
+  // three days is urgent whatever the form says.
+  //
+  // Only live requisitions count — a converted or cancelled PR is not waiting
+  // on anyone, so counting it as "urgent" would send buyers chasing closed work.
+  const openRequisitions = requisitions.filter(
+    (r) => !['converted', 'cancelled', 'rejected'].includes(normalizeStatus(r.status)),
+  );
+  const urgencyCounts = openRequisitions.reduce(
+    (acc, r) => {
+      const level = urgencyOf(r.requiredDate as string | Date | null | undefined);
+      if (level) acc[level] += 1;
+      return acc;
+    },
+    { urgent: 0, normal: 0, low: 0 } as Record<UrgencyLevel, number>,
+  );
 
   const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
     if (e.data?.id) {
@@ -510,32 +563,61 @@ export default function PurchaseRequisitionsPage() {
         }
       />
 
+      {/* Urgency — how soon the goods are actually needed. Counts cover open
+          requisitions only; a converted or cancelled PR waits on no one. */}
+      <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="urgency-cards">
+        <StatCard
+          label={t('requisitions.urgency.urgent')}
+          value={formatNumber(urgencyCounts.urgent)}
+          icon={Zap}
+          iconColor="text-red-500"
+          accentColor="border-red-500"
+          data-testid="urgency-urgent"
+        />
+        <StatCard
+          label={t('requisitions.urgency.normal')}
+          value={formatNumber(urgencyCounts.normal)}
+          icon={Clock}
+          iconColor="text-blue-500"
+          accentColor="border-blue-500"
+          data-testid="urgency-normal"
+        />
+        <StatCard
+          label={t('requisitions.urgency.low')}
+          value={formatNumber(urgencyCounts.low)}
+          icon={CheckCircle}
+          iconColor="text-gray-400"
+          accentColor="border-gray-400"
+          data-testid="urgency-low"
+        />
+      </div>
+
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('requisitions.status.all')}
-          value={totalCount}
+          value={formatNumber(totalCount)}
           icon={ClipboardList}
           iconColor="text-indigo-500"
           accentColor="border-indigo-500"
         />
         <StatCard
           label={t('requisitions.status.pendingApproval')}
-          value={pendingApprovalCount}
+          value={formatNumber(pendingApprovalCount)}
           icon={Clock}
           iconColor="text-yellow-500"
           accentColor="border-yellow-500"
         />
         <StatCard
           label={t('requisitions.status.approved')}
-          value={approvedCount}
+          value={formatNumber(approvedCount)}
           icon={CheckCircle}
           iconColor="text-emerald-500"
           accentColor="border-emerald-500"
         />
         <StatCard
           label={t('requisitions.status.converted')}
-          value={closedCount}
+          value={formatNumber(closedCount)}
           icon={ArrowRightCircle}
           iconColor="text-purple-500"
           accentColor="border-purple-500"

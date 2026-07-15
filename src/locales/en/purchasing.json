@@ -441,6 +441,11 @@
       "commentPlaceholder": "Add a comment...",
       "rejectReasonPlaceholder": "Enter the reason for rejection...",
       "workflowStatus": "Workflow Status"
+    },
+    "urgency": {
+      "urgent": "Urgent (≤7 days)",
+      "normal": "Normal (8–30 days)",
+      "low": "Low (>30 days)"
     }
   },
   "receiving": {

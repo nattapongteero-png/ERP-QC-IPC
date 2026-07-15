@@ -441,6 +441,11 @@
       "commentPlaceholder": "เพิ่มความคิดเห็น...",
       "rejectReasonPlaceholder": "กรอกเหตุผลในการปฏิเสธ...",
       "workflowStatus": "สถานะการดำเนินงาน"
+    },
+    "urgency": {
+      "urgent": "เร่งด่วน (≤7 วัน)",
+      "normal": "ปกติ (8–30 วัน)",
+      "low": "ต่ำ (>30 วัน)"
     }
   },
   "receiving": {
