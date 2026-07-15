@@ -18,6 +18,7 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
+import notify from 'devextreme/ui/notify';
 import type { DocumentType } from '@/types/approval-workflow';
 
 interface PendingApproval {
@@ -136,13 +137,23 @@ export default function ApprovalDashboardPage() {
       const result = await response.json();
       if (result.success) {
         setShowActionDialog(false);
+        // Confirm the action landed. Silence after a click reads as "nothing
+        // happened" and gets the approver clicking again.
+        notify(
+          actionType === 'approve' ? 'อนุมัติเรียบร้อย' : 'ปฏิเสธเรียบร้อย',
+          'success',
+          2000,
+        );
         await fetchDashboard();
       } else {
-        alert(result.error || `Failed to ${actionType} request`);
+        // notify, not alert(): a native alert is a grey browser box titled with
+        // the hostname — it looks like a phishing popup rather than part of the
+        // system, blocks the page, and cannot be styled or translated.
+        notify(result.error || 'ไม่สามารถดำเนินการได้ กรุณาลองใหม่', 'error', 4000);
       }
     } catch (error) {
       console.error('Error submitting action:', error);
-      alert(`Failed to ${actionType} request`);
+      notify('ไม่สามารถดำเนินการได้ กรุณาลองใหม่', 'error', 4000);
     } finally {
       setActionLoading(false);
     }

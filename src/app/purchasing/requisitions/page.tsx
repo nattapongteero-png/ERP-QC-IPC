@@ -14,6 +14,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard, DateRangeFilter } from '@/components/shared';
+import notify from 'devextreme/ui/notify';
 import { formatNumber } from '@/lib/utils/number-format';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
@@ -365,12 +366,19 @@ export default function PurchaseRequisitionsPage() {
       const result = await response.json();
       if (result.success) {
         setDeleteTarget(null);
+        notify('ลบใบขอซื้อเรียบร้อย', 'success', 2000);
         fetchRequisitions();
       } else {
-        alert(result.error || 'Failed to delete PR');
+        // notify, not alert(): a native alert is a grey browser box titled with
+        // the hostname — it looks like a phishing popup rather than part of the
+        // system, blocks the page, and cannot be styled or translated.
+        notify(result.error || 'ไม่สามารถลบใบขอซื้อได้', 'error', 4000);
       }
     } catch (err) {
       console.error('Error deleting PR:', err);
+      // Previously this branch was silent: a failed delete looked exactly like
+      // a successful one to the operator.
+      notify('ไม่สามารถลบใบขอซื้อได้ กรุณาลองใหม่', 'error', 4000);
     } finally {
       setDeleting(false);
     }
