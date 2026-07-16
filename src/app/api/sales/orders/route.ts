@@ -22,6 +22,21 @@ function generateSONumber(): string {
   return `SO${year}${month}${day}${random}`;
 }
 
+/**
+ * Freight charged to the customer, as a number we are willing to post.
+ *
+ * Returns null when the caller sent something that is not a non-negative
+ * number — the route turns that into a 400. Omitted/null/'' means "no freight"
+ * and is 0, which is different from "0.00 was typed" only in intent, not in
+ * money, so both collapse to 0 safely.
+ */
+function normalizeShippingCost(raw: unknown): number | null {
+  if (raw === undefined || raw === null || raw === '') return 0;
+  const n = typeof raw === 'string' ? Number(raw) : raw;
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
 // GET /api/sales/orders - List sales orders
 export async function GET(request: NextRequest) {
   return withAuth(request, async () => {
@@ -82,6 +97,9 @@ export async function POST(request: NextRequest) {
         requiredDate,
         paymentTerms,
         notes,
+        shippingCost,
+        carrier,
+        trackingNumber,
         lines,
       } = body;
 
@@ -91,6 +109,14 @@ export async function POST(request: NextRequest) {
 
       if (!lines || !Array.isArray(lines) || lines.length === 0) {
         return errorResponse('At least one line item is required');
+      }
+
+      // Freight is money and it posts to the GL. A negative or non-numeric
+      // value would be a credit note nobody approved, so it is rejected here
+      // rather than quietly coerced to 0.
+      const freight = normalizeShippingCost(shippingCost);
+      if (freight === null) {
+        return errorResponse('ค่าขนส่งต้องเป็นตัวเลขและไม่ติดลบ');
       }
 
       const soTable = getTableRef('salesOrders');
@@ -120,6 +146,9 @@ export async function POST(request: NextRequest) {
           currency: 'THB',
           paymentTerms,
           notes,
+          shippingCost: freight,
+          carrier: carrier || null,
+          trackingNumber: trackingNumber || null,
           createdBy: session.userId,
           createdAt: dbDate(),
           updatedAt: dbDate(),
@@ -150,7 +179,7 @@ export async function POST(request: NextRequest) {
         action: 'CREATE',
         tableName: 'sales_orders',
         recordId: Number(soId),
-        newValue: { soNumber, customerName, totalAmount, linesCount: lines.length },
+        newValue: { soNumber, customerName, totalAmount, shippingCost: freight, carrier: carrier || null, trackingNumber: trackingNumber || null, linesCount: lines.length },
         ipAddress: getClientIP(request),
       });
 

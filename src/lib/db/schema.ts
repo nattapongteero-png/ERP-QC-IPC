@@ -753,6 +753,14 @@ export const sqliteSalesOrders = sqliteTable('sales_orders', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSalesOrderId: integer('vmi_sales_order_id'), // FK to vmi_sales_orders.id (set later)
   source: text('source').notNull().default('direct'), // direct, vmi, api
+  // Freight charged to the customer. Kept OUT of totalAmount: the goods total
+  // and the freight post to different GL accounts (revenue vs freight income),
+  // so folding them together would make the two impossible to separate later.
+  shippingCost: real('shipping_cost').notNull().default(0),
+  // Who carried it and the consignment number, so "where is my order?" is
+  // answerable from the order itself rather than someone's email.
+  carrier: text('carrier'),
+  trackingNumber: text('tracking_number'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2466,6 +2474,14 @@ export const mysqlSalesOrders = mysqlTable('sales_orders', {
   // VMI Vendor Sync fields (008-vmi-vendor-sync)
   vmiSalesOrderId: int('vmi_sales_order_id'), // FK to vmi_sales_orders.id (set later)
   source: varchar('source', { length: 20 }).notNull().default('direct'), // direct, vmi, api
+  // Freight charged to the customer. Kept OUT of totalAmount: the goods total
+  // and the freight post to different GL accounts (revenue vs freight income),
+  // so folding them together would make the two impossible to separate later.
+  shippingCost: decimal('shipping_cost', { precision: 15, scale: 2 }).notNull().default('0'),
+  // Who carried it and the consignment number, so "where is my order?" is
+  // answerable from the order itself rather than someone's email.
+  carrier: varchar('carrier', { length: 100 }),
+  trackingNumber: varchar('tracking_number', { length: 100 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

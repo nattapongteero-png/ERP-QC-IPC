@@ -347,7 +347,16 @@
           "shipped": "Shipped",
           "delivered": "Delivered",
           "returned": "Returned"
-        }
+        },
+        "detailsTitle": "Shipping details",
+        "cost": "Shipping cost",
+        "carrier": "Carrier",
+        "tracking": "Tracking number",
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saved": "Shipping details saved",
+        "saveFailed": "Could not save shipping details"
       },
       "modal": {
         "selectLotTitle": "Select Lot and Ship",
@@ -488,7 +497,15 @@
         "saving": "Saving...",
         "change": "Change",
         "clear": "Clear customer"
-      }
+      },
+      "shippingSection": "Shipping",
+      "shippingCost": "Shipping cost",
+      "carrier": "Carrier",
+      "carrierPlaceholder": "e.g. Kerry, Thailand Post, own truck",
+      "trackingNumber": "Tracking number",
+      "trackingNumberPlaceholder": "Fill in once the goods have left the warehouse",
+      "goodsAmount": "Goods",
+      "grandTotal": "Grand total"
     }
   },
   "customers": {

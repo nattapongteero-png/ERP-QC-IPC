@@ -10,6 +10,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import TextArea from 'devextreme-react/text-area';
+import TextBox from 'devextreme-react/text-box';
 import DateBox from 'devextreme-react/date-box';
 import NumberBox from 'devextreme-react/number-box';
 import SelectBox from 'devextreme-react/select-box';
@@ -34,6 +35,7 @@ import {
   FileText,
   Calendar,
   CreditCard,
+  Truck,
 } from 'lucide-react';
 
 // ============================================================================
@@ -60,6 +62,9 @@ interface FormData {
   paymentTerms: string;
   notes: string;
   status: string;
+  shippingCost: number;
+  carrier: string;
+  trackingNumber: string;
 }
 
 // ============================================================================
@@ -122,6 +127,9 @@ export default function NewSalesOrderPage() {
     paymentTerms: '',
     notes: '',
     status: 'draft',
+    shippingCost: 0,
+    carrier: '',
+    trackingNumber: '',
   });
 
   const [lines, setLines] = useState<SOLine[]>([]);
@@ -133,6 +141,13 @@ export default function NewSalesOrderPage() {
   const totalAmount = useMemo(() => {
     return lines.reduce((sum, line) => sum + line.lineTotal, 0);
   }, [lines]);
+
+  // What the customer actually pays. Only ever computed for display — the two
+  // parts are stored separately because they are separate revenue.
+  const grandTotal = useMemo(
+    () => totalAmount + (form.shippingCost || 0),
+    [totalAmount, form.shippingCost],
+  );
 
   const lineCount = lines.length;
 
@@ -252,6 +267,9 @@ export default function NewSalesOrderPage() {
           paymentTerms: form.paymentTerms,
           notes: form.notes,
           status: form.status,
+          shippingCost: form.shippingCost,
+          carrier: form.carrier,
+          trackingNumber: form.trackingNumber,
           lines: lines.map(line => ({
             itemId: line.itemId,
             quantity: line.quantity,
@@ -616,12 +634,30 @@ export default function NewSalesOrderPage() {
                       </Summary>
                     </DataGrid>
 
-                    {/* Total Summary */}
+                    {/* Total Summary — goods and freight stay on separate
+                        lines: they post to different GL accounts, and the
+                        customer asks about them separately too. */}
                     <div className="p-4 border-t bg-gray-50">
                       <div className="flex justify-end">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">{t('orders.new.totalAmount')}</p>
-                          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
+                        <div className="w-full max-w-xs space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">{t('orders.new.goodsAmount')}</span>
+                            <span className="font-medium text-gray-900" data-testid="so-goods-amount">
+                              {formatCurrency(totalAmount)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">{t('orders.new.shippingCost')}</span>
+                            <span className="font-medium text-gray-900" data-testid="so-shipping-amount">
+                              {formatCurrency(form.shippingCost)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between pt-2 border-t">
+                            <span className="text-sm text-gray-500">{t('orders.new.grandTotal')}</span>
+                            <span className="text-2xl font-bold text-green-600" data-testid="so-grand-total">
+                              {formatCurrency(grandTotal)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -643,6 +679,57 @@ export default function NewSalesOrderPage() {
                     />
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Shipping — freight is agreed with the order; the tracking
+                number usually is not known until the goods leave, so it can be
+                left blank here and filled in from the order page later. */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Truck className="h-5 w-5 text-gray-500" />
+                  {t('orders.new.shippingSection')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('orders.new.shippingCost')}
+                    </label>
+                    <NumberBox
+                      value={form.shippingCost}
+                      onValueChanged={(e) => setForm(prev => ({ ...prev, shippingCost: e.value ?? 0 }))}
+                      min={0}
+                      format="#,##0.00"
+                      showClearButton
+                      data-testid="so-shipping-cost-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('orders.new.carrier')}
+                    </label>
+                    <TextBox
+                      value={form.carrier}
+                      onValueChanged={(e) => setForm(prev => ({ ...prev, carrier: e.value || '' }))}
+                      placeholder={t('orders.new.carrierPlaceholder')}
+                      data-testid="so-carrier-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('orders.new.trackingNumber')}
+                    </label>
+                    <TextBox
+                      value={form.trackingNumber}
+                      onValueChanged={(e) => setForm(prev => ({ ...prev, trackingNumber: e.value || '' }))}
+                      placeholder={t('orders.new.trackingNumberPlaceholder')}
+                      data-testid="so-tracking-input"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

@@ -9,6 +9,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { useToast } from '@/hooks/use-toast';
@@ -93,6 +94,9 @@ interface SODetail {
     currency: string;
     paymentTerms: string;
     notes: string;
+    shippingCost: number | string | null;
+    carrier: string | null;
+    trackingNumber: string | null;
     createdByName: string | null;
     createdAt: string;
     updatedAt: string;
@@ -362,6 +366,13 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   });
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [fulfillError, setFulfillError] = useState<FulfillmentError | null>(null);
+  const [editingShipping, setEditingShipping] = useState(false);
+  const [savingShipping, setSavingShipping] = useState(false);
+  const [shippingForm, setShippingForm] = useState({
+    shippingCost: 0,
+    carrier: '',
+    trackingNumber: '',
+  });
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -1053,8 +1064,128 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     </div>
   );
 
+  const handleStartEditShipping = () => {
+    // Seed from what is stored, not from whatever was typed last time — the
+    // edit must start from the truth even after a cancel.
+    setShippingForm({
+      shippingCost: Number(data?.salesOrder.shippingCost || 0),
+      carrier: data?.salesOrder.carrier || '',
+      trackingNumber: data?.salesOrder.trackingNumber || '',
+    });
+    setEditingShipping(true);
+  };
+
+  const handleSaveShipping = async () => {
+    setSavingShipping(true);
+    try {
+      const response = await fetch(`/api/sales/orders/${resolvedParams.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shippingForm),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(t('orders.detail.shipping.saved'));
+        setEditingShipping(false);
+        // Re-read rather than patching local state: the server is what the
+        // next reader (and the GL) will see.
+        await fetchSODetail();
+      } else {
+        toast.error(result.error || t('orders.detail.shipping.saveFailed'));
+      }
+    } catch (error) {
+      console.error('Failed to save shipping details:', error);
+      toast.error(t('orders.detail.shipping.saveFailed'));
+    } finally {
+      setSavingShipping(false);
+    }
+  };
+
   const renderShippingTab = () => (
     <div className="p-6">
+      {/* Freight and consignment details. Shown whether or not anything has
+          shipped yet: the tracking number arrives after the goods leave, which
+          is exactly when there is still nothing in the deliveries grid. */}
+      <div className="mb-6 border border-gray-200 rounded-lg p-4" data-testid="so-shipping-panel">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <Truck className="h-4 w-4 text-gray-500" />
+            {t('orders.detail.shipping.detailsTitle')}
+          </h3>
+          {!editingShipping && (
+            <DxButton
+              text={t('orders.detail.shipping.edit')}
+              icon="edit"
+              stylingMode="text"
+              onClick={handleStartEditShipping}
+              data-testid="so-shipping-edit-btn"
+            />
+          )}
+        </div>
+
+        {editingShipping ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">{t('orders.detail.shipping.cost')}</label>
+              <DxNumberBox
+                value={shippingForm.shippingCost}
+                onValueChanged={(e) => setShippingForm(prev => ({ ...prev, shippingCost: e.value ?? 0 }))}
+                min={0}
+                format="#,##0.00"
+                data-testid="so-shipping-cost-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">{t('orders.detail.shipping.carrier')}</label>
+              <DxTextBox
+                value={shippingForm.carrier}
+                onValueChanged={(e) => setShippingForm(prev => ({ ...prev, carrier: e.value || '' }))}
+                data-testid="so-carrier-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">{t('orders.detail.shipping.tracking')}</label>
+              <DxTextBox
+                value={shippingForm.trackingNumber}
+                onValueChanged={(e) => setShippingForm(prev => ({ ...prev, trackingNumber: e.value || '' }))}
+                data-testid="so-tracking-input"
+              />
+            </div>
+            <div className="md:col-span-3 flex gap-2 justify-end">
+              <DxButton
+                text={t('orders.detail.shipping.cancel')}
+                stylingMode="outlined"
+                onClick={() => setEditingShipping(false)}
+              />
+              <DxButton
+                text={t('orders.detail.shipping.save')}
+                type="default"
+                disabled={savingShipping}
+                onClick={handleSaveShipping}
+                data-testid="so-shipping-save-btn"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">{t('orders.detail.shipping.cost')}</p>
+              <p className="font-medium" data-testid="so-shipping-cost">
+                {formatCurrency(Number(so.shippingCost || 0), so.currency)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">{t('orders.detail.shipping.carrier')}</p>
+              <p className="font-medium" data-testid="so-carrier">{so.carrier || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">{t('orders.detail.shipping.tracking')}</p>
+              <p className="font-medium" data-testid="so-tracking">{so.trackingNumber || '-'}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {deliveries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">

@@ -347,7 +347,16 @@
           "shipped": "จัดส่งแล้ว",
           "delivered": "ส่งมอบแล้ว",
           "returned": "ส่งคืน"
-        }
+        },
+        "detailsTitle": "ข้อมูลการจัดส่ง",
+        "cost": "ค่าขนส่ง",
+        "carrier": "ผู้ให้บริการขนส่ง",
+        "tracking": "เลขติดตามพัสดุ",
+        "edit": "แก้ไข",
+        "save": "บันทึก",
+        "cancel": "ยกเลิก",
+        "saved": "บันทึกข้อมูลการจัดส่งแล้ว",
+        "saveFailed": "บันทึกข้อมูลการจัดส่งไม่สำเร็จ"
       },
       "modal": {
         "selectLotTitle": "เลือก Lot และจัดส่ง",
@@ -488,7 +497,15 @@
         "saving": "กำลังบันทึก...",
         "change": "เปลี่ยน",
         "clear": "ล้างข้อมูลลูกค้า"
-      }
+      },
+      "shippingSection": "การจัดส่ง",
+      "shippingCost": "ค่าขนส่ง",
+      "carrier": "ผู้ให้บริการขนส่ง",
+      "carrierPlaceholder": "เช่น Kerry, ไปรษณีย์ไทย, รถบริษัท",
+      "trackingNumber": "เลขติดตามพัสดุ",
+      "trackingNumberPlaceholder": "กรอกเมื่อของออกจากคลังแล้ว",
+      "goodsAmount": "ค่าสินค้า",
+      "grandTotal": "ยอดรวมสุทธิ"
     }
   },
   "customers": {
