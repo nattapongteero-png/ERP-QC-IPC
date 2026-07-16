@@ -268,6 +268,122 @@ describe('Purchase Requisitions List Page', () => {
   });
 });
 
+/**
+ * The KPI/urgency cards must show BOTH how many PRs are in a band and how much
+ * money sits behind them. Dates are relative to today so each urgency band is
+ * actually exercised (fixed dates would all drift into "urgent" over time).
+ */
+describe('Stat cards show count and value', () => {
+  const daysFromNow = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // 2 urgent (฿5,000 + ฿1,000 = ฿6,000), 1 normal (฿150,000), 1 low (฿25,000).
+  // The cancelled row is deliberately urgent-dated and must NOT be counted:
+  // it waits on no one.
+  const datedPRs = [
+    { id: 1, prNumber: 'PR2026-0001', status: 'draft', priority: 'normal', description: 'Office supplies', totalAmount: 5000, requiredDate: daysFromNow(3), createdAt: daysFromNow(-1) },
+    { id: 2, prNumber: 'PR2026-0002', status: 'pending_approval', priority: 'high', description: 'IT Equipment', totalAmount: 150000, requiredDate: daysFromNow(20), createdAt: daysFromNow(-2) },
+    { id: 3, prNumber: 'PR2026-0003', status: 'approved', priority: 'urgent', description: 'Emergency parts', totalAmount: 25000, requiredDate: daysFromNow(45), createdAt: daysFromNow(-3) },
+    { id: 4, prNumber: 'PR2026-0004', status: 'draft', priority: 'normal', description: 'Packaging', totalAmount: 1000, requiredDate: daysFromNow(1), createdAt: daysFromNow(-4) },
+    { id: 5, prNumber: 'PR2026-0005', status: 'cancelled', priority: 'normal', description: 'Scrapped order', totalAmount: 99000, requiredDate: daysFromNow(2), createdAt: daysFromNow(-5) },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true, data: datedPRs }),
+    });
+  });
+
+  it('shows count and total value on each urgency card', async () => {
+    render(<PurchaseRequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('urgency-urgent')).toBeInTheDocument();
+    });
+
+    const urgent = screen.getByTestId('urgency-urgent');
+    expect(urgent).toHaveTextContent('2 PRs');
+    expect(urgent).toHaveTextContent('฿6,000.00');
+
+    const normal = screen.getByTestId('urgency-normal');
+    expect(normal).toHaveTextContent('1 PRs');
+    expect(normal).toHaveTextContent('฿150,000.00');
+
+    const low = screen.getByTestId('urgency-low');
+    expect(low).toHaveTextContent('1 PRs');
+    expect(low).toHaveTextContent('฿25,000.00');
+  });
+
+  it('excludes cancelled PRs from urgency value, not just from the count', async () => {
+    render(<PurchaseRequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('urgency-urgent')).toBeInTheDocument();
+    });
+
+    // The ฿99,000 cancelled PR is urgent-dated but closed — it must not inflate
+    // the urgent band in either figure.
+    expect(screen.getByTestId('urgency-urgent')).not.toHaveTextContent('99,000');
+    expect(screen.getByTestId('urgency-urgent')).not.toHaveTextContent('105,000');
+  });
+
+  it('shows count and total value on each KPI card', async () => {
+    render(<PurchaseRequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kpi-total')).toBeInTheDocument();
+    });
+
+    // All 5 PRs, ฿280,000 in total (closed ones included here — this is the
+    // whole book, not the open workload).
+    const total = screen.getByTestId('kpi-total');
+    expect(total).toHaveTextContent('5 PRs');
+    expect(total).toHaveTextContent('฿280,000.00');
+
+    const pending = screen.getByTestId('kpi-pending');
+    expect(pending).toHaveTextContent('1 PRs');
+    expect(pending).toHaveTextContent('฿150,000.00');
+
+    const approved = screen.getByTestId('kpi-approved');
+    expect(approved).toHaveTextContent('1 PRs');
+    expect(approved).toHaveTextContent('฿25,000.00');
+
+    // Closed = converted + cancelled + rejected → just the ฿99,000 cancelled PR.
+    const closed = screen.getByTestId('kpi-closed');
+    expect(closed).toHaveTextContent('1 PRs');
+    expect(closed).toHaveTextContent('฿99,000.00');
+  });
+
+  it('shows thousands separators, not raw digits', async () => {
+    render(<PurchaseRequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kpi-total')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('kpi-total')).not.toHaveTextContent('280000');
+  });
+
+  it('renders a zero band as 0 with a zero amount, never a dash', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ success: true, data: [] }),
+    });
+
+    render(<PurchaseRequisitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('urgency-urgent')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('urgency-urgent')).toHaveTextContent('0 PRs');
+    expect(screen.getByTestId('urgency-urgent')).toHaveTextContent('฿0.00');
+  });
+});
+
 describe('Page with empty data', () => {
   beforeEach(() => {
     vi.clearAllMocks();

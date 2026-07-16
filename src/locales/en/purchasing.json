@@ -448,6 +448,10 @@
       "urgent": "Urgent (≤7 days)",
       "normal": "Normal (8–30 days)",
       "low": "Low (>30 days)"
+    },
+    "stats": {
+      "unit": "PRs",
+      "totalValue": "total value"
     }
   },
   "receiving": {

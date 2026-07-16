@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from 'react';
 import DataGrid, {
   Column,
   Editing,
+  KeyboardNavigation,
   Lookup,
   Paging,
   Summary,
@@ -199,6 +200,21 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           useIcons={true}
           startEditAction="click"
           selectTextOnEditStart={true}
+        />
+        {/* Enter advances to the NEXT CELL along the row (สินค้า → จำนวน →
+            หน่วยนับ → ...), so a key-in operator never has to reach for Tab or
+            the mouse. Shift+Enter steps back.
+
+            Beware the naming: enterKeyDirection="row" means "move along the
+            row" (next cell); "column" would move DOWN the column instead —
+            it reads backwards, so don't "fix" this to "column".
+            enterKeyAction="moveFocus" is what stops Enter from merely toggling
+            edit state on the cell you are already in. */}
+        <KeyboardNavigation
+          enabled={true}
+          enterKeyAction="moveFocus"
+          enterKeyDirection="row"
+          editOnKeyPress={true}
         />
         <Paging defaultPageSize={10} />
 

@@ -45,6 +45,13 @@ export interface StatCardProps {
   label: string;
   /** The main value to display (number or formatted string) */
   value: string | number;
+  /**
+   * A second, smaller figure shown under the value — e.g. the baht amount that
+   * sits behind a count, so a card answers "how many" and "how much" at once.
+   */
+  subValue?: string;
+  /** Caption for subValue (e.g. a unit or "รวมมูลค่า"). Ignored without subValue. */
+  subLabel?: string;
   /** Icon component from lucide-react */
   icon?: LucideIcon;
   /** Soft-tinted surface palette (goods-receipt concept). Default 'emerald'. */
@@ -70,6 +77,8 @@ export interface StatCardProps {
 export function StatCard({
   label,
   value,
+  subValue,
+  subLabel,
   icon: Icon,
   tone = 'emerald',
   iconColor,
@@ -123,6 +132,12 @@ export function StatCard({
             <div className="h-8 w-16 bg-black/5 rounded animate-pulse mt-1" />
           ) : (
             <p className={`text-3xl font-bold truncate mt-1 ${toneStyle.value}`}>{value}</p>
+          )}
+          {subValue && !isLoading && (
+            <p className="mt-1 flex items-baseline gap-1.5 truncate">
+              <span className="text-sm font-semibold text-gray-700">{subValue}</span>
+              {subLabel && <span className="text-xs text-gray-400">{subLabel}</span>}
+            </p>
           )}
           {trend && !isLoading && (
             <p className={`text-xs flex items-center gap-1 mt-1 ${getTrendColor()}`}>

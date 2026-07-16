@@ -15,7 +15,7 @@ import { DxTextBox } from '@/components/ui/dx-text-box';
 import { Badge } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard, DateRangeFilter } from '@/components/shared';
 import notify from 'devextreme/ui/notify';
-import { formatNumber } from '@/lib/utils/number-format';
+import { formatNumber, formatBaht } from '@/lib/utils/number-format';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -324,13 +324,39 @@ export default function PurchaseRequisitionsPage() {
   const openRequisitions = requisitions.filter(
     (r) => !['converted', 'cancelled', 'rejected'].includes(normalizeStatus(r.status)),
   );
-  const urgencyCounts = openRequisitions.reduce(
+  // Each band carries both the count and the money behind it: 19 urgent PRs
+  // worth ฿5,000 and 19 worth ฿2m are the same number but not the same problem.
+  const urgencyStats = openRequisitions.reduce(
     (acc, r) => {
       const level = urgencyOf(r.requiredDate as string | Date | null | undefined);
-      if (level) acc[level] += 1;
+      if (level) {
+        acc[level].count += 1;
+        acc[level].amount += Number(r.totalAmount || 0);
+      }
       return acc;
     },
-    { urgent: 0, normal: 0, low: 0 } as Record<UrgencyLevel, number>,
+    {
+      urgent: { count: 0, amount: 0 },
+      normal: { count: 0, amount: 0 },
+      low: { count: 0, amount: 0 },
+    } as Record<UrgencyLevel, { count: number; amount: number }>,
+  );
+
+  // Money behind each KPI band, matching the count shown above it.
+  const sumAmount = (rows: PurchaseRequisition[]) =>
+    rows.reduce((sum, r) => sum + Number(r.totalAmount || 0), 0);
+
+  const totalAmount = sumAmount(requisitions);
+  const pendingApprovalAmount = sumAmount(
+    requisitions.filter((r) => normalizeStatus(r.status) === 'pending_approval'),
+  );
+  const approvedAmount = sumAmount(
+    requisitions.filter((r) => normalizeStatus(r.status) === 'approved'),
+  );
+  const closedAmount = sumAmount(
+    requisitions.filter((r) =>
+      ['converted', 'cancelled', 'rejected'].includes(normalizeStatus(r.status)),
+    ),
   );
 
   const handleRowClick = (e: DataGridTypes.RowClickEvent) => {
@@ -576,7 +602,9 @@ export default function PurchaseRequisitionsPage() {
       <div className="grid grid-cols-3 gap-3 md:gap-4" data-testid="urgency-cards">
         <StatCard
           label={t('requisitions.urgency.urgent')}
-          value={formatNumber(urgencyCounts.urgent)}
+          value={`${formatNumber(urgencyStats.urgent.count)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(urgencyStats.urgent.amount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={Zap}
           iconColor="text-red-500"
           accentColor="border-red-500"
@@ -584,7 +612,9 @@ export default function PurchaseRequisitionsPage() {
         />
         <StatCard
           label={t('requisitions.urgency.normal')}
-          value={formatNumber(urgencyCounts.normal)}
+          value={`${formatNumber(urgencyStats.normal.count)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(urgencyStats.normal.amount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={Clock}
           iconColor="text-blue-500"
           accentColor="border-blue-500"
@@ -592,7 +622,9 @@ export default function PurchaseRequisitionsPage() {
         />
         <StatCard
           label={t('requisitions.urgency.low')}
-          value={formatNumber(urgencyCounts.low)}
+          value={`${formatNumber(urgencyStats.low.count)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(urgencyStats.low.amount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={CheckCircle}
           iconColor="text-gray-400"
           accentColor="border-gray-400"
@@ -604,31 +636,43 @@ export default function PurchaseRequisitionsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label={t('requisitions.status.all')}
-          value={formatNumber(totalCount)}
+          value={`${formatNumber(totalCount)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(totalAmount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={ClipboardList}
           iconColor="text-indigo-500"
           accentColor="border-indigo-500"
+          data-testid="kpi-total"
         />
         <StatCard
           label={t('requisitions.status.pendingApproval')}
-          value={formatNumber(pendingApprovalCount)}
+          value={`${formatNumber(pendingApprovalCount)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(pendingApprovalAmount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={Clock}
           iconColor="text-yellow-500"
           accentColor="border-yellow-500"
+          data-testid="kpi-pending"
         />
         <StatCard
           label={t('requisitions.status.approved')}
-          value={formatNumber(approvedCount)}
+          value={`${formatNumber(approvedCount)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(approvedAmount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={CheckCircle}
           iconColor="text-emerald-500"
           accentColor="border-emerald-500"
+          data-testid="kpi-approved"
         />
         <StatCard
           label={t('requisitions.status.converted')}
-          value={formatNumber(closedCount)}
+          value={`${formatNumber(closedCount)} ${t('requisitions.stats.unit')}`}
+          subValue={formatBaht(closedAmount)}
+          subLabel={t('requisitions.stats.totalValue')}
           icon={ArrowRightCircle}
           iconColor="text-purple-500"
           accentColor="border-purple-500"
+          data-testid="kpi-closed"
         />
       </div>
 
