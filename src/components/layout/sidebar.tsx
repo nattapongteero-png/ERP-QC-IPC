@@ -206,6 +206,7 @@ const navigation: NavItem[] = [
     roles: ['admin', 'manager', 'sales', 'warehouse'],
     children: [
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
+      { name: 'Delivery Notes', href: '/sales/deliveries', icon: Truck },
       { name: 'VMI Orders', href: '/sales/vmi-orders', icon: Share2 },
       { name: 'Customers', href: '/sales/customers', icon: UserCheck },
       { name: 'Sales Report', href: '/sales/reports', icon: FileText },
