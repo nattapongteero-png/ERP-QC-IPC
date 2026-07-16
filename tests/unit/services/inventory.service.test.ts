@@ -58,6 +58,9 @@ import {
 const TEST_USER_ID = 1;
 const NEAR_EXPIRY = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
 const FAR_EXPIRY = new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
+// Relative to "now" so these never rot as the calendar moves.
+const PAST_EXPIRY = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+const TODAY_EXPIRY = new Date().toISOString().split('T')[0];
 const EXPIRED = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
 
 function seedBase() {
@@ -222,6 +225,55 @@ describe('Inventory Service', () => {
       const lotId = await receiveMaterial(1, 'ISSUE-2', 50, 'kg', 1, FAR_EXPIRY, null, null, TEST_USER_ID);
       await updateLotStatus(lotId, 'released', TEST_USER_ID);
       await expect(issueMaterial(lotId, 100, 'WO', 1, 'WO-001', TEST_USER_ID)).rejects.toThrow();
+    });
+
+    // Expired stock must not leave the building. UAT had let it out through
+    // all three issue paths (sales, production, withdrawal) because every one
+    // of them checked status and quantity but never the date.
+    it('refuses to issue an expired lot even when released and in stock', async () => {
+      const lotId = await receiveMaterial(1, 'ISSUE-EXPIRED', 100, 'kg', 1, PAST_EXPIRY, null, null, TEST_USER_ID);
+      await updateLotStatus(lotId, 'released', TEST_USER_ID);
+
+      await expect(
+        issueMaterial(lotId, 10, 'WO', 1, 'WO-001', TEST_USER_ID),
+      ).rejects.toThrow(/expired/i);
+    });
+
+    it('leaves the expired lot untouched when it refuses', async () => {
+      // A guard that throws after deducting stock would be worse than none.
+      const lotId = await receiveMaterial(1, 'ISSUE-EXPIRED-2', 100, 'kg', 1, PAST_EXPIRY, null, null, TEST_USER_ID);
+      await updateLotStatus(lotId, 'released', TEST_USER_ID);
+
+      await expect(issueMaterial(lotId, 10, 'SO', 1, 'SO-001', TEST_USER_ID)).rejects.toThrow();
+      expect((await getLotDetails(lotId))!.quantity).toBe(100);
+    });
+
+    it('blocks the sales path too, not just production', async () => {
+      // The rule sits in issueMaterial precisely so every caller inherits it.
+      const lotId = await receiveMaterial(1, 'ISSUE-EXPIRED-3', 100, 'kg', 1, PAST_EXPIRY, null, null, TEST_USER_ID);
+      await updateLotStatus(lotId, 'released', TEST_USER_ID);
+      await expect(
+        issueMaterial(lotId, 5, 'SO', 1, 'SO-001', TEST_USER_ID),
+      ).rejects.toThrow(/expired/i);
+    });
+
+    it('still issues a lot that expires today — good until the day ends', async () => {
+      const lotId = await receiveMaterial(1, 'ISSUE-TODAY', 100, 'kg', 1, TODAY_EXPIRY, null, null, TEST_USER_ID);
+      await updateLotStatus(lotId, 'released', TEST_USER_ID);
+
+      const txnId = await issueMaterial(lotId, 10, 'WO', 1, 'WO-001', TEST_USER_ID);
+      expect(txnId).toBeGreaterThan(0);
+      expect((await getLotDetails(lotId))!.quantity).toBe(90);
+    });
+
+    it('still issues an undated lot — a blank field is a data gap, not a hazard', async () => {
+      // Halting the line over a missing expiry would be the wrong trade.
+      const lotId = await receiveMaterial(1, 'ISSUE-NODATE', 100, 'kg', 1, null, null, null, TEST_USER_ID);
+      await updateLotStatus(lotId, 'released', TEST_USER_ID);
+
+      const txnId = await issueMaterial(lotId, 10, 'WO', 1, 'WO-001', TEST_USER_ID);
+      expect(txnId).toBeGreaterThan(0);
+      expect((await getLotDetails(lotId))!.quantity).toBe(90);
     });
   });
 

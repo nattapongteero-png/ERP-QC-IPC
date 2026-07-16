@@ -5,7 +5,8 @@
 
 import { getDb, isSqlite } from '../db';
 import { getInsertId } from '../db/db-helper';
-import { toQueryDate, getTodayStr, getNow, toDbDate } from '../db/date-utils';
+import { toQueryDate, getTodayStr, getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
+import { isLotExpired } from '../utils/lot-expiry';
 import { eq, and, gte, lte, desc, asc, sql, or } from 'drizzle-orm';
 import {
   sqliteInventoryLots,
@@ -363,6 +364,20 @@ export async function issueMaterial(
 
   if (lot.status !== 'released') {
     throw new Error(`Lot ${lot.lotNumber} is not released (status: ${lot.status})`);
+  }
+
+  // Expired stock must not leave the building — not to a customer, not into a
+  // batch. Every issue path (sales, production, withdrawal) funnels through
+  // here, so the rule lives here rather than being restated at each caller and
+  // forgotten at the next one. UAT shows all three paths had already let
+  // expired stock through while checking only status and quantity.
+  //
+  // An undated lot is allowed: some lots legitimately have no expiry, and
+  // halting the line over a blank field would be the wrong trade.
+  if (isLotExpired(lot.expiryDate)) {
+    throw new Error(
+      `Lot ${lot.lotNumber} expired on ${formatDateFromDb(lot.expiryDate)} and cannot be issued`,
+    );
   }
 
   const available = (lot.quantity || 0) - (lot.reservedQuantity || 0);

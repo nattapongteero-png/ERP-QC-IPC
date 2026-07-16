@@ -422,7 +422,13 @@
         "pendingQty": "Pending Quantity",
         "goToQc": "Go to Quality Control",
         "selectNewLot": "Select New Lot",
-        "close": "Close"
+        "close": "Close",
+        "lotExpired": {
+          "title": "This lot has expired",
+          "message": "expired on",
+          "suggestion1": "Pick another lot that has not expired",
+          "suggestion2": "Tell QA to move the expired lot out of stock"
+        }
       }
     },
     "new": {

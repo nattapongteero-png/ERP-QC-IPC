@@ -117,7 +117,7 @@ type TabKey = 'overview' | 'lines' | 'fulfillment' | 'shipping';
 
 // Error types for fulfillment
 interface FulfillmentError {
-  type: 'lot_status' | 'insufficient_qty' | 'invalid_line' | 'invalid_lot' | 'exceeds_pending' | 'unknown';
+  type: 'lot_status' | 'lot_expired' | 'insufficient_qty' | 'invalid_line' | 'invalid_lot' | 'exceeds_pending' | 'unknown';
   title: string;
   message: string;
   details: {
@@ -132,6 +132,23 @@ interface FulfillmentError {
 
 // Parse error message to structured error - returns translation keys for dynamic resolution
 function parseErrorMessage(errorMsg: string, t: (key: string) => string): FulfillmentError {
+  // Expired lot — issueMaterial refuses it, so say so in Thai rather than
+  // letting the raw server string reach the warehouse operator.
+  const expiredMatch = errorMsg.match(/Lot\s+([\w-]+)\s+expired on\s+([\d-]+)/i);
+  if (expiredMatch) {
+    const [, lotNumber, expiredOn] = expiredMatch;
+    return {
+      type: 'lot_expired',
+      title: t('orders.detail.error.lotExpired.title'),
+      message: `Lot ${lotNumber} ${t('orders.detail.error.lotExpired.message')} ${expiredOn}`,
+      details: { lotNumber },
+      suggestions: [
+        t('orders.detail.error.lotExpired.suggestion1'),
+        t('orders.detail.error.lotExpired.suggestion2'),
+      ],
+    };
+  }
+
   // Lot not released error
   const lotStatusMatch = errorMsg.match(/Lot\s+([\w-]+)\s+is not released\s*\(status:\s*(\w+)\)/i);
   if (lotStatusMatch) {
@@ -1602,11 +1619,14 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 <div className={cn(
                   'h-14 w-14 rounded-xl flex items-center justify-center shrink-0',
                   fulfillError.type === 'lot_status' ? 'bg-amber-100' :
+                  fulfillError.type === 'lot_expired' ? 'bg-red-100' :
                   fulfillError.type === 'insufficient_qty' ? 'bg-red-100' :
                   'bg-gray-100'
                 )}>
                   {fulfillError.type === 'lot_status' ? (
                     <AlertOctagon className="h-7 w-7 text-amber-600" />
+                  ) : fulfillError.type === 'lot_expired' ? (
+                    <AlertOctagon className="h-7 w-7 text-red-600" />
                   ) : fulfillError.type === 'insufficient_qty' ? (
                     <XCircle className="h-7 w-7 text-red-600" />
                   ) : (
@@ -1617,6 +1637,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                   <h2 className={cn(
                     'text-xl font-bold',
                     fulfillError.type === 'lot_status' ? 'text-amber-800' :
+                    fulfillError.type === 'lot_expired' ? 'text-red-800' :
                     fulfillError.type === 'insufficient_qty' ? 'text-red-800' :
                     'text-gray-800'
                   )}>
