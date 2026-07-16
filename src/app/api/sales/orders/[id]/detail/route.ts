@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '@/lib/db/db-helper';
 import { withAuth, serverErrorResponse } from '@/lib/api-utils';
+import { isLotExpired } from '@/lib/utils/lot-expiry';
 
 export async function GET(
   request: NextRequest,
@@ -120,12 +121,22 @@ export async function GET(
               );
           });
 
+          // Expired lots are dropped here, not merely refused later.
+          //
+          // issueMaterial rejects them at the point of issue, but by then the
+          // operator has already picked a lot and clicked ship. Worse, the sort
+          // below is FEFO — nearest expiry first — so an expired lot would be
+          // offered as the FIRST suggestion every time, and availableStock
+          // would count stock that can never legally leave, making canFulfill
+          // promise a delivery the system will then refuse. UAT currently holds
+          // 4 expired lots still marked 'released'.
           const releasedLots = availableLots
             .map((lot: { id: number; lotNumber: string; quantity: number | string; expiryDate: string | Date | null; status: string }) => ({
               ...lot,
               quantity: Number(lot.quantity) || 0
             }))
-            .filter((lot: { quantity: number }) => lot.quantity > 0);
+            .filter((lot: { quantity: number }) => lot.quantity > 0)
+            .filter((lot: { expiryDate: string | Date | null }) => !isLotExpired(lot.expiryDate));
           const totalAvailable = releasedLots.reduce((sum: number, lot: { quantity: number }) => sum + lot.quantity, 0);
           const pendingQty = quantity - shippedQty;
 

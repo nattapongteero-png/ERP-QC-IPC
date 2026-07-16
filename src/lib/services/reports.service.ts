@@ -5,6 +5,7 @@
 
 import { getDb, isSqlite } from '../db';
 import { toDateSafe, toQueryDate } from '../db/date-utils';
+import { daysUntilExpiry } from '../utils/lot-expiry';
 import { eq, and, sql, desc, asc, gte, lte, or } from 'drizzle-orm';
 import {
   sqliteItems,
@@ -148,9 +149,16 @@ export async function getInventoryValuationReport(): Promise<{
  * Expiry Report
  */
 export async function getExpiryReport(daysThreshold: number = 90): Promise<{
-  expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number }>;
-  nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number }>;
-  summary: { expiredCount: number; expiredValue: number; nearExpiryCount: number; nearExpiryValue: number };
+  expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }>;
+  nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }>;
+  summary: {
+    expiredCount: number;
+    expiredValue: number;
+    nearExpiryCount: number;
+    nearExpiryValue: number;
+    lotsMissingCost: number;
+    expiredStillReleased: number;
+  };
 }> {
   const { items, lots } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,6 +177,7 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
       quantity: lots.quantity,
       expiryDate: lots.expiryDate,
       status: lots.status,
+      cost: lots.cost,
       itemCode: items.code,
       itemName: items.nameEn,
     })
@@ -183,18 +192,31 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
     )
     .orderBy(asc(lots.expiryDate));
 
-  const expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number }> = [];
-  const nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number }> = [];
+  const expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }> = [];
+  const nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }> = [];
   let expiredValue = 0;
   let nearExpiryValue = 0;
-  const unitCost = 100;
+  let lotsMissingCost = 0;
 
   for (const lot of lotsData) {
     if (!lot.expiryDate) continue;
 
-    const expiryDate = toDateSafe(lot.expiryDate);
-    const diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    // Whole days, matching isLotExpired — otherwise this report and the rule
+    // that blocks the issue would disagree about a lot on its expiry date.
+    const diffDays = daysUntilExpiry(lot.expiryDate);
+    if (diffDays === null) continue;
     const qty = Number(lot.quantity) || 0;
+
+    // The lot's own cost. This used to be a flat 100 for every lot, which made
+    // the headline value fiction: on UAT it reported ฿282,000 of expired stock
+    // against ฿136,070 of actual cost — a 2x overstatement that QA would have
+    // been writing off against. A lot with no cost recorded contributes 0 and
+    // is counted in lotsMissingCost, so an unpriced lot shows up as a gap to
+    // fix rather than silently inflating or deflating the total.
+    const lotCost = Number(lot.cost);
+    const hasCost = Number.isFinite(lotCost) && lotCost > 0;
+    if (!hasCost) lotsMissingCost++;
+    const lotValue = hasCost ? qty * lotCost : 0;
 
     if (diffDays < 0) {
       expired.push({
@@ -204,8 +226,10 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
         quantity: qty,
         expiryDate: lot.expiryDate,
         daysExpired: Math.abs(diffDays),
+        status: lot.status,
+        value: lotValue,
       });
-      expiredValue += qty * unitCost;
+      expiredValue += lotValue;
     } else if (diffDays <= daysThreshold) {
       nearExpiry.push({
         lotNumber: lot.lotNumber,
@@ -214,8 +238,10 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
         quantity: qty,
         expiryDate: lot.expiryDate,
         daysToExpiry: diffDays,
+        status: lot.status,
+        value: lotValue,
       });
-      nearExpiryValue += qty * unitCost;
+      nearExpiryValue += lotValue;
     }
   }
 
@@ -227,6 +253,13 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
       expiredValue,
       nearExpiryCount: nearExpiry.length,
       nearExpiryValue,
+      // How many lots contributed 0 because no cost was recorded. Without this
+      // the totals look authoritative when part of the stock was never priced.
+      lotsMissingCost,
+      // Expired stock still marked 'released' is the dangerous subset: the
+      // issue is blocked, but the lot still sits in the warehouse looking
+      // usable and someone will keep trying to pick it. UAT has 4.
+      expiredStillReleased: expired.filter((l) => l.status === 'released').length,
     },
   };
 }
