@@ -729,11 +729,27 @@ export async function getExecutiveMetrics(
   const prevDpo = prevCogs > 0 ? (prevApBalance / prevCogs) * prevDaysInPeriod : 0;
 
   // 8. Inventory Turnover = (COGS / Avg Inventory) x annualization factor
+  //
+  // Avg inventory is (opening + closing) / 2. For the current period the
+  // opening balance is the previous period's close — which we already hold.
+  // The previous period's own opening is the balance the day before it began;
+  // fetching it lets the trend compare like with like. Using a bare closing
+  // balance for the prior period, as this once did, computed the two turnovers
+  // by different formulas and made every inventory-turnover %change a partial
+  // artefact of the mismatch rather than a real movement.
   const avgInventory = (inventoryBalance + prevInventoryBalance) / 2;
   const annualizationFactor = 365 / daysInPeriod;
   const inventoryTurnover = avgInventory > 0 ? (cogs / avgInventory) * annualizationFactor : 0;
-  const prevAvgInventory = prevInventoryBalance; // Simplified for previous period
-  const prevInventoryTurnover = prevAvgInventory > 0 ? (prevCogs / prevAvgInventory) * annualizationFactor : 0;
+
+  const prevOpeningDate = new Date(prevStartDate);
+  prevOpeningDate.setDate(prevOpeningDate.getDate() - 1);
+  const prevOpeningInventory = await getInventoryBalance(
+    prevOpeningDate.toISOString().split('T')[0],
+  );
+  const prevAvgInventory = (prevInventoryBalance + prevOpeningInventory) / 2;
+  const prevAnnualizationFactor = 365 / prevDaysInPeriod;
+  const prevInventoryTurnover =
+    prevAvgInventory > 0 ? (prevCogs / prevAvgInventory) * prevAnnualizationFactor : 0;
 
   // Generate sparkline data
   const [
