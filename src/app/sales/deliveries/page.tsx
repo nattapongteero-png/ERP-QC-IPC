@@ -21,6 +21,10 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { formatNumber } from '@/lib/utils/number-format';
 import { Truck, FileText, ShoppingBag, AlertTriangle, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import {
+  DeliveryNotePrintDocument,
+  type DeliveryNotePrintData,
+} from '@/components/sales/DeliveryNotePrintDocument';
 
 interface DeliveryRow extends Record<string, unknown> {
   id: number;
@@ -70,6 +74,8 @@ export default function DeliveriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  /** The note currently staged for printing (hidden until window.print runs). */
+  const [printNote, setPrintNote] = useState<DeliveryNotePrintData | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -90,6 +96,29 @@ export default function DeliveriesPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  /**
+   * Fetch the whole note (all its lots) and print it.
+   *
+   * The grid row is one LINE; a note can cover several lots, so printing from
+   * the row alone would hand the customer paperwork that omits half the goods.
+   */
+  const handlePrint = useCallback(async (deliveryNumber: string) => {
+    try {
+      const res = await fetch(`/api/sales/deliveries/${encodeURIComponent(deliveryNumber)}`);
+      const json = await res.json();
+      if (!json.success) return;
+
+      setPrintNote(json.data);
+      // Let React paint the hidden document before handing off to the browser.
+      requestAnimationFrame(() => {
+        window.print();
+        setPrintNote(null);
+      });
+    } catch (e) {
+      console.error('Failed to load delivery note for printing:', e);
+    }
+  }, []);
 
   const handleExport = () => {
     if (!data) return;
@@ -179,6 +208,25 @@ export default function DeliveriesPage() {
           </Badge>
         );
       },
+    },
+    {
+      dataField: 'actions',
+      caption: '',
+      width: 100,
+      cellRender: (c) => (
+        <DxButton
+          icon="print"
+          text="พิมพ์"
+          stylingMode="text"
+          // stopPropagation: the row click opens the sales order, and printing
+          // must not drag the user off the register.
+          onClick={(e: { event?: { stopPropagation: () => void } }) => {
+            e.event?.stopPropagation();
+            handlePrint(String(c.data.deliveryNumber));
+          }}
+          elementAttr={{ 'data-testid': `btn-print-${c.data.deliveryNumber}` }}
+        />
+      ),
     },
   ];
 
@@ -303,6 +351,9 @@ export default function DeliveriesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hidden on screen; the global @media print rules reveal .print-only. */}
+      {printNote && <DeliveryNotePrintDocument note={printNote} />}
     </MainLayout>
   );
 }
