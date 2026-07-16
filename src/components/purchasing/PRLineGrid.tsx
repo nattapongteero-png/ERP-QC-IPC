@@ -127,6 +127,59 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
     return (rowData.quantity || 0) * (rowData.estimatedUnitPrice || 0);
   }, []);
 
+  /**
+   * Enter moves to the next cell along the row (รายละเอียด → จำนวน → หน่วยนับ
+   * → ...), so an operator keying in a PR never has to reach for Tab or the
+   * mouse. Shift+Enter steps back.
+   *
+   * Why not the built-in keyboardNavigation.enterKeyDirection="row"? It is the
+   * documented way and it does not work in cell-edit mode here: on Enter the
+   * grid first closes the editor, which detaches the <input> that the
+   * follow-up focus move reads as its starting point — so focus lands nowhere
+   * and the next keystrokes are dropped on the floor. Tab does the same
+   * traversal without that teardown and works, so Enter drives the move itself
+   * via editCell() on the next editable column.
+   */
+  const handleGridKeyDown = useCallback((e: any) => {
+    const ev = e.event as KeyboardEvent | undefined;
+    if (!ev || ev.key !== 'Enter') return;
+
+    const grid = e.component;
+
+    // Read the position from the DOM cell the keystroke actually came from.
+    // grid.option('focusedColumnIndex') goes stale straight after a
+    // programmatic editCell(), which made every Enter after the first one
+    // navigate from the wrong column and lose focus.
+    const td = (ev.target as HTMLElement)?.closest?.('td');
+    const tr = td?.parentElement;
+    if (!td || !tr) return;
+    const colIndex = Array.prototype.indexOf.call(tr.children, td);
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const visible = grid.getVisibleColumns();
+    const editable = visible.filter((c: any) => c.allowEditing !== false && c.dataField);
+    const currentField = visible[colIndex]?.dataField;
+    const pos = editable.findIndex((c: any) => c.dataField === currentField);
+    if (pos === -1) return;
+
+    const nextField = editable[ev.shiftKey ? pos - 1 : pos + 1]?.dataField;
+    if (!nextField) {
+      // End of the row: commit and stop, rather than wrapping onto another
+      // row's cell and silently editing a different line.
+      grid.closeEditCell();
+      return;
+    }
+    const nextIndex = visible.findIndex((c: any) => c.dataField === nextField);
+    // Row index comes from the DOM row, for the same staleness reason.
+    const domRowIndex = Array.prototype.indexOf.call(
+      tr.parentElement ? [...tr.parentElement.children].filter((n: any) => n.classList.contains('dx-data-row')) : [],
+      tr,
+    );
+    grid.editCell(domRowIndex < 0 ? 0 : domRowIndex, nextIndex);
+  }, []);
+
   // Add index as key for local state management
   const dataWithKeys = lines.map((line, index) => ({
     ...line,
@@ -188,6 +241,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         onRowInserted={handleRowInserted}
         onRowUpdated={handleRowUpdated}
         onRowRemoved={handleRowRemoved}
+        onKeyDown={handleGridKeyDown}
         data-testid="pr-lines-grid"
       >
         {/* Cell editing — each cell is directly editable on click (no need to
@@ -201,21 +255,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           startEditAction="click"
           selectTextOnEditStart={true}
         />
-        {/* Enter advances to the NEXT CELL along the row (สินค้า → จำนวน →
-            หน่วยนับ → ...), so a key-in operator never has to reach for Tab or
-            the mouse. Shift+Enter steps back.
-
-            Beware the naming: enterKeyDirection="row" means "move along the
-            row" (next cell); "column" would move DOWN the column instead —
-            it reads backwards, so don't "fix" this to "column".
-            enterKeyAction="moveFocus" is what stops Enter from merely toggling
-            edit state on the cell you are already in. */}
-        <KeyboardNavigation
-          enabled={true}
-          enterKeyAction="moveFocus"
-          enterKeyDirection="row"
-          editOnKeyPress={true}
-        />
+        <KeyboardNavigation enabled={true} editOnKeyPress={true} />
         <Paging defaultPageSize={10} />
 
         <Toolbar>
