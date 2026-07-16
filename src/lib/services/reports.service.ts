@@ -619,7 +619,10 @@ export async function getVendorPerformanceReport(): Promise<{
     vendorName: string;
     totalPOs: number;
     totalAmount: number;
-    onTimeRate: number;
+    /** Null when no dated deliveries exist to measure — not the same as 0%. */
+    onTimeRate: number | null;
+    /** How many POs had both an expected and a received date to compare. */
+    measuredDeliveries: number;
     qualityRate: number;
     overallScore: number;
   }>;
@@ -666,19 +669,58 @@ export async function getVendorPerformanceReport(): Promise<{
       if (lot.status === 'rejected') rejectedCount = Number(lot.count) || 0;
     }
 
-    const qualityRate = (releasedCount + rejectedCount) > 0 
-      ? (releasedCount / (releasedCount + rejectedCount)) * 100 
+    const qualityRate = (releasedCount + rejectedCount) > 0
+      ? (releasedCount / (releasedCount + rejectedCount)) * 100
       : 100;
 
-    const onTimeRate = 95; // Simplified - would need actual delivery tracking
-    const overallScore = (onTimeRate * 0.3 + qualityRate * 0.7);
+    // On-time rate, measured — not the flat 95 this used to report for every
+    // vendor. A PO is on time when the first lot received against it arrived on
+    // or before its expected date. Vendors with no receipt we can date against
+    // an expected date are left as null: "not measured" is not "95%", and
+    // scoring a vendor on invented punctuality is how a bad supplier keeps its
+    // contract. Only POs that carry both dates count toward the denominator.
+    const deliveryData = await database
+      .select({
+        poNumber: purchaseOrders.poNumber,
+        expectedDate: purchaseOrders.expectedDate,
+        receivedDate: sql<string>`MIN(${lots.receivedDate})`,
+      })
+      .from(purchaseOrders)
+      .innerJoin(lots, eq(lots.poNumber, purchaseOrders.poNumber))
+      .where(
+        and(
+          eq(purchaseOrders.vendorId, vendor.id),
+          sql`${purchaseOrders.expectedDate} IS NOT NULL`,
+          sql`${lots.receivedDate} IS NOT NULL`,
+        ),
+      )
+      .groupBy(purchaseOrders.poNumber, purchaseOrders.expectedDate);
+
+    let measuredPOs = 0;
+    let onTimePOs = 0;
+    for (const d of deliveryData) {
+      if (!d.expectedDate || !d.receivedDate) continue;
+      measuredPOs++;
+      // Whole-day comparison: a delivery on the expected date is on time,
+      // regardless of the clock time either row happens to carry.
+      const days = daysUntilExpiry(d.expectedDate, toDateSafe(d.receivedDate));
+      if (days !== null && days >= 0) onTimePOs++;
+    }
+
+    const onTimeRate = measuredPOs > 0 ? (onTimePOs / measuredPOs) * 100 : null;
+
+    // With no on-time signal, the overall score rests on quality alone rather
+    // than being propped up by a fabricated punctuality figure.
+    const overallScore =
+      onTimeRate === null ? qualityRate : onTimeRate * 0.3 + qualityRate * 0.7;
 
     result.push({
       vendorCode: vendor.code,
       vendorName: vendor.name,
       totalPOs: Number(poData[0]?.count) || 0,
       totalAmount: Number(poData[0]?.totalAmount) || 0,
-      onTimeRate: Math.round(onTimeRate * 10) / 10,
+      onTimeRate: onTimeRate === null ? null : Math.round(onTimeRate * 10) / 10,
+      measuredDeliveries: measuredPOs,
       qualityRate: Math.round(qualityRate * 10) / 10,
       overallScore: Math.round(overallScore * 10) / 10,
     });
