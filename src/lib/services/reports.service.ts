@@ -74,6 +74,8 @@ function getTables() {
  */
 export async function getInventoryValuationReport(): Promise<{
   totalValue: number;
+  /** Lots holding stock with no cost recorded — they contribute 0 to totalValue. */
+  lotsMissingCost: number;
   byCategory: Array<{ category: string; quantity: number; value: number }>;
   byStatus: Array<{ status: string; quantity: number; value: number }>;
   items: Array<{ itemCode: string; itemName: string; quantity: number; unit: string; unitCost: number; totalValue: number }>;
@@ -82,6 +84,12 @@ export async function getInventoryValuationReport(): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const database = (await getDb()) as any;
 
+  // Read lot by lot rather than pre-summing quantity per item.
+  //
+  // Each lot carries its own cost — the same item received twice at different
+  // prices is two different values — so summing quantity first would throw the
+  // cost away before it could be applied. The grouping happens below, in code,
+  // after each lot has been valued at its own cost.
   const inventoryData = await database
     .select({
       itemId: lots.itemId,
@@ -90,15 +98,17 @@ export async function getInventoryValuationReport(): Promise<{
       category: items.category,
       unit: items.primaryUnit,
       status: lots.status,
-      quantity: sql<number>`COALESCE(SUM(${lots.quantity}), 0)`,
+      quantity: lots.quantity,
+      cost: lots.cost,
     })
     .from(lots)
     .innerJoin(items, eq(lots.itemId, items.id))
-    .where(sql`${lots.quantity} > 0`)
-    .groupBy(lots.itemId, items.code, items.nameEn, items.category, items.primaryUnit, lots.status);
+    .where(sql`${lots.quantity} > 0`);
 
-  // Simplified - in real implementation, would use actual cost from transactions
-  const unitCost = 100; // Default unit cost
+  // Lots whose cost was never recorded. They contribute 0 rather than an
+  // invented price, and are counted so an unpriced lot reads as a gap to fix
+  // instead of quietly moving the headline.
+  let lotsMissingCost = 0;
 
   const byCategory = new Map<string, { quantity: number; value: number }>();
   const byStatus = new Map<string, { quantity: number; value: number }>();
@@ -107,7 +117,15 @@ export async function getInventoryValuationReport(): Promise<{
 
   for (const row of inventoryData) {
     const qty = Number(row.quantity) || 0;
-    const value = qty * unitCost;
+
+    // This lot's own cost. It used to be a flat 100 for every lot in the
+    // warehouse, which on UAT reported ฿81.1m of stock against ฿53.1m of
+    // recorded cost — ฿28m of pure fiction on a number the business reads as
+    // its inventory position.
+    const lotCost = Number(row.cost);
+    const hasCost = Number.isFinite(lotCost) && lotCost > 0;
+    if (!hasCost) lotsMissingCost++;
+    const value = hasCost ? qty * lotCost : 0;
     totalValue += value;
 
     // By category
@@ -134,12 +152,17 @@ export async function getInventoryValuationReport(): Promise<{
     totalValue,
     byCategory: Array.from(byCategory.entries()).map(([category, data]) => ({ category, ...data })),
     byStatus: Array.from(byStatus.entries()).map(([status, data]) => ({ status, ...data })),
+    lotsMissingCost,
     items: Array.from(itemSummary.values()).map((item: any) => ({
       itemCode: item.code,
       itemName: item.name,
       quantity: item.quantity,
       unit: item.unit,
-      unitCost,
+      // Weighted average across that item's lots — the item has no single unit
+      // cost once it has been received at more than one price. Derived from the
+      // value actually summed, so the column can never disagree with the total
+      // beside it. Zero quantity yields 0 rather than a division by zero.
+      unitCost: item.quantity > 0 ? item.value / item.quantity : 0,
       totalValue: item.value,
     })),
   };
