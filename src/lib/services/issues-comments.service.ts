@@ -4,7 +4,7 @@
 
 import { eq, and, asc, count, inArray } from 'drizzle-orm';
 import { getNow } from '../db/date-utils';
-import { getTableRef, getInsertId, executeDbOperation, isSqlite } from '../db/db-helper';
+import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import type {
   IssueComment,
   IssueCommentCreate,
@@ -49,14 +49,15 @@ function parseJsonField<T>(value: unknown, defaultValue: T): T {
 }
 
 /**
- * Stringify JSON for database storage
- * SQLite needs string, MySQL can handle objects
+ * Stringify JSON for database storage.
+ *
+ * These columns are TEXT in both dialects (see schema-issues.ts), not a MySQL
+ * `json` column — so the object must be stringified for MySQL too. Passing the
+ * raw object let the driver coerce it to "[object Object]" and the insert failed
+ * on MySQL (UAT/production) while SQLite tests still passed.
  */
-function toJsonField<T>(value: T): T | string {
-  if (isSqlite()) {
-    return JSON.stringify(value);
-  }
-  return value;
+function toJsonField<T>(value: T): string {
+  return JSON.stringify(value);
 }
 
 /**
