@@ -5192,6 +5192,11 @@ export interface ARInvoiceFromShipmentInput {
   vatAmount: number;
   netAmount: number;
   lotId?: number;
+  // Freight charged to the customer for the WHOLE order (list item 16b). Added
+  // to the invoice as a Service-Revenue (4120) line, but ONLY on the first AR
+  // invoice raised for this sales order — a multi-line shipment must not bill
+  // the freight once per line.
+  shippingCost?: number;
 }
 
 /**
@@ -5233,6 +5238,40 @@ export async function createARInvoiceFromSOShipment(
     throw new Error('ไม่พบบัญชีรายได้จากการขาย (4110)');
   }
 
+  // Freight (list item 16b): bill the order's shipping cost once, on the first
+  // AR invoice raised for this SO. Later shipment lines for the same order skip
+  // it so freight is never charged twice. Booked to Service Revenue (4120).
+  let freightLine:
+    | { description: string; glAccountId: number; quantity: number; unitPrice: number }
+    | null = null;
+  const shippingCost = Number(input.shippingCost) || 0;
+  if (shippingCost > 0 && input.soId) {
+    const priorInvoices = await database
+      .select({ id: arInvoices.id })
+      .from(arInvoices)
+      .where(eq(arInvoices.salesOrderId, input.soId))
+      .limit(1);
+
+    if (priorInvoices.length === 0) {
+      const [freightAccount] = await database
+        .select({ id: glAccounts.id })
+        .from(glAccounts)
+        .where(eq(glAccounts.code, '4120'))
+        .limit(1);
+
+      if (!freightAccount) {
+        throw new Error('ไม่พบบัญชีรายได้จากการให้บริการ/ค่าขนส่ง (4120)');
+      }
+
+      freightLine = {
+        description: `ค่าขนส่ง (SO ${input.soNumber})`,
+        glAccountId: freightAccount.id,
+        quantity: 1,
+        unitPrice: shippingCost,
+      };
+    }
+  }
+
   // Generate AR invoice number, tax invoice number and create invoice with retry to prevent duplicate numbers
   const MAX_AR_RETRIES = 3;
   let arInvoice: any;
@@ -5258,6 +5297,8 @@ export async function createARInvoiceFromSOShipment(
               unitPrice: input.unitPrice,
               lotId: input.lotId,
             },
+            // Freight income line — present only on the first invoice for the SO.
+            ...(freightLine ? [freightLine] : []),
           ],
         },
         createdBy

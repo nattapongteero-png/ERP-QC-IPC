@@ -9,6 +9,8 @@
 import * as React from 'react';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxDateBox } from '@/components/ui/dx-date-box';
+import { DxTextArea } from '@/components/ui/dx-text-area';
+import { DxPopup } from '@/components/ui/dx-popup';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
@@ -65,17 +67,21 @@ export interface VmiOrderDetail {
   createdAt: string;
   updatedAt: string;
   lines: VmiOrderLine[];
+  rejectionReason?: string | null;
+  rejectedAt?: string | null;
 }
 
 export interface VmiOrderDetailProps {
   order: VmiOrderDetail;
   onConfirm: () => Promise<void>;
   onShip: (expectedDeliveryDate: string) => Promise<void>;
+  onReject: (reason: string) => Promise<void>;
   onCheckReceipt: () => Promise<void>;
   onBack: () => void;
   onViewLocalPo?: (poId: number) => void;
   isConfirming?: boolean;
   isShipping?: boolean;
+  isRejecting?: boolean;
   isCheckingReceipt?: boolean;
   className?: string;
 }
@@ -185,11 +191,13 @@ export function VmiOrderDetail({
   order,
   onConfirm,
   onShip,
+  onReject,
   onCheckReceipt,
   onBack,
   onViewLocalPo,
   isConfirming = false,
   isShipping = false,
+  isRejecting = false,
   isCheckingReceipt = false,
   className,
 }: VmiOrderDetailProps) {
@@ -198,6 +206,8 @@ export function VmiOrderDetail({
       ? order.expectedDeliveryDate
       : toLocalDateStr(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
   );
+  const [showRejectDialog, setShowRejectDialog] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState('');
 
   const statusInfo = statusConfig[order.status];
   const StatusIcon = statusInfo.icon;
@@ -232,6 +242,14 @@ export function VmiOrderDetail({
   const handleShip = async () => {
     if (!shipDate) return;
     await onShip(shipDate);
+  };
+
+  const handleReject = async () => {
+    const reason = rejectReason.trim();
+    if (!reason) return;
+    await onReject(reason);
+    setShowRejectDialog(false);
+    setRejectReason('');
   };
 
   const lineColumns: DxDataGridColumn[] = [
@@ -307,13 +325,23 @@ export function VmiOrderDetail({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {order.status === 'submitted' && (
-            <DxButton
-              text={isConfirming ? 'กำลังยืนยัน...' : 'ยืนยันคำสั่งซื้อ'}
-              icon="check"
-              type="success"
-              onClick={onConfirm}
-              disabled={isConfirming}
-            />
+            <>
+              <DxButton
+                text={isConfirming ? 'กำลังยืนยัน...' : 'ยืนยันคำสั่งซื้อ'}
+                icon="check"
+                type="success"
+                onClick={onConfirm}
+                disabled={isConfirming}
+              />
+              <DxButton
+                text={isRejecting ? 'กำลังปฏิเสธ...' : 'ปฏิเสธคำสั่งซื้อ'}
+                icon="close"
+                type="danger"
+                elementAttr={{ 'data-testid': 'vmi-reject-btn' }}
+                onClick={() => setShowRejectDialog(true)}
+                disabled={isRejecting}
+              />
+            </>
           )}
 
           {order.status === 'confirmed' && (
@@ -373,6 +401,26 @@ export function VmiOrderDetail({
               columnAutoWidth
             />
           </SectionCard>
+
+          {/* Rejection reason (list item 11) */}
+          {order.status === 'cancelled' && order.rejectionReason && (
+            <div
+              className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3"
+              data-testid="vmi-rejection-reason"
+            >
+              <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-red-800">
+                  เหตุผลที่ปฏิเสธ: {order.rejectionReason}
+                </div>
+                {order.rejectedAt && (
+                  <div className="text-xs text-red-600 mt-1">
+                    ปฏิเสธเมื่อ {formatDateTime(order.rejectedAt)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           {order.notes && (
@@ -497,6 +545,46 @@ export function VmiOrderDetail({
           </SectionCard>
         </div>
       </div>
+
+      {/* Reject Reason Dialog (list item 11) */}
+      <DxPopup
+        visible={showRejectDialog}
+        onHiding={() => setShowRejectDialog(false)}
+        title="ปฏิเสธคำสั่งซื้อ"
+        width={440}
+        height="auto"
+        deferRendering={false}
+      >
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-gray-600">
+            กรุณาระบุเหตุผลในการปฏิเสธคำสั่งซื้อนี้ ระบบจะแจ้งเหตุผลกลับไปยังพอร์ทัล
+          </p>
+          <DxTextArea
+            value={rejectReason}
+            onValueChange={setRejectReason}
+            label="เหตุผลที่ปฏิเสธ"
+            placeholder="เช่น ไม่สามารถผลิตได้ทันกำหนด, สินค้าหมดสต็อก"
+            height={110}
+            inputAttr={{ 'data-testid': 'vmi-reject-reason' }}
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <DxButton
+              text="ยกเลิก"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowRejectDialog(false)}
+              disabled={isRejecting}
+            />
+            <DxButton
+              text={isRejecting ? 'กำลังปฏิเสธ...' : 'ยืนยันการปฏิเสธ'}
+              type="danger"
+              elementAttr={{ 'data-testid': 'vmi-reject-confirm' }}
+              onClick={handleReject}
+              disabled={isRejecting || !rejectReason.trim()}
+            />
+          </div>
+        </div>
+      </DxPopup>
     </div>
   );
 }

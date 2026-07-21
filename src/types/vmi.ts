@@ -545,6 +545,8 @@ export interface VmiSalesOrder {
   confirmedAt?: Date | null;
   shippedAt?: Date | null;
   deliveredAt?: Date | null;
+  rejectedAt?: Date | null;
+  rejectionReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

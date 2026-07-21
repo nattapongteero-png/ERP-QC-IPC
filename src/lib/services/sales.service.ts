@@ -644,6 +644,8 @@ export async function fulfillSalesOrderLine(
             vatAmount,
             netAmount,
             lotId: input.lotId,
+            // Order-level freight, billed once on the first invoice for this SO.
+            shippingCost: Number(so.shippingCost) || 0,
           },
           userId
         );
@@ -839,6 +841,8 @@ export async function retryAccountingForDelivery(
         vatAmount: vatCalc.vatAmount,
         netAmount: vatCalc.baseAmount,
         lotId: delivery.lotId,
+        // Order-level freight, billed once on the first invoice for this SO.
+        shippingCost: Number(so.shippingCost) || 0,
       },
       userId,
     );

@@ -19,6 +19,7 @@ import {
   VmiReceiptCompletedPayload,
 } from '@/lib/validation/vmi-webhook';
 import { VmiWebhookService } from './vmi-webhook.service';
+import { ensureVmiCustomerWithDb } from './vmi-customer-sync.service';
 
 export class VmiWebhookEventError extends Error {
   constructor(
@@ -91,10 +92,18 @@ export async function processOrderCreated(
       };
     }
 
+    // Sheet item 10: make sure this VMI hospital exists in the customer register.
+    const customerId = await ensureVmiCustomerWithDb(db, {
+      hospitalCode: payload.hospitalCode,
+      hospitalName: payload.hospitalName,
+      vmiPortalId: context.portalId,
+    });
+
     // Create the order with full order data JSON
     const orderResult = await db.insert(tables.orders).values({
       portalId: context.portalId,
       vmiOrderId: String(payload.orderId),
+      customerId,
       vmiCustomerId: payload.hospitalCode,
       vmiCustomerName: payload.hospitalName,
       vmiStatus: 'submitted',

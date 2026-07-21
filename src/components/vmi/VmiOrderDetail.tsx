@@ -75,6 +75,8 @@ interface VmiOrderDetail {
   shippedByName?: string;
   trackingNumber?: string;
   carrier?: string;
+  rejectionReason?: string | null;
+  rejectedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   lines?: VmiOrderLine[];
@@ -139,6 +141,8 @@ async function fetchOrderDetail(orderId: number): Promise<VmiOrderDetail> {
     confirmedAt: data.confirmedAt,
     salesOrderId: data.salesOrderId,
     shippedAt: data.shippedAt,
+    rejectionReason: data.rejectionReason ?? null,
+    rejectedAt: data.rejectedAt ?? null,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
     lines,
@@ -190,6 +194,19 @@ async function shipOrder(
   }
 }
 
+// Reject a pending order with a required reason (list item 11).
+async function rejectOrder(orderId: number, reason: string): Promise<void> {
+  const response = await fetch(`/api/sales/vmi-orders/${orderId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to reject order');
+  }
+}
+
 // ============================================
 // Component
 // ============================================
@@ -200,6 +217,8 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   const [showShipDialog, setShowShipDialog] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Real session user — a VMI match/confirm/ship writes an audit trail, so it
   // must name the operator who actually acted. Actions stay disabled until the
@@ -245,6 +264,16 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       refetch();
       queryClient.invalidateQueries({ queryKey: ['vmi-orders'] });
       onShip?.();
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => rejectOrder(orderId, rejectReason.trim()),
+    onSuccess: () => {
+      setShowRejectDialog(false);
+      setRejectReason('');
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['vmi-orders'] });
     },
   });
 
@@ -493,7 +522,27 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 <Truck className="h-4 w-4 mr-2" />
               </DxButton>
             )}
+            {/* A pending order can be rejected outright (list item 11) — the
+                factory declines a rush order it cannot fulfil. Allowed even with
+                unmatched lines, since rejection ends the order. */}
+            {order.status === 'pending' && (
+              <DxButton
+                text={rejectMutation.isPending ? 'กำลังปฏิเสธ...' : 'ปฏิเสธคำสั่งซื้อ'}
+                type="danger"
+                icon="close"
+                onClick={() => setShowRejectDialog(true)}
+                disabled={rejectMutation.isPending || !userId}
+                elementAttr={{ 'data-testid': 'vmi-reject-btn' }}
+              />
+            )}
           </div>
+
+          {/* Rejection reason, once rejected */}
+          {order.status === 'cancelled' && order.rejectionReason && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" data-testid="vmi-rejection-reason">
+              <strong>เหตุผลที่ปฏิเสธ:</strong> {order.rejectionReason}
+            </div>
+          )}
 
           {/* Warnings */}
           {order.status === 'pending' && order.unmatchedItems > 0 && (
@@ -580,6 +629,49 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               type="success"
               onClick={() => shipMutation.mutate()}
               disabled={shipMutation.isPending || !userId}
+            />
+          </div>
+        </div>
+      </DxPopup>
+
+      {/* Reject Dialog (list item 11) — reason is required. */}
+      <DxPopup
+        visible={showRejectDialog}
+        onHiding={() => setShowRejectDialog(false)}
+        title="ปฏิเสธคำสั่งซื้อ"
+        width={400}
+      >
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              เหตุผลในการปฏิเสธ <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              rows={3}
+              placeholder="เช่น สั่งกระทันหันเกินกำลังผลิต / สินค้าไม่พอ"
+              data-testid="vmi-reject-reason"
+            />
+          </div>
+          {rejectMutation.isError && (
+            <p className="text-sm text-red-600">
+              {(rejectMutation.error as Error)?.message || 'ปฏิเสธคำสั่งซื้อไม่สำเร็จ'}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <DxButton
+              text="ยกเลิก"
+              type="normal"
+              onClick={() => setShowRejectDialog(false)}
+            />
+            <DxButton
+              text={rejectMutation.isPending ? 'กำลังปฏิเสธ...' : 'ยืนยันการปฏิเสธ'}
+              type="danger"
+              onClick={() => rejectMutation.mutate()}
+              disabled={rejectMutation.isPending || !userId || !rejectReason.trim()}
+              elementAttr={{ 'data-testid': 'vmi-reject-confirm' }}
             />
           </div>
         </div>

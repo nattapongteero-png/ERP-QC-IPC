@@ -38,6 +38,7 @@ export const ACCT_TEST_IDS = {
   SHARE_CAPITAL: 301,
   RETAINED_EARNINGS: 302,
   SALES_REVENUE: 401,
+  SERVICE_REVENUE: 402,
   COGS: 501,
   SALARY_EXPENSE: 601,
 
@@ -137,6 +138,7 @@ export function seedGLAccounts(sqlite: Database.Database): void {
 
       -- Revenue
       (${ACCT_TEST_IDS.SALES_REVENUE}, '4110', 'รายได้จากการขาย', 'Sales Revenue', ${ACCT_TEST_IDS.REVENUE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${ACCT_TEST_IDS.SERVICE_REVENUE}, '4120', 'รายได้จากการให้บริการ', 'Service Revenue', ${ACCT_TEST_IDS.REVENUE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
       -- Expenses
       (${ACCT_TEST_IDS.COGS}, '5110', 'ต้นทุนขาย', 'Cost of Goods Sold', ${ACCT_TEST_IDS.EXPENSE_TYPE}, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

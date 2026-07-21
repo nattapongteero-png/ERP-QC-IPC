@@ -327,6 +327,20 @@ export class VmiPortalService {
   }
 
   /**
+   * Reject an order (list item 11). The factory declines a submitted order it
+   * cannot fulfil — e.g. an unrealistic rush request — and the portal is told
+   * why so the hospital sees the reason rather than a silent non-response.
+   */
+  async rejectOrder(orderId: number, reason: string): Promise<VmiOrderActionResult> {
+    return this.request<VmiOrderActionResult>(
+      'PATCH',
+      `/orders/${orderId}`,
+      { action: 'reject', reason },
+      'order_confirm'
+    );
+  }
+
+  /**
    * Get receipt status for an order
    */
   async getReceiptStatus(orderId: number): Promise<VmiReceiptStatus> {

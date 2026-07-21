@@ -104,14 +104,20 @@ export async function PATCH(
       }
 
       const body = await request.json();
-      const { action, expectedDeliveryDate } = body;
+      const { action, expectedDeliveryDate, reason } = body;
 
-      if (!action || !['confirm', 'ship'].includes(action)) {
-        return errorResponse('Invalid action. Must be "confirm" or "ship"');
+      if (!action || !['confirm', 'ship', 'reject'].includes(action)) {
+        return errorResponse('Invalid action. Must be "confirm", "ship" or "reject"');
       }
 
       if (action === 'ship' && !expectedDeliveryDate) {
         return errorResponse('Expected delivery date is required for shipping');
+      }
+
+      // A rejection must state why — the reason is shown back to the hospital
+      // (list item 11: reject a rush order the factory cannot fulfil).
+      if (action === 'reject' && (!reason || !String(reason).trim())) {
+        return errorResponse('ต้องระบุเหตุผลในการปฏิเสธคำสั่งซื้อ');
       }
 
       const vmiOrders = getTableRef('vMIOrders');
@@ -144,6 +150,12 @@ export async function PATCH(
 
       if (action === 'ship' && order.status !== 'confirmed') {
         return errorResponse(`Cannot ship order with status "${order.status}". Order must be in "confirmed" status.`);
+      }
+
+      // Only a still-submitted order can be rejected — once confirmed a PO exists
+      // and shipping may be under way, so declining is no longer valid.
+      if (action === 'reject' && order.status !== 'submitted') {
+        return errorResponse(`ปฏิเสธคำสั่งซื้อไม่ได้: สถานะปัจจุบันคือ "${order.status}" (ต้องเป็น "submitted")`);
       }
 
       // Get vendor config
@@ -284,6 +296,25 @@ export async function PATCH(
                 status: newStatus,
                 expectedDeliveryDate: expectedDeliveryDate,
                 shippedAt: dbDate(),
+                updatedAt: dbDate(),
+              })
+              .where(eq(vmiOrders.id, orderId));
+          });
+        } else if (action === 'reject') {
+          // Tell the portal the factory declined this order (with the reason),
+          // then record the rejection locally (list item 11). Status uses the
+          // existing 'cancelled' value so downstream filters that already hide
+          // cancelled orders hide rejected ones too.
+          await service.rejectOrder(order.vmiOrderId, String(reason).trim());
+          newStatus = 'cancelled';
+
+          await executeDbOperation(async (db) => {
+            return db
+              .update(vmiOrders)
+              .set({
+                status: newStatus,
+                rejectedAt: dbDate(),
+                rejectionReason: String(reason).trim(),
                 updatedAt: dbDate(),
               })
               .where(eq(vmiOrders.id, orderId));

@@ -11,6 +11,7 @@ import { eq, and, desc, inArray, or, gte, lte } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import { getNow, toDbDate, toQueryDate } from '@/lib/db/date-utils';
 import { createSalesOrderFromVmi } from './sales.service';
+import { ensureVmiCustomerWithDb } from './vmi-customer-sync.service';
 import {
   sqliteItems,
   mysqlItems,
@@ -358,6 +359,10 @@ export class VmiSalesOrderService {
       deliveredAt: orderRecord.order.deliveredAt
         ? new Date(orderRecord.order.deliveredAt as string)
         : null,
+      rejectedAt: orderRecord.order.rejectedAt
+        ? new Date(orderRecord.order.rejectedAt as string)
+        : null,
+      rejectionReason: orderRecord.order.rejectionReason ?? null,
       customer,
       lines: orderLines,
       orderDataJson: orderRecord.order.orderDataJson,
@@ -521,10 +526,18 @@ export class VmiSalesOrderService {
 
     const now = getNow();
 
+    // Sheet item 10: make sure this VMI hospital exists in the customer register.
+    const customerId = await ensureVmiCustomerWithDb(db, {
+      hospitalCode: orderDetail.hospitalCode,
+      hospitalName: orderDetail.hospitalName,
+      vmiPortalId: portalId,
+    });
+
     // Create order (map API fields to DB fields)
     const orderValues = {
       portalId,
       vmiOrderId: String(orderDetail.id),
+      customerId,
       vmiStatus: 'submitted',
       localStatus: 'pending',
       vmiCustomerId: orderDetail.hospitalCode,
@@ -603,7 +616,7 @@ export class VmiSalesOrderService {
       vmiOrderId: String(orderDetail.id),
       vmiStatus: 'submitted',
       localStatus: 'pending',
-      customerId: null,
+      customerId,
       vmiCustomerId: orderDetail.hospitalCode,
       vmiCustomerName: orderDetail.hospitalName,
       orderDate: new Date(orderDetail.orderDate),
@@ -992,6 +1005,85 @@ export class VmiSalesOrderService {
     return {
       vmiOrder: updatedOrder!,
       message: 'Order marked as shipped and synced to VMI Portal',
+    };
+  }
+
+  /**
+   * Reject a pending VMI order (list item 11). The factory declines a rush order
+   * it cannot fulfil; the reason is stored and pushed back to the portal so the
+   * hospital sees why. Only a still-pending order can be rejected — once
+   * confirmed a sales order exists and shipping may be under way.
+   */
+  async rejectOrder(
+    orderId: number,
+    reason: string,
+    userId: number,
+  ): Promise<{ vmiOrder: VmiSalesOrderDetail; message: string }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
+    const { orders, portals } = this.getTables();
+
+    const trimmed = (reason || '').trim();
+    if (!trimmed) {
+      throw new VmiSalesOrderError('INVALID_REASON', 'ต้องระบุเหตุผลในการปฏิเสธคำสั่งซื้อ', 400);
+    }
+
+    const order = await this.getOrderById(orderId);
+    if (!order) {
+      throw new VmiSalesOrderError('ORDER_NOT_FOUND', 'Order not found', 404);
+    }
+
+    if (order.localStatus !== 'pending') {
+      throw new VmiSalesOrderError(
+        'INVALID_STATUS',
+        `ปฏิเสธคำสั่งซื้อไม่ได้: สถานะปัจจุบันคือ "${order.localStatus}" (ต้องเป็น "pending")`,
+        400,
+      );
+    }
+
+    const now = getNow();
+
+    await db
+      .update(orders)
+      .set({
+        vmiStatus: 'cancelled',
+        localStatus: 'cancelled',
+        rejectedAt: now,
+        rejectionReason: trimmed,
+        updatedAt: now,
+      } as Record<string, unknown>)
+      .where(eq(orders.id, orderId));
+
+    await createAuditLog({
+      userId,
+      action: 'REJECT',
+      tableName: 'vmi_sales_orders',
+      recordId: orderId,
+      oldValue: { localStatus: order.localStatus, vmiStatus: order.vmiStatus },
+      newValue: { localStatus: 'cancelled', vmiStatus: 'cancelled', rejectionReason: trimmed },
+    });
+
+    // Tell the portal (best-effort — a portal outage must not block the local
+    // rejection, same as confirm/ship).
+    const [portal] = await db.select().from(portals).where(eq(portals.id, order.portalId));
+    if (portal) {
+      try {
+        const apiKey = decrypt(portal.apiKeyEncrypted);
+        await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+          body: JSON.stringify({ action: 'reject', reason: trimmed }),
+          signal: AbortSignal.timeout(10000),
+        });
+      } catch (error) {
+        console.error('[VMI Sales Order] Failed to notify portal of rejection:', error);
+      }
+    }
+
+    const updatedOrder = await this.getOrderById(orderId);
+    return {
+      vmiOrder: updatedOrder!,
+      message: 'ปฏิเสธคำสั่งซื้อและแจ้ง VMI Portal แล้ว',
     };
   }
 

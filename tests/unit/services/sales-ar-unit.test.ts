@@ -73,6 +73,7 @@ import {
   confirmARInvoice,
   recordARPayment,
   deleteARInvoice,
+  createARInvoiceFromSOShipment,
 } from '@/lib/services/accounting.service';
 
 import {
@@ -250,6 +251,53 @@ describe('Sales + AR Unit Tests', () => {
 
     it('should throw for non-existent', async () => {
       await expect(getARInvoiceById(99999)).rejects.toThrow('not found');
+    });
+
+    // Freight (list item 16b): the SO's shipping cost is billed exactly once, on
+    // the FIRST invoice raised for that order, as a Service-Revenue (4120) line.
+    it('bills the order freight once on the first shipment invoice, not on later ones', async () => {
+      // A sales order carrying 500 THB of freight.
+      testSqlite.exec(`
+        INSERT INTO sales_orders (id, so_number, customer_name, status, total_amount, currency, shipping_cost, created_at, updated_at)
+        VALUES (9001, 'SO-FREIGHT-1', 'ลูกค้าค่าขนส่ง', 'confirmed', 10000, 'THB', 500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+
+      const shipmentInput = (n: number) => ({
+        soId: 9001,
+        soNumber: 'SO-FREIGHT-1',
+        customerId: ACCT_TEST_IDS.CUSTOMER_1,
+        customerName: 'ลูกค้าค่าขนส่ง',
+        shipmentDate: '2026-02-01',
+        dueDate: '2026-03-03',
+        deliveryId: n,
+        deliveryNumber: `DL-${n}`,
+        itemId: 1,
+        itemCode: 'FG-001',
+        itemName: 'สินค้า',
+        quantity: 1,
+        unitPrice: 1000,
+        totalAmount: 1070,
+        vatAmount: 70,
+        netAmount: 1000,
+        shippingCost: 500,
+      });
+
+      // First shipment → invoice should carry a freight line (2 lines total).
+      const first = await createARInvoiceFromSOShipment(shipmentInput(1), 1);
+      const firstInv = await getARInvoiceById(first.arInvoiceId);
+      const firstFreight = firstInv.lines!.filter((l: any) =>
+        String(l.description || '').includes('ค่าขนส่ง'),
+      );
+      expect(firstFreight).toHaveLength(1);
+      expect(Number(firstFreight[0].amount)).toBe(500);
+
+      // Second shipment on the SAME SO → no freight line (freight already billed).
+      const second = await createARInvoiceFromSOShipment(shipmentInput(2), 1);
+      const secondInv = await getARInvoiceById(second.arInvoiceId);
+      const secondFreight = secondInv.lines!.filter((l: any) =>
+        String(l.description || '').includes('ค่าขนส่ง'),
+      );
+      expect(secondFreight).toHaveLength(0);
     });
   });
 

@@ -973,7 +973,7 @@ export const sqliteVMIOrders = sqliteTable('vmi_orders', {
   hospitalName: text('hospital_name').notNull(),
   poNumber: text('po_number').notNull(),
   warehouseName: text('warehouse_name'),
-  status: text('status').notNull().default('submitted'), // submitted, confirmed, shipped, received, cancelled
+  status: text('status').notNull().default('submitted'), // submitted, confirmed, shipped, received, cancelled, rejected
   orderDate: text('order_date').notNull(),
   expectedDeliveryDate: text('expected_delivery_date'),
   totalValue: real('total_value').notNull(),
@@ -983,6 +983,10 @@ export const sqliteVMIOrders = sqliteTable('vmi_orders', {
   confirmedAt: text('confirmed_at'),
   shippedAt: text('shipped_at'),
   receivedAt: text('received_at'),
+  // Factory rejection of a submitted order (list item 11): who/when + why, so a
+  // declined rush order carries its reason rather than vanishing silently.
+  rejectedAt: text('rejected_at'),
+  rejectionReason: text('rejection_reason'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -2741,6 +2745,9 @@ export const mysqlVMIOrders = mysqlTable('vmi_orders', {
   confirmedAt: datetime('confirmed_at'),
   shippedAt: datetime('shipped_at'),
   receivedAt: datetime('received_at'),
+  // Factory rejection of a submitted order (list item 11).
+  rejectedAt: datetime('rejected_at'),
+  rejectionReason: varchar('rejection_reason', { length: 500 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -3238,6 +3245,9 @@ export const mysqlVmiSalesOrders = mysqlTable('vmi_sales_orders', {
   confirmedAt: datetime('confirmed_at'),
   shippedAt: datetime('shipped_at'),
   deliveredAt: datetime('delivered_at'),
+  // Factory rejection of a pending order (list item 11).
+  rejectedAt: datetime('rejected_at'),
+  rejectionReason: varchar('rejection_reason', { length: 500 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -4042,6 +4052,11 @@ export const sqliteVmiSalesOrders = sqliteTable('vmi_sales_orders', {
   confirmedAt: text('confirmed_at'),
   shippedAt: text('shipped_at'),
   deliveredAt: text('delivered_at'),
+  // Factory rejection of a pending order (list item 11): when + why. Lets the
+  // factory decline a rush order it cannot fulfil, with the reason sent back to
+  // the portal so the hospital sees it.
+  rejectedAt: text('rejected_at'),
+  rejectionReason: text('rejection_reason'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });
