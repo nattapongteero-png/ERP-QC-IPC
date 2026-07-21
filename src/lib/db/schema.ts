@@ -804,6 +804,43 @@ export const sqliteSalesDeliveries = sqliteTable('sales_deliveries', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// Quotations (ใบเสนอราคา) — the first document in the sales flow. A quotation
+// can later be converted into a sales order (its soId is filled on convert).
+export const sqliteQuotations = sqliteTable('quotations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  quotationNumber: text('quotation_number').notNull().unique(),
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
+  customerName: text('customer_name').notNull(),
+  customerContact: text('customer_contact'),
+  customerAddress: text('customer_address'),
+  status: text('status').notNull().default('draft'), // draft, sent, accepted, rejected, expired, converted
+  quotationDate: text('quotation_date'),
+  validUntil: text('valid_until'),
+  totalAmount: real('total_amount').notNull().default(0),
+  currency: text('currency').notNull().default('THB'),
+  paymentTerms: text('payment_terms'),
+  notes: text('notes'),
+  // Set when the quotation is converted into a sales order (list item 1d).
+  soId: integer('so_id').references(() => sqliteSalesOrders.id),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const sqliteQuotationLines = sqliteTable('quotation_lines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  quotationId: integer('quotation_id').notNull().references(() => sqliteQuotations.id),
+  itemId: integer('item_id').references(() => sqliteItems.id),
+  itemCode: text('item_code'),
+  description: text('description').notNull(),
+  quantity: real('quantity').notNull(),
+  unit: text('unit').notNull(),
+  unitPrice: real('unit_price').notNull(),
+  totalPrice: real('total_price').notNull(),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Customers (ลูกค้า)
 export const sqliteCustomers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -2524,6 +2561,41 @@ export const mysqlSalesDeliveries = mysqlTable('sales_deliveries', {
   status: varchar('status', { length: 20 }).notNull().default('shipped'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Quotations (ใบเสนอราคา) — MySQL counterpart of sqliteQuotations.
+export const mysqlQuotations = mysqlTable('quotations', {
+  id: int('id').primaryKey().autoincrement(),
+  quotationNumber: varchar('quotation_number', { length: 50 }).notNull().unique(),
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
+  customerName: varchar('customer_name', { length: 255 }).notNull(),
+  customerContact: varchar('customer_contact', { length: 255 }),
+  customerAddress: mysqlText('customer_address'),
+  status: varchar('status', { length: 50 }).notNull().default('draft'),
+  quotationDate: datetime('quotation_date'),
+  validUntil: datetime('valid_until'),
+  totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 10 }).notNull().default('THB'),
+  paymentTerms: varchar('payment_terms', { length: 100 }),
+  notes: mysqlText('notes'),
+  soId: int('so_id').references(() => mysqlSalesOrders.id),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const mysqlQuotationLines = mysqlTable('quotation_lines', {
+  id: int('id').primaryKey().autoincrement(),
+  quotationId: int('quotation_id').notNull().references(() => mysqlQuotations.id),
+  itemId: int('item_id').references(() => mysqlItems.id),
+  itemCode: varchar('item_code', { length: 100 }),
+  description: mysqlText('description').notNull(),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unit: varchar('unit', { length: 50 }).notNull(),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
+  totalPrice: decimal('total_price', { precision: 15, scale: 2 }).notNull(),
+  notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -7564,6 +7636,10 @@ export type SalesOrder = typeof sqliteSalesOrders.$inferSelect;
 export type NewSalesOrder = typeof sqliteSalesOrders.$inferInsert;
 export type SalesDelivery = typeof sqliteSalesDeliveries.$inferSelect;
 export type NewSalesDelivery = typeof sqliteSalesDeliveries.$inferInsert;
+export type Quotation = typeof sqliteQuotations.$inferSelect;
+export type NewQuotation = typeof sqliteQuotations.$inferInsert;
+export type QuotationLine = typeof sqliteQuotationLines.$inferSelect;
+export type NewQuotationLine = typeof sqliteQuotationLines.$inferInsert;
 export type Customer = typeof sqliteCustomers.$inferSelect;
 export type NewCustomer = typeof sqliteCustomers.$inferInsert;
 export type ReportCategory = typeof sqliteReportCategories.$inferSelect;

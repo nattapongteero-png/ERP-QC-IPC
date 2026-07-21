@@ -205,6 +205,7 @@ const navigation: NavItem[] = [
     icon: Truck,
     roles: ['admin', 'manager', 'sales', 'warehouse'],
     children: [
+      { name: 'Quotations', href: '/sales/quotations', icon: FileText },
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
       { name: 'Delivery Notes', href: '/sales/deliveries', icon: Truck },
       { name: 'VMI Orders', href: '/sales/vmi-orders', icon: Share2 },

@@ -101,6 +101,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Herbal Market': 'purchasing.enterMetaherb',
 
   // Sales submenu
+  'Quotations': 'sales.quotations',
   'Sales Orders': 'sales.orders',
   'VMI Orders': 'sales.vmiOrders',
   'Customers': 'sales.customers',

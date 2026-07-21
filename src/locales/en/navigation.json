@@ -67,6 +67,7 @@
     "enterMetaherb": "Herbal Market"
   },
   "sales": {
+    "quotations": "Quotations",
     "orders": "Sales Orders",
     "vmiOrders": "VMI Orders",
     "customers": "Customers"

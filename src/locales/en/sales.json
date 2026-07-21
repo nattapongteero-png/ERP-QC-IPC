@@ -445,6 +445,7 @@
       "noItems": "No items yet",
       "noItemsDesc": "Click \"Add Item\" button to start",
       "addFirstItem": "Add First Item",
+      "enterPriceHint": "Please set a selling price",
       "totalAmount": "Grand Total",
       "notesSection": "Notes",
       "notesPlaceholder": "Additional notes or instructions...",

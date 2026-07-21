@@ -328,17 +328,34 @@ export default function NewSalesOrderPage() {
     />
   ), [handleLineQuantityChange]);
 
-  const renderUnitPriceCell = useCallback((cellInfo: { data: SOLine }) => (
-    <NumberBox
-      value={cellInfo.data.unitPrice}
-      onValueChanged={(e) => handleLineUnitPriceChange(cellInfo.data.id, e.value || 0)}
-      min={0}
-      step={0.01}
-      format="#,##0.00"
-      width="100%"
-      stylingMode="outlined"
-    />
-  ), [handleLineUnitPriceChange]);
+  // Unit price is editable on EVERY line. When the picked item carries no
+  // selling price (unitPrice === 0) the finished product needs a price keyed in
+  // here, so we highlight the empty field and show a hint to make that obvious.
+  const priceHint = t('orders.new.enterPriceHint');
+  const renderUnitPriceCell = useCallback((cellInfo: { data: SOLine }) => {
+    const needsPrice = !cellInfo.data.unitPrice || cellInfo.data.unitPrice <= 0;
+    return (
+      <div className="w-full">
+        <NumberBox
+          value={cellInfo.data.unitPrice}
+          onValueChanged={(e) => handleLineUnitPriceChange(cellInfo.data.id, e.value || 0)}
+          min={0}
+          step={0.01}
+          format="#,##0.00"
+          width="100%"
+          stylingMode="outlined"
+          placeholder={priceHint}
+          elementAttr={needsPrice ? { class: 'so-price-missing' } : undefined}
+          inputAttr={{ 'data-testid': `so-unit-price-${cellInfo.data.id}` }}
+        />
+        {needsPrice && (
+          <p className="mt-1 text-[11px] text-amber-600 leading-tight" data-testid={`so-price-hint-${cellInfo.data.id}`}>
+            {priceHint}
+          </p>
+        )}
+      </div>
+    );
+  }, [handleLineUnitPriceChange, priceHint]);
 
   const renderLineTotalCell = useCallback((cellInfo: { data: SOLine }) => (
     <span className="font-semibold text-green-600">
@@ -849,6 +866,7 @@ export default function NewSalesOrderPage() {
         onOpenChange={setIsCustomerDialogOpen}
         onSelect={handleSelectCustomer}
         title={t('orders.new.dialog.searchCustomer')}
+        allowCreate
       />
 
       {/* Item Search Dialog */}

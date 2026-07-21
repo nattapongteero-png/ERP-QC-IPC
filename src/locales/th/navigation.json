@@ -67,6 +67,7 @@
     "enterMetaherb": "ศูนย์ซื้อขายสมุนไพร"
   },
   "sales": {
+    "quotations": "ใบเสนอราคา",
     "orders": "ใบสั่งขาย",
     "vmiOrders": "VMI Orders",
     "customers": "ลูกค้า"
