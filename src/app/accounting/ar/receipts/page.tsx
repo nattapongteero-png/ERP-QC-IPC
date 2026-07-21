@@ -39,6 +39,10 @@ import {
   AccountingFilterPanel,
   AccountingStatusBadge,
 } from '@/components/accounting';
+import {
+  ReceiptPrintDocument,
+  type ReceiptPrintData,
+} from '@/components/accounting/ReceiptPrintDocument';
 
 interface Receipt {
   id: number;
@@ -55,6 +59,7 @@ interface Receipt {
   bankAccountName?: string;
   chequeNumber: string | null;
   chequeDate: string | null;
+  invoiceNumber?: string | null;
   status: 'pending' | 'cleared' | 'bounced' | 'cancelled';
   invoiceAllocations?: Array<{
     invoiceId: number;
@@ -159,6 +164,7 @@ async function fetchReceipts(params: {
     bankAccountName: p.bankAccountName,
     chequeNumber: null,
     chequeDate: null,
+    invoiceNumber: p.invoiceNumber,
     status: p.status,
     createdAt: '',
   }));
@@ -262,6 +268,8 @@ export default function ARReceiptsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReceiptId, setEditingReceiptId] = useState<number | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
+  const [printData, setPrintData] = useState<ReceiptPrintData | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [formData, setFormData] = useState<ReceiptFormData>({
     arInvoiceId: null,
     paymentDate: toLocalDateStr(new Date()),
@@ -434,6 +442,25 @@ export default function ARReceiptsPage() {
     setEditingReceipt(receipt);
     setEditingReceiptId(receipt.id);
     setIsDialogOpen(true);
+  }, []);
+
+  const handlePrint = useCallback((receipt: Receipt) => {
+    setPrintData({
+      receiptNumber: receipt.receiptNumber,
+      receiptDate: receipt.receiptDate,
+      customerName: receipt.customerName,
+      paymentMethod: receipt.paymentMethod,
+      amount: Number(receipt.amount) || 0,
+      reference: receipt.reference,
+      description: receipt.description,
+      invoiceNumber: receipt.invoiceNumber,
+    });
+    setPrinting(true);
+    // Let React paint the hidden document before handing off to the browser.
+    requestAnimationFrame(() => {
+      window.print();
+      setPrinting(false);
+    });
   }, []);
 
   const handleRecordReceipt = useCallback(() => {
@@ -745,11 +772,22 @@ export default function ARReceiptsPage() {
                   allowSorting={false}
                   cellRender={(cellData: { data: Receipt }) => {
                     const receipt = cellData.data;
-                    if (receipt.status === 'cancelled') return null;
                     return (
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <Button icon="edit" hint={t('accountsReceivable.receiptsPage.actions.edit')} stylingMode="text" height={28} onClick={() => handleEdit(receipt)} />
-                        <Button icon="trash" hint={t('accountsReceivable.receiptsPage.actions.delete')} stylingMode="text" height={28} onClick={() => handleDelete(receipt)} />
+                        <Button
+                          icon="print"
+                          hint="พิมพ์ใบเสร็จ"
+                          stylingMode="text"
+                          height={28}
+                          onClick={() => handlePrint(receipt)}
+                          elementAttr={{ 'data-testid': 'print-receipt-btn' }}
+                        />
+                        {receipt.status !== 'cancelled' && (
+                          <>
+                            <Button icon="edit" hint={t('accountsReceivable.receiptsPage.actions.edit')} stylingMode="text" height={28} onClick={() => handleEdit(receipt)} />
+                            <Button icon="trash" hint={t('accountsReceivable.receiptsPage.actions.delete')} stylingMode="text" height={28} onClick={() => handleDelete(receipt)} />
+                          </>
+                        )}
                       </div>
                     );
                   }}
@@ -921,6 +959,9 @@ export default function ARReceiptsPage() {
           </div>
         </Popup>
       </div>
+
+      {/* Hidden on screen; the global @media print rules reveal .print-only. */}
+      {printing && printData && <ReceiptPrintDocument receipt={printData} />}
     </div>
   );
 }

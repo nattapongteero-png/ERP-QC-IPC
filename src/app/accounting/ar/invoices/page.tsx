@@ -41,6 +41,10 @@ import {
   AccountingFilterPanel,
   AccountingStatusBadge,
 } from '@/components/accounting';
+import {
+  ARInvoicePrintDocument,
+  type ARInvoicePrintData,
+} from '@/components/accounting/ARInvoicePrintDocument';
 
 // Types
 interface ARInvoice {
@@ -65,6 +69,9 @@ interface Customer {
   id: number;
   code: string;
   name: string;
+  taxId?: string | null;
+  address?: string | null;
+  contactPerson?: string | null;
 }
 
 interface GLAccount {
@@ -201,6 +208,8 @@ export default function ARInvoicesPage() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
+  const [printData, setPrintData] = useState<ARInvoicePrintData | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     customerId: null,
@@ -401,6 +410,53 @@ export default function ARInvoicesPage() {
     [confirmMutation, t]
   );
 
+  const handlePrint = useCallback(
+    async (invoice: ARInvoice) => {
+      try {
+        const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const detail = json.data;
+        const cust = customers.find((c) => c.id === detail.customerId);
+        setPrintData({
+          invoiceNumber: detail.invoiceNumber,
+          taxInvoiceNumber: detail.taxInvoiceNumber,
+          invoiceDate: detail.invoiceDate,
+          dueDate: detail.dueDate,
+          description: detail.description,
+          subtotal: Number(detail.subtotal) || 0,
+          vatAmount: Number(detail.vatAmount) || 0,
+          totalAmount: Number(detail.totalAmount) || 0,
+          paidAmount: Number(detail.paidAmount) || 0,
+          lines: (detail.lines || []).map((l: any) => ({
+            description: l.description || '',
+            quantity: Number(l.quantity) || 0,
+            unitPrice: Number(l.unitPrice) || 0,
+            amount: Number(l.amount) || 0,
+            vatAmount: l.vatAmount != null ? Number(l.vatAmount) : null,
+          })),
+          customer: cust
+            ? {
+                name: cust.name,
+                taxId: cust.taxId,
+                address: cust.address,
+                contactPerson: cust.contactPerson,
+              }
+            : { name: invoice.customerName },
+        });
+        setPrinting(true);
+        // Let React paint the hidden document before handing off to the browser.
+        requestAnimationFrame(() => {
+          window.print();
+          setPrinting(false);
+        });
+      } catch (err: any) {
+        notify(err.message || t('accountsReceivable.invoicesPage.toast.loadError'), 'error', 4000);
+      }
+    },
+    [customers, t]
+  );
+
   const handleEdit = useCallback(async (invoice: ARInvoice) => {
     try {
       const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
@@ -552,6 +608,14 @@ export default function ARInvoicesPage() {
       const invoice = cellData.data;
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
+          <Button
+            icon="print"
+            hint="พิมพ์ใบกำกับภาษี"
+            stylingMode="text"
+            height={28}
+            onClick={() => handlePrint(invoice)}
+            elementAttr={{ 'data-testid': 'print-invoice-btn' }}
+          />
           {invoice.status === 'draft' && (
             <>
               <Button
@@ -589,7 +653,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, t]
+    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, handlePrint, t]
   );
 
   // Calculate stats
@@ -1108,6 +1172,9 @@ export default function ARInvoicesPage() {
           </div>
         </Popup>
       </div>
+
+      {/* Hidden on screen; the global @media print rules reveal .print-only. */}
+      {printing && printData && <ARInvoicePrintDocument invoice={printData} />}
     </div>
   );
 }
