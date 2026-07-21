@@ -188,6 +188,12 @@ export function ItemSearchDialog({
     // filterTypes is memoised off the string key, so this holds across renders.
   }, [filterTypes, excludeType]);
 
+  // Stable items array for DxTabs. Passing typeTabs.map(...) inline built a NEW
+  // array on every render, so DevExtreme re-rendered the whole tab strip each
+  // time isSearching toggled during a fetch — the tab bar visibly flickered on
+  // click. Deriving it once per typeTabs change keeps the strip stable.
+  const tabItems = useMemo(() => typeTabs.map((tab) => ({ text: tab.text })), [typeTabs]);
+
   // Server already filtered by type + search; no client filter needed
   const filteredResults = allResults;
 
@@ -554,9 +560,16 @@ export function ItemSearchDialog({
             a multi-value array (user can still switch between allowed types). */}
         {typeTabs.length > 1 && (
           <DxTabs
-            items={typeTabs.map(tab => ({ text: tab.text }))}
+            items={tabItems}
             selectedIndex={selectedTypeTab}
-            onItemClick={(e) => setSelectedTypeTab(e.itemIndex || 0)}
+            onItemClick={(e) => {
+              // Ignore a click on the already-active tab — re-setting the same
+              // index still triggers the search effect and a needless refetch
+              // that reads as a flicker.
+              if (typeof e.itemIndex === 'number' && e.itemIndex !== selectedTypeTab) {
+                setSelectedTypeTab(e.itemIndex);
+              }
+            }}
           />
         )}
 
@@ -603,6 +616,11 @@ export function ItemSearchDialog({
             height="100%"
             columnAutoWidth
             wordWrapEnabled
+            // Diff rows instead of repainting the whole grid on every state
+            // change. Without this, selecting a row or a background refetch made
+            // DevExtreme repaint all rows — the visible "flicker" the user saw on
+            // click/select. repaintChangesOnly redraws only what actually changed.
+            repaintChangesOnly
           >
             <DxSelection mode="single" />
             <DxScrolling mode="virtual" />

@@ -4,9 +4,9 @@
  * Part of 011-accounting-spec-gap - User Story 6
  */
 
-import { eq, and, desc, lte, isNull, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, isNull, sql, inArray } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
-import { getNow, toDbDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
+import { getNow, toDbDate, getTodayStr, formatDateFromDb, toQueryDate } from '../db/date-utils';
 import type {
   StandardCost,
   StandardCostDetail,
@@ -30,6 +30,8 @@ function getTables() {
     varianceRecords: getTableRef('varianceRecords'),
     items: getTableRef('items'),
     workOrders: getTableRef('workOrders'),
+    workOrderMaterials: getTableRef('workOrderMaterials'),
+    workOrderOperations: getTableRef('workOrderOperations'),
     bom: getTableRef('bOM'),
     bomLines: getTableRef('bOMLines'),
     journalEntries: getTableRef('journalEntries'),
@@ -299,13 +301,38 @@ export async function calculateWorkOrderVariances(
     const today = getTodayStr();
     const quantityProduced = Number(workOrder.quantityProduced) || 0;
 
-    // Calculate Material Price Variance (MPV)
-    // In a real system, we would get actual material costs from work order consumption
-    // For now, we simulate with a simple calculation
+    // Actual material consumption for this work order (list item 9a). Sum the
+    // real issued cost/quantity recorded on work_order_materials; fall back to
+    // standard only when nothing was recorded, so a WO with real data no longer
+    // reports a hard-coded zero variance.
+    const materialRows = await db
+      .select({
+        actualQuantity: tables.workOrderMaterials.actualQuantity,
+        plannedQuantity: tables.workOrderMaterials.plannedQuantity,
+        totalCost: tables.workOrderMaterials.totalCost,
+        unitCost: tables.workOrderMaterials.unitCost,
+      })
+      .from(tables.workOrderMaterials)
+      .where(eq(tables.workOrderMaterials.workOrderId, workOrderId));
+
+    const hasMaterialActuals = materialRows.length > 0;
+    const actualMaterialCostSum = materialRows.reduce((sum: number, r: any) => {
+      const total =
+        r.totalCost != null
+          ? Number(r.totalCost)
+          : (Number(r.actualQuantity) || 0) * (Number(r.unitCost) || 0);
+      return sum + total;
+    }, 0);
+    const actualMaterialQtySum = materialRows.reduce(
+      (sum: number, r: any) => sum + (Number(r.actualQuantity) || 0),
+      0,
+    );
+
+    // Calculate Material Price Variance (MPV): actual issued cost vs standard.
     const standardMaterialTotal = standardCost.materialCost * quantityProduced;
-    // TODO: Query actual material consumption from work_order_materials table
-    // For now, use standard as actual (zero variance) rather than fabricating random data
-    const actualMaterialTotal = standardMaterialTotal;
+    const actualMaterialTotal = hasMaterialActuals
+      ? actualMaterialCostSum
+      : standardMaterialTotal;
     const mpvAmount = actualMaterialTotal - standardMaterialTotal;
 
     const mpvRecord: any = {
@@ -325,11 +352,11 @@ export async function calculateWorkOrderVariances(
     const mpvId = getInsertId(mpvResult);
     variances.push({ ...mpvRecord, id: mpvId, varianceTypeName: VARIANCE_LABELS.mpv });
 
-    // Calculate Material Usage Variance (MUV)
-    // TODO: MUV requires actual material consumption data from work_order_materials
-    // For now, use standard qty = actual qty (zero variance) rather than incorrect formula
+    // Calculate Material Usage Variance (MUV): actual issued qty vs planned, at
+    // standard cost (list item 9a). Uses real consumption from
+    // work_order_materials; falls back to zero variance when none recorded.
     const standardQty = Number(workOrder.quantityPlanned) || quantityProduced;
-    const actualQty = standardQty; // Zero variance until real consumption tracking
+    const actualQty = hasMaterialActuals ? actualMaterialQtySum : standardQty;
     const unitMaterialCost = standardCost.materialCost;
     const muvAmount = (actualQty - standardQty) * unitMaterialCost;
 
@@ -350,10 +377,35 @@ export async function calculateWorkOrderVariances(
     const muvId = getInsertId(muvResult);
     variances.push({ ...muvRecord, id: muvId, varianceTypeName: VARIANCE_LABELS.muv });
 
-    // Calculate Labor Rate Variance (LRV)
+    // Actual labor from work_order_operations (list item 9b): sum recorded
+    // labor cost and hours across the WO's operations. Falls back to standard
+    // when no operations were tracked, so a real WO no longer reports zero.
+    const operationRows = await db
+      .select({
+        actualHours: tables.workOrderOperations.actualHours,
+        plannedHours: tables.workOrderOperations.plannedHours,
+        laborRate: tables.workOrderOperations.laborRate,
+        laborCost: tables.workOrderOperations.laborCost,
+      })
+      .from(tables.workOrderOperations)
+      .where(eq(tables.workOrderOperations.workOrderId, workOrderId));
+
+    const hasLaborActuals = operationRows.length > 0;
+    const actualLaborCostSum = operationRows.reduce((sum: number, r: any) => {
+      const cost =
+        r.laborCost != null
+          ? Number(r.laborCost)
+          : (Number(r.actualHours) || 0) * (Number(r.laborRate) || 0);
+      return sum + cost;
+    }, 0);
+    const actualHoursSum = operationRows.reduce(
+      (sum: number, r: any) => sum + (Number(r.actualHours) || 0),
+      0,
+    );
+
+    // Calculate Labor Rate Variance (LRV): actual labor cost vs standard.
     const standardLaborTotal = standardCost.laborCost * quantityProduced;
-    // TODO: Query actual labor cost from work_order_operations table
-    const actualLaborTotal = standardLaborTotal;
+    const actualLaborTotal = hasLaborActuals ? actualLaborCostSum : standardLaborTotal;
     const lrvAmount = actualLaborTotal - standardLaborTotal;
 
     const lrvRecord: any = {
@@ -373,10 +425,10 @@ export async function calculateWorkOrderVariances(
     const lrvId = getInsertId(lrvResult);
     variances.push({ ...lrvRecord, id: lrvId, varianceTypeName: VARIANCE_LABELS.lrv });
 
-    // Calculate Labor Efficiency Variance (LEV)
+    // Calculate Labor Efficiency Variance (LEV): actual vs standard hours, at
+    // the standard labor rate (list item 9b).
     const standardHoursTotal = standardCost.standardHours * quantityProduced;
-    // TODO: Query actual hours from work_order_operations table
-    const actualHoursTotal = standardHoursTotal;
+    const actualHoursTotal = hasLaborActuals ? actualHoursSum : standardHoursTotal;
     const levAmount = (actualHoursTotal - standardHoursTotal) * standardCost.standardLaborRate;
 
     const levRecord: any = {
@@ -674,6 +726,15 @@ export async function listVariances(
     }
     if (filters.varianceType) {
       conditions.push(eq(tables.varianceRecords.varianceType, filters.varianceType));
+    }
+    // Date range on the variance date (list item 9c). Previously dateFrom/dateTo
+    // were accepted on the filter object but never applied to the query, so the
+    // period selector on the variances screen did nothing.
+    if (filters.dateFrom) {
+      conditions.push(gte(tables.varianceRecords.varianceDate, toQueryDate(filters.dateFrom)));
+    }
+    if (filters.dateTo) {
+      conditions.push(lte(tables.varianceRecords.varianceDate, toQueryDate(filters.dateTo)));
     }
     if (filters.isPosted !== undefined) {
       if (filters.isPosted) {

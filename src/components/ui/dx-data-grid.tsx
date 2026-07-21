@@ -129,6 +129,9 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   columnAutoWidth?: boolean;
   /** Word wrap */
   wordWrapEnabled?: boolean;
+  /** Repaint only changed rows instead of the whole grid (kills flicker on
+   *  selection / background refresh). */
+  repaintChangesOnly?: boolean;
   /** Height */
   height?: number | string;
   /** Width */
@@ -232,6 +235,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   // Wrap long cell text onto multiple lines so Thai strings don't overflow the
   // cell / collide with the next column.
   wordWrapEnabled = true,
+  repaintChangesOnly = false,
   height,
   width,
   noDataText = 'ไม่มีข้อมูล',
@@ -316,6 +320,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       allowColumnResizing={allowColumnResizing}
       columnAutoWidth={columnAutoWidth}
       wordWrapEnabled={wordWrapEnabled}
+      repaintChangesOnly={repaintChangesOnly}
       height={responsiveHeight}
       width={width}
       noDataText={noDataText}
