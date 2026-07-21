@@ -189,7 +189,13 @@ export async function recalculateWAC(input: RecalculateWACInput): Promise<Recalc
     // 2. Calculate new values
     const transactionQty = input.quantity;
     const transactionUnitCost = input.unitCost;
-    const transactionTotal = transactionQty * transactionUnitCost;
+    // Value-only adjustment (landed cost / freight / duty): `unitCost` is the
+    // TOTAL amount to fold into inventory value with no quantity change. A plain
+    // `quantity * unitCost` here would be `0 * total = 0` and silently drop the
+    // whole landed cost — so the amount is taken as-is instead.
+    const transactionTotal = input.costAdjustmentOnly
+      ? transactionUnitCost
+      : transactionQty * transactionUnitCost;
 
     const newQty = previousQty + transactionQty;
     const newTotalCost = previousCost + transactionTotal;
@@ -1853,18 +1859,24 @@ export async function postLandedCost(
       const poLine = poLineId ? poLineMap.get(poLineId) : undefined;
       const qty = Number(poLine?.receivedQuantity) || Number(poLine?.quantity) || 1;
 
-      // Calculate per-unit landed cost
+      // Per-unit landed cost is kept only for the audit note; the WAC update
+      // folds in the TOTAL landed cost for the item as a value-only adjustment
+      // (quantity stays the same, so a plain unitCost×quantity would be zero).
       const perUnitLandedCost = totalLandedCost / qty;
 
-      // Create cost layer for landed cost
+      // Fold the landed cost into the item's inventory value (WAC) without
+      // moving quantity. costAdjustmentOnly makes recalculateWAC read `unitCost`
+      // as the total amount to add — previously this passed quantity:0 which
+      // multiplied the cost away to nothing, so freight/duty never hit the WAC.
       await recalculateWAC({
         itemId,
         transactionType: 'landed_cost',
         transactionId: landedCostId,
         quantity: 0, // Landed cost doesn't change quantity
-        unitCost: perUnitLandedCost * qty, // Total landed cost for this item
+        unitCost: totalLandedCost, // Total landed cost for this item (value-only)
+        costAdjustmentOnly: true,
         transactionDate: getTodayStr(),
-        notes: `Landed Cost: ${header.documentNumber}`,
+        notes: `Landed Cost: ${header.documentNumber} (${perUnitLandedCost.toFixed(4)}/unit × ${qty})`,
         createdBy: userId,
       });
     }

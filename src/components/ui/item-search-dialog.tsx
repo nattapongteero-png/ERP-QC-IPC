@@ -328,11 +328,15 @@ export function ItemSearchDialog({
     }
   }, [handleSelect]);
 
-  // Grid selection changed handler
+  // Grid selection changed handler. In multi-select mode the checkboxes are the
+  // source of truth, so row selection must NOT drive `selectedItem` — otherwise
+  // every row click toggled the header's "ยืนยันการเลือก" button in and out,
+  // shifting the layout and reading as a flicker while the user ticked boxes.
   const onSelectionChanged = useCallback((e: DataGridTypes.SelectionChangedEvent) => {
+    if (multiSelect) return;
     const selected = e.selectedRowsData?.[0];
     setSelectedItem((selected as Item) || null);
-  }, []);
+  }, [multiSelect]);
 
   // Cell render type
   interface CellRenderInfo {

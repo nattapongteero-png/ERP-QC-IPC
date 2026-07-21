@@ -549,7 +549,15 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 text={converting ? t('requisitions.detail.convertModal.converting') : t('requisitions.detail.convertModal.convert')}
                 type="success"
                 onClick={handleConvertToPO}
-                disabled={converting || (!vendorId && !isMetaherbPR)}
+                // Enable the convert once EVERY line has a company to buy from —
+                // whether that comes from the header pick, a per-line pick, or the
+                // vendor already suggested on the PR. Gating solely on the header
+                // vendorId blocked buyers who had (correctly) chosen a vendor per
+                // line but left the header picker empty (list item 7 / bug report).
+                disabled={
+                  converting ||
+                  (!isMetaherbPR && linesMissingVendor.length > 0)
+                }
                 data-testid="confirm-convert-btn"
               />
             </div>

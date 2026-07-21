@@ -409,6 +409,14 @@ export interface RecalculateWACInput {
   transactionDate: string;
   notes?: string | null;
   createdBy: number;
+  /**
+   * Value-only cost adjustment (landed cost, freight, duty). When true, `unitCost`
+   * is read as the TOTAL amount to add to the item's on-hand cost — quantity does
+   * not change and WAC is re-struck over the existing quantity. Without this flag a
+   * quantity of 0 makes `quantity * unitCost` collapse to 0, so the extra cost never
+   * reaches inventory value (the landed-cost-lost bug).
+   */
+  costAdjustmentOnly?: boolean;
 }
 
 export interface RecalculateWACResult {

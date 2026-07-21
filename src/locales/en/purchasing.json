@@ -399,6 +399,7 @@
         "unit": "Unit",
         "unitPrice": "Unit Price",
         "amount": "Amount",
+        "vendor": "Vendor",
         "notes": "Notes"
       },
       "validation": {

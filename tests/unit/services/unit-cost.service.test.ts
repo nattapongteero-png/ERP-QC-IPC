@@ -237,6 +237,47 @@ describe('Unit Cost Service', () => {
       });
       expect(result.costLayerId).toBeGreaterThan(0);
     });
+
+    it('should fold a value-only landed cost into WAC without moving quantity', async () => {
+      // Start: 100 kg, total cost 5000 (WAC 50). Add 1000 THB of freight/duty
+      // as a value-only adjustment: quantity stays 100, total becomes 6000, so
+      // WAC rises to 60. Regression guard for the landed-cost-lost bug where a
+      // quantity of 0 collapsed `quantity * unitCost` to 0 and the cost vanished.
+      const result = await recalculateWAC({
+        itemId: TEST_ITEM_ID,
+        transactionType: 'landed_cost',
+        transactionId: 1,
+        quantity: 0,
+        unitCost: 1000, // total landed cost to add
+        costAdjustmentOnly: true,
+        transactionDate: '2026-01-15',
+        notes: 'Landed cost — freight',
+        createdBy: TEST_USER_ID,
+      });
+
+      expect(result.previousWAC).toBe(50);
+      expect(result.previousQty).toBe(100);
+      expect(result.newQty).toBe(100); // quantity unchanged
+      expect(result.newWAC).toBe(60);  // (5000 + 1000) / 100
+    });
+
+    it('should NOT change WAC when a value-only flag is absent and quantity is 0 (old behaviour)', async () => {
+      // Without costAdjustmentOnly, quantity:0 means quantity * unitCost = 0, so
+      // the item value is untouched. This documents exactly why postLandedCost
+      // must set the flag.
+      const result = await recalculateWAC({
+        itemId: TEST_ITEM_ID,
+        transactionType: 'landed_cost',
+        transactionId: 2,
+        quantity: 0,
+        unitCost: 1000,
+        transactionDate: '2026-01-15',
+        createdBy: TEST_USER_ID,
+      });
+
+      expect(result.previousWAC).toBe(50);
+      expect(result.newWAC).toBe(50); // unchanged — the cost was NOT added
+    });
   });
 
   // ============================================

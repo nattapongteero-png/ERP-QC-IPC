@@ -31,9 +31,11 @@ interface PRLineGridProps {
   onChange: (lines: PRLineInput[]) => void;
   prId?: number;
   editable?: boolean;
+  /** Active vendors, for the per-line "บริษัทผู้ขาย" dropdown (list item 5b). */
+  vendors?: Array<{ id: number; name: string; code?: string | null }>;
 }
 
-export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGridProps) {
+export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [] }: PRLineGridProps) {
   const t = useTranslations('purchasing');
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [itemSearchOpen, setItemSearchOpen] = useState(false);
@@ -50,6 +52,18 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
     STANDARD_UNITS.forEach((u) => set.add(u));
     return Array.from(set).map((u) => ({ value: u, label: u }));
   }, [itemUnits, lines]);
+
+  // Vendor dropdown options for the per-line "บริษัทผู้ขาย" column. A PR line can
+  // name the company it should be bought from, so PR→PO conversion can split one
+  // requisition into a PO per vendor without the buyer re-picking on every line.
+  const vendorOptions = useMemo(
+    () =>
+      vendors.map((v) => ({
+        id: v.id,
+        label: v.code ? `${v.code} - ${v.name}` : v.name,
+      })),
+    [vendors],
+  );
 
   const toLine = useCallback((item: InventoryItem): PRLineInput => ({
     itemId: item.id,
@@ -88,6 +102,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
         unitOfMeasure: e.data.unitOfMeasure || 'EA',
         estimatedUnitPrice: e.data.estimatedUnitPrice || 0,
         itemCode: e.data.itemCode || undefined,
+        suggestedVendorId: e.data.suggestedVendorId || undefined,
         notes: e.data.notes || undefined,
       };
       onChange([...lines, newLine]);
@@ -106,6 +121,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
               unitOfMeasure: e.data.unitOfMeasure ?? line.unitOfMeasure,
               estimatedUnitPrice: e.data.estimatedUnitPrice ?? line.estimatedUnitPrice,
               itemCode: e.data.itemCode ?? line.itemCode,
+              suggestedVendorId: e.data.suggestedVendorId ?? line.suggestedVendorId,
               notes: e.data.notes ?? line.notes,
             }
           : line
@@ -339,6 +355,24 @@ export function PRLineGrid({ lines, onChange, prId, editable = true }: PRLineGri
           allowEditing={false}
           data-testid="col-amount"
         />
+        {/* Per-line vendor (บริษัทผู้ขาย) — optional. When set, PR→PO conversion
+            groups lines by this company and makes one PO per vendor (list item
+            5b). Rendered only when a vendor list was supplied. */}
+        {vendorOptions.length > 0 && (
+          <Column
+            dataField="suggestedVendorId"
+            caption={t('requisitions.form.columns.vendor')}
+            width={180}
+            data-testid="col-vendor"
+          >
+            <Lookup
+              dataSource={vendorOptions}
+              valueExpr="id"
+              displayExpr="label"
+              allowClearing={true}
+            />
+          </Column>
+        )}
         <Column
           dataField="notes"
           caption={t('requisitions.form.columns.notes')}

@@ -32,10 +32,13 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   const t = useTranslations('purchasing');
   // Priority options pull their labels from i18n so they switch with the
   // language toggle (was previously a hardcoded Thai array).
+  // Three urgency bands only, matching the list's stat cards
+  // (เร่งด่วน ≤7 วัน / ปกติ 15–30 / ต่ำ >30). "สูง (high)" was dropped from the
+  // picker per list item 1 — the type still carries it so legacy PRs saved as
+  // "high" keep displaying, but new requisitions can no longer be created with it.
   const priorityOptions = [
     { value: 'low', label: t('requisitions.priority.low') },
     { value: 'normal', label: t('requisitions.priority.normal') },
-    { value: 'high', label: t('requisitions.priority.high') },
     { value: 'urgent', label: t('requisitions.priority.urgent') },
   ];
   const [loading, setLoading] = useState(false);
@@ -57,7 +60,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
   // filled, PR→PO conversion pre-fills the PO so the buyer doesn't re-pick them.
   const [vendorId, setVendorId] = useState<number | null>(initialData?.vendorId ?? null);
   const [paymentTerms, setPaymentTerms] = useState<string>(initialData?.paymentTerms || '');
-  const [vendors, setVendors] = useState<Array<{ id: number; name: string; paymentTerms?: string | null }>>([]);
+  const [vendors, setVendors] = useState<Array<{ id: number; name: string; code?: string | null; paymentTerms?: string | null }>>([]);
   const [lines, setLines] = useState<PRLineInput[]>(
     initialData?.lines.map((l) => ({
       id: l.id,
@@ -223,7 +226,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
         // about the exact shape so a paginated wrapper doesn't empty the list.
         const raw = res?.data?.items ?? res?.data?.vendors ?? res?.data ?? res?.vendors ?? [];
         const list = (Array.isArray(raw) ? raw : [])
-          .map((v: any) => ({ id: v.id, name: v.name, paymentTerms: v.paymentTerms }));
+          .map((v: any) => ({ id: v.id, name: v.name, code: v.code, paymentTerms: v.paymentTerms }));
         setVendors(list);
       })
       .catch(() => { /* dropdown just stays empty on failure */ });
@@ -417,6 +420,7 @@ export function PRForm({ mode, prId, initialData }: PRFormProps) {
           onChange={handleLinesChange}
           prId={currentPrId || undefined}
           editable={isEditable}
+          vendors={vendors}
         />
       </div>
 
