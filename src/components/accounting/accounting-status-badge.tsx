@@ -7,7 +7,7 @@ type Status =
   | 'draft' | 'posted' | 'reversed' | 'approved' | 'cancelled'
   | 'partial' | 'paid' | 'overdue' | 'open' | 'closed'
   | 'active' | 'inactive' | 'pending' | 'confirmed'
-  | 'cleared' | 'bounced';
+  | 'cleared' | 'bounced' | 'rejected';
 
 // NOTE: labels are resolved at render time via t('common.statusBadge.<status>').
 // Only the bg/text CSS classes are kept here.
@@ -28,6 +28,7 @@ const statusConfig: Record<Status, { bg: string; text: string }> = {
   confirmed: { bg: 'bg-blue-100', text: 'text-blue-700' },
   cleared: { bg: 'bg-green-100', text: 'text-green-700' },
   bounced: { bg: 'bg-red-100', text: 'text-red-700' },
+  rejected: { bg: 'bg-red-100', text: 'text-red-700' },
 };
 
 export interface AccountingStatusBadgeProps {

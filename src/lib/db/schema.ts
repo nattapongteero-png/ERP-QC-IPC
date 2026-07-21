@@ -5547,9 +5547,14 @@ export const sqliteARInvoices = sqliteTable('ar_invoices', {
   paidAmount: real('paid_amount').notNull().default(0),
   currency: text('currency').notNull().default('THB'),
   exchangeRate: real('exchange_rate').notNull().default(1),
-  status: text('status').notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled
+  status: text('status').notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled, rejected
   confirmedBy: integer('confirmed_by').references(() => sqliteUsers.id),
   confirmedAt: text('confirmed_at'),
+  // Approval rejection (list item 2): who declined the invoice and why, before
+  // it was ever posted to the GL.
+  rejectedBy: integer('rejected_by').references(() => sqliteUsers.id),
+  rejectedAt: text('rejected_at'),
+  rejectionReason: text('rejection_reason'),
   journalEntryId: integer('journal_entry_id').references(() => sqliteJournalEntries.id),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -6326,9 +6331,13 @@ export const mysqlARInvoices = mysqlTable('ar_invoices', {
   paidAmount: decimal('paid_amount', { precision: 15, scale: 2 }).notNull().default('0'),
   currency: varchar('currency', { length: 3 }).notNull().default('THB'),
   exchangeRate: decimal('exchange_rate', { precision: 10, scale: 6 }).notNull().default('1'),
-  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled
+  status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted, partial, paid, cancelled, rejected
   confirmedBy: int('confirmed_by').references(() => mysqlUsers.id),
   confirmedAt: datetime('confirmed_at'),
+  // Approval rejection (list item 2).
+  rejectedBy: int('rejected_by').references(() => mysqlUsers.id),
+  rejectedAt: datetime('rejected_at'),
+  rejectionReason: varchar('rejection_reason', { length: 500 }),
   journalEntryId: int('journal_entry_id').references(() => mysqlJournalEntries.id),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),

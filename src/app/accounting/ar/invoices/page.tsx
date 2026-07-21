@@ -33,6 +33,7 @@ import Form, {
 } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
+import { TextArea } from 'devextreme-react/text-area';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
 import {
@@ -62,7 +63,7 @@ interface ARInvoice {
   totalAmount: number;
   paidAmount: number;
   currency: string;
-  status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled';
+  status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'rejected';
   journalEntryId: number | null;
 }
 
@@ -81,6 +82,9 @@ interface ARInvoiceLine {
 interface ARInvoiceDetail extends ARInvoice {
   salesOrderId: number | null;
   lines: ARInvoiceLine[];
+  rejectedBy?: number | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 interface Customer {
@@ -195,6 +199,19 @@ async function confirmInvoice(id: number): Promise<ARInvoice> {
   return (await res.json()).data;
 }
 
+async function rejectInvoice(id: number, reason: string): Promise<ARInvoice> {
+  const res = await fetch(`/api/accounting/ar-invoices/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+  const result = await res.json();
+  if (!res.ok || !result.success) {
+    throw new Error(result.error || result.message || 'Failed to reject invoice');
+  }
+  return result.data;
+}
+
 async function receivePayment(
   invoiceId: number,
   data: {
@@ -230,6 +247,8 @@ export default function ARInvoicesPage() {
   const [printing, setPrinting] = useState(false);
   const [detailInvoice, setDetailInvoice] = useState<ARInvoiceDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<ARInvoice | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     customerId: null,
@@ -292,6 +311,19 @@ export default function ARInvoicesPage() {
     },
     onError: (error: Error) => {
       notify(error.message || t('accountsReceivable.invoicesPage.toast.confirmError'), 'error', 4000);
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => rejectInvoice(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ar-invoices'] });
+      notify(t('accountsReceivable.invoicesPage.toast.rejectSuccess'), 'success', 3000);
+      setRejectTarget(null);
+      setRejectReason('');
+    },
+    onError: (error: Error) => {
+      notify(error.message || t('accountsReceivable.invoicesPage.toast.rejectError'), 'error', 4000);
     },
   });
 
@@ -429,6 +461,21 @@ export default function ARInvoicesPage() {
     },
     [confirmMutation, t]
   );
+
+  const handleOpenReject = useCallback((invoice: ARInvoice) => {
+    setRejectTarget(invoice);
+    setRejectReason('');
+  }, []);
+
+  const handleCloseReject = useCallback(() => {
+    setRejectTarget(null);
+    setRejectReason('');
+  }, []);
+
+  const handleReject = useCallback(() => {
+    if (!rejectTarget || !rejectReason.trim()) return;
+    rejectMutation.mutate({ id: rejectTarget.id, reason: rejectReason.trim() });
+  }, [rejectTarget, rejectReason, rejectMutation]);
 
   const handlePrint = useCallback(
     async (invoice: ARInvoice) => {
@@ -646,15 +693,16 @@ export default function ARInvoicesPage() {
 
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: { value: string }) => {
-    const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed';
+    const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed' | 'rejected';
     // Map AR-specific statuses to badge statuses
-    const statusMap: Record<string, 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed'> = {
+    const statusMap: Record<string, 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed' | 'rejected'> = {
       draft: 'draft',
       confirmed: 'confirmed',
       posted: 'posted',
       partial: 'partial',
       paid: 'paid',
       cancelled: 'cancelled',
+      rejected: 'rejected',
     };
     const mappedStatus = statusMap[statusValue] || 'draft';
     return <AccountingStatusBadge status={mappedStatus} />;
@@ -705,6 +753,14 @@ export default function ARInvoicesPage() {
                 height={24}
                 onClick={() => handleConfirm(invoice)}
               />
+              <Button
+                text={t('accountsReceivable.invoicesPage.actions.reject')}
+                type="danger"
+                stylingMode="outlined"
+                height={24}
+                onClick={() => handleOpenReject(invoice)}
+                elementAttr={{ 'data-testid': 'reject-invoice-btn' }}
+              />
             </>
           )}
           {['posted', 'partial'].includes(invoice.status) && (
@@ -719,7 +775,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, handlePrint, handleView, t]
+    [handleConfirm, handleOpenReject, handleEdit, handleDelete, handleOpenPaymentDialog, handlePrint, handleView, t]
   );
 
   // Calculate stats
@@ -1295,6 +1351,19 @@ export default function ARInvoicesPage() {
                     <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.description')}</span>
                     <span className="font-semibold text-right">{detailInvoice.description || '-'}</span>
                   </div>
+                  {detailInvoice.status === 'rejected' && detailInvoice.rejectionReason && (
+                    <div
+                      className="flex justify-between gap-2 md:col-span-2"
+                      data-testid="ar-detail-rejection-reason"
+                    >
+                      <span className="text-red-500">
+                        {t('accountsReceivable.invoicesPage.detailDialog.rejectionReason')}
+                      </span>
+                      <span className="font-semibold text-right text-red-600">
+                        {detailInvoice.rejectionReason}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Line items table */}
@@ -1388,6 +1457,64 @@ export default function ARInvoicesPage() {
                     stylingMode="outlined"
                     onClick={handleCloseDetail}
                     elementAttr={{ 'data-testid': 'ar-detail-close-btn' }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Popup>
+
+        {/* Reject Dialog */}
+        <Popup
+          visible={rejectTarget !== null}
+          onHiding={handleCloseReject}
+          title={t('accountsReceivable.invoicesPage.rejectDialog.title')}
+          width={480}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4" data-testid="ar-reject-dialog">
+            {rejectTarget && (
+              <>
+                <div className="mb-4 p-3 bg-red-50 rounded-lg text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-gray-500">
+                      {t('accountsReceivable.invoicesPage.detailDialog.invoiceNumber')}
+                    </div>
+                    <div className="font-semibold">{rejectTarget.invoiceNumber}</div>
+                    <div className="text-gray-500">
+                      {t('accountsReceivable.invoicesPage.detailDialog.taxInvoiceNumber')}
+                    </div>
+                    <div className="font-semibold">{rejectTarget.taxInvoiceNumber}</div>
+                  </div>
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('accountsReceivable.invoicesPage.rejectDialog.reasonLabel')}
+                </label>
+                <TextArea
+                  value={rejectReason}
+                  onValueChanged={(e) => setRejectReason(e.value ?? '')}
+                  height={90}
+                  placeholder={t('accountsReceivable.invoicesPage.rejectDialog.reasonPlaceholder')}
+                  elementAttr={{ 'data-testid': 'ar-reject-reason' }}
+                />
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button
+                    text={t('accountsReceivable.invoicesPage.rejectDialog.cancel')}
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={handleCloseReject}
+                    elementAttr={{ 'data-testid': 'ar-reject-cancel' }}
+                  />
+                  <Button
+                    text={t('accountsReceivable.invoicesPage.rejectDialog.confirm')}
+                    type="danger"
+                    onClick={handleReject}
+                    disabled={!rejectReason.trim() || rejectMutation.isPending}
+                    elementAttr={{ 'data-testid': 'ar-reject-confirm' }}
                   />
                 </div>
               </>

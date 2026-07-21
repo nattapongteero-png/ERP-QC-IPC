@@ -610,7 +610,8 @@
         "draft": "Draft",
         "posted": "Posted",
         "partial": "Partially Received",
-        "paid": "Paid"
+        "paid": "Paid",
+        "rejected": "Rejected"
       },
       "columns": {
         "taxInvoiceNumber": "Tax Invoice No.",
@@ -624,6 +625,7 @@
         "edit": "Edit",
         "delete": "Delete",
         "confirm": "Confirm",
+        "reject": "Reject",
         "receivePayment": "Receive Payment"
       },
       "dialog": {
@@ -697,7 +699,15 @@
         "paidAmount": "Paid",
         "outstanding": "Outstanding",
         "print": "Print",
-        "close": "Close"
+        "close": "Close",
+        "rejectionReason": "Rejection Reason"
+      },
+      "rejectDialog": {
+        "title": "Reject Invoice",
+        "reasonLabel": "Rejection Reason",
+        "reasonPlaceholder": "Enter the reason for rejecting this invoice",
+        "confirm": "Confirm Rejection",
+        "cancel": "Cancel"
       },
       "confirmInvoice": {
         "title": "Confirm Invoice",
@@ -712,6 +722,8 @@
         "createError": "Failed to create invoice",
         "confirmSuccess": "Invoice confirmed and journal entry posted",
         "confirmError": "Failed to confirm invoice",
+        "rejectSuccess": "Invoice rejected",
+        "rejectError": "Failed to reject invoice",
         "paymentSuccess": "Payment received successfully (Receipt: {receiptNumber})",
         "paymentError": "Failed to receive payment",
         "deleteSuccess": "Invoice deleted successfully",
@@ -1883,7 +1895,8 @@
       "confirmed": "Confirmed",
       "cleared": "Cleared",
       "bounced": "Bounced",
-      "softClosed": "Soft Closed"
+      "softClosed": "Soft Closed",
+      "rejected": "Rejected"
     }
   },
   "items": {

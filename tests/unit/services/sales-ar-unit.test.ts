@@ -71,6 +71,7 @@ import {
   getARInvoiceById,
   listARInvoices,
   confirmARInvoice,
+  rejectARInvoice,
   recordARPayment,
   deleteARInvoice,
   createARInvoiceFromSOShipment,
@@ -310,6 +311,27 @@ describe('Sales + AR Unit Tests', () => {
       const confirmed = await confirmARInvoice(inv.id, 1);
       expect(confirmed.status).toBe('posted');
       expect(confirmed.journalEntryId).toBeDefined();
+    });
+
+    // Approval rejection (list item 2)
+    it('rejects a draft invoice with a reason and posts nothing to the GL', async () => {
+      const inv = await createTestARInvoice();
+      const rejected = await rejectARInvoice(inv.id, 'ราคาผิด ต้องแก้ก่อน', 7);
+      expect(rejected.status).toBe('rejected');
+      expect(rejected.rejectionReason).toBe('ราคาผิด ต้องแก้ก่อน');
+      expect(rejected.rejectedBy).toBe(7);
+      expect(rejected.journalEntryId).toBeNull(); // never posted
+    });
+
+    it('requires a non-empty reason to reject', async () => {
+      const inv = await createTestARInvoice();
+      await expect(rejectARInvoice(inv.id, '   ', 1)).rejects.toThrow();
+    });
+
+    it('cannot reject an already-posted invoice', async () => {
+      const inv = await createTestARInvoice();
+      await confirmARInvoice(inv.id, 1);
+      await expect(rejectARInvoice(inv.id, 'too late', 1)).rejects.toThrow();
     });
 
     it('should create correct JE lines (DR AR, CR Revenue, CR VAT)', async () => {

@@ -610,7 +610,8 @@
         "draft": "ร่าง",
         "posted": "ลงบัญชี",
         "partial": "รับบางส่วน",
-        "paid": "ชำระแล้ว"
+        "paid": "ชำระแล้ว",
+        "rejected": "ปฏิเสธแล้ว"
       },
       "columns": {
         "taxInvoiceNumber": "เลขที่ใบกำกับภาษี",
@@ -624,6 +625,7 @@
         "edit": "แก้ไข",
         "delete": "ลบ",
         "confirm": "ยืนยัน",
+        "reject": "ปฏิเสธ",
         "receivePayment": "รับชำระ"
       },
       "dialog": {
@@ -697,7 +699,15 @@
         "paidAmount": "ชำระแล้ว",
         "outstanding": "คงค้าง",
         "print": "พิมพ์",
-        "close": "ปิด"
+        "close": "ปิด",
+        "rejectionReason": "เหตุผลที่ปฏิเสธ"
+      },
+      "rejectDialog": {
+        "title": "ปฏิเสธใบแจ้งหนี้",
+        "reasonLabel": "เหตุผลที่ปฏิเสธ",
+        "reasonPlaceholder": "ระบุเหตุผลในการปฏิเสธใบแจ้งหนี้นี้",
+        "confirm": "ยืนยันการปฏิเสธ",
+        "cancel": "ยกเลิก"
       },
       "confirmInvoice": {
         "title": "ยืนยันใบแจ้งหนี้",
@@ -712,6 +722,8 @@
         "createError": "ไม่สามารถสร้างใบแจ้งหนี้ได้",
         "confirmSuccess": "ยืนยันใบแจ้งหนี้และบันทึกรายการบัญชีแล้ว",
         "confirmError": "ไม่สามารถยืนยันใบแจ้งหนี้ได้",
+        "rejectSuccess": "ปฏิเสธใบแจ้งหนี้แล้ว",
+        "rejectError": "ไม่สามารถปฏิเสธใบแจ้งหนี้ได้",
         "paymentSuccess": "รับชำระเงินสำเร็จ (Receipt: {receiptNumber})",
         "paymentError": "ไม่สามารถรับชำระเงินได้",
         "deleteSuccess": "ลบใบแจ้งหนี้สำเร็จ",
@@ -1883,7 +1895,8 @@
       "confirmed": "ยืนยัน",
       "cleared": "เคลียร์แล้ว",
       "bounced": "เช็คคืน",
-      "softClosed": "ปิดชั่วคราว"
+      "softClosed": "ปิดชั่วคราว",
+      "rejected": "ปฏิเสธแล้ว"
     }
   },
   "items": {

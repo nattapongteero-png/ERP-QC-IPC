@@ -2761,9 +2761,12 @@ export interface ARInvoice {
   paidAmount: number;
   currency: string;
   exchangeRate: number;
-  status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled';
+  status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'rejected';
   confirmedBy: number | null;
   confirmedAt: string | null;
+  rejectedBy?: number | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
   journalEntryId: number | null;
   createdBy: number | null;
   createdAt: string;
@@ -3012,6 +3015,9 @@ export async function getARInvoiceById(id: number): Promise<ARInvoice> {
     status: invoice.status as ARInvoice['status'],
     confirmedBy: invoice.confirmedBy,
     confirmedAt: invoice.confirmedAt ? formatDateFromDb(invoice.confirmedAt) : null,
+    rejectedBy: invoice.rejectedBy ?? null,
+    rejectedAt: invoice.rejectedAt ? formatDateFromDb(invoice.rejectedAt) : null,
+    rejectionReason: invoice.rejectionReason ?? null,
     journalEntryId: invoice.journalEntryId,
     createdBy: invoice.createdBy,
     createdAt: formatDateFromDb(invoice.createdAt),
@@ -3303,6 +3309,57 @@ export async function confirmARInvoice(
       journalEntryId: journalEntry.id,
       previousStatus: 'draft',
       newStatus: 'posted',
+    },
+  });
+
+  return await getARInvoiceById(id);
+}
+
+/**
+ * Reject a draft AR invoice during approval (list item 2). Records who declined
+ * it and why, and moves it to 'rejected'. Only a draft can be rejected — once
+ * confirmed a journal entry exists and the figure has hit the GL, so a reversal
+ * (credit note), not a rejection, is the correct route from there.
+ */
+export async function rejectARInvoice(
+  id: number,
+  reason: string,
+  rejectedBy: number
+): Promise<ARInvoice> {
+  const { arInvoices } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const trimmed = (reason || '').trim();
+  if (!trimmed) {
+    throw new Error('ต้องระบุเหตุผลในการปฏิเสธใบแจ้งหนี้');
+  }
+
+  const invoice = await getARInvoiceById(id);
+  if (invoice.status !== 'draft') {
+    throw new Error(`ปฏิเสธใบแจ้งหนี้ไม่ได้: สถานะปัจจุบันคือ '${invoice.status}' (ต้องเป็น 'draft')`);
+  }
+
+  await database
+    .update(arInvoices)
+    .set({
+      status: 'rejected',
+      rejectedBy,
+      rejectedAt: getNow(),
+      rejectionReason: trimmed,
+      updatedAt: getNow(),
+    })
+    .where(eq(arInvoices.id, id));
+
+  await createAuditLog({
+    action: 'REJECT',
+    tableName: 'ar_invoice',
+    recordId: id,
+    userId: rejectedBy,
+    newValue: {
+      invoiceNumber: invoice.invoiceNumber,
+      previousStatus: 'draft',
+      newStatus: 'rejected',
+      rejectionReason: trimmed,
     },
   });
 
