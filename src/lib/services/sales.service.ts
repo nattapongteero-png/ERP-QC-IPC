@@ -27,6 +27,7 @@ import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.servi
 import { getNow, getTodayStr } from '../db/date-utils';
 import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, calculateVAT } from './accounting.service';
 import { calculateCOGS, updateSOLineWithCOGS } from './unit-cost.service';
+import { getInvoicePaymentTermsDays } from './settings.service';
 
 // Types
 export interface ATPResult {
@@ -616,8 +617,11 @@ export async function fulfillSalesOrderLine(
       // 2. Create AR Invoice (due in 30 days).
       // The AR invoice — not the shipment — books revenue, AR and Output VAT, so its
       // journal entry IS the sales journal entry.
+      // Due date = today + the configurable payment-terms days (list item 3),
+      // replacing the previously hard-coded 30.
+      const termsDays = await getInvoicePaymentTermsDays();
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 30);
+      dueDate.setDate(dueDate.getDate() + termsDays);
       const dueDateStr = dueDate.toISOString().split('T')[0];
 
       // Get item details for AR invoice
@@ -820,8 +824,10 @@ export async function retryAccountingForDelivery(
   let arInvoiceNumber: string | undefined;
   let taxInvoiceNumber: string | undefined;
   if (!alreadyHadInvoice) {
+    // Configurable payment terms (list item 3), was hard-coded 30.
+    const termsDays = await getInvoicePaymentTermsDays();
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 30);
+    dueDate.setDate(dueDate.getDate() + termsDays);
     const arResult = await createARInvoiceFromSOShipment(
       {
         soId: delivery.soId,

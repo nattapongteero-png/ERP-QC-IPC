@@ -145,3 +145,66 @@ export async function upsertCompanySettings(
     }
   });
 }
+
+// ============================================================================
+// Invoice issuance terms (list item 3)
+// ============================================================================
+
+/** Settings key for how many days after a sale an invoice falls due. */
+const INVOICE_PAYMENT_TERMS_KEY = 'invoice_payment_terms_days';
+const DEFAULT_INVOICE_PAYMENT_TERMS_DAYS = 30;
+
+/**
+ * How many days after the sale/shipment an auto-generated AR invoice is due
+ * (list item 3). Configurable instead of the previously hard-coded 30. Falls
+ * back to 30 when unset or malformed.
+ */
+export async function getInvoicePaymentTermsDays(): Promise<number> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .select({ value: tables.settings.value })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, INVOICE_PAYMENT_TERMS_KEY))
+      .limit(1);
+
+    const raw = rows[0]?.value;
+    const n = raw != null ? parseInt(String(raw), 10) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : DEFAULT_INVOICE_PAYMENT_TERMS_DAYS;
+  });
+}
+
+/** Set the invoice payment-terms days (list item 3). */
+export async function setInvoicePaymentTermsDays(
+  days: number,
+  userId?: number,
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const now = getNow();
+    const value = String(Math.max(0, Math.floor(days)));
+
+    const existing = await db
+      .select({ id: tables.settings.id })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, INVOICE_PAYMENT_TERMS_KEY))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(tables.settings)
+        .set({ value, category: 'accounting', updatedBy: userId ?? null, updatedAt: now })
+        .where(eq(tables.settings.key, INVOICE_PAYMENT_TERMS_KEY));
+    } else {
+      await db.insert(tables.settings).values({
+        key: INVOICE_PAYMENT_TERMS_KEY,
+        value,
+        description: 'จำนวนวันครบกำหนดชำระหลังออกใบแจ้งหนี้',
+        category: 'accounting',
+        updatedBy: userId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  });
+}

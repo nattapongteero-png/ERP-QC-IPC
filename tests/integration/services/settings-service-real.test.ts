@@ -37,6 +37,8 @@ vi.mock('@/lib/audit', () => ({
 import {
   getCompanySettings,
   upsertCompanySettings,
+  getInvoicePaymentTermsDays,
+  setInvoicePaymentTermsDays,
 } from '@/lib/services/settings.service';
 
 // Schema Sync Helper
@@ -123,6 +125,27 @@ describe('Settings Service Real Integration Tests', () => {
 
   beforeEach(() => {
     sqlite.prepare('DELETE FROM settings').run();
+  });
+
+  describe('invoice payment terms (list item 3)', () => {
+    it('defaults to 30 days when unset', async () => {
+      expect(await getInvoicePaymentTermsDays()).toBe(30);
+    });
+
+    it('persists a configured value and reads it back', async () => {
+      await setInvoicePaymentTermsDays(45, 1);
+      expect(await getInvoicePaymentTermsDays()).toBe(45);
+    });
+
+    it('updates an existing value rather than duplicating', async () => {
+      await setInvoicePaymentTermsDays(15, 1);
+      await setInvoicePaymentTermsDays(60, 1);
+      expect(await getInvoicePaymentTermsDays()).toBe(60);
+      const rows = sqlite
+        .prepare("SELECT COUNT(*) AS n FROM settings WHERE key = 'invoice_payment_terms_days'")
+        .get() as { n: number };
+      expect(rows.n).toBe(1);
+    });
   });
 
   describe('getCompanySettings', () => {
