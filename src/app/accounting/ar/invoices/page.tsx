@@ -45,6 +45,7 @@ import {
   ARInvoicePrintDocument,
   type ARInvoicePrintData,
 } from '@/components/accounting/ARInvoicePrintDocument';
+import { formatNumber } from '@/lib/utils/number-format';
 
 // Types
 interface ARInvoice {
@@ -63,6 +64,23 @@ interface ARInvoice {
   currency: string;
   status: 'draft' | 'confirmed' | 'posted' | 'partial' | 'paid' | 'cancelled';
   journalEntryId: number | null;
+}
+
+interface ARInvoiceLine {
+  lineNumber: number;
+  description: string | null;
+  itemId: number | null;
+  glAccountId: number | null;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  vatAmount: number | null;
+  lotId: number | null;
+}
+
+interface ARInvoiceDetail extends ARInvoice {
+  salesOrderId: number | null;
+  lines: ARInvoiceLine[];
 }
 
 interface Customer {
@@ -210,6 +228,8 @@ export default function ARInvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<ARInvoice | null>(null);
   const [printData, setPrintData] = useState<ARInvoicePrintData | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [detailInvoice, setDetailInvoice] = useState<ARInvoiceDetail | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     customerId: null,
@@ -457,6 +477,44 @@ export default function ARInvoicesPage() {
     [customers, t]
   );
 
+  const handleView = useCallback(
+    async (invoice: ARInvoice) => {
+      try {
+        const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const detail = json.data;
+        setDetailInvoice({
+          ...detail,
+          subtotal: Number(detail.subtotal) || 0,
+          vatAmount: Number(detail.vatAmount) || 0,
+          totalAmount: Number(detail.totalAmount) || 0,
+          paidAmount: Number(detail.paidAmount) || 0,
+          lines: (detail.lines || []).map((l: any) => ({
+            lineNumber: Number(l.lineNumber) || 0,
+            description: l.description || '',
+            itemId: l.itemId ?? null,
+            glAccountId: l.glAccountId ?? null,
+            quantity: Number(l.quantity) || 0,
+            unitPrice: Number(l.unitPrice) || 0,
+            amount: Number(l.amount) || 0,
+            vatAmount: l.vatAmount != null ? Number(l.vatAmount) : null,
+            lotId: l.lotId ?? null,
+          })),
+        });
+        setDetailOpen(true);
+      } catch (err: any) {
+        notify(err.message || t('accountsReceivable.invoicesPage.toast.loadError'), 'error', 4000);
+      }
+    },
+    [t]
+  );
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailOpen(false);
+    setDetailInvoice(null);
+  }, []);
+
   const handleEdit = useCallback(async (invoice: ARInvoice) => {
     try {
       const res = await fetch(`/api/accounting/ar-invoices/${invoice.id}`);
@@ -609,6 +667,14 @@ export default function ARInvoicesPage() {
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
           <Button
+            icon="find"
+            hint={t('accountsReceivable.invoicesPage.detailDialog.view')}
+            stylingMode="text"
+            height={28}
+            onClick={() => handleView(invoice)}
+            elementAttr={{ 'data-testid': 'view-invoice-btn' }}
+          />
+          <Button
             icon="print"
             hint="พิมพ์ใบกำกับภาษี"
             stylingMode="text"
@@ -653,7 +719,7 @@ export default function ARInvoicesPage() {
         </div>
       );
     },
-    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, handlePrint, t]
+    [handleConfirm, handleEdit, handleDelete, handleOpenPaymentDialog, handlePrint, handleView, t]
   );
 
   // Calculate stats
@@ -1165,6 +1231,163 @@ export default function ARInvoicesPage() {
                     type="success"
                     onClick={handleReceivePayment}
                     disabled={paymentMutation.isPending}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Popup>
+
+        {/* Detail (read-only) Dialog */}
+        <Popup
+          visible={detailOpen}
+          onHiding={handleCloseDetail}
+          title={t('accountsReceivable.invoicesPage.detailDialog.title')}
+          width={820}
+          height="auto"
+          showCloseButton={true}
+          dragEnabled={true}
+        >
+          <div className="p-4" data-testid="ar-invoice-detail-dialog">
+            {detailInvoice && (
+              <>
+                {/* Header block */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.invoiceNumber')}</span>
+                    <span className="font-semibold">{detailInvoice.invoiceNumber || '-'}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.taxInvoiceNumber')}</span>
+                    <span className="font-semibold">{detailInvoice.taxInvoiceNumber || '-'}</span>
+                  </div>
+                  <div className="flex justify-between gap-2 items-center">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.status')}</span>
+                    {statusCellRender({ value: detailInvoice.status })}
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.customer')}</span>
+                    <span className="font-semibold">
+                      {customers.find((c) => c.id === detailInvoice.customerId)?.name ||
+                        detailInvoice.customerName ||
+                        '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.invoiceDate')}</span>
+                    <span className="font-semibold">
+                      {detailInvoice.invoiceDate ? String(detailInvoice.invoiceDate).split('T')[0] : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.dueDate')}</span>
+                    <span className="font-semibold">
+                      {detailInvoice.dueDate ? String(detailInvoice.dueDate).split('T')[0] : '-'}
+                    </span>
+                  </div>
+                  {detailInvoice.salesOrderId != null && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.salesOrder')}</span>
+                      <span className="font-semibold">#{detailInvoice.salesOrderId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-2 md:col-span-2">
+                    <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.description')}</span>
+                    <span className="font-semibold text-right">{detailInvoice.description || '-'}</span>
+                  </div>
+                </div>
+
+                {/* Line items table */}
+                <h3 className="font-semibold mb-2">
+                  {t('accountsReceivable.invoicesPage.detailDialog.lineItemsTitle')}
+                </h3>
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2 text-center" style={{ width: 50 }}>
+                          {t('accountsReceivable.invoicesPage.detailDialog.lineNumber')}
+                        </th>
+                        <th className="p-2 text-left">
+                          {t('accountsReceivable.invoicesPage.detailDialog.colDescription')}
+                        </th>
+                        <th className="p-2 text-right" style={{ width: 90 }}>
+                          {t('accountsReceivable.invoicesPage.detailDialog.colQuantity')}
+                        </th>
+                        <th className="p-2 text-right" style={{ width: 120 }}>
+                          {t('accountsReceivable.invoicesPage.detailDialog.colUnitPrice')}
+                        </th>
+                        <th className="p-2 text-right" style={{ width: 120 }}>
+                          {t('accountsReceivable.invoicesPage.detailDialog.colAmount')}
+                        </th>
+                        <th className="p-2 text-right" style={{ width: 100 }}>
+                          {t('accountsReceivable.invoicesPage.detailDialog.colVat')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailInvoice.lines.map((line, index) => (
+                        <tr key={index} className="border-t border-gray-100">
+                          <td className="p-2 text-center text-gray-500">
+                            {line.lineNumber || index + 1}
+                          </td>
+                          <td className="p-2 text-left">{line.description || '-'}</td>
+                          <td className="p-2 text-right">{formatNumber(line.quantity)}</td>
+                          <td className="p-2 text-right">{formatNumber(line.unitPrice)}</td>
+                          <td className="p-2 text-right">{formatNumber(line.amount)}</td>
+                          <td className="p-2 text-right">
+                            {line.vatAmount != null ? formatNumber(line.vatAmount) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totals block */}
+                <div className="mt-4 flex justify-end">
+                  <div className="w-full md:w-1/2 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.subtotal')}</span>
+                      <span className="font-semibold">{formatNumber(detailInvoice.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.vatAmount')}</span>
+                      <span className="font-semibold">{formatNumber(detailInvoice.vatAmount)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-200 pt-1 text-base">
+                      <span className="font-bold">{t('accountsReceivable.invoicesPage.detailDialog.totalAmount')}</span>
+                      <span className="font-bold">{formatNumber(detailInvoice.totalAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.paidAmount')}</span>
+                      <span className="font-semibold">{formatNumber(detailInvoice.paidAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">{t('accountsReceivable.invoicesPage.detailDialog.outstanding')}</span>
+                      <span className="font-bold text-orange-600">
+                        {formatNumber(detailInvoice.totalAmount - detailInvoice.paidAmount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detail Actions */}
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button
+                    text={t('accountsReceivable.invoicesPage.detailDialog.print')}
+                    icon="print"
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={() => handlePrint(detailInvoice)}
+                    elementAttr={{ 'data-testid': 'ar-detail-print-btn' }}
+                  />
+                  <Button
+                    text={t('accountsReceivable.invoicesPage.detailDialog.close')}
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={handleCloseDetail}
+                    elementAttr={{ 'data-testid': 'ar-detail-close-btn' }}
                   />
                 </div>
               </>

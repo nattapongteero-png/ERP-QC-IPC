@@ -673,6 +673,32 @@
         "amountRequired": "Please enter an amount",
         "note": "Note"
       },
+      "detailDialog": {
+        "title": "Invoice Details",
+        "view": "View Details",
+        "invoiceNumber": "Invoice Number",
+        "taxInvoiceNumber": "Tax Invoice Number",
+        "status": "Status",
+        "customer": "Customer",
+        "invoiceDate": "Invoice Date",
+        "dueDate": "Due Date",
+        "salesOrder": "Sales Order Ref.",
+        "description": "Description",
+        "lineItemsTitle": "Line Items",
+        "lineNumber": "#",
+        "colDescription": "Description",
+        "colQuantity": "Quantity",
+        "colUnitPrice": "Unit Price",
+        "colAmount": "Amount",
+        "colVat": "VAT",
+        "subtotal": "Subtotal (excl. VAT)",
+        "vatAmount": "VAT",
+        "totalAmount": "Grand Total",
+        "paidAmount": "Paid",
+        "outstanding": "Outstanding",
+        "print": "Print",
+        "close": "Close"
+      },
       "confirmInvoice": {
         "title": "Confirm Invoice",
         "message": "Do you want to confirm invoice {invoiceNumber}?<br/><strong>Tax Invoice: {taxInvoiceNumber}</strong><br/>The system will automatically create the journal entry and Output VAT."

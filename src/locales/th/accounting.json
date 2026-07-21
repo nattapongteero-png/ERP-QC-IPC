@@ -673,6 +673,32 @@
         "amountRequired": "กรุณากรอกจำนวนเงิน",
         "note": "หมายเหตุ"
       },
+      "detailDialog": {
+        "title": "รายละเอียดใบแจ้งหนี้",
+        "view": "ดูรายละเอียด",
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "taxInvoiceNumber": "เลขที่ใบกำกับภาษี",
+        "status": "สถานะ",
+        "customer": "ลูกค้า",
+        "invoiceDate": "วันที่ใบแจ้งหนี้",
+        "dueDate": "วันครบกำหนด",
+        "salesOrder": "ใบสั่งขายอ้างอิง",
+        "description": "รายละเอียด",
+        "lineItemsTitle": "รายการ",
+        "lineNumber": "#",
+        "colDescription": "รายการ",
+        "colQuantity": "จำนวน",
+        "colUnitPrice": "ราคาต่อหน่วย",
+        "colAmount": "จำนวนเงิน",
+        "colVat": "VAT",
+        "subtotal": "มูลค่าก่อนภาษี",
+        "vatAmount": "ภาษีมูลค่าเพิ่ม",
+        "totalAmount": "รวมทั้งสิ้น",
+        "paidAmount": "ชำระแล้ว",
+        "outstanding": "คงค้าง",
+        "print": "พิมพ์",
+        "close": "ปิด"
+      },
       "confirmInvoice": {
         "title": "ยืนยันใบแจ้งหนี้",
         "message": "คุณต้องการยืนยันใบแจ้งหนี้ {invoiceNumber} หรือไม่?<br/><strong>Tax Invoice: {taxInvoiceNumber}</strong><br/>ระบบจะสร้างรายการบันทึกบัญชีและ Output VAT อัตโนมัติ"
