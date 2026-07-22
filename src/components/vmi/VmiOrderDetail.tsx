@@ -515,11 +515,18 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             )}
             {canShip && (
               <DxButton
-                text="จัดส่งคำสั่งซื้อ"
-                type="default"
+                type="success"
                 onClick={() => setShowShipDialog(true)}
+                elementAttr={{ 'data-testid': 'vmi-ship-btn' }}
               >
-                <Truck className="h-4 w-4 mr-2" />
+                {/* Passing children overrides DevExtreme's text template, so the
+                    label must live inside the children — otherwise the button
+                    renders icon-only (list item 61: the green button had no
+                    label). Icon + Thai text together. */}
+                <span className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  จัดส่ง
+                </span>
               </DxButton>
             )}
             {/* A pending order can be rejected outright (list item 11) — the

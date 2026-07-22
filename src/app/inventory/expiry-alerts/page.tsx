@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxButton } from '@/components/ui/dx-button';
@@ -18,10 +18,36 @@ interface ExpiryItem {
   lotNumber: string;
   itemCode: string;
   itemName: string;
+  itemNameTh?: string;
+  itemNameEn?: string;
+  unit?: string;
   quantity: number;
+  value?: number;
   expiryDate: string;
   daysToExpiry?: number;
   daysExpired?: number;
+}
+
+/**
+ * Format a stored expiry date (YYYY-MM-DD or an ISO datetime such as
+ * "2026-01-01T00:00:00.000Z") as a plain dd/mm/yyyy string. Strips the time
+ * portion the tester saw ("T00:00:00") and never shifts the day (parses the
+ * date part directly rather than through the timezone-sensitive Date ctor).
+ */
+function formatExpiryDate(raw: string | null | undefined): string {
+  if (!raw) return '-';
+  const m = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const [, y, mo, d] = m;
+    return `${d}/${mo}/${y}`;
+  }
+  return String(raw);
+}
+
+/** Resolve the product name to the active locale, falling back gracefully. */
+function localizedItemName(item: ExpiryItem, locale: string): string {
+  if (locale.startsWith('th')) return item.itemNameTh || item.itemName || item.itemCode;
+  return item.itemNameEn || item.itemName || item.itemCode;
 }
 
 interface ExpiryReport {
@@ -61,6 +87,7 @@ const DAYS_OPTIONS_CONFIG: Array<{ value: string; translationKey: string }> = [
 
 export default function ExpiryAlertsPage() {
   const t = useTranslations('inventory');
+  const locale = useLocale();
   const { isMobile } = useMobile();
   const [report, setReport] = useState<ExpiryReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -138,14 +165,28 @@ export default function ExpiryAlertsPage() {
       </Link>
     ) },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
-    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
+    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200, cellRender: (cellInfo) => <span>{localizedItemName(cellInfo.data, locale)}</span> },
     {
       dataField: 'quantity',
       caption: t('expiryAlerts.columns.quantity'),
-      width: 120,
-      cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
+      width: 130,
+      // Show the unit alongside the number (item 46a).
+      cellRender: (cellInfo) => (
+        <span className="whitespace-nowrap">
+          {formatNumber(cellInfo.data.quantity)}
+          {cellInfo.data.unit ? ` ${cellInfo.data.unit}` : ''}
+        </span>
+      ),
     },
-    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 150, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{cellInfo.data.expiryDate}</span> },
+    {
+      dataField: 'value',
+      caption: t('expiryAlerts.columns.value'),
+      width: 130,
+      alignment: 'right',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => <span className="whitespace-nowrap">฿{formatMoney(cellInfo.data.value ?? 0)}</span>,
+    },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 130, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{formatExpiryDate(cellInfo.data.expiryDate)}</span> },
     {
       dataField: 'daysExpired',
       caption: t('expiryAlerts.columns.daysExpired'),
@@ -171,14 +212,28 @@ export default function ExpiryAlertsPage() {
       </Link>
     ) },
     { dataField: 'itemCode', caption: t('expiryAlerts.columns.itemCode'), width: 155, hideOnMobile: true, cellRender: (cellInfo) => <span className="font-mono whitespace-nowrap">{cellInfo.data.itemCode}</span> },
-    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200 },
+    { dataField: 'itemName', caption: t('expiryAlerts.columns.itemName'), minWidth: 200, cellRender: (cellInfo) => <span>{localizedItemName(cellInfo.data, locale)}</span> },
     {
       dataField: 'quantity',
       caption: t('expiryAlerts.columns.quantity'),
-      width: 120,
-      cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
+      width: 130,
+      // Show the unit alongside the number (item 46a).
+      cellRender: (cellInfo) => (
+        <span className="whitespace-nowrap">
+          {formatNumber(cellInfo.data.quantity)}
+          {cellInfo.data.unit ? ` ${cellInfo.data.unit}` : ''}
+        </span>
+      ),
     },
-    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 150, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{cellInfo.data.expiryDate}</span> },
+    {
+      dataField: 'value',
+      caption: t('expiryAlerts.columns.value'),
+      width: 130,
+      alignment: 'right',
+      hideOnMobile: true,
+      cellRender: (cellInfo) => <span className="whitespace-nowrap">฿{formatMoney(cellInfo.data.value ?? 0)}</span>,
+    },
+    { dataField: 'expiryDate', caption: t('expiryAlerts.columns.expiryDate'), width: 130, hideOnMobile: true, cellRender: (cellInfo) => <span className="whitespace-nowrap">{formatExpiryDate(cellInfo.data.expiryDate)}</span> },
     {
       dataField: 'daysToExpiry',
       caption: t('expiryAlerts.columns.daysToExpiry'),
@@ -306,7 +361,7 @@ export default function ExpiryAlertsPage() {
               </p>
             </div>
             {isMobile ? (
-              <ExpiredLotsMobileList items={expired} t={t} />
+              <ExpiredLotsMobileList items={expired} t={t} locale={locale} />
             ) : (
               <div className="p-3 sm:p-4">
                 <DxDataGrid
@@ -334,7 +389,7 @@ export default function ExpiryAlertsPage() {
               </p>
             </div>
             {isMobile ? (
-              <NearExpiryLotsMobileList items={nearExpiry} t={t} />
+              <NearExpiryLotsMobileList items={nearExpiry} t={t} locale={locale} />
             ) : (
               <div className="p-3 sm:p-4">
                 <DxDataGrid
@@ -358,7 +413,7 @@ export default function ExpiryAlertsPage() {
 // ============================================
 
 /** Mobile card list — Expired lots */
-function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: TranslateFn }) {
+function ExpiredLotsMobileList({ items, t, locale }: { items: ExpiryItem[]; t: TranslateFn; locale: string }) {
   return (
     <div className="p-3 space-y-3 bg-red-50/30">
       {items.map((item) => (
@@ -382,17 +437,21 @@ function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: Translate
               {t('expiryAlerts.badge.daysAgo', { days: item.daysExpired ?? 0 })}
             </Badge>
           </div>
-          <p className="text-sm text-gray-700 truncate mb-2">{item.itemName}</p>
-          <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
+          <p className="text-sm text-gray-700 truncate mb-2">{localizedItemName(item, locale)}</p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600 pt-2 border-t border-gray-100">
             <span className="inline-flex items-center gap-1">
               <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
               <span className="font-medium text-gray-800">
-                {formatNumber(item.quantity)}
+                {formatNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ''}
               </span>
             </span>
             <span className="inline-flex items-center gap-1">
+              <span className="text-gray-400">{t('expiryAlerts.columns.value')}</span>
+              <span className="font-medium text-gray-800">฿{formatMoney(item.value ?? 0)}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 col-span-2">
               <span className="text-gray-400">{t('expiryAlerts.mobile.expired')}</span>
-              <span className="font-medium text-red-700">{item.expiryDate}</span>
+              <span className="font-medium text-red-700">{formatExpiryDate(item.expiryDate)}</span>
             </span>
           </div>
         </div>
@@ -405,9 +464,11 @@ function ExpiredLotsMobileList({ items, t }: { items: ExpiryItem[]; t: Translate
 function NearExpiryLotsMobileList({
   items,
   t,
+  locale,
 }: {
   items: ExpiryItem[];
   t: TranslateFn;
+  locale: string;
 }) {
   return (
     <div className="p-3 space-y-3 bg-amber-50/30">
@@ -439,18 +500,22 @@ function NearExpiryLotsMobileList({
                 {t('expiryAlerts.badge.daysLeft', { days })}
               </Badge>
             </div>
-            <p className="text-sm text-gray-700 truncate mb-2">{item.itemName}</p>
-            <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
+            <p className="text-sm text-gray-700 truncate mb-2">{localizedItemName(item, locale)}</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600 pt-2 border-t border-gray-100">
               <span className="inline-flex items-center gap-1">
                 <span className="text-gray-400">{t('expiryAlerts.mobile.qty')}</span>
                 <span className="font-medium text-gray-800">
-                  {formatNumber(item.quantity)}
+                  {formatNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ''}
                 </span>
               </span>
               <span className="inline-flex items-center gap-1">
+                <span className="text-gray-400">{t('expiryAlerts.columns.value')}</span>
+                <span className="font-medium text-gray-800">฿{formatMoney(item.value ?? 0)}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 col-span-2">
                 <span className="text-gray-400">{t('expiryAlerts.mobile.expires')}</span>
                 <span className="font-medium text-amber-700">
-                  {item.expiryDate}
+                  {formatExpiryDate(item.expiryDate)}
                 </span>
               </span>
             </div>

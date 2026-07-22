@@ -19,6 +19,7 @@ import {
   listTolerances as listToleranceRows,
   upsertTolerance as upsertToleranceRow,
 } from './goods-receipt-tolerance.service';
+import { resolveDestinationWarehouseByItemType } from './warehouse-resolver.service';
 
 function getTables() {
   return {
@@ -153,8 +154,26 @@ export async function qaReleaseLine(
         line.vendorLotNumber ??
         line.batchNumber ??
         `${grn?.grnNumber ?? 'GRN'}-L${line.lineNumber}`;
-      // Destination: explicit override, else the warehouse chosen on the GRN.
-      const destWarehouseId = options?.warehouseId ?? Number(grn?.warehouseId);
+      // Destination warehouse resolution (item 40 fix). Priority:
+      //   1. explicit override passed by the caller;
+      //   2. the warehouse mapped by the ITEM'S TYPE (finished_goods → FG
+      //      warehouse, raw_material/packaging/consumable → RM warehouse) — this
+      //      is what makes a Finished Goods PO land in the FG warehouse instead
+      //      of the raw-material default the auto-created GRN header carried;
+      //   3. the warehouse chosen on the GRN header (legacy fallback).
+      // We resolve by item type rather than trusting grn.warehouseId because
+      // autoCreateGrnForSource() always stamped PO-sourced GRNs with the
+      // raw-material warehouse regardless of what was actually received.
+      let destWarehouseId = options?.warehouseId;
+      if (destWarehouseId == null) {
+        const itemType = itemRows[0]?.type as string | undefined;
+        if (itemType) {
+          destWarehouseId = await resolveDestinationWarehouseByItemType(db, itemType);
+        } else if (grn?.warehouseId != null) {
+          destWarehouseId = Number(grn.warehouseId);
+        }
+      }
+      if (destWarehouseId == null) destWarehouseId = Number(grn?.warehouseId);
 
       const lotInsert = await db.insert(t.inventoryLots).values({
         itemId: Number(line.itemId),
@@ -175,7 +194,6 @@ export async function qaReleaseLine(
         updatedAt: getNow(),
       });
       remainderLotId = Number(getInsertId(lotInsert));
-      void itemRows; // item meta reserved for future labelling
     }
 
     // Update line — record the counted total and link the remainder lot.

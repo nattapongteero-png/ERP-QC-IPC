@@ -20,8 +20,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { formatNumber } from '@/lib/utils/number-format';
+import { formatDateFromDb } from '@/lib/db/date-utils';
 import { FileText, Plus, DollarSign, ArrowRightLeft } from 'lucide-react';
 import type { Quotation, QuotationStatus } from '@/types/quotation';
+
+// Compact dd/mm/yyyy so the date never gets clipped to "2026-07-22…" in a
+// narrow column. formatDateFromDb() normalises MySQL Date vs SQLite string vs
+// full ISO ("…T00:00:00") down to YYYY-MM-DD first.
+function formatDateCompact(value: string | Date | null | undefined): string {
+  if (!value) return '-';
+  const ymd = formatDateFromDb(value);
+  const [y, m, d] = ymd.split('-');
+  if (!y || !m || !d) return ymd;
+  return `${d}/${m}/${y}`;
+}
 
 // Thai labels + badge tones for every quotation status. Kept in one map so the
 // grid cell and the filter dropdown never drift apart.
@@ -87,15 +99,40 @@ export default function QuotationsPage() {
   }, [rows]);
 
   const columns: DxDataGridColumn[] = [
-    { dataField: 'rowNo', caption: '#', width: 60, alignment: 'center', allowSorting: false },
-    { dataField: 'quotationNumber', caption: 'เลขที่', width: 160 },
-    { dataField: 'customerName', caption: 'ลูกค้า', minWidth: 200 },
-    { dataField: 'quotationDate', caption: 'วันที่', width: 120 },
-    { dataField: 'validUntil', caption: 'ใช้ได้ถึง', width: 120 },
+    { dataField: 'rowNo', caption: '#', width: 56, alignment: 'center', allowSorting: false },
+    { dataField: 'quotationNumber', caption: 'เลขที่', width: 150 },
+    {
+      dataField: 'customerName',
+      caption: 'ลูกค้า',
+      minWidth: 180,
+      // Let the full customer name wrap instead of clipping to "…"; keep the
+      // full text on hover via title.
+      cellRender: (c) => (
+        <span className="break-words whitespace-normal" title={String(c.data.customerName ?? '')}>
+          {c.data.customerName || '-'}
+        </span>
+      ),
+    },
+    {
+      dataField: 'quotationDate',
+      caption: 'วันที่',
+      width: 110,
+      cellRender: (c) => (
+        <span className="whitespace-nowrap tabular-nums">{formatDateCompact(c.data.quotationDate as string)}</span>
+      ),
+    },
+    {
+      dataField: 'validUntil',
+      caption: 'ใช้ได้ถึง',
+      width: 110,
+      cellRender: (c) => (
+        <span className="whitespace-nowrap tabular-nums">{formatDateCompact(c.data.validUntil as string)}</span>
+      ),
+    },
     {
       dataField: 'totalAmount',
       caption: 'ยอดรวม',
-      width: 150,
+      width: 140,
       alignment: 'right',
       cellRender: (c) => (
         <span className="tabular-nums font-medium">
@@ -222,6 +259,7 @@ export default function QuotationsPage() {
               pageSize={20}
               sorting
               responsiveColumns
+              columnHidingEnabled={false}
               onRowClick={(e: { data?: QuotationRow }) => {
                 if (e.data?.id) router.push(`/sales/quotations/${e.data.id}`);
               }}

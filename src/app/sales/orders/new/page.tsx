@@ -316,15 +316,24 @@ export default function NewSalesOrderPage() {
     </div>
   ), []);
 
+  // Commit on blur/change, NOT on every keystroke. Writing to `lines` state on
+  // each input re-renders the whole grid and re-seeds this controlled NumberBox
+  // mid-type, which on Chrome swallowed the keystroke and snapped the value back
+  // to its old number — the tester couldn't type a quantity/price at all.
+  // `valueChangeEvent="change"` (blur/Enter) lets the browser own the text while
+  // typing and reconciles once the user leaves the field. `min={0}` (not 0.01)
+  // so a partially-typed / cleared value isn't force-clamped while editing.
   const renderQuantityCell = useCallback((cellInfo: { data: SOLine }) => (
     <NumberBox
-      value={cellInfo.data.quantity}
+      defaultValue={cellInfo.data.quantity}
       onValueChanged={(e) => handleLineQuantityChange(cellInfo.data.id, e.value || 0)}
-      min={0.01}
+      valueChangeEvent="change blur"
+      min={0}
       step={1}
       format="#,##0.####"
       width="100%"
       stylingMode="outlined"
+      inputAttr={{ 'data-testid': `so-quantity-${cellInfo.data.id}` }}
     />
   ), [handleLineQuantityChange]);
 
@@ -337,8 +346,9 @@ export default function NewSalesOrderPage() {
     return (
       <div className="w-full">
         <NumberBox
-          value={cellInfo.data.unitPrice}
+          defaultValue={cellInfo.data.unitPrice}
           onValueChanged={(e) => handleLineUnitPriceChange(cellInfo.data.id, e.value || 0)}
+          valueChangeEvent="change blur"
           min={0}
           step={0.01}
           format="#,##0.00"
@@ -842,16 +852,27 @@ export default function NewSalesOrderPage() {
                   <span className="text-gray-500">{t('orders.new.lineCount')}</span>
                   <span className="font-medium text-gray-900">{lineCount} {t('orders.new.items')}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t('orders.new.customer')}</span>
-                  <span className="font-medium text-gray-900 truncate max-w-[150px]">
+                <div className="flex justify-between gap-2">
+                  <span className="text-gray-500 shrink-0">{t('orders.new.customer')}</span>
+                  <span className="font-medium text-gray-900 text-right break-words" title={form.customerName || undefined}>
                     {form.customerName || '-'}
                   </span>
                 </div>
+                {/* Goods and freight itemised so the net total below can be
+                    trusted to include shipping — the same breakdown shown in the
+                    lines card, kept in sync so nothing "disappears" on confirm. */}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('orders.new.goodsAmount')}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(totalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('orders.new.shippingCost')}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(form.shippingCost || 0)}</span>
+                </div>
                 <div className="pt-3 border-t">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 font-medium">{t('orders.new.total')}</span>
-                    <span className="text-xl font-bold text-green-600">{formatCurrency(totalAmount)}</span>
+                    <span className="text-gray-700 font-medium">{t('orders.new.grandTotal')}</span>
+                    <span className="text-xl font-bold text-green-600" data-testid="so-summary-grand-total">{formatCurrency(grandTotal)}</span>
                   </div>
                 </div>
               </CardContent>

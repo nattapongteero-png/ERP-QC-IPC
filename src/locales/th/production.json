@@ -23,6 +23,18 @@
     "tabs": {
       "all": "ทั้งหมด"
     },
+    "plan": {
+      "title": "แผนการผลิต",
+      "subtitle": "ปฏิทินแสดงใบสั่งผลิตตามวันที่วางแผน (เริ่ม → สิ้นสุด)",
+      "show": "แสดงปฏิทิน",
+      "hide": "ซ่อนปฏิทิน",
+      "prevMonth": "เดือนก่อนหน้า",
+      "nextMonth": "เดือนถัดไป",
+      "today": "วันนี้",
+      "noPlanned": "ไม่มีใบสั่งผลิตที่วางแผนในเดือนนี้",
+      "moreCount": "อีก {count} รายการ",
+      "legend": "สถานะ"
+    },
     "charts": {
       "byStatus": "ตามสถานะ",
       "byPriority": "ใบสั่งที่กำลังดำเนินการตามความสำคัญ",
@@ -484,7 +496,9 @@
       "completedToday": "เสร็จวันนี้",
       "pending": "รอดำเนินการ",
       "avgCompletionTime": "เวลาเฉลี่ย",
-      "minSuffix": " นาที"
+      "minSuffix": " นาที",
+      "hourSuffix": " ชม.",
+      "daySuffix": " วัน"
     },
     "charts": {
       "statusDistribution": "สัดส่วนสถานะ eBMR",

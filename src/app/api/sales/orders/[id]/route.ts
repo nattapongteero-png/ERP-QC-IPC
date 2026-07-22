@@ -66,6 +66,24 @@ export async function PATCH(
         if ('carrier' in body) updates.carrier = body.carrier || null;
         if ('trackingNumber' in body) updates.trackingNumber = body.trackingNumber || null;
 
+        // Manual status move (list items 50/58/59). Only the no-side-effect
+        // transitions are allowed here — draft⇄confirmed and cancelling a
+        // not-yet-fulfilled order. Anything that touches stock/GL (shipped,
+        // delivered) still goes through fulfilment, never this generic PATCH.
+        if ('status' in body && body.status && body.status !== existing.status) {
+          const ALLOWED: Record<string, string[]> = {
+            draft: ['confirmed', 'cancelled'],
+            confirmed: ['draft', 'cancelled'],
+          };
+          const allowed = ALLOWED[existing.status as string] ?? [];
+          if (!allowed.includes(body.status)) {
+            return errorResponse(
+              `เปลี่ยนสถานะจาก "${existing.status}" เป็น "${body.status}" ไม่ได้`,
+            );
+          }
+          updates.status = body.status;
+        }
+
         if (Object.keys(updates).length === 0) {
           return errorResponse('ไม่มีข้อมูลที่จะแก้ไข');
         }

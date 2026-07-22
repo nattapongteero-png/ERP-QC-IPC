@@ -874,6 +874,14 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   }
 
   const { salesOrder: so, lines, summary } = data;
+  // The stored totalAmount is GOODS ONLY (line totals). Freight is stored
+  // separately and posts to a different GL account, but the money the customer
+  // owes — the "ยอดรวมสุทธิ" the tester expects — is goods + freight. Compute
+  // it here so every place that shows the net total is consistent, and the
+  // freight line never silently disappears after confirming.
+  const goodsAmount = summary.totalAmount;
+  const freightAmount = Number(so.shippingCost || 0);
+  const netTotal = goodsAmount + freightAmount;
   const statusConfig = STATUS_CONFIG[so.status] || STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
   const overdue = isOverdue(so.requiredDate, so.status);
@@ -972,7 +980,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               {so.customerName?.charAt(0)?.toUpperCase() || 'C'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-gray-900 truncate">{so.customerName || '-'}</p>
+              <p className="font-semibold text-gray-900 break-words" title={so.customerName || undefined}>{so.customerName || '-'}</p>
               <p className="text-sm text-gray-500">{t('orders.detail.fields.customer')}</p>
             </div>
           </div>
@@ -1080,6 +1088,37 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
       />
     </div>
   );
+
+  // Move the order between draft and confirmed. The backend PATCH accepts a
+  // { status } payload for draft⇄confirmed⇄cancelled; here we drive the two
+  // user-facing transitions the sales clerk needs from the detail screen.
+  const [changingStatus, setChangingStatus] = useState(false);
+  const handleChangeStatus = async (nextStatus: 'confirmed' | 'draft') => {
+    setChangingStatus(true);
+    try {
+      const response = await fetch(`/api/sales/orders/${resolvedParams.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(
+          nextStatus === 'confirmed'
+            ? t('orders.detail.actions.confirmSuccess')
+            : t('orders.detail.actions.revertSuccess'),
+        );
+        await fetchSODetail();
+      } else {
+        toast.error(result.error || t('orders.detail.actions.statusChangeFailed'));
+      }
+    } catch (error) {
+      console.error('Failed to change SO status:', error);
+      toast.error(t('orders.detail.actions.statusChangeFailed'));
+    } finally {
+      setChangingStatus(false);
+    }
+  };
 
   const handleStartEditShipping = () => {
     // Seed from what is stored, not from whatever was typed last time — the
@@ -1308,9 +1347,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-white/80 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <Building2 className="h-4 w-4" />
-                      <span>{so.customerName}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Building2 className="h-4 w-4 shrink-0" />
+                      <span className="break-words" title={so.customerName || undefined}>{so.customerName}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-4 w-4" />
@@ -1341,6 +1380,28 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 >
                   <Printer className="h-5 w-5" />
                 </button>
+                {so.status === 'draft' && (
+                  <DxButton
+                    text={t('orders.detail.actions.confirmOrder')}
+                    icon="check"
+                    type="success"
+                    disabled={changingStatus}
+                    onClick={() => handleChangeStatus('confirmed')}
+                    elementAttr={{ 'data-testid': 'so-confirm-btn' }}
+                  />
+                )}
+                {so.status === 'confirmed' && summary.totalShipped === 0 && (
+                  <DxButton
+                    text={t('orders.detail.actions.revertToDraft')}
+                    icon="undo"
+                    type="normal"
+                    stylingMode="text"
+                    disabled={changingStatus}
+                    onClick={() => handleChangeStatus('draft')}
+                    className="text-white hover:bg-white/20"
+                    elementAttr={{ 'data-testid': 'so-revert-btn' }}
+                  />
+                )}
                 {so.status === 'confirmed' && summary.allCanFulfill && (
                   <DxButton
                     text={t('orders.detail.actions.processAll')}
@@ -1382,9 +1443,16 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           <div className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-[14px] shadow-[0_6px_20px_rgba(6,78,59,0.06)] p-3">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-xs text-gray-500">{t('orders.detail.summary.total')}</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(summary.totalAmount, so.currency)}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">{t('orders.detail.summary.netTotal')}</p>
+                <p className="text-lg font-bold text-gray-900" data-testid="so-net-total">{formatCurrency(netTotal, so.currency)}</p>
+                {freightAmount > 0 && (
+                  <p className="text-[11px] text-gray-400 leading-tight">
+                    {t('orders.detail.summary.goods')} {formatCurrency(goodsAmount, so.currency)}
+                    {' + '}
+                    {t('orders.detail.summary.freight')} {formatCurrency(freightAmount, so.currency)}
+                  </p>
+                )}
               </div>
             </div>
           </div>

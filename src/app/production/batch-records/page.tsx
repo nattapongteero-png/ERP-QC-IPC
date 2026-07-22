@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { formatNumber } from '@/lib/utils/number-format';
 import { useMobile } from '@/hooks/use-mobile';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -174,6 +175,21 @@ export default function BatchRecordsDashboardPage() {
     });
   };
 
+  // Format the average production time (given in hours) for the stat card.
+  // < 24h → "X ชม."; >= 24h → "D วัน H ชม." so multi-day runs read naturally.
+  // null (no completed WO with both timestamps) → "-".
+  const formatAvgDuration = (hours: number | null): string => {
+    if (hours == null || !isFinite(hours) || hours <= 0) return '-';
+    if (hours < 24) {
+      return `${formatNumber(hours, 1)}${t('batchRecords.stats.hourSuffix')}`;
+    }
+    const days = Math.floor(hours / 24);
+    const remHours = Math.round((hours - days * 24) * 10) / 10;
+    const dayPart = `${formatNumber(days)}${t('batchRecords.stats.daySuffix')}`;
+    if (remHours <= 0) return dayPart;
+    return `${dayPart} ${formatNumber(remHours, 1)}${t('batchRecords.stats.hourSuffix')}`;
+  };
+
   // Apply tab + text search on top of API-level status filter; tag rows with
   // display row number (mirrors /inventory/items).
   const filteredRecords = useMemo(() => {
@@ -306,7 +322,7 @@ export default function BatchRecordsDashboardPage() {
         />
         <StatCard
           label={t('batchRecords.stats.avgCompletionTime')}
-          value={dashboard?.avgCompletionTime ? `${dashboard.avgCompletionTime}${t('batchRecords.stats.minSuffix')}` : '-'}
+          value={formatAvgDuration(dashboard?.avgCompletionTime ?? null)}
           icon={Timer}
           iconColor="text-cyan-500"
           accentColor="border-cyan-500"

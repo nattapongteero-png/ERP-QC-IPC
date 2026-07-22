@@ -24,7 +24,7 @@
     "items": "รายการสินค้า",
     "lots": "ล็อต",
     "warehouses": "คลังสินค้า",
-    "transactions": "ธุรกรรม",
+    "transactions": "รายการเคลื่อนไหว",
     "returnsInbox": "การคืนวัตถุดิบ",
     "expiryAlerts": "แจ้งเตือนหมดอายุ",
     "goodsReceipt": "ตรวจรับของ (คลัง)",

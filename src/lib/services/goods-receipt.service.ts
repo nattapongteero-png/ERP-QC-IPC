@@ -225,7 +225,24 @@ export async function autoCreateGrnForSource(opts: {
       .limit(1);
     if (existing.length > 0) return { existsId: Number(existing[0].id), warehouseId: null as number | null };
 
-    const whType = opts.sourceType === 'wo' ? 'finished_goods' : 'raw_material';
+    // Resolve the GRN header's default warehouse by what is actually being
+    // received (item 40). A WO always produces finished goods. A PO defaults to
+    // raw material UNLESS its lines carry finished-goods/wip items — a Finished
+    // Goods PO must land in the FG warehouse, not the raw-material default.
+    let whType = 'raw_material';
+    if (opts.sourceType === 'wo') {
+      whType = 'finished_goods';
+    } else if (opts.poId != null) {
+      const poItemRows = await db
+        .select({ type: t.items.type })
+        .from(t.poLines)
+        .leftJoin(t.items, eq(t.poLines.itemId, t.items.id))
+        .where(eq(t.poLines.poId, Number(opts.poId)));
+      const hasFinished = poItemRows.some((r: any) =>
+        r.type === 'finished_goods' || r.type === 'wip',
+      );
+      if (hasFinished) whType = 'finished_goods';
+    }
     let whRows = await db.select({ id: t.warehouses.id }).from(t.warehouses).where(eq(t.warehouses.type, whType)).limit(1);
     if (whRows.length === 0) {
       whRows = await db.select({ id: t.warehouses.id }).from(t.warehouses).limit(1);

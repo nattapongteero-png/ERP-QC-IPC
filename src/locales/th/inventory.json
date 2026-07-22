@@ -289,6 +289,7 @@
       "itemCode": "รหัสสินค้า",
       "itemName": "ชื่อสินค้า",
       "quantity": "จำนวน",
+      "value": "มูลค่า",
       "expiryDate": "วันหมดอายุ",
       "daysExpired": "จำนวนวันที่หมดอายุ",
       "daysToExpiry": "วันเหลือถึงวันหมดอายุ"

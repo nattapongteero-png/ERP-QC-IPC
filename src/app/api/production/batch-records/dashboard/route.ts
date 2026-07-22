@@ -19,6 +19,7 @@ export interface BatchRecordsDashboard {
   completedRecords: number;
   deviationRecords: number;
   completedToday: number;
+  /** Average production time in HOURS across completed WOs with start+end; null if none. */
   avgCompletionTime: number | null;
   byStatus: Record<string, number>;
   byOperation: Array<{
@@ -178,6 +179,31 @@ export async function GET() {
       return endDate === today || updatedDate === today;
     }).length;
 
+    // Average production time (in HOURS) across completed WOs that recorded both
+    // a real start and end. eBMR durations differ per WO, so this is a genuine
+    // average — not a placeholder. Skips rows missing either timestamp or with a
+    // non-positive span (bad data) rather than skewing the mean. (list item 48)
+    let avgCompletionTime: number | null = null;
+    {
+      const durationsHours: number[] = [];
+      for (const wo of woDetails) {
+        if (mapStatus(wo.status as string) !== 'completed') continue;
+        const startRaw = wo.actualStartDate as string | Date | null;
+        const endRaw = wo.actualEndDate as string | Date | null;
+        if (!startRaw || !endRaw) continue;
+        const start = new Date(startRaw).getTime();
+        const end = new Date(endRaw).getTime();
+        if (isNaN(start) || isNaN(end)) continue;
+        const hours = (end - start) / (1000 * 60 * 60);
+        if (hours > 0) durationsHours.push(hours);
+      }
+      if (durationsHours.length > 0) {
+        const sum = durationsHours.reduce((s, h) => s + h, 0);
+        // One decimal place of hours; the UI formats hours→days/hours for display.
+        avgCompletionTime = Math.round((sum / durationsHours.length) * 10) / 10;
+      }
+    }
+
     // Step 4: Get execution activity counts per WO for progress tracking
     const [sopCounts, cleanCounts, envCounts, fiCounts] = await Promise.all([
       executeDbOperation(async (db) =>
@@ -264,7 +290,9 @@ export async function GET() {
       completedRecords,
       deviationRecords,
       completedToday,
-      avgCompletionTime: null, // Not directly applicable for WO-level
+      // Average production time in hours across completed WOs (list item 48).
+      // null only when no completed WO has both start+end timestamps.
+      avgCompletionTime,
       byStatus,
       byOperation,
       topProducts,

@@ -172,8 +172,8 @@ export async function getInventoryValuationReport(): Promise<{
  * Expiry Report
  */
 export async function getExpiryReport(daysThreshold: number = 90): Promise<{
-  expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }>;
-  nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }>;
+  expired: Array<{ lotNumber: string; itemCode: string; itemName: string; itemNameTh: string; itemNameEn: string; unit: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }>;
+  nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; itemNameTh: string; itemNameEn: string; unit: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }>;
   summary: {
     expiredCount: number;
     expiredValue: number;
@@ -203,6 +203,9 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
       cost: lots.cost,
       itemCode: items.code,
       itemName: items.nameEn,
+      itemNameTh: items.nameTh,
+      itemNameEn: items.nameEn,
+      unit: lots.unit,
     })
     .from(lots)
     .innerJoin(items, eq(lots.itemId, items.id))
@@ -215,8 +218,8 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
     )
     .orderBy(asc(lots.expiryDate));
 
-  const expired: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }> = [];
-  const nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }> = [];
+  const expired: Array<{ lotNumber: string; itemCode: string; itemName: string; itemNameTh: string; itemNameEn: string; unit: string; quantity: number; expiryDate: string; daysExpired: number; status: string; value: number }> = [];
+  const nearExpiry: Array<{ lotNumber: string; itemCode: string; itemName: string; itemNameTh: string; itemNameEn: string; unit: string; quantity: number; expiryDate: string; daysToExpiry: number; status: string; value: number }> = [];
   let expiredValue = 0;
   let nearExpiryValue = 0;
   let lotsMissingCost = 0;
@@ -246,6 +249,9 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
         lotNumber: lot.lotNumber,
         itemCode: lot.itemCode,
         itemName: lot.itemName || lot.itemCode,
+        itemNameTh: lot.itemNameTh || lot.itemCode,
+        itemNameEn: lot.itemNameEn || lot.itemCode,
+        unit: lot.unit || '',
         quantity: qty,
         expiryDate: lot.expiryDate,
         daysExpired: Math.abs(diffDays),
@@ -258,6 +264,9 @@ export async function getExpiryReport(daysThreshold: number = 90): Promise<{
         lotNumber: lot.lotNumber,
         itemCode: lot.itemCode,
         itemName: lot.itemName || lot.itemCode,
+        itemNameTh: lot.itemNameTh || lot.itemCode,
+        itemNameEn: lot.itemNameEn || lot.itemCode,
+        unit: lot.unit || '',
         quantity: qty,
         expiryDate: lot.expiryDate,
         daysToExpiry: diffDays,

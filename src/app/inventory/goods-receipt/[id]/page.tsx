@@ -28,6 +28,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { StatusStepper } from '@/components/shared';
+import { DxDateBox } from '@/components/ui/dx-date-box';
 import { CoaOcrUpload } from '@/components/inventory/coa-ocr-upload';
 import type { CoaExtraction } from '@/types/coa-ocr';
 import type {
@@ -479,14 +480,18 @@ export default function GrnDetailPage() {
         />
         <Column
           caption="การดำเนินการ"
-          width={172}
-          minWidth={150}
+          width={210}
+          minWidth={190}
           fixed
           fixedPosition="right"
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
             return (
-              <div className="flex flex-col gap-1 items-stretch [&_.dx-button]:w-full">
+              // Let button labels wrap to two lines instead of being clipped —
+              // "Release to Stock" / "ลงนาม Checklist" no longer get cut off
+              // (items 42, 43). dx-button-content keeps its label on one line by
+              // default, so override white-space + height here.
+              <div className="flex flex-col gap-1 items-stretch [&_.dx-button]:w-full [&_.dx-button]:h-auto [&_.dx-button-content]:whitespace-normal [&_.dx-button-text]:whitespace-normal [&_.dx-button-content]:py-1.5 [&_.dx-button-content]:leading-tight">
                 {/* Edit the line's actuals — opens a form popup (Save inside).
                     Only while the line is still editable (status=created). */}
                 {line.status === 'created' && canRelease && (
@@ -508,6 +513,7 @@ export default function GrnDetailPage() {
                     text={t('actions.signChecklist')}
                     type="default"
                     stylingMode="outlined"
+                    data-testid={`sign-checklist-${line.id}`}
                     onClick={() => {
                       setActiveLineId(line.id);
                       const initial: Record<number, { isPass: boolean; remarks?: string }> = {};
@@ -532,6 +538,7 @@ export default function GrnDetailPage() {
                   <Button
                     text={t('actions.release')}
                     type="success"
+                    data-testid={`release-line-${line.id}`}
                     onClick={() => {
                       // Default the counted-quantity to the expected (received)
                       // quantity so "เข้าคลัง" shows expected − QC sample from the
@@ -627,23 +634,30 @@ export default function GrnDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('form.manufacturingDate.label')}</label>
-              <input
+              {/* dd/MM/yyyy display, ISO (YYYY-MM-DD) stored value (item 41) */}
+              <DxDateBox
                 type="date"
-                name="edit-mfg-date"
                 value={editForm.manufacturingDate}
-                onChange={(e) => setEditForm((f) => ({ ...f, manufacturingDate: e.target.value }))}
-                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                onValueChange={(v) => setEditForm((f) => ({ ...f, manufacturingDate: v }))}
+                displayFormat="dd/MM/yyyy"
+                labelMode="hidden"
+                placeholder="dd/mm/yyyy"
+                showClearButton
+                width="100%"
                 data-testid="edit-mfg-date"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('form.expiryDate.label')}</label>
-              <input
+              <DxDateBox
                 type="date"
-                name="edit-expiry-date"
                 value={editForm.expiryDate}
-                onChange={(e) => setEditForm((f) => ({ ...f, expiryDate: e.target.value }))}
-                className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                onValueChange={(v) => setEditForm((f) => ({ ...f, expiryDate: v }))}
+                displayFormat="dd/MM/yyyy"
+                labelMode="hidden"
+                placeholder="dd/mm/yyyy"
+                showClearButton
+                width="100%"
                 data-testid="edit-expiry-date"
               />
             </div>

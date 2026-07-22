@@ -35,6 +35,11 @@ export async function GET(
             status: purchaseOrders.status,
             totalAmount: purchaseOrders.totalAmount,
             notes: purchaseOrders.notes,
+            // Payment terms + delivery address were saved on create but the
+            // detail query never returned them, so the edit form loaded them
+            // back as empty (list item 44). Select them so edits preserve them.
+            paymentTerms: purchaseOrders.paymentTerms,
+            shippingAddress: purchaseOrders.shippingAddress,
             // createdBy drives the separation-of-duties guard (the creator must
             // not approve their own PO).
             createdBy: purchaseOrders.createdBy,

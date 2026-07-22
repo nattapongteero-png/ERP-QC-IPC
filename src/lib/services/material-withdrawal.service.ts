@@ -498,6 +498,19 @@ export async function getRequestById(
       releasedBy = { id: Number(header.releasedByUserId), name: relRows[0]?.name ?? '' };
     }
 
+    // Approver name (the supervisor who approved OR rejected) — used for both
+    // the detail's approval.approverName and the summary's approvedBy field.
+    let approverName: string | null = null;
+    if (approvalRows.length > 0 && approvalRows[0].approverUserId != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const apprRows: any[] = await db
+        .select({ id: tables.users.id, name: tables.users.name })
+        .from(tables.users)
+        .where(eq(tables.users.id, approvalRows[0].approverUserId))
+        .limit(1);
+      approverName = apprRows[0]?.name ?? null;
+    }
+
     // Enrich each line with the material's name/code and the on-hand qty across
     // lots, so the approver sees *what* the material is and *whether* there is
     // enough — instead of a bare id and a surprise "not enough" error on submit.
@@ -538,6 +551,7 @@ export async function getRequestById(
         id: Number(header.requestedByUserId),
         name: requester[0]?.name ?? '',
       },
+      approvedBy: approverName,
       itemCount: items.length,
       items: items.map((it) => {
         const meta = itemMetaById.get(Number(it.materialId));
@@ -569,6 +583,7 @@ export async function getRequestById(
       approval: approvalRows.length > 0
         ? {
             approverUserId: Number(approvalRows[0].approverUserId),
+            approverName: approverName ?? undefined,
             action: approvalRows[0].action,
             actionAt: String(approvalRows[0].actionAt),
             reason: approvalRows[0].reason ?? null,
@@ -630,14 +645,34 @@ export async function listRequests(
       }
     }
 
-    // Requester names
-    const requesterIds = Array.from(new Set(rows.map((r) => Number(r.requestedByUserId))));
-    const userRows = requesterIds.length > 0
+    // Approval (approve OR reject) per request, so the list can show who
+    // reviewed each request (ผู้อนุมัติ — list item 49). One decision per
+    // request in this flow; take the row keyed by requestId.
+    const approvalByReq = new Map<number, { approverUserId: number }>();
+    if (requestIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const approvalRows: any[] = await db
+        .select({
+          requestId: tables.approvals.requestId,
+          approverUserId: tables.approvals.approverUserId,
+        })
+        .from(tables.approvals)
+        .where(inArray(tables.approvals.requestId, requestIds));
+      for (const a of approvalRows) {
+        approvalByReq.set(Number(a.requestId), { approverUserId: Number(a.approverUserId) });
+      }
+    }
+
+    // Requester + approver names (single user lookup covering both roles).
+    const requesterIds = rows.map((r) => Number(r.requestedByUserId));
+    const approverIds = Array.from(approvalByReq.values()).map((a) => a.approverUserId);
+    const userIds = Array.from(new Set([...requesterIds, ...approverIds]));
+    const userRows = userIds.length > 0
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? ((await db
           .select({ id: tables.users.id, name: tables.users.name })
           .from(tables.users)
-          .where(inArray(tables.users.id, requesterIds))) as any[])
+          .where(inArray(tables.users.id, userIds))) as any[])
       : [];
     const userById = new Map<number, string>();
     for (const u of userRows) userById.set(Number(u.id), String(u.name ?? ''));
@@ -683,6 +718,10 @@ export async function listRequests(
           id: Number(r.requestedByUserId),
           name: userById.get(Number(r.requestedByUserId)) ?? '',
         },
+        approvedBy: (() => {
+          const appr = approvalByReq.get(Number(r.id));
+          return appr ? (userById.get(appr.approverUserId) ?? null) : null;
+        })(),
         itemCount: itemCounts.get(Number(r.id)) ?? 0,
       };
     });

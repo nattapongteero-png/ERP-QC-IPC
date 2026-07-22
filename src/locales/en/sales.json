@@ -292,6 +292,9 @@
         "shipped": "Shipped",
         "pending": "Pending",
         "total": "Total",
+        "netTotal": "Net Total",
+        "goods": "Goods",
+        "freight": "Freight",
         "units": "units"
       },
       "alerts": {
@@ -306,7 +309,12 @@
         "processAll": "Process All",
         "goToFulfillment": "Go to Fulfillment",
         "goToPrep": "Go to Preparation",
-        "processAllDisabledHint": "Process All is not enabled yet. Please fulfill each line in the Fulfillment tab."
+        "processAllDisabledHint": "Process All is not enabled yet. Please fulfill each line in the Fulfillment tab.",
+        "confirmOrder": "Confirm Order",
+        "revertToDraft": "Revert to Draft",
+        "confirmSuccess": "Order confirmed",
+        "revertSuccess": "Reverted to draft",
+        "statusChangeFailed": "Failed to change status"
       },
       "columns": {
         "item": "Item",

@@ -41,6 +41,7 @@ import TextBox from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { cn } from '@/lib/utils/cn';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { ProductionPlanCalendar } from '@/components/production/production-plan-calendar';
 import {
   Factory,
   ClipboardList,
@@ -229,6 +230,8 @@ export default function WorkOrdersPage() {
   const tCommon = useTranslations('common');
   const { isMobile } = useMobile();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  // Production plan calendar (แผนการผลิต) collapsible section — list item 47.
+  const [planOpen, setPlanOpen] = useState(false);
   const queryClient = useQueryClient();
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -934,6 +937,43 @@ export default function WorkOrdersPage() {
       {/* (Removed the per-status summary card row — it duplicated the status
           donut above and the filter tabs below. Status filtering now lives in
           the tabs only.) */}
+
+      {/* Production Plan Calendar (แผนการผลิต) — collapsible, read-only view of
+          which WOs are scheduled on which dates. List item 47. */}
+      <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setPlanOpen((o) => !o)}
+          className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 text-left hover:bg-emerald-50/40 transition-colors"
+          aria-expanded={planOpen}
+          data-testid="toggle-production-plan"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-2 bg-emerald-50 rounded-lg shrink-0">
+              <Calendar className="w-4 h-4 text-emerald-600" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-[#064E3B] truncate">
+                {t('workOrders.plan.title')}
+              </h3>
+              <p className="text-xs text-[#4B7163] truncate">{t('workOrders.plan.subtitle')}</p>
+            </div>
+          </div>
+          <span className="text-sm text-emerald-700 font-medium whitespace-nowrap flex items-center gap-1">
+            {planOpen ? t('workOrders.plan.hide') : t('workOrders.plan.show')}
+            <span className={cn('transition-transform', planOpen ? 'rotate-180' : '')}>▾</span>
+          </span>
+        </button>
+        {planOpen && (
+          <div className="border-t border-emerald-50 p-4 sm:p-5">
+            <ProductionPlanCalendar
+              workOrders={workOrders}
+              t={t}
+              onSelect={(id) => router.push(`/production/work-orders/${id}`)}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Main Content - Tabs + DataGrid */}
       <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">

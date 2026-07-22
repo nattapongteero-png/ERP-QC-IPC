@@ -101,7 +101,14 @@ export async function POST(request: NextRequest) {
         carrier,
         trackingNumber,
         lines,
+        status: requestedStatus,
       } = body;
+
+      // Honour the status chosen on the form (list items 50/58/59: it was
+      // hard-coded to 'draft', so "ยืนยันแล้ว" was silently ignored). Only these
+      // two are valid at creation — later states are reached via fulfilment.
+      const status =
+        requestedStatus === 'confirmed' ? 'confirmed' : 'draft';
 
       if (!customerName) {
         return errorResponse('Customer name is required');

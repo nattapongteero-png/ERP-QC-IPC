@@ -104,10 +104,20 @@ describe('patch — tracking is fillable after the goods leave', () => {
     expect(PATCH_API).toMatch(/ค่าขนส่งต้องเป็นตัวเลขและไม่ติดลบ/);
   });
 
-  it('will not let a generic patch move status, quantities or prices', () => {
-    // Those carry stock and GL effects and have their own flows.
+  it('will not let a generic patch move quantities or prices', () => {
+    // Quantities and prices carry stock and GL effects and have their own flows.
     const updates = PATCH_API.slice(PATCH_API.indexOf('const updates'));
-    expect(updates).not.toMatch(/updates\.status|updates\.totalAmount|updates\.quantity/);
+    expect(updates).not.toMatch(/updates\.totalAmount|updates\.quantity|updates\.unitPrice/);
+  });
+
+  it('allows only the no-side-effect status transitions (list items 50/58/59)', () => {
+    // A manual draft⇄confirmed (and cancel of a not-yet-fulfilled order) is now
+    // permitted here, but it is gated by an allow-list — shipped/delivered still
+    // go through fulfilment, never this generic PATCH.
+    const block = PATCH_API.slice(PATCH_API.indexOf("'status' in body"));
+    expect(PATCH_API).toMatch(/'status' in body/);
+    expect(block).toMatch(/draft:\s*\[['"]confirmed['"]/);
+    expect(block).not.toMatch(/shipped|delivered/);
   });
 
   it('only writes fields the caller actually sent', () => {

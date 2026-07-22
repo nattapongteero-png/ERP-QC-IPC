@@ -185,6 +185,11 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   tabletHeight?: number | string;
   /** Enable responsive column hiding based on hideOnMobile/hideOnTablet column props */
   responsiveColumns?: boolean;
+  /** DevExtreme adaptive column hiding — when it can't fit all columns it hides
+   *  some behind a per-row "…" expand button. Pass false to suppress that
+   *  button (columns wrap / scroll instead). Undefined leaves DevExtreme's
+   *  default. */
+  columnHidingEnabled?: boolean;
   /** Fill available height (use with flex container) - overrides height props on tablet */
   fillHeight?: boolean;
   /** Element attributes for testing */
@@ -262,6 +267,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   mobileHeight,
   tabletHeight,
   responsiveColumns = true,
+  columnHidingEnabled,
   fillHeight = false,
   elementAttr,
   groupPanel = false,
@@ -321,6 +327,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       columnAutoWidth={columnAutoWidth}
       wordWrapEnabled={wordWrapEnabled}
       repaintChangesOnly={repaintChangesOnly}
+      columnHidingEnabled={columnHidingEnabled}
       height={responsiveHeight}
       width={width}
       noDataText={noDataText}

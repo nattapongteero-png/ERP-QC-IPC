@@ -20,6 +20,7 @@ import DateBox from 'devextreme-react/date-box';
 import NumberBox from 'devextreme-react/number-box';
 import DataGrid, { Column, Paging } from 'devextreme-react/data-grid';
 import { ItemSearchDialog, type Item } from '@/components/ui/item-search-dialog';
+import { CustomerSearchDialog, type Customer } from '@/components/ui/customer-search-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { formatNumber } from '@/lib/utils/number-format';
 import {
@@ -29,6 +30,10 @@ import {
   Trash2,
   Calendar,
   CreditCard,
+  Search,
+  Phone,
+  Mail,
+  MapPin,
 } from 'lucide-react';
 import type { QuotationLineInput } from '@/types/quotation';
 
@@ -39,6 +44,9 @@ interface QuotationFormLine extends QuotationLineInput {
 }
 
 interface FormData {
+  // customerId is set when an existing customer is picked from the search
+  // dialog; null for a free-text-only quotation. The quotation API accepts it.
+  customerId: number | null;
   customerName: string;
   customerContact: string;
   customerAddress: string;
@@ -63,9 +71,12 @@ export default function NewQuotationPage() {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [keyCounter, setKeyCounter] = useState(1);
 
   const [form, setForm] = useState<FormData>({
+    customerId: null,
     customerName: '',
     customerContact: '',
     customerAddress: '',
@@ -88,6 +99,33 @@ export default function NewQuotationPage() {
     () => lines.map((l) => ({ ...l, amount: (l.quantity || 0) * (l.unitPrice || 0) })),
     [lines],
   );
+
+  // Pick an existing customer (mirrors the sales-order form). Fills the
+  // name/contact/address/paymentTerms fields and stores customerId so the
+  // quotation is linked to the customer record — while leaving the fields
+  // editable and keeping free-text entry as a fallback.
+  const handleSelectCustomer = useCallback((customer: Customer) => {
+    setSelectedCustomer(customer);
+    setForm((p) => ({
+      ...p,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerContact: customer.contactPerson || customer.phone || '',
+      customerAddress: customer.address || '',
+      paymentTerms: customer.paymentTerms || p.paymentTerms,
+    }));
+  }, []);
+
+  const handleClearCustomer = useCallback(() => {
+    setSelectedCustomer(null);
+    setForm((p) => ({
+      ...p,
+      customerId: null,
+      customerName: '',
+      customerContact: '',
+      customerAddress: '',
+    }));
+  }, []);
 
   const handleSelectItem = useCallback((item: Item) => {
     setLines((prev) => [
@@ -149,6 +187,7 @@ export default function NewQuotationPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          customerId: form.customerId ?? undefined,
           customerName: form.customerName.trim(),
           customerContact: form.customerContact || null,
           customerAddress: form.customerAddress || null,
@@ -312,6 +351,79 @@ export default function NewQuotationPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Pick an existing customer (like the sales-order form) — fills
+                    the fields below and links customerId. Free-text entry stays
+                    available as a fallback for one-off / not-yet-registered
+                    customers. */}
+                {selectedCustomer ? (
+                  <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-bold text-emerald-700 text-lg">{selectedCustomer.code}</span>
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">
+                            {selectedCustomer.customerType?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-gray-900 text-lg">{selectedCustomer.name}</p>
+                        <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+                          {selectedCustomer.contactPerson && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3.5 w-3.5" />
+                              {selectedCustomer.contactPerson}
+                            </span>
+                          )}
+                          {selectedCustomer.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3.5 w-3.5" />
+                              {selectedCustomer.phone}
+                            </span>
+                          )}
+                          {selectedCustomer.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3.5 w-3.5" />
+                              {selectedCustomer.email}
+                            </span>
+                          )}
+                        </div>
+                        {selectedCustomer.address && (
+                          <p className="mt-2 text-sm text-gray-500 flex items-start gap-1">
+                            <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            <span>{selectedCustomer.address}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          text="เปลี่ยน"
+                          type="normal"
+                          stylingMode="outlined"
+                          onClick={() => setIsCustomerDialogOpen(true)}
+                          elementAttr={{ 'data-testid': 'qt-change-customer-btn' }}
+                        />
+                        <Button
+                          icon="close"
+                          type="danger"
+                          stylingMode="text"
+                          onClick={handleClearCustomer}
+                          hint="ล้างลูกค้า"
+                          elementAttr={{ 'data-testid': 'qt-clear-customer-btn' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomerDialogOpen(true)}
+                    data-testid="qt-select-customer-btn"
+                    className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-colors text-gray-500 hover:text-emerald-600"
+                  >
+                    <Search className="h-5 w-5" />
+                    <span>เลือกลูกค้าจากรายชื่อ</span>
+                  </button>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ชื่อลูกค้า <span className="text-red-500">*</span>
@@ -591,6 +703,14 @@ export default function NewQuotationPage() {
         showPrice="selling"
         allowCreate
         excludeIds={lines.map((l) => l.itemId).filter((id): id is number => !!id)}
+      />
+
+      <CustomerSearchDialog
+        open={isCustomerDialogOpen}
+        onOpenChange={setIsCustomerDialogOpen}
+        onSelect={handleSelectCustomer}
+        title="เลือกลูกค้า"
+        allowCreate
       />
     </MainLayout>
   );

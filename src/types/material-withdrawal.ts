@@ -82,6 +82,13 @@ export interface MaterialWithdrawalRequestSummary {
   reasonType: WithdrawalReasonType;
   requestedAt: string;
   requestedBy: { id: number; name: string };
+  /**
+   * Name of the supervisor who approved OR rejected the request, resolved from
+   * the latest approval record. null while the request is still pending (no
+   * decision yet). Shown in the list so the reviewer is visible alongside the
+   * requester (list item 49).
+   */
+  approvedBy: string | null;
   itemCount: number;
 }
 

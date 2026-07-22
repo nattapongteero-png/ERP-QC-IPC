@@ -23,6 +23,18 @@
     "tabs": {
       "all": "All"
     },
+    "plan": {
+      "title": "Production Plan",
+      "subtitle": "Calendar of work orders by planned date (start → end)",
+      "show": "Show calendar",
+      "hide": "Hide calendar",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Today",
+      "noPlanned": "No work orders planned this month",
+      "moreCount": "+{count} more",
+      "legend": "Status"
+    },
     "charts": {
       "byStatus": "By Status",
       "byPriority": "Active Orders by Priority",
@@ -484,7 +496,9 @@
       "completedToday": "Completed Today",
       "pending": "Pending",
       "avgCompletionTime": "Avg Completion Time",
-      "minSuffix": " min"
+      "minSuffix": " min",
+      "hourSuffix": " h",
+      "daySuffix": " d"
     },
     "charts": {
       "statusDistribution": "eBMR Status Distribution",

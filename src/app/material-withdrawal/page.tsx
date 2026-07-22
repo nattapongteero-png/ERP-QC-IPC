@@ -238,6 +238,14 @@ export default function MaterialWithdrawalListPage() {
           cellRender={(c) => <span>{t(`form.reason.options.${c.value as string}` as Parameters<typeof t>[0])}</span>}
         />
         <Column dataField="requestedBy.name" caption={t('table.columns.requestedBy')} />
+        <Column
+          dataField="approvedBy"
+          caption={t('table.columns.approver')}
+          cellRender={(c) => {
+            const name = (c.data as MaterialWithdrawalRequestSummary).approvedBy;
+            return name ? <span>{name}</span> : <span className="text-gray-400">—</span>;
+          }}
+        />
         <Column dataField="requestedAt" caption={t('table.columns.requestedAt')} dataType="datetime" />
       </DataGrid>
 

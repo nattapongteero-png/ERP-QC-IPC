@@ -61,3 +61,42 @@ async function getOrCreateWarehouseByType(
 export async function getOrCreateQcWarehouse(db: DbClient): Promise<number> {
   return getOrCreateWarehouseByType(db, QC_WAREHOUSE_TYPE, QC_WAREHOUSE_SEED);
 }
+
+/**
+ * Map an item's `type` (raw_material / packaging / wip / finished_goods /
+ * consumable) to the storage warehouse `type` its released stock belongs in.
+ * WIP and finished goods land in the finished-goods warehouse; everything else
+ * (raw material, packaging, consumables) lands in the raw-material warehouse.
+ */
+export function warehouseTypeForItemType(itemType: string | null | undefined): string {
+  switch (itemType) {
+    case 'finished_goods':
+    case 'wip':
+      return 'finished_goods';
+    case 'raw_material':
+    case 'packaging':
+    case 'consumable':
+    default:
+      return 'raw_material';
+  }
+}
+
+const WAREHOUSE_SEEDS_BY_TYPE: Record<string, SeedSpec> = {
+  raw_material: { code: 'WH-RM', name: 'คลังวัตถุดิบ', type: 'raw_material' },
+  finished_goods: { code: 'WH-FG', name: 'คลังสินค้าสำเร็จรูป', type: 'finished_goods' },
+};
+
+/**
+ * Resolve (self-seeding) the destination warehouse id for a given item `type`.
+ * Used by the goods-receipt release flow so a finished-goods receipt lands in
+ * the Finished Goods warehouse and a raw-material receipt in Raw Material,
+ * regardless of what the GRN header defaulted to.
+ */
+export async function resolveDestinationWarehouseByItemType(
+  db: DbClient,
+  itemType: string | null | undefined,
+): Promise<number> {
+  const whType = warehouseTypeForItemType(itemType);
+  const seed = WAREHOUSE_SEEDS_BY_TYPE[whType] ?? WAREHOUSE_SEEDS_BY_TYPE.raw_material;
+  return getOrCreateWarehouseByType(db, whType, seed);
+}
