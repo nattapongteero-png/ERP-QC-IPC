@@ -238,8 +238,16 @@ export default function QuotationDetailPage() {
               icon="exportxlsx"
               type="success"
               onClick={handleConvert}
-              disabled={isBusy || isConverted}
-              hint={isConverted ? 'ใบเสนอราคานี้ถูกแปลงแล้ว' : undefined}
+              // Only an ACCEPTED quotation may convert (list item 20). A draft/sent
+              // offer the customer hasn't agreed to must be accepted first.
+              disabled={isBusy || isConverted || quotation.status !== 'accepted'}
+              hint={
+                isConverted
+                  ? 'ใบเสนอราคานี้ถูกแปลงแล้ว'
+                  : quotation.status !== 'accepted'
+                    ? 'ต้องกด "ตอบรับ" ก่อนจึงจะแปลงเป็นใบสั่งขายได้'
+                    : undefined
+              }
               elementAttr={{ 'data-testid': 'qt-convert-btn' }}
             />
           </div>
@@ -249,32 +257,41 @@ export default function QuotationDetailPage() {
         <Card>
           <CardContent className="flex flex-wrap items-center gap-2 p-4">
             <span className="text-sm text-gray-500 mr-2">เปลี่ยนสถานะ:</span>
-            <Button
-              text="ส่งแล้ว"
-              icon="email"
-              stylingMode="outlined"
-              onClick={() => updateStatus('sent')}
-              disabled={isBusy || isConverted}
-              elementAttr={{ 'data-testid': 'qt-status-sent-btn' }}
-            />
-            <Button
-              text="ตอบรับ"
-              icon="check"
-              type="success"
-              stylingMode="outlined"
-              onClick={() => updateStatus('accepted')}
-              disabled={isBusy || isConverted}
-              elementAttr={{ 'data-testid': 'qt-status-accepted-btn' }}
-            />
-            <Button
-              text="ปฏิเสธ"
-              icon="close"
-              type="danger"
-              stylingMode="outlined"
-              onClick={() => updateStatus('rejected')}
-              disabled={isBusy || isConverted}
-              elementAttr={{ 'data-testid': 'qt-status-rejected-btn' }}
-            />
+            {/* Each status button disappears once it no longer applies (list
+                item 20: the "ตอบรับ" button stayed after accepting). Only offer a
+                transition that moves the quotation forward from where it is. */}
+            {quotation.status === 'draft' && (
+              <Button
+                text="ส่งแล้ว"
+                icon="email"
+                stylingMode="outlined"
+                onClick={() => updateStatus('sent')}
+                disabled={isBusy}
+                elementAttr={{ 'data-testid': 'qt-status-sent-btn' }}
+              />
+            )}
+            {(quotation.status === 'draft' || quotation.status === 'sent') && (
+              <Button
+                text="ตอบรับ"
+                icon="check"
+                type="success"
+                stylingMode="outlined"
+                onClick={() => updateStatus('accepted')}
+                disabled={isBusy}
+                elementAttr={{ 'data-testid': 'qt-status-accepted-btn' }}
+              />
+            )}
+            {(quotation.status === 'draft' || quotation.status === 'sent') && (
+              <Button
+                text="ปฏิเสธ"
+                icon="close"
+                type="danger"
+                stylingMode="outlined"
+                onClick={() => updateStatus('rejected')}
+                disabled={isBusy}
+                elementAttr={{ 'data-testid': 'qt-status-rejected-btn' }}
+              />
+            )}
             {quotation.soId && (
               <Button
                 text="ดูใบสั่งขาย"

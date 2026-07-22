@@ -42,6 +42,9 @@ export interface SalesOrderPrintData {
   status?: string | null;
   paymentTerms?: string | null;
   notes?: string | null;
+  /** Freight charged to the customer — shown as its own line and added to the
+   *  grand total (list item 24). */
+  shippingCost?: number | null;
   lines: SalesOrderPrintLine[];
 }
 
@@ -157,7 +160,8 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
     0,
   );
   const vat = subtotal * vatRate;
-  const grandTotal = subtotal + vat;
+  const freight = Number(order.shippingCost) || 0;
+  const grandTotal = subtotal + vat + freight;
 
   return (
     <div className="print-only so-print-doc" data-testid="so-print-document">
@@ -295,6 +299,12 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
               </td>
               <td className="so-total-value">{formatMoney(vat)}</td>
             </tr>
+            {freight > 0 && (
+              <tr>
+                <td className="so-total-label">ค่าขนส่ง / Freight</td>
+                <td className="so-total-value">{formatMoney(freight)}</td>
+              </tr>
+            )}
             <tr className="so-total-grand">
               <td className="so-total-label">จำนวนเงินสุทธิ / Grand Total</td>
               <td className="so-total-value">{formatMoney(grandTotal)}</td>

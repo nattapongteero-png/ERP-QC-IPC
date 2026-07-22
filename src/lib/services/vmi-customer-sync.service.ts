@@ -93,3 +93,49 @@ export async function ensureVmiCustomerWithDb(
 
   return getInsertId(result);
 }
+
+/**
+ * One-shot backfill (list item 10 follow-up): VMI orders ingested BEFORE the
+ * auto-sync existed have a hospital on the order but no row in the customer
+ * register. Walk every VMI sales order and ensure its customer exists. Idempotent
+ * — re-running creates no duplicates. Returns how many customers now exist for
+ * the distinct hospitals seen.
+ */
+export async function backfillVmiCustomers(): Promise<{ hospitals: number; created: number }> {
+  return executeDbOperation(async (db) => {
+    const vmiSalesOrders = getTableRef('vmiSalesOrders');
+    const customers = getTableRef('customers');
+
+    const orders = await db
+      .select({
+        vmiCustomerId: vmiSalesOrders.vmiCustomerId,
+        vmiCustomerName: vmiSalesOrders.vmiCustomerName,
+        portalId: vmiSalesOrders.portalId,
+      })
+      .from(vmiSalesOrders);
+
+    // Distinct hospitals (by vmiCustomerId).
+    const seen = new Map<string, { name: string; portalId: number | null }>();
+    for (const o of orders as Array<{ vmiCustomerId: string | null; vmiCustomerName: string | null; portalId: number | null }>) {
+      const code = o.vmiCustomerId ? String(o.vmiCustomerId) : '';
+      if (!code) continue;
+      if (!seen.has(code)) seen.set(code, { name: o.vmiCustomerName || '', portalId: o.portalId ?? null });
+    }
+
+    let created = 0;
+    for (const [code, info] of seen) {
+      const [existing] = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.vmiCustomerId, code));
+      if (!existing) created++;
+      await ensureVmiCustomerWithDb(db, {
+        hospitalCode: code,
+        hospitalName: info.name,
+        vmiPortalId: info.portalId,
+      });
+    }
+
+    return { hospitals: seen.size, created };
+  });
+}

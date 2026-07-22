@@ -1047,6 +1047,17 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           </div>
         </CardContent>
       </Card>
+
+      {/* Product lines shown right here on the overview (list item 40: the order
+          info and its items should read on one page, not in a separate tab). */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('orders.detail.tabs.lines')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {renderLinesTab()}
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -1307,6 +1318,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         status: so.status,
         paymentTerms: so.paymentTerms,
         notes: so.notes,
+        shippingCost: Number(so.shippingCost || 0),
         lines: lines.map((l) => ({
           itemCode: l.itemCode,
           itemName: l.itemName,

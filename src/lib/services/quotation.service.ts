@@ -263,6 +263,21 @@ export async function convertQuotationToSalesOrder(
 
   await executeDbOperation(async (db) => {
     const { quotations } = getTables();
+
+    // Carry the quotation's header terms onto the new sales order (list item 20:
+    // the converted SO was losing วันที่/กำหนดส่ง/เงื่อนไขการชำระ). createSalesOrder
+    // only writes the customer + lines, so stamp the rest here.
+    const salesOrders = getTableRef('salesOrders');
+    await db
+      .update(salesOrders)
+      .set({
+        paymentTerms: quotation.paymentTerms ?? null,
+        requiredDate: quotation.validUntil ? toDbDate(quotation.validUntil) : null,
+        notes: quotation.notes ?? null,
+        updatedAt: getNow(),
+      })
+      .where(eq(salesOrders.id, orderId));
+
     await db
       .update(quotations)
       .set({ status: 'converted', soId: orderId, updatedAt: getNow() })

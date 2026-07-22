@@ -239,12 +239,16 @@ export default function NewQuotationPage() {
 
   const renderQuantityCell = useCallback((cell: { data: QuotationFormLine }) => (
     <NumberBox
-      value={cell.data.quantity}
+      // defaultValue + commit-on-change/blur: the browser owns the text while
+      // typing, so Chrome no longer resets the field mid-keystroke (list item 17).
+      defaultValue={cell.data.quantity}
       onValueChanged={(e) => updateLine(cell.data.key, { quantity: e.value || 0 })}
+      valueChangeEvent="change blur keyup"
       min={0}
       format="#,##0.####"
       width="100%"
       stylingMode="outlined"
+      inputAttr={{ 'data-testid': `qt-qty-${cell.data.key}` }}
     />
   ), [updateLine]);
 
@@ -258,12 +262,15 @@ export default function NewQuotationPage() {
 
   const renderUnitPriceCell = useCallback((cell: { data: QuotationFormLine }) => (
     <NumberBox
-      value={cell.data.unitPrice}
+      // Same Chrome-typing fix as quantity (list item 17).
+      defaultValue={cell.data.unitPrice}
       onValueChanged={(e) => updateLine(cell.data.key, { unitPrice: e.value || 0 })}
+      valueChangeEvent="change blur keyup"
       min={0}
       format="#,##0.00"
       width="100%"
       stylingMode="outlined"
+      inputAttr={{ 'data-testid': `qt-price-${cell.data.key}` }}
     />
   ), [updateLine]);
 
