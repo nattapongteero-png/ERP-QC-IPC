@@ -20,18 +20,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { formatNumber } from '@/lib/utils/number-format';
-import { formatDateFromDb } from '@/lib/db/date-utils';
 import { FileText, Plus, DollarSign, ArrowRightLeft } from 'lucide-react';
 import type { Quotation, QuotationStatus } from '@/types/quotation';
 
-// Compact dd/mm/yyyy so the date never gets clipped to "2026-07-22…" in a
-// narrow column. formatDateFromDb() normalises MySQL Date vs SQLite string vs
-// full ISO ("…T00:00:00") down to YYYY-MM-DD first.
+// Compact dd/mm/yyyy so the date never gets clipped to "2026-07-22…" in a narrow
+// column. Pure client-side: the API already sends ISO strings, so we slice the
+// YYYY-MM-DD off the front (handles "…T00:00:00" too). Intentionally NOT using
+// formatDateFromDb — that imports the db layer (better-sqlite3/mysql2) and would
+// drag server-only modules into this 'use client' bundle and break the build.
 function formatDateCompact(value: string | Date | null | undefined): string {
   if (!value) return '-';
-  const ymd = formatDateFromDb(value);
+  const ymd = String(value).slice(0, 10); // YYYY-MM-DD
   const [y, m, d] = ymd.split('-');
-  if (!y || !m || !d) return ymd;
+  if (!y || !m || !d) return String(value);
   return `${d}/${m}/${y}`;
 }
 
