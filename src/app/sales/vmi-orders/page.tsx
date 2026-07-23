@@ -524,14 +524,24 @@ export default function VmiOrdersPage() {
     if (!data.data) return null;
     const order = data.data;
     const overdue = isOverdue(order.requestedDeliveryDate || '', order.status);
+    // Closed orders are history, not work — muting the id lets the eye skip
+    // them and land on the rows that still need a decision.
+    const closed = order.status === 'cancelled' || order.status === 'delivered';
     return (
-      <div>
-        <p className="font-mono font-semibold text-blue-600">{order.portalOrderId}</p>
+      <div className="flex items-center gap-1.5 whitespace-nowrap">
+        <span
+          className={cn(
+            'font-mono font-semibold',
+            closed ? 'text-gray-400 line-through' : 'text-blue-600'
+          )}
+        >
+          {order.portalOrderId}
+        </span>
         {overdue && (
-          <div className="inline-flex items-center gap-1 mt-1 text-xs text-red-600">
+          <span className="inline-flex items-center gap-1 text-xs text-red-600">
             <AlertTriangle className="h-3 w-3" />
             {t('vmiOrders.dates.overdueLabel')}
-          </div>
+          </span>
         )}
       </div>
     );
@@ -552,11 +562,13 @@ export default function VmiOrdersPage() {
   const renderCustomerCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
     const order = data.data;
+    // Name and hospital code on one line — stacking them doubled the row height
+    // for information that reads fine inline.
     return (
-      <div className="min-w-0">
-        <p className="font-medium truncate">{order.customerName || '-'}</p>
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="font-medium truncate">{order.customerName || '-'}</span>
         {order.hospitalCode && (
-          <p className="text-xs text-gray-500 truncate">{order.hospitalCode}</p>
+          <span className="text-xs text-gray-500 flex-shrink-0">{order.hospitalCode}</span>
         )}
       </div>
     );
@@ -568,25 +580,31 @@ export default function VmiOrdersPage() {
     const allMatched = order.matchedItems === order.totalItems;
     const percentage =
       order.totalItems > 0 ? Math.round((order.matchedItems / order.totalItems) * 100) : 0;
+    // Cancelled orders never need matching — showing "0/1 0%" in orange next to
+    // a cancelled badge reads as an outstanding task that no longer exists.
+    if (order.status === 'cancelled') {
+      return <span className="text-xs text-gray-400">-</span>;
+    }
+
+    // Single line (chip + bar side by side) instead of stacked rows: the
+    // two-row version was the tallest cell in the grid and drove overall row
+    // height, which is what made the list hard to scan.
     return (
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-xs">
-          <span
-            className={cn(
-              'flex items-center gap-1',
-              allMatched ? 'text-green-600' : 'text-orange-600'
-            )}
-          >
-            {allMatched ? (
-              <CheckSquare className="h-3.5 w-3.5" />
-            ) : (
-              <AlertCircle className="h-3.5 w-3.5" />
-            )}
-            {order.matchedItems}/{order.totalItems}
-          </span>
-          <span className="font-medium">{percentage}%</span>
-        </div>
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'flex items-center gap-1 text-xs whitespace-nowrap',
+            allMatched ? 'text-green-600' : 'text-orange-600'
+          )}
+        >
+          {allMatched ? (
+            <CheckSquare className="h-3.5 w-3.5" />
+          ) : (
+            <AlertCircle className="h-3.5 w-3.5" />
+          )}
+          {order.matchedItems}/{order.totalItems}
+        </span>
+        <div className="flex-1 min-w-[36px] h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
             className={cn(
               'h-full rounded-full transition-all',
@@ -622,13 +640,16 @@ export default function VmiOrdersPage() {
 
     if (!order.requestedDeliveryDate) return <span className="text-gray-400">-</span>;
 
+    // Keep date and countdown on ONE line so the row stays single-height, and
+    // drop the countdown entirely once the order is closed (cancelled/delivered
+    // already return null from getDaysUntilRequired).
     return (
-      <div>
+      <div className="flex items-baseline gap-1.5 whitespace-nowrap">
         <span className={cn('text-sm', overdue && 'text-red-600 font-medium')}>
           {formatDate(order.requestedDeliveryDate)}
         </span>
         {daysUntil !== null && (
-          <p
+          <span
             className={cn(
               'text-xs',
               daysUntil < 0
@@ -643,7 +664,7 @@ export default function VmiOrdersPage() {
               : daysUntil === 0
                 ? t('vmiOrders.dates.today')
                 : t('vmiOrders.dates.daysRemaining', { days: daysUntil })}
-          </p>
+          </span>
         )}
       </div>
     );
@@ -1222,9 +1243,9 @@ export default function VmiOrdersPage() {
           sorting
           responsiveColumns
           virtualScrolling={filteredOrders.length > 100}
-          height={600}
-          mobileHeight={520}
-          tabletHeight={560}
+          /* No fixed height: a 600px box put the grid in its own scrollbar, so
+             only ~6 of 14 rows were visible and the rest had to be hunted for.
+             Let the list grow and use the page scroll instead. */
           onRowClick={handleRowClick}
           noDataText={t('vmiOrders.noData')}
         />

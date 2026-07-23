@@ -456,6 +456,14 @@ export class VmiSalesOrderService {
 
       const createdOrders: VmiSalesOrderSummary[] = [];
 
+      // Reconcile statuses the portal changed behind our back (cancelled by the
+      // hospital, or cancelled from another client). Polling only asks for
+      // `submitted`, so those orders silently drop out of the feed and our row
+      // would keep its stale status forever — the divergence users actually
+      // hit. Do this BEFORE importing so a status fix never depends on new
+      // orders existing.
+      await this.reconcileStatusesFromPortal(portal, apiKey);
+
       for (const summary of orderSummaries) {
         // Check if order already exists
         const existing = await this.findOrderByVmiOrderId(portal.id, String(summary.id));
@@ -494,6 +502,97 @@ export class VmiSalesOrderService {
         500
       );
     }
+  }
+
+  /**
+   * Pull the portal's authoritative status for orders we already hold and fix
+   * any that drifted.
+   *
+   * Why this is needed: `pollPortalOrders` only asks the portal for
+   * `status=submitted`, so an order cancelled on the portal simply vanishes
+   * from the feed and our row keeps whatever status it had — which is how UAT
+   * ended up with 11 of 14 rows disagreeing with the portal.
+   *
+   * Deliberately conservative:
+   * - Only ever moves a local row TO `cancelled`. Confirm/ship are driven by us
+   *   and carry side effects (sales orders, stock), so we never rewrite those
+   *   from a poll.
+   * - Never touches a row already cancelled locally, so an operator's reason
+   *   code and audit trail are preserved.
+   */
+  private async reconcileStatusesFromPortal(
+    portal: { id: number; portalUrl: string },
+    apiKey: string,
+  ): Promise<number> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
+    const { orders } = this.getTables();
+
+    // Rows still considered "live" on our side are the only ones that can drift
+    // in a way we care about.
+    const openRows = await db
+      .select({
+        id: orders.id,
+        vmiOrderId: orders.vmiOrderId,
+        localStatus: orders.localStatus,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.portalId, portal.id),
+          inArray(orders.localStatus, ['pending', 'confirmed', 'processing', 'shipped']),
+        ),
+      );
+
+    let reconciled = 0;
+
+    for (const row of openRows) {
+      try {
+        const res = await fetch(
+          `${portal.portalUrl}/api/external/vendor/orders/${row.vmiOrderId}`,
+          { headers: { 'X-API-Key': apiKey }, signal: AbortSignal.timeout(30000) },
+        );
+        if (!res.ok) continue;
+
+        const body = await res.json();
+        const portalStatus: string | undefined = body?.order?.status;
+        if (portalStatus !== 'cancelled') continue;
+
+        const now = getNow();
+        await db
+          .update(orders)
+          .set({
+            vmiStatus: 'cancelled',
+            localStatus: 'cancelled',
+            rejectedAt: now,
+            rejectionReason: 'ยกเลิกจาก VMI Portal (ซิงค์อัตโนมัติ)',
+            cancelSyncedAt: now,
+            updatedAt: now,
+          } as Record<string, unknown>)
+          .where(eq(orders.id, row.id));
+
+        await createAuditLog({
+          action: 'CANCEL',
+          tableName: 'vmi_sales_orders',
+          recordId: row.id,
+          oldValue: { localStatus: row.localStatus },
+          newValue: { localStatus: 'cancelled', source: 'portal_reconcile' },
+        });
+
+        reconciled++;
+      } catch (error) {
+        // One unreachable order must not abort the whole reconcile pass.
+        console.error(
+          `[VMI Poll] Status reconcile failed for order ${row.vmiOrderId}:`,
+          error,
+        );
+      }
+    }
+
+    if (reconciled > 0) {
+      console.warn(`[VMI Poll] Reconciled ${reconciled} order(s) to cancelled from portal`);
+    }
+    return reconciled;
   }
 
   /**
