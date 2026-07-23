@@ -375,6 +375,10 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   const [data, setData] = useState<SODetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  // Declared up here with every other hook: the component early-returns while
+  // loading, so a hook declared below those returns would change the hook count
+  // between renders (React error #310).
+  const [changingStatus, setChangingStatus] = useState(false);
   const [showFulfillModal, setShowFulfillModal] = useState(false);
   const [selectedLine, setSelectedLine] = useState<SOLine | null>(null);
   const [fulfillForm, setFulfillForm] = useState({
@@ -1107,7 +1111,11 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   // Move the order between draft and confirmed. The backend PATCH accepts a
   // { status } payload for draft⇄confirmed⇄cancelled; here we drive the two
   // user-facing transitions the sales clerk needs from the detail screen.
-  const [changingStatus, setChangingStatus] = useState(false);
+  // NOTE: the `changingStatus` state lives with the other hooks at the top of the
+  // component. It must NOT be declared here — this point is past the `isLoading`
+  // and `!data` early returns, so on the first (loading) render the hook would be
+  // skipped and on the next one it would appear, which is React error #310
+  // ("rendered more hooks than during the previous render") and blanked the page.
   const handleChangeStatus = async (nextStatus: 'confirmed' | 'draft') => {
     setChangingStatus(true);
     try {
