@@ -1071,13 +1071,25 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
       </Card>
 
       {/* Product lines shown right here on the overview (list item 40: the order
-          info and its items should read on one page, not in a separate tab). */}
-      <Card>
+          info and its items should read on one page, not in a separate tab).
+          lg:col-span-3 is required — the parent is a 3-column grid, so without it
+          the card is pinned to a 1/3-width column while the DataGrid renders at
+          its natural width and spills outside the card. */}
+      <Card elevation="raised" className="lg:col-span-3">
         <CardHeader>
           <CardTitle className="text-base">{t('orders.detail.tabs.lines')}</CardTitle>
         </CardHeader>
-        <CardContent>
-          {renderLinesTab()}
+        <CardContent className="pt-0">
+          <DxDataGrid
+            dataSource={lines}
+            keyExpr="id"
+            columns={lineColumns}
+            showBorders={false}
+            rowAlternationEnabled
+            columnAutoWidth={false}
+            width="100%"
+            noDataText={t('orders.new.noItems')}
+          />
         </CardContent>
       </Card>
     </div>
