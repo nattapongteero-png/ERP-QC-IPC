@@ -28,6 +28,21 @@ const cancelOrderSchema = z.object({
 });
 
 /**
+ * Build marker so a deploy can be PROVEN live without authenticating: a stale
+ * image 404s here, the new one returns this contract summary. Read-only.
+ */
+export async function GET() {
+  return NextResponse.json({
+    route: 'vmi-cancel-po',
+    marker: 'VMI_CANCEL_PO_V1_20260723',
+    method: 'POST',
+    portalEndpoint: 'POST /api/external/vendor/orders/{id}/cancel',
+    reasonCodes: VMI_CANCEL_REASON_CODES,
+    cancellableLocalStatuses: ['pending', 'confirmed'],
+  });
+}
+
+/**
  * POST /api/sales/vmi-orders/[orderId]/cancel
  */
 export async function POST(
