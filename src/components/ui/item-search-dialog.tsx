@@ -125,6 +125,10 @@ export function ItemSearchDialog({
   const [search, setSearch] = useState('');
   const [allResults, setAllResults] = useState<Item[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  // Once the first fetch has landed the grid stays mounted for the rest of the
+  // dialog's life, so a later refresh can never blank it (that blank/re-mount is
+  // what the user sees as flicker).
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   // Monotonic id so a slow earlier fetch (e.g. raw_material) can't overwrite the
   // results of a newer tab switch (e.g. packaging) when it lands late.
   const searchSeqRef = useRef(0);
@@ -195,7 +199,16 @@ export function ItemSearchDialog({
   const tabItems = useMemo(() => typeTabs.map((tab) => ({ text: tab.text })), [typeTabs]);
 
   // Server already filtered by type + search; no client filter needed
-  const filteredResults = allResults;
+  // Tab switching filters the rows we ALREADY have — it never refetches. The old
+  // behaviour fired a request per tab click, which swapped dataSource and made
+  // DevExtreme repaint the whole grid: that repaint is what read as flicker.
+  // The fetch now depends only on the search text, so clicking a tab is instant
+  // and nothing re-renders except the rows themselves.
+  const filteredResults = useMemo(() => {
+    const type = typeTabs[selectedTypeTab]?.value;
+    if (!type) return allResults;
+    return allResults.filter((it) => (it.type || '') === type);
+  }, [allResults, typeTabs, selectedTypeTab]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -268,6 +281,7 @@ export function ItemSearchDialog({
           items = items.filter((item: Item) => item.type !== excludeType);
         }
         setAllResults(items);
+        setHasLoadedOnce(true);
       }
     } catch (error) {
       if (seq !== searchSeqRef.current) return;
@@ -283,20 +297,23 @@ export function ItemSearchDialog({
 
   // Load items when dialog opens, tab switches, or search changes.
   // Single useEffect avoids duplicate fetches and re-fetches per tab.
+  // Fetch on open and on search text only — NOT on tab change. One request pulls
+  // every type; the tabs then filter that set client-side (see filteredResults),
+  // so switching tabs is instant and never repaints the grid from a new request.
   useEffect(() => {
     if (!open) return;
-    const type = typeTabs[selectedTypeTab]?.value;
     const timer = setTimeout(() => {
-      searchItems(search, type);
+      searchItems(search);
     }, search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [open, search, selectedTypeTab, typeTabs, searchItems]);
+  }, [open, search, searchItems]);
 
   // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       setSearch('');
       setAllResults([]);
+      setHasLoadedOnce(false);
       setSelectedTypeTab(0);
       setSelectedItem(null);
       setShowCreateDialog(false);
@@ -598,19 +615,20 @@ export function ItemSearchDialog({
             mounted and float a light overlay on top instead — swapping the
             whole grid out for a spinner every time made the dialog flicker
             (grid vanishes → spinner → grid reappears) on each tab click. */}
-        {isSearching && filteredResults.length === 0 ? (
+        {isSearching && !hasLoadedOnce ? (
           <div className="flex flex-col items-center justify-center h-full">
             <DxLoadIndicator />
             <p className="text-gray-500 mt-4">กำลังค้นหารายการ...</p>
           </div>
-        ) : filteredResults.length > 0 ? (
+        ) : hasLoadedOnce ? (
           <>
-          {/* No overlay while refreshing — the previous tab's rows stay visible
-              underneath until the new ones arrive (race-guarded above), so
-              switching tabs swaps the list in place with no white flash. A thin
-              top progress bar signals the refresh without blanking the grid. */}
+          {/* Once the grid has rendered once it NEVER unmounts again: switching
+              tabs keeps the previous rows on screen until the new ones arrive,
+              so nothing blanks or re-mounts. The refresh hint is a static bar —
+              an animated/pulsing one is itself read as "the screen is
+              flickering". */}
           {isSearching && (
-            <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-emerald-400/80 animate-pulse pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-emerald-400/70 pointer-events-none" />
           )}
           <DxDataGrid
             dataSource={filteredResults}

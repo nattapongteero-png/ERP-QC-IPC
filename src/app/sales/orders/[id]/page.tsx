@@ -891,6 +891,24 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   // Tab Content Renderers
   // ============================================================================
 
+  // Defined BEFORE renderOverviewTab because the overview embeds it (list item
+  // 40). As a `const` arrow it lives in the temporal dead zone until this line,
+  // so calling it from a function declared earlier threw a ReferenceError in the
+  // production build and blanked the whole page ("เกิดข้อผิดพลาด").
+  const renderLinesTab = () => (
+    <div className="p-6">
+      <DxDataGrid
+        dataSource={lines}
+        keyExpr="id"
+        columns={lineColumns}
+        showBorders={false}
+        rowAlternationEnabled
+        height={450}
+        noDataText={t('orders.new.noItems')}
+      />
+    </div>
+  );
+
   const renderOverviewTab = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       {/* Order Information */}
@@ -1058,20 +1076,6 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
           {renderLinesTab()}
         </CardContent>
       </Card>
-    </div>
-  );
-
-  const renderLinesTab = () => (
-    <div className="p-6">
-      <DxDataGrid
-        dataSource={lines}
-        keyExpr="id"
-        columns={lineColumns}
-        showBorders={false}
-        rowAlternationEnabled
-        height={450}
-        noDataText={t('orders.new.noItems')}
-      />
     </div>
   );
 
