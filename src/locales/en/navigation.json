@@ -91,7 +91,8 @@
     "approvals": "Approvals",
     "standardCosts": "Standard Costs",
     "varianceReports": "Variance Reports",
-    "reports": "Reports"
+    "reports": "Reports",
+    "taxInvoices": "Tax Invoices"
   },
   "cost": {
     "dashboard": "Dashboard",

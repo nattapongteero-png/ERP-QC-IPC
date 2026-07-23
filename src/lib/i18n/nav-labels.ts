@@ -115,6 +115,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'AR Invoice List': 'accounting.arInvoiceList',
   'Receipts': 'accounting.receipts',
   'AR Aging': 'accounting.arAging',
+  'Tax Invoices': 'accounting.taxInvoices',
   'Fixed Assets': 'accounting.fixedAssets',
   'Equipment': 'accounting.equipment',
   'Period Close': 'accounting.periodClose',

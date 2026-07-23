@@ -231,6 +231,7 @@ const navigation: NavItem[] = [
       { name: 'AR Invoice List', href: '/accounting/ar/invoices', icon: FileText },
       { name: 'Receipts', href: '/accounting/ar/receipts', icon: Receipt },
       { name: 'AR Aging', href: '/accounting/ar/aging', icon: BarChart3 },
+      { name: 'Tax Invoices', href: '/accounting/tax-invoices', icon: Receipt },
       { name: 'Fixed Assets', href: '/accounting/fixed-assets', icon: Building2 },
       { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
       { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },

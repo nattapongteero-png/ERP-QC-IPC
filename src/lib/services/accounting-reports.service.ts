@@ -21,6 +21,7 @@ import type {
   AccountCategory,
   VATReport,
   VATReportEntry,
+  TaxInvoiceEntry,
   WHTCertificateSummary,
   WHTCertificateEntry,
   WHTCertificatePDFData,
@@ -1787,4 +1788,77 @@ export async function generateEquipmentCostReport(
       totalDowntimeHours,
     },
   };
+}
+
+// ============================================
+// Tax Invoice Register (ทะเบียนใบกำกับภาษี)
+// ============================================
+
+/**
+ * List issued tax invoices (list items 30-31). Reads vat_transactions, which is
+ * where the app already records every tax invoice it issues — output VAT when an
+ * AR invoice is confirmed, input VAT when an AP invoice is approved.
+ *
+ * Deliberately NOT backed by a new `tax_invoices` table: duplicating the data
+ * would leave two sources of tax truth that could disagree at filing time.
+ */
+export async function listTaxInvoices(filters?: {
+  transactionType?: 'input' | 'output';
+  taxPeriod?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}): Promise<TaxInvoiceEntry[]> {
+  const { vatTransactions } = getAccountingTables();
+  const database = (await getDb()) as any;
+
+  const conditions: any[] = [];
+  if (filters?.transactionType) {
+    conditions.push(eq(vatTransactions.transactionType, filters.transactionType));
+  }
+  if (filters?.taxPeriod) {
+    conditions.push(eq(vatTransactions.taxPeriod, filters.taxPeriod));
+  }
+  if (filters?.dateFrom) {
+    conditions.push(gte(vatTransactions.taxInvoiceDate, toQueryDate(filters.dateFrom)));
+  }
+  if (filters?.dateTo) {
+    conditions.push(lte(vatTransactions.taxInvoiceDate, toQueryDate(filters.dateTo)));
+  }
+
+  const query = database.select().from(vatTransactions);
+  const rows = await (conditions.length > 0
+    ? query.where(and(...conditions))
+    : query
+  ).orderBy(desc(vatTransactions.taxInvoiceDate), desc(vatTransactions.id));
+
+  const term = filters?.search?.trim().toLowerCase();
+
+  return rows
+    .filter((r: any) => {
+      if (!term) return true;
+      return (
+        String(r.taxInvoiceNumber || '').toLowerCase().includes(term) ||
+        String(r.partyName || '').toLowerCase().includes(term) ||
+        String(r.partyTaxId || '').toLowerCase().includes(term)
+      );
+    })
+    .map(
+      (r: any): TaxInvoiceEntry => ({
+        id: r.id,
+        transactionType: r.transactionType,
+        taxInvoiceNumber: r.taxInvoiceNumber,
+        taxInvoiceDate: formatDateFromDb(r.taxInvoiceDate),
+        taxPeriod: r.taxPeriod,
+        partyName: r.partyName,
+        partyTaxId: r.partyTaxId,
+        branchCode: r.branchCode,
+        taxableAmount: Number(r.taxableAmount) || 0,
+        vatRate: Number(r.vatRate) || 0,
+        vatAmount: Number(r.vatAmount) || 0,
+        totalAmount: Number(r.totalAmount) || 0,
+        arInvoiceId: r.arInvoiceId ?? null,
+        apInvoiceId: r.apInvoiceId ?? null,
+      }),
+    );
 }

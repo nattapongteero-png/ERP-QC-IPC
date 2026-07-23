@@ -1032,6 +1032,28 @@ export interface VATReport {
   netVAT: number;
 }
 
+/**
+ * A single issued tax invoice as shown in the register screen
+ * (รายงานภาษีขาย/ภาษีซื้อ). Wider than VATReportEntry because the screen also
+ * links back to the source AR/AP invoice.
+ */
+export interface TaxInvoiceEntry {
+  id: number;
+  transactionType: 'input' | 'output';
+  taxInvoiceNumber: string;
+  taxInvoiceDate: string;
+  taxPeriod: string;
+  partyName: string;
+  partyTaxId: string;
+  branchCode: string;
+  taxableAmount: number;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  arInvoiceId: number | null;
+  apInvoiceId: number | null;
+}
+
 export interface AssetRegisterEntry {
   assetCode: string;
   assetName: string;

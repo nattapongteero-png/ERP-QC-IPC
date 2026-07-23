@@ -91,7 +91,8 @@
     "approvals": "การอนุมัติ",
     "standardCosts": "ต้นทุนมาตรฐาน",
     "varianceReports": "รายงานความแตกต่าง",
-    "reports": "รายงาน"
+    "reports": "รายงาน",
+    "taxInvoices": "ใบกำกับภาษี"
   },
   "cost": {
     "dashboard": "แดชบอร์ด",

@@ -5,6 +5,7 @@
  */
 
 import { getDb, isSqlite } from '../db';
+import { getTableRef } from '../db/db-helper';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, between } from 'drizzle-orm';
 import {
@@ -2635,6 +2636,49 @@ export async function createVATTransaction(input: {
   const invoiceDate = new Date(input.taxInvoiceDate);
   const taxPeriod = `${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}`;
 
+  // A Thai tax invoice must carry the counterparty's registered name and tax ID
+  // (เลขประจำตัวผู้เสียภาษี). Callers only pass customerId/vendorId, so resolve the
+  // party here — otherwise every row was stored as "Unknown"/"0000000000000",
+  // which is not a legally valid tax invoice.
+  let partyName = input.partyName;
+  let partyTaxId = input.partyTaxId;
+  let branchCode = input.branchCode;
+
+  const partyTable = input.customerId
+    ? getTableRef('customers')
+    : input.vendorId
+      ? getTableRef('vendors')
+      : null;
+  const partyId = input.customerId || input.vendorId;
+  if (partyTable && partyId && (!partyName || !partyTaxId)) {
+    const [party] = await database
+      .select()
+      .from(partyTable)
+      .where(eq((partyTable as any).id, partyId))
+      .limit(1);
+    if (party) {
+      partyName = partyName || party.name || undefined;
+      partyTaxId = partyTaxId || party.taxId || undefined;
+      branchCode = branchCode || party.branchCode || undefined;
+    }
+  }
+
+  // sales_orders is denormalised — it stores customerName with no customerId —
+  // so an AR-sourced tax invoice can only reach the customer record by name.
+  // Without this the tax ID stays '0000000000000' on every sales tax invoice.
+  if (partyName && !partyTaxId) {
+    const customers = getTableRef('customers');
+    const [byName] = await database
+      .select()
+      .from(customers)
+      .where(eq((customers as any).name, partyName))
+      .limit(1);
+    if (byName) {
+      partyTaxId = byName.taxId || undefined;
+      branchCode = branchCode || byName.branchCode || undefined;
+    }
+  }
+
   const vatValues = {
     transactionType: input.transactionType,
     taxInvoiceNumber: input.taxInvoiceNumber,
@@ -2642,9 +2686,9 @@ export async function createVATTransaction(input: {
     taxPeriod,
     vendorId: input.vendorId || null,
     customerId: input.customerId || null,
-    partyName: input.partyName || 'Unknown',
-    partyTaxId: input.partyTaxId || '0000000000000',
-    branchCode: input.branchCode || '00000',
+    partyName: partyName || 'Unknown',
+    partyTaxId: partyTaxId || '0000000000000',
+    branchCode: branchCode || '00000',
     taxableAmount: input.taxableAmount,
     vatRate: THAI_VAT_RATE * 100, // Store as percentage
     vatAmount: input.vatAmount,
@@ -5329,6 +5373,21 @@ export async function createARInvoiceFromSOShipment(
     }
   }
 
+  // Sales orders carry only customerName, so the caller cannot supply a
+  // customerId. Resolve it here by name: without it the AR invoice is stored
+  // against customer 0 and its tax invoice has no buyer tax ID, which is not a
+  // valid Thai tax invoice (list items 30-31).
+  let resolvedCustomerId: number | undefined;
+  if (!input.customerId && input.customerName) {
+    const customersTable = getTableRef('customers');
+    const [match] = await database
+      .select()
+      .from(customersTable)
+      .where(eq((customersTable as any).name, input.customerName))
+      .limit(1);
+    if (match) resolvedCustomerId = match.id;
+  }
+
   // Generate AR invoice number, tax invoice number and create invoice with retry to prevent duplicate numbers
   const MAX_AR_RETRIES = 3;
   let arInvoice: any;
@@ -5340,7 +5399,7 @@ export async function createARInvoiceFromSOShipment(
         {
           invoiceNumber: arInvoiceNumber,
           taxInvoiceNumber: taxInvoiceNumber,
-          customerId: input.customerId || 0,
+          customerId: input.customerId || resolvedCustomerId || 0,
           salesOrderId: input.soId,
           invoiceDate: input.shipmentDate,
           dueDate: input.dueDate,
