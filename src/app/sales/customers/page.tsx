@@ -52,6 +52,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import PieChart, { Series, Legend, Tooltip, Label } from 'devextreme-react/pie-chart';
+import notify from 'devextreme/ui/notify';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
 
 // ============================================================================
@@ -233,6 +234,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isSyncingVmi, setIsSyncingVmi] = useState(false);
 
   // Data fetching with React Query
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
@@ -375,6 +377,34 @@ export default function CustomersPage() {
   const handleAddCustomer = useCallback(() => {
     router.push('/sales/customers/new');
   }, [router]);
+
+  /**
+   * Register VMI hospitals that were ingested before the customer auto-sync
+   * existed (list item 10). Orders received from now on create their customer
+   * automatically, so this is a one-shot catch-up for historical data.
+   */
+  const handleSyncVmiCustomers = useCallback(async () => {
+    setIsSyncingVmi(true);
+    try {
+      const res = await fetch('/api/sales/vmi-orders/backfill-customers', {
+        method: 'POST',
+      });
+      const result = await res.json();
+      if (!result.success) {
+        throw new Error(result.error || 'ซิงก์ลูกค้า VMI ไม่สำเร็จ');
+      }
+      notify(result.message || 'ซิงก์ลูกค้า VMI เรียบร้อย', 'success', 4000);
+      refetch();
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : 'ซิงก์ลูกค้า VMI ไม่สำเร็จ',
+        'error',
+        5000,
+      );
+    } finally {
+      setIsSyncingVmi(false);
+    }
+  }, [refetch]);
 
   const handleClearFilters = useCallback(() => {
     setSearch('');
@@ -540,6 +570,17 @@ export default function CustomersPage() {
                 stylingMode="outlined"
                 onClick={() => refetch()}
                 className="hidden sm:inline-flex"
+              />
+              {/* One-shot sync for VMI hospitals ingested before the customer
+                  auto-sync existed — new orders register their customer on their
+                  own, so this is only needed for historical data (list item 10). */}
+              <DxButton
+                icon="download"
+                text={isSyncingVmi ? 'กำลังซิงก์...' : 'ซิงก์ลูกค้า VMI'}
+                stylingMode="outlined"
+                disabled={isSyncingVmi}
+                onClick={handleSyncVmiCustomers}
+                elementAttr={{ 'data-testid': 'sync-vmi-customers-btn' }}
               />
               <DxButton
                 text={t('customers.actions.addCustomer')}
