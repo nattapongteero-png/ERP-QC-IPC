@@ -2,7 +2,7 @@ import { getDb, isSqlite, schema } from './db';
 
 export interface AuditLogEntry {
   userId?: number;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT' | 'RESERVE' | 'ISSUE' | 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RELEASE' | 'BLOCK' | 'SYNC' | 'PERIOD_CLOSE' | 'PERIOD_SOFT_CLOSE' | 'PERIOD_REOPEN' | 'YEAR_CLOSE' | 'OPENING_BALANCES_CREATED' | 'CONFIRM' | 'SHIP';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'APPROVE' | 'REJECT' | 'RESERVE' | 'ISSUE' | 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RELEASE' | 'BLOCK' | 'SYNC' | 'PERIOD_CLOSE' | 'PERIOD_SOFT_CLOSE' | 'PERIOD_REOPEN' | 'YEAR_CLOSE' | 'OPENING_BALANCES_CREATED' | 'CONFIRM' | 'SHIP' | 'CANCEL';
   tableName?: string;
   recordId?: number;
   oldValue?: Record<string, any>;

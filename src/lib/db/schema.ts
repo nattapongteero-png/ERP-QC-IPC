@@ -910,7 +910,7 @@ export const sqliteMaintenanceRecords = sqliteTable('maintenance_records', {
 export const sqliteVMITransactions = sqliteTable('vmi_transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   vendorId: integer('vendor_id').notNull().references(() => sqliteVendors.id),
-  transactionType: text('transaction_type').notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, receipt_check, connection_test
+  transactionType: text('transaction_type').notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, order_cancel, receipt_check, connection_test
   itemId: integer('item_id').references(() => sqliteItems.id),
   quantity: real('quantity'),
   unit: text('unit'),
@@ -2674,7 +2674,7 @@ export const mysqlMaintenanceRecords = mysqlTable('maintenance_records', {
 export const mysqlVMITransactions = mysqlTable('vmi_transactions', {
   id: int('id').primaryKey().autoincrement(),
   vendorId: int('vendor_id').notNull().references(() => mysqlVendors.id),
-  transactionType: varchar('transaction_type', { length: 50 }).notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, receipt_check, connection_test
+  transactionType: varchar('transaction_type', { length: 50 }).notNull(), // item_sync, price_sync, inventory_sync, order_poll, order_confirm, order_ship, order_cancel, receipt_check, connection_test
   itemId: int('item_id').references(() => mysqlItems.id),
   quantity: decimal('quantity', { precision: 15, scale: 4 }),
   unit: varchar('unit', { length: 50 }),
@@ -3254,6 +3254,13 @@ export const mysqlVmiSalesOrders = mysqlTable('vmi_sales_orders', {
   // Factory rejection of a pending order (list item 11).
   rejectedAt: datetime('rejected_at'),
   rejectionReason: varchar('rejection_reason', { length: 500 }),
+  // Portal cancellation (CANCEL-PO-VENDOR-GUIDE). reason_code is a fixed enum
+  // (max 24 chars); the sync columns record whether the portal accepted it, so
+  // a failed push is visible instead of drifting silently.
+  cancelReasonCode: varchar('cancel_reason_code', { length: 30 }),
+  cancelIdempotencyKey: varchar('cancel_idempotency_key', { length: 100 }),
+  cancelSyncedAt: datetime('cancel_synced_at'),
+  cancelSyncError: varchar('cancel_sync_error', { length: 500 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -4063,6 +4070,14 @@ export const sqliteVmiSalesOrders = sqliteTable('vmi_sales_orders', {
   // the portal so the hospital sees it.
   rejectedAt: text('rejected_at'),
   rejectionReason: text('rejection_reason'),
+  // Portal cancellation (CANCEL-PO-VENDOR-GUIDE). The portal requires a
+  // structured reason_code alongside the free text, and the sync columns record
+  // whether the portal actually accepted the cancellation — without them a
+  // failed push is invisible and the two sides drift apart silently.
+  cancelReasonCode: text('cancel_reason_code'),
+  cancelIdempotencyKey: text('cancel_idempotency_key'),
+  cancelSyncedAt: text('cancel_synced_at'),
+  cancelSyncError: text('cancel_sync_error'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
 });

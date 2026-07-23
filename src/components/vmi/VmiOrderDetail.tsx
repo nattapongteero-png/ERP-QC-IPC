@@ -27,7 +27,12 @@ import {
   Clock,
 } from 'lucide-react';
 import type { DataGridTypes } from 'devextreme-react/data-grid';
-import type { VmiSalesOrderStatus } from '@/types/vmi';
+import {
+  VMI_CANCEL_REASON_CODES,
+  VMI_CANCEL_REASON_LABELS,
+  type VmiCancelReasonCode,
+  type VmiSalesOrderStatus,
+} from '@/types/vmi';
 
 // ============================================
 // Types
@@ -77,6 +82,8 @@ interface VmiOrderDetail {
   carrier?: string;
   rejectionReason?: string | null;
   rejectedAt?: string | null;
+  /** Portal reason enum recorded when the order was cancelled. */
+  cancelReasonCode?: VmiCancelReasonCode | null;
   createdAt: string;
   updatedAt: string;
   lines?: VmiOrderLine[];
@@ -143,6 +150,7 @@ async function fetchOrderDetail(orderId: number): Promise<VmiOrderDetail> {
     shippedAt: data.shippedAt,
     rejectionReason: data.rejectionReason ?? null,
     rejectedAt: data.rejectedAt ?? null,
+    cancelReasonCode: data.cancelReasonCode ?? null,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
     lines,
@@ -194,16 +202,23 @@ async function shipOrder(
   }
 }
 
-// Reject a pending order with a required reason (list item 11).
-async function rejectOrder(orderId: number, reason: string): Promise<void> {
-  const response = await fetch(`/api/sales/vmi-orders/${orderId}/reject`, {
+// Cancel an order and push it to the VMI Portal (CANCEL-PO-VENDOR-GUIDE).
+// The portal requires a structured reason code plus free text, and only marks
+// the order cancelled once it accepts — so an error here means the PO is still
+// live on both sides and must be shown to the operator, not swallowed.
+async function cancelOrder(
+  orderId: number,
+  reasonCode: VmiCancelReasonCode,
+  reasonText: string,
+): Promise<void> {
+  const response = await fetch(`/api/sales/vmi-orders/${orderId}/cancel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify({ reasonCode, reasonText }),
   });
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to reject order');
+    throw new Error(result.error || 'Failed to cancel order');
   }
 }
 
@@ -219,6 +234,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   const [carrier, setCarrier] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [cancelReasonCode, setCancelReasonCode] = useState<VmiCancelReasonCode>('OUT_OF_STOCK');
 
   // Real session user — a VMI match/confirm/ship writes an audit trail, so it
   // must name the operator who actually acted. Actions stay disabled until the
@@ -268,7 +284,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   });
 
   const rejectMutation = useMutation({
-    mutationFn: () => rejectOrder(orderId, rejectReason.trim()),
+    mutationFn: () => cancelOrder(orderId, cancelReasonCode, rejectReason.trim()),
     onSuccess: () => {
       setShowRejectDialog(false);
       setRejectReason('');
@@ -529,12 +545,13 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 </span>
               </DxButton>
             )}
-            {/* A pending order can be rejected outright (list item 11) — the
-                factory declines a rush order it cannot fulfil. Allowed even with
-                unmatched lines, since rejection ends the order. */}
-            {order.status === 'pending' && (
+            {/* Pending AND confirmed orders can be cancelled — the portal
+                accepts both (CANCEL-PO-VENDOR-GUIDE). Once shipped it must go
+                through returns instead, so the button disappears. Allowed even
+                with unmatched lines, since cancelling ends the order. */}
+            {['pending', 'confirmed'].includes(order.status) && (
               <DxButton
-                text={rejectMutation.isPending ? 'กำลังปฏิเสธ...' : 'ปฏิเสธคำสั่งซื้อ'}
+                text={rejectMutation.isPending ? 'กำลังยกเลิก...' : 'ยกเลิกคำสั่งซื้อ'}
                 type="danger"
                 icon="close"
                 onClick={() => setShowRejectDialog(true)}
@@ -544,10 +561,15 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             )}
           </div>
 
-          {/* Rejection reason, once rejected */}
+          {/* Cancellation reason, once cancelled — show the portal reason code
+              category alongside the operator's free text. */}
           {order.status === 'cancelled' && order.rejectionReason && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" data-testid="vmi-rejection-reason">
-              <strong>เหตุผลที่ปฏิเสธ:</strong> {order.rejectionReason}
+              <strong>เหตุผลที่ยกเลิก:</strong>{' '}
+              {order.cancelReasonCode
+                ? `[${VMI_CANCEL_REASON_LABELS[order.cancelReasonCode] ?? order.cancelReasonCode}] `
+                : ''}
+              {order.rejectionReason}
             </div>
           )}
 
@@ -641,40 +663,78 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         </div>
       </DxPopup>
 
-      {/* Reject Dialog (list item 11) — reason is required. */}
+      {/* Cancel Dialog — the portal requires BOTH a reason code from its fixed
+          enum and free text (1–500 chars), so the operator picks a category and
+          explains it. */}
       <DxPopup
         visible={showRejectDialog}
         onHiding={() => setShowRejectDialog(false)}
-        title="ปฏิเสธคำสั่งซื้อ"
-        width={400}
+        title="ยกเลิกคำสั่งซื้อ"
+        width={440}
       >
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              เหตุผลในการปฏิเสธ <span className="text-red-500">*</span>
+            <label
+              className="block text-sm font-medium text-gray-700 mb-1"
+              htmlFor="vmi-cancel-reason-code"
+            >
+              ประเภทเหตุผล <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="vmi-cancel-reason-code"
+              value={cancelReasonCode}
+              onChange={(e) => setCancelReasonCode(e.target.value as VmiCancelReasonCode)}
+              className="w-full px-3 py-2 border rounded-md bg-white"
+              data-testid="vmi-cancel-reason-code"
+            >
+              {VMI_CANCEL_REASON_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {VMI_CANCEL_REASON_LABELS[code]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-gray-700 mb-1"
+              htmlFor="vmi-reject-reason"
+            >
+              รายละเอียดเหตุผล <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="vmi-reject-reason"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
               rows={3}
+              maxLength={500}
               placeholder="เช่น สั่งกระทันหันเกินกำลังผลิต / สินค้าไม่พอ"
               data-testid="vmi-reject-reason"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              {rejectReason.trim().length}/500 ตัวอักษร — เหตุผลนี้จะถูกส่งไปแสดงที่ VMI Portal
+            </p>
           </div>
+          {/* A confirmed order already produced a sales order; cancelling the VMI
+              side does not void it automatically. */}
+          {order.status === 'confirmed' && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+              คำสั่งซื้อนี้ยืนยันแล้วและมีใบสั่งขายผูกอยู่ — กรุณาตรวจสอบและจัดการใบสั่งขายแยกต่างหากหลังยกเลิก
+            </div>
+          )}
           {rejectMutation.isError && (
-            <p className="text-sm text-red-600">
-              {(rejectMutation.error as Error)?.message || 'ปฏิเสธคำสั่งซื้อไม่สำเร็จ'}
+            <p className="text-sm text-red-600" data-testid="vmi-cancel-error">
+              {(rejectMutation.error as Error)?.message || 'ยกเลิกคำสั่งซื้อไม่สำเร็จ'}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
             <DxButton
-              text="ยกเลิก"
+              text="ปิด"
               type="normal"
               onClick={() => setShowRejectDialog(false)}
             />
             <DxButton
-              text={rejectMutation.isPending ? 'กำลังปฏิเสธ...' : 'ยืนยันการปฏิเสธ'}
+              text={rejectMutation.isPending ? 'กำลังยกเลิก...' : 'ยืนยันการยกเลิก'}
               type="danger"
               onClick={() => rejectMutation.mutate()}
               disabled={rejectMutation.isPending || !userId || !rejectReason.trim()}

@@ -29,6 +29,7 @@ import {
 import { decrypt } from '@/lib/crypto/encrypt';
 import { createAuditLog } from '@/lib/audit';
 import { vmiPortalConfigService } from './vmi-portal-config.service';
+import { VmiPortalService, VmiPortalError } from './vmi-portal.service';
 import type {
   VmiOrderStatus,
   VmiLocalOrderStatus,
@@ -38,6 +39,7 @@ import type {
   VmiOrderPollResult,
   VmiOrderConfirmRequest,
   VmiOrderShipRequest,
+  VmiCancelReasonCode,
 } from '@/types/vmi';
 
 // ============================================
@@ -1009,23 +1011,47 @@ export class VmiSalesOrderService {
   }
 
   /**
-   * Reject a pending VMI order (list item 11). The factory declines a rush order
-   * it cannot fulfil; the reason is stored and pushed back to the portal so the
-   * hospital sees why. Only a still-pending order can be rejected — once
-   * confirmed a sales order exists and shipping may be under way.
+   * Cancel a VMI order and push the cancellation to the portal
+   * (CANCEL-PO-VENDOR-GUIDE).
+   *
+   * Ordering matters: the portal is called FIRST and the local row is only
+   * written once it accepts. The previous implementation committed locally and
+   * treated the portal push as best-effort, which meant a rejected or
+   * unreachable portal left us showing "cancelled" while the hospital still saw
+   * a live PO — a silent divergence nobody could see. If the portal refuses
+   * (already shipped, bad reason code, revoked key) the local order is left
+   * untouched and the error surfaces to the operator.
+   *
+   * The portal accepts cancellation of both `submitted` and `confirmed` orders.
+   * A confirmed order already has a local sales order attached; we do NOT
+   * silently cancel that SO here — it is reported back so the caller can decide,
+   * because voiding a sales order can touch stock reservations and invoicing.
+   *
+   * @param reasonCode one of the portal's six enum values
+   * @param reasonText free text, 1–500 chars, shown to the hospital
    */
-  async rejectOrder(
+  async cancelOrder(
     orderId: number,
-    reason: string,
+    reasonCode: VmiCancelReasonCode,
+    reasonText: string,
     userId: number,
-  ): Promise<{ vmiOrder: VmiSalesOrderDetail; message: string }> {
+  ): Promise<{ vmiOrder: VmiSalesOrderDetail; message: string; linkedSalesOrderId?: number }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = (await this.getDb()) as any;
     const { orders, portals } = this.getTables();
 
-    const trimmed = (reason || '').trim();
+    const trimmed = (reasonText || '').trim();
     if (!trimmed) {
-      throw new VmiSalesOrderError('INVALID_REASON', 'ต้องระบุเหตุผลในการปฏิเสธคำสั่งซื้อ', 400);
+      throw new VmiSalesOrderError('INVALID_REASON', 'ต้องระบุเหตุผลในการยกเลิกคำสั่งซื้อ', 400);
+    }
+    // The portal caps reason_text at 500 characters and answers VALIDATION_ERROR
+    // beyond that — fail here with a Thai message instead of a round trip.
+    if (trimmed.length > 500) {
+      throw new VmiSalesOrderError(
+        'INVALID_REASON',
+        'เหตุผลในการยกเลิกต้องไม่เกิน 500 ตัวอักษร',
+        400,
+      );
     }
 
     const order = await this.getOrderById(orderId);
@@ -1033,16 +1059,72 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('ORDER_NOT_FOUND', 'Order not found', 404);
     }
 
-    if (order.localStatus !== 'pending') {
+    // Mirror the portal's own rule: submitted/confirmed may be cancelled,
+    // anything shipped onward must go through returns instead.
+    if (order.localStatus === 'cancelled') {
+      throw new VmiSalesOrderError('ALREADY_CANCELLED', 'คำสั่งซื้อนี้ถูกยกเลิกไปแล้ว', 400);
+    }
+    if (!['pending', 'confirmed'].includes(order.localStatus)) {
       throw new VmiSalesOrderError(
         'INVALID_STATUS',
-        `ปฏิเสธคำสั่งซื้อไม่ได้: สถานะปัจจุบันคือ "${order.localStatus}" (ต้องเป็น "pending")`,
+        `ยกเลิกคำสั่งซื้อไม่ได้: สถานะปัจจุบันคือ "${order.localStatus}" (ยกเลิกได้เฉพาะ "pending" หรือ "confirmed")`,
         400,
       );
     }
 
-    const now = getNow();
+    const [portal] = await db.select().from(portals).where(eq(portals.id, order.portalId));
+    if (!portal) {
+      throw new VmiSalesOrderError('PORTAL_NOT_FOUND', 'ไม่พบการตั้งค่า VMI Portal', 404);
+    }
 
+    // Stable per (order, attempt-day) so a retry after a network timeout replays
+    // the portal's cached response rather than being treated as a new request.
+    const idempotencyKey = `herb-cancel-${order.portalId}-${order.vmiOrderId}-${reasonCode}`;
+
+    const portalService = new VmiPortalService({
+      vendorId: order.portalId,
+      apiKeyEncrypted: decrypt(portal.apiKeyEncrypted),
+      baseUrl: `${portal.portalUrl}/api/external/vendor`,
+    });
+
+    try {
+      await portalService.cancelOrder(
+        Number(order.vmiOrderId),
+        { reason_code: reasonCode, reason_text: trimmed },
+        idempotencyKey,
+      );
+    } catch (error) {
+      const now = getNow();
+      const message =
+        error instanceof VmiPortalError
+          ? error.getUserMessage('th')
+          : error instanceof Error
+            ? error.message
+            : 'ไม่ทราบสาเหตุ';
+
+      // Record the failed attempt so operators can see why the portal refused
+      // rather than only finding it in server logs.
+      await db
+        .update(orders)
+        .set({ cancelSyncError: message.slice(0, 500), updatedAt: now } as Record<string, unknown>)
+        .where(eq(orders.id, orderId));
+
+      if (error instanceof VmiPortalError) {
+        throw new VmiSalesOrderError(
+          error.code,
+          `VMI Portal ปฏิเสธการยกเลิก: ${message}`,
+          error.httpStatus,
+        );
+      }
+      throw new VmiSalesOrderError(
+        'PORTAL_UNREACHABLE',
+        `ติดต่อ VMI Portal ไม่ได้ จึงยังไม่ยกเลิกคำสั่งซื้อ: ${message}`,
+        502,
+      );
+    }
+
+    // Portal accepted — now it is safe to commit locally.
+    const now = getNow();
     await db
       .update(orders)
       .set({
@@ -1050,41 +1132,51 @@ export class VmiSalesOrderService {
         localStatus: 'cancelled',
         rejectedAt: now,
         rejectionReason: trimmed,
+        cancelReasonCode: reasonCode,
+        cancelIdempotencyKey: idempotencyKey,
+        cancelSyncedAt: now,
+        cancelSyncError: null,
         updatedAt: now,
       } as Record<string, unknown>)
       .where(eq(orders.id, orderId));
 
     await createAuditLog({
       userId,
-      action: 'REJECT',
+      action: 'CANCEL',
       tableName: 'vmi_sales_orders',
       recordId: orderId,
       oldValue: { localStatus: order.localStatus, vmiStatus: order.vmiStatus },
-      newValue: { localStatus: 'cancelled', vmiStatus: 'cancelled', rejectionReason: trimmed },
+      newValue: {
+        localStatus: 'cancelled',
+        vmiStatus: 'cancelled',
+        cancelReasonCode: reasonCode,
+        rejectionReason: trimmed,
+        syncedToPortal: true,
+      },
     });
 
-    // Tell the portal (best-effort — a portal outage must not block the local
-    // rejection, same as confirm/ship).
-    const [portal] = await db.select().from(portals).where(eq(portals.id, order.portalId));
-    if (portal) {
-      try {
-        const apiKey = decrypt(portal.apiKeyEncrypted);
-        await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-          body: JSON.stringify({ action: 'reject', reason: trimmed }),
-          signal: AbortSignal.timeout(10000),
-        });
-      } catch (error) {
-        console.error('[VMI Sales Order] Failed to notify portal of rejection:', error);
-      }
-    }
-
     const updatedOrder = await this.getOrderById(orderId);
-    return {
-      vmiOrder: updatedOrder!,
-      message: 'ปฏิเสธคำสั่งซื้อและแจ้ง VMI Portal แล้ว',
-    };
+
+    // A confirmed order carries a real sales order. Surface it rather than
+    // voiding it behind the operator's back.
+    const linkedSalesOrderId = order.salesOrderId ?? undefined;
+    const message = linkedSalesOrderId
+      ? 'ยกเลิกคำสั่งซื้อและแจ้ง VMI Portal แล้ว — กรุณาตรวจสอบใบสั่งขายที่ผูกอยู่ด้วย'
+      : 'ยกเลิกคำสั่งซื้อและแจ้ง VMI Portal แล้ว';
+
+    return { vmiOrder: updatedOrder!, message, linkedSalesOrderId };
+  }
+
+  /**
+   * @deprecated Use {@link cancelOrder}. Kept so existing callers keep working;
+   * maps the old free-text reason onto the portal's OTHER reason code.
+   */
+  async rejectOrder(
+    orderId: number,
+    reason: string,
+    userId: number,
+  ): Promise<{ vmiOrder: VmiSalesOrderDetail; message: string }> {
+    return this.cancelOrder(orderId, 'OTHER', reason, userId);
   }
 
   // ============================================

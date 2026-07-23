@@ -252,6 +252,7 @@ export type VmiTransactionType =
   | 'order_poll'
   | 'order_confirm'
   | 'order_ship'
+  | 'order_cancel'
   | 'receipt_check'
   | 'connection_test';
 
@@ -286,9 +287,14 @@ export type VmiErrorCode =
   | 'UNAUTHORIZED'
   | 'API_KEY_EXPIRED'
   | 'API_KEY_REVOKED'
+  | 'FORBIDDEN'
   | 'VALIDATION_ERROR'
   | 'ORDER_NOT_FOUND'
   | 'INVALID_STATUS_TRANSITION'
+  | 'PO_ALREADY_SHIPPED'
+  | 'IDEMPOTENCY_MISMATCH'
+  | 'IDEMPOTENCY_UNAVAILABLE'
+  | 'RATE_LIMIT_EXCEEDED'
   | 'INTERNAL_ERROR';
 
 export interface VmiErrorResponse {
@@ -298,6 +304,58 @@ export interface VmiErrorResponse {
     message: string;
     details?: Record<string, unknown>;
   };
+}
+
+// ============================================
+// VMI PO Cancellation (CANCEL-PO-VENDOR-GUIDE)
+// Vendor-initiated cancellation of a hospital PO that already reached us.
+// ============================================
+
+/**
+ * Reason codes accepted by `POST /orders/{id}/cancel`. The portal rejects any
+ * value outside this enum with VALIDATION_ERROR, so the UI must offer exactly
+ * these six and nothing else.
+ */
+export const VMI_CANCEL_REASON_CODES = [
+  'OUT_OF_STOCK',
+  'DISCONTINUED',
+  'SUPPLIER_UNAVAILABLE',
+  'PRICE_CHANGED',
+  'VENDOR_ERROR',
+  'OTHER',
+] as const;
+
+export type VmiCancelReasonCode = (typeof VMI_CANCEL_REASON_CODES)[number];
+
+/** Thai labels for the reason dropdown — the portal stores the code, the user picks a phrase. */
+export const VMI_CANCEL_REASON_LABELS: Record<VmiCancelReasonCode, string> = {
+  OUT_OF_STOCK: 'สินค้าหมดสต็อก',
+  DISCONTINUED: 'ยกเลิกการผลิต/เลิกจำหน่าย',
+  SUPPLIER_UNAVAILABLE: 'ผู้ผลิต/ซัพพลายเออร์ไม่พร้อมจัดส่ง',
+  PRICE_CHANGED: 'ราคาเปลี่ยนแปลง',
+  VENDOR_ERROR: 'ข้อผิดพลาดจากฝั่งผู้ขาย',
+  OTHER: 'อื่น ๆ',
+};
+
+/** Request body for the portal cancel endpoint (snake_case is the portal's contract). */
+export interface VmiCancelOrderRequest {
+  reason_code: VmiCancelReasonCode;
+  /** 1–500 characters, required by the portal. */
+  reason_text: string;
+  /** Optional vendor-side correlation id, max 100 characters. */
+  vendor_reference?: string;
+}
+
+/** Success payload returned by `POST /orders/{id}/cancel`. */
+export interface VmiCancelOrderResponse {
+  success: true;
+  vendorId: number;
+  orderId: number;
+  poNumber: string;
+  previousStatus: VmiOrderStatus;
+  newStatus: 'cancelled';
+  cancelledAt: string;
+  message?: string;
 }
 
 // ============================================
@@ -547,6 +605,11 @@ export interface VmiSalesOrder {
   deliveredAt?: Date | null;
   rejectedAt?: Date | null;
   rejectionReason?: string | null;
+  /** Portal reason enum + push outcome, set when cancelled (see cancelOrder). */
+  cancelReasonCode?: VmiCancelReasonCode | null;
+  cancelIdempotencyKey?: string | null;
+  cancelSyncedAt?: Date | null;
+  cancelSyncError?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

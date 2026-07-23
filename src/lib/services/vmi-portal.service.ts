@@ -19,6 +19,8 @@ import type {
   VmiOrderQuery,
   VmiErrorCode,
   VmiTransactionType,
+  VmiCancelOrderRequest,
+  VmiCancelOrderResponse,
 } from '@/types/vmi';
 
 // ============================================
@@ -49,9 +51,29 @@ export class VmiPortalError extends Error {
       UNAUTHORIZED: { th: 'API Key ไม่ถูกต้อง', en: 'Invalid API Key' },
       API_KEY_EXPIRED: { th: 'API Key หมดอายุ', en: 'API Key expired' },
       API_KEY_REVOKED: { th: 'API Key ถูกยกเลิก', en: 'API Key revoked' },
+      FORBIDDEN: {
+        th: 'API Key ไม่มีสิทธิ์ดำเนินการนี้ (ต้องใช้คีย์ประเภท Vendor)',
+        en: 'API Key lacks permission for this action (vendor key required)',
+      },
       VALIDATION_ERROR: { th: 'ข้อมูลไม่ถูกต้อง', en: 'Invalid data' },
       ORDER_NOT_FOUND: { th: 'ไม่พบคำสั่งซื้อ', en: 'Order not found' },
       INVALID_STATUS_TRANSITION: { th: 'ไม่สามารถเปลี่ยนสถานะได้', en: 'Cannot change status' },
+      PO_ALREADY_SHIPPED: {
+        th: 'ยกเลิกไม่ได้: จัดส่งสินค้าแล้ว ต้องใช้กระบวนการรับคืนสินค้าแทน',
+        en: 'Cannot cancel: order already shipped — use the Return process instead',
+      },
+      IDEMPOTENCY_MISMATCH: {
+        th: 'ส่งคำขอซ้ำด้วยข้อมูลที่ไม่ตรงกับครั้งแรก กรุณาลองใหม่อีกครั้ง',
+        en: 'Idempotency key reused with a different body',
+      },
+      IDEMPOTENCY_UNAVAILABLE: {
+        th: 'ระบบ VMI Portal ไม่พร้อมรับคำขอชั่วคราว กรุณาลองใหม่อีกครั้ง',
+        en: 'VMI Portal idempotency store unavailable — retry shortly',
+      },
+      RATE_LIMIT_EXCEEDED: {
+        th: 'ส่งคำขอถี่เกินกำหนด กรุณารอสักครู่แล้วลองใหม่',
+        en: 'Rate limit exceeded — please retry shortly',
+      },
       INTERNAL_ERROR: { th: 'ระบบ VMI Portal มีปัญหา', en: 'VMI Portal system error' },
     };
 
@@ -133,7 +155,8 @@ export class VmiPortalService {
     method: string,
     path: string,
     body?: unknown,
-    transactionType?: VmiTransactionType
+    transactionType?: VmiTransactionType,
+    extraHeaders?: Record<string, string>
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const startTime = Date.now();
@@ -143,8 +166,10 @@ export class VmiPortalService {
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': this.apiKey,
+        ...extraHeaders,
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(VmiPortalService.DEFAULT_TIMEOUT),
     };
 
     let response: Response;
@@ -178,11 +203,19 @@ export class VmiPortalService {
         );
       }
 
-      // Handle errors
+      // Handle errors. The portal is inconsistent about error shape: the older
+      // sync endpoints nest under `error`, while the cancel endpoint returns a
+      // flat `{success:false, code, message}` — accept both rather than
+      // mislabelling every cancel failure as INTERNAL_ERROR.
       if (!response.ok) {
-        const errorResponse = responseData as { error?: { code?: string; message?: string }; message?: string };
-        const errorCode = (errorResponse.error?.code || 'INTERNAL_ERROR') as VmiErrorCode;
-        const errorMessage = errorResponse.error?.message || errorResponse.message || 'Unknown error';
+        const errorResponse = responseData as {
+          error?: { code?: string; message?: string };
+          code?: string;
+          message?: string;
+        };
+        const errorCode = (errorResponse.error?.code || errorResponse.code || 'INTERNAL_ERROR') as VmiErrorCode;
+        const errorMessage =
+          errorResponse.error?.message || errorResponse.message || 'Unknown error';
 
         throw new VmiPortalError(errorCode, errorMessage, response.status);
       }
@@ -341,6 +374,34 @@ export class VmiPortalService {
   }
 
   /**
+   * Cancel a hospital PO that already reached us (CANCEL-PO-VENDOR-GUIDE).
+   *
+   * Distinct from {@link rejectOrder}: the portal exposes a dedicated
+   * `POST /orders/{id}/cancel` with a structured reason code, and it accepts
+   * cancellation of both `submitted` and `confirmed` orders. A shipped order
+   * cannot be cancelled — the portal answers 409 PO_ALREADY_SHIPPED and the
+   * goods must go back through the return process instead.
+   *
+   * @param orderId  the portal's numeric order id (NOT the hospital poNumber)
+   * @param idempotencyKey stable per logical cancellation, so a retry after a
+   *   network timeout replays the cached response instead of erroring. Reusing
+   *   a key with a different body yields 409 IDEMPOTENCY_MISMATCH.
+   */
+  async cancelOrder(
+    orderId: number,
+    request: VmiCancelOrderRequest,
+    idempotencyKey?: string
+  ): Promise<VmiCancelOrderResponse> {
+    return this.request<VmiCancelOrderResponse>(
+      'POST',
+      `/orders/${orderId}/cancel`,
+      request,
+      'order_cancel',
+      idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined
+    );
+  }
+
+  /**
    * Get receipt status for an order
    */
   async getReceiptStatus(orderId: number): Promise<VmiReceiptStatus> {
@@ -360,18 +421,28 @@ export function getHttpStatusForVmiError(code: VmiErrorCode): number {
     UNAUTHORIZED: 401,
     API_KEY_EXPIRED: 401,
     API_KEY_REVOKED: 401,
+    FORBIDDEN: 403,
     VALIDATION_ERROR: 400,
     ORDER_NOT_FOUND: 404,
     INVALID_STATUS_TRANSITION: 409,
+    PO_ALREADY_SHIPPED: 409,
+    IDEMPOTENCY_MISMATCH: 409,
+    IDEMPOTENCY_UNAVAILABLE: 503,
+    RATE_LIMIT_EXCEEDED: 429,
     INTERNAL_ERROR: 500,
   };
   return statusMap[code] || 500;
 }
 
 /**
- * Check if an error is retryable
+ * Check if an error is retryable.
+ *
+ * Server errors are transient. 429 is explicitly retryable too — the portal
+ * rate-limits at 100 req/min per vendor and returns Retry-After, so backing off
+ * and retrying is the documented response rather than surfacing a failure.
+ * Client errors (bad reason code, already shipped, wrong key) never succeed on
+ * a retry and must fail fast.
  */
 export function isRetryableError(error: VmiPortalError): boolean {
-  // Only retry on server errors, not client errors
-  return error.httpStatus >= 500;
+  return error.httpStatus >= 500 || error.httpStatus === 429;
 }
