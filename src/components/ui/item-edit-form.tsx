@@ -86,6 +86,8 @@ export interface Item {
   strengthUnit: string | null;
   unitWeightMg: number | null;
   gRegNumber: string | null;
+  // ราคาขาย — prefills the unit price on quotation / sales-order lines
+  sellingPrice?: number | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -123,6 +125,8 @@ export interface ItemFormData {
   strengthUnit: string;
   unitWeightMg: string; // net weight per sub-unit (mg); string for input, coerced on save
   gRegNumber: string;
+  // ราคาขาย — prefills quotation / sales-order line unit price
+  sellingPrice: number | null;
   // BOM Confidentiality Protection fields (014-unit-cost)
   confidentialityLevel: ConfidentialityLevel;
   defaultConfidential: boolean;
@@ -218,6 +222,7 @@ export const getDefaultFormData = (): ItemFormData => ({
   strengthUnit: '',
   unitWeightMg: '',
   gRegNumber: '',
+  sellingPrice: null,
   confidentialityLevel: 'public',
   defaultConfidential: false,
 });
@@ -259,6 +264,11 @@ export const itemToFormData = (item: Item): ItemFormData => {
   strengthUnit: item.strengthUnit || '',
   unitWeightMg: item.unitWeightMg != null ? String(item.unitWeightMg) : '',
   gRegNumber: item.gRegNumber || '',
+  // MySQL DECIMAL may arrive as a string — coerce, and keep null when unset.
+  sellingPrice:
+    item.sellingPrice != null && item.sellingPrice !== ('' as unknown)
+      ? Number(item.sellingPrice)
+      : null,
   confidentialityLevel: item.confidentialityLevel || 'public',
   defaultConfidential: item.defaultConfidential || false,
 };
@@ -816,6 +826,24 @@ export function ItemEditForm({
                       onValueChange={(value) => updateFormData('nameEn', value)}
                       placeholder={t('itemForm.placeholders.nameEn')}
                     />
+                  </div>
+                  {/* ราคาขาย — prefills the unit price on quotation / SO lines.
+                      DevExtreme NumberBox commits on `change` (blur) by default;
+                      do NOT switch it to `keyup` — that remounts the field and
+                      steals focus while typing. */}
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('itemForm.fields.sellingPrice')}
+                    </label>
+                    <DxNumberBox
+                      value={formData.sellingPrice}
+                      onValueChange={(value) => updateFormData('sellingPrice', value)}
+                      placeholder="0.00"
+                      min={0}
+                      format="#,##0.00"
+                      inputAttr={{ 'data-testid': 'item-selling-price' }}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{t('itemForm.hints.sellingPrice')}</p>
                   </div>
                   {/* FR-059: Strength — value + selectable unit, so BOM/WO can
                       compute (powder weight + empty capsule). Shown for the

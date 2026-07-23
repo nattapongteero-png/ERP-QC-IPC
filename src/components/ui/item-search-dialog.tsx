@@ -558,8 +558,14 @@ export function ItemSearchDialog({
 
         {/* Type Filter Tabs — shown when no filterType, OR when filterType is
             a multi-value array (user can still switch between allowed types). */}
+        {/* width="100%" + overflow-hidden: without an explicit width DevExtreme
+            measures the strip before the dialog has settled its layout and lays
+            the tabs on top of each other (RAW MATERIAL over PACKAGING). Pinning
+            it to the container and clipping overflow makes it scroll instead. */}
         {typeTabs.length > 1 && (
+          <div className="w-full overflow-hidden">
           <DxTabs
+            width="100%"
             items={tabItems}
             selectedIndex={selectedTypeTab}
             onItemClick={(e) => {
@@ -571,6 +577,7 @@ export function ItemSearchDialog({
               }
             }}
           />
+          </div>
         )}
 
         {/* Filter indicator — only for a single pinned type (no tab switching) */}

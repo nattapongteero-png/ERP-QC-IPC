@@ -234,6 +234,16 @@ export async function convertQuotationToSalesOrder(
 ): Promise<{ soId: number }> {
   const quotation = await getQuotation(id);
   if (!quotation) throw new Error('Quotation not found');
+
+  // Only an ACCEPTED quotation may become a sales order (list item 20.1). A draft
+  // or merely-sent offer has not been agreed by the customer, so converting it
+  // would create an order nobody approved. Already-converted is handled below.
+  if (quotation.status !== 'accepted' && quotation.status !== 'converted') {
+    throw new Error(
+      'ใบเสนอราคายังไม่ได้รับการตอบรับ กรุณากด "ตอบรับ" ก่อนแปลงเป็นใบสั่งขาย',
+    );
+  }
+
   if (quotation.status === 'converted' && quotation.soId) {
     return { soId: quotation.soId };
   }

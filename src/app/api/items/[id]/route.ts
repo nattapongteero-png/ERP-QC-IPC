@@ -53,6 +53,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         item.conversionFactor = Number(item.conversionRate);
       }
 
+      // MySQL returns DECIMAL as a string — hand back a real number.
+      item.sellingPrice =
+        item.sellingPrice == null || item.sellingPrice === ''
+          ? null
+          : Number(item.sellingPrice);
+
       return successResponse(item);
     } catch (error) {
       return serverErrorResponse(error);
@@ -104,7 +110,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Structured strength (value + unit) + per-unit net weight for BOM/WO
         'strengthValue', 'strengthUnit', 'unitWeightMg',
         // 3-level unit conversion (PU → SU → WU)
-        'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled'
+        'weightUnit', 'secondaryToWeightRate', 'weightTrackingEnabled',
+        // ราคาขาย — prefill for quotation / sales-order lines
+        'sellingPrice'
       ];
 
       // Map frontend field names to DB column names
@@ -139,6 +147,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           body.unitWeightMg === '' || body.unitWeightMg === null
             ? null
             : Number(body.unitWeightMg);
+      }
+      // ราคาขาย — numeric column; '' / null → null, negatives rejected.
+      if (body.sellingPrice !== undefined) {
+        const sp =
+          body.sellingPrice === '' || body.sellingPrice === null
+            ? null
+            : Number(body.sellingPrice);
+        if (sp !== null && (isNaN(sp) || sp < 0)) {
+          return errorResponse('ราคาขายต้องเป็นตัวเลขและไม่ติดลบ');
+        }
+        body.sellingPrice = sp;
       }
 
       for (const field of allowedFields) {

@@ -986,7 +986,8 @@
       "defaultConfidential": "Default Confidential in BOM",
       "type": "Type",
       "shelfLife": "Shelf Life",
-      "vmiStatus": "VMI Status"
+      "vmiStatus": "VMI Status",
+      "sellingPrice": "Selling Price"
     },
     "placeholders": {
       "code": "RM-0001",
@@ -1049,7 +1050,8 @@
       "tppCode": "Thai Pharmaceutical Product code (13 digits)",
       "ttmtCode": "Thai Traditional Medicine Terminology code",
       "drugCode24": "24-digit standard drug code for VMI identification",
-      "defaultConfidential": "When used as a component, mark as confidential by default"
+      "defaultConfidential": "When used as a component, mark as confidential by default",
+      "sellingPrice": "Price per primary unit — prefills quotation / sales order lines"
     },
     "vmi": {
       "enableSync": "Enable VMI Sync",

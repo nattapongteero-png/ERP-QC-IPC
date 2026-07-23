@@ -65,8 +65,19 @@ export async function GET(request: NextRequest) {
         return query.limit(pagination.limit).offset(offset);
       });
 
+      // MySQL returns DECIMAL columns as strings — normalise sellingPrice to a
+      // real number so consumers (ItemSearchDialog, quotation/SO line prefill)
+      // get `150` not `"150.00"`.
+      const normalised = items.map((row: Record<string, unknown>) => ({
+        ...row,
+        sellingPrice:
+          row.sellingPrice == null || row.sellingPrice === ''
+            ? null
+            : Number(row.sellingPrice),
+      }));
+
       // onHand is now stored in items table, no need to calculate from lots
-      return successResponse(createPaginatedResponse(items, total, pagination));
+      return successResponse(createPaginatedResponse(normalised, total, pagination));
     } catch (error) {
       return serverErrorResponse(error);
     }
@@ -109,11 +120,18 @@ export async function POST(request: NextRequest) {
         strengthUnit,
         unitWeightMg,
         gRegNumber,
+        sellingPrice,
       } = body;
       const strengthValueNum =
         strengthValue === '' || strengthValue == null ? null : Number(strengthValue);
       const unitWeightMgNum =
         unitWeightMg === '' || unitWeightMg == null ? null : Number(unitWeightMg);
+      // ราคาขาย — numeric column; '' / null → null, negatives rejected.
+      const sellingPriceNum =
+        sellingPrice === '' || sellingPrice == null ? null : Number(sellingPrice);
+      if (sellingPriceNum !== null && (isNaN(sellingPriceNum) || sellingPriceNum < 0)) {
+        return errorResponse('ราคาขายต้องเป็นตัวเลขและไม่ติดลบ');
+      }
 
       if (!code || !nameTh || !type || !primaryUnit) {
         return errorResponse('Code, name (Thai), type, and primary unit are required');
@@ -148,6 +166,7 @@ export async function POST(request: NextRequest) {
             strengthValue: strengthValueNum, strengthUnit: strengthUnit || null,
             unitWeightMg: unitWeightMgNum,
             gRegNumber: gRegNumber || null,
+            ...(sellingPrice !== undefined ? { sellingPrice: sellingPriceNum } : {}),
             isActive: true,
           }).where(eq(itemsTable.id, existingId));
         });
@@ -196,6 +215,7 @@ export async function POST(request: NextRequest) {
           strengthUnit: strengthUnit || null,
           unitWeightMg: unitWeightMgNum,
           gRegNumber: gRegNumber || null,
+          sellingPrice: sellingPriceNum,
         });
       });
 

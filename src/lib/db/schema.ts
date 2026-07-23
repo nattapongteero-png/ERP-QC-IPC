@@ -168,6 +168,10 @@ export const sqliteItems = sqliteTable('items', {
   unitWeightMg: real('unit_weight_mg'),
   gRegNumber: text('g_reg_number'), // เลขที่ทะเบียน G (drug registration number)
   // Unit Cost Calculation fields (014-unit-cost)
+  // List price used when the item is sold. The sales/quotation forms already read
+  // item.sellingPrice to prefill a line, but the column never existed — so every
+  // pick came back 0 and the price had to be keyed by hand (list items 33/34).
+  sellingPrice: real('selling_price'),
   currentWAC: real('current_wac'), // Current weighted average cost
   lastPurchaseCost: real('last_purchase_cost'), // From most recent PO receipt
   lastPurchaseDate: text('last_purchase_date'), // Date of last purchase
@@ -1958,6 +1962,8 @@ export const mysqlItems = mysqlTable('items', {
   unitWeightMg: decimal('unit_weight_mg', { precision: 15, scale: 4 }),
   gRegNumber: varchar('g_reg_number', { length: 50 }), // เลขที่ทะเบียน G
   // Unit Cost Calculation fields (014-unit-cost)
+  // Selling list price (list items 33/34) — see the SQLite table for why.
+  sellingPrice: decimal('selling_price', { precision: 15, scale: 2 }),
   currentWAC: decimal('current_wac', { precision: 15, scale: 4 }), // Current weighted average cost
   lastPurchaseCost: decimal('last_purchase_cost', { precision: 15, scale: 4 }), // From most recent PO receipt
   lastPurchaseDate: datetime('last_purchase_date'), // Date of last purchase
