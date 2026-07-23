@@ -188,14 +188,20 @@ export class VmiSalesOrderService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get orders with portal names
+    // INNER join, not LEFT: rows whose portal config was deleted are orphans —
+    // they can never be polled, cancelled or synced again because every one of
+    // those paths needs the portal's URL and API key. Listing them only invited
+    // operators to act on records the system cannot honour (UAT had 6 such rows
+    // duplicating live orders under an old portal id). The rows stay in the
+    // database — their linked sales orders and AR invoices are real — they are
+    // simply not offered as actionable VMI orders.
     const orderRecords = await db
       .select({
         order: orders,
         portalName: portals.name,
       })
       .from(orders)
-      .leftJoin(portals, eq(orders.portalId, portals.id))
+      .innerJoin(portals, eq(orders.portalId, portals.id))
       .where(whereClause)
       .orderBy(query.sortOrder === 'asc' ? orders.polledAt : desc(orders.polledAt))
       .limit(limit)
@@ -248,8 +254,14 @@ export class VmiSalesOrderService {
       polledAt: new Date(r.order.polledAt as string),
     }));
 
-    // Get total count
-    const allOrders = await db.select().from(orders).where(whereClause);
+    // Count with the SAME inner join as the page query — otherwise the total
+    // counts orphaned rows the list will never show, and the pager advertises
+    // pages that come back empty.
+    const allOrders = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .innerJoin(portals, eq(orders.portalId, portals.id))
+      .where(whereClause);
     const total = allOrders.length;
 
     return {
@@ -465,8 +477,20 @@ export class VmiSalesOrderService {
       await this.reconcileStatusesFromPortal(portal, apiKey);
 
       for (const summary of orderSummaries) {
-        // Check if order already exists
-        const existing = await this.findOrderByVmiOrderId(portal.id, String(summary.id));
+        // Check if order already exists.
+        //
+        // Scoped by portal id AND by portal URL + vendor: deleting a portal
+        // config and re-adding it mints a new id, and a portal-id-only check
+        // then re-imports every order under that new id. UAT ended up with the
+        // same PO stored twice — once per portal id — with the two copies
+        // drifting to different statuses. Same portal address means same order,
+        // whatever row id the config happens to have now.
+        const existing = await this.findExistingPortalOrder(
+          portal.id,
+          portal.portalUrl,
+          portal.vendorId,
+          String(summary.id),
+        );
         if (existing) {
           continue; // Skip already imported orders
         }
@@ -593,6 +617,42 @@ export class VmiSalesOrderService {
       console.warn(`[VMI Poll] Reconciled ${reconciled} order(s) to cancelled from portal`);
     }
     return reconciled;
+  }
+
+  /**
+   * Has this portal order already been imported — under this portal config OR
+   * under any earlier config pointing at the same portal address?
+   *
+   * Matching on (portalUrl, vendorId) as well as portal id is what stops a
+   * deleted-and-recreated portal from duplicating its entire order history.
+   */
+  private async findExistingPortalOrder(
+    portalId: number,
+    portalUrl: string,
+    vendorId: string,
+    vmiOrderId: string,
+  ): Promise<VmiSalesOrder | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (await this.getDb()) as any;
+    const { orders, portals } = this.getTables();
+
+    // Every portal config — current or superseded — that addresses the same
+    // portal as the one we are polling.
+    const sameAddress = await db
+      .select({ id: portals.id })
+      .from(portals)
+      .where(and(eq(portals.portalUrl, portalUrl), eq(portals.vendorId, vendorId)));
+
+    const portalIds = Array.from(
+      new Set<number>([portalId, ...sameAddress.map((p: { id: number }) => p.id)]),
+    );
+
+    const [record] = await db
+      .select()
+      .from(orders)
+      .where(and(inArray(orders.portalId, portalIds), eq(orders.vmiOrderId, vmiOrderId)));
+
+    return record || null;
   }
 
   /**
