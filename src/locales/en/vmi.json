@@ -119,7 +119,8 @@
       "failedToday": "Failed Today",
       "running": "Running",
       "refresh": "Refresh",
-      "portalSettings": "Portal Settings"
+      "portalSettings": "Portal Settings",
+      "syncedToday": "Synced Today"
     },
     "syncTypes": {
       "inventory": {

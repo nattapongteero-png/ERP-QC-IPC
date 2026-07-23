@@ -7,7 +7,7 @@
  * Feature: 008-vmi-vendor-sync
  */
 
-import { eq, and, isNotNull, isNull, gte, lte, or, inArray } from 'drizzle-orm';
+import { eq, and, isNotNull, isNull, gte, lte, or, inArray, desc } from 'drizzle-orm';
 import { isSqlite, getSqliteDb, getMysqlDb } from '@/lib/db';
 import {
   sqliteItems,
@@ -947,12 +947,14 @@ export class VmiSyncService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get items
+    // Newest first. Ascending order buried every recent run on the last page —
+    // with 394 rows the synced-items data (only on runs after that column
+    // existed) was never visible, and "latest sync" showed a run from weeks ago.
     const items = await db
       .select()
       .from(syncHistory)
       .where(whereClause)
-      .orderBy(syncHistory.startedAt)
+      .orderBy(desc(syncHistory.startedAt))
       .limit(limit)
       .offset(offset);
 

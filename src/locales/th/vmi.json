@@ -119,7 +119,8 @@
       "failedToday": "ล้มเหลววันนี้",
       "running": "กำลังทำงาน",
       "refresh": "รีเฟรช",
-      "portalSettings": "ตั้งค่า Portal"
+      "portalSettings": "ตั้งค่า Portal",
+      "syncedToday": "ซิงค์วันนี้"
     },
     "syncTypes": {
       "inventory": {

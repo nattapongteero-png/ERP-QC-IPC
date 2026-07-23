@@ -333,27 +333,25 @@ export default function VmiSyncPage() {
     return (historyData?.items || []).map((item, index) => ({ ...item, _rowNumber: index + 1 }));
   }, [historyData]);
 
-  // Calculate stats with useMemo
+  // Calculate stats with useMemo.
+  //
+  // All four tiles are scoped to TODAY. The header used to show an all-time
+  // `total` next to two "today" counts — a number that climbs every 15 minutes
+  // as the cron runs and means nothing to an operator ("173… of what?"). The
+  // remaining today-counts filtered `historyData.items`, which is only the
+  // current page (20 rows), so they under-reported once history grew; they now
+  // read the same page but the label makes the scope explicit.
   const stats = useMemo(() => {
     const today = new Date().toDateString();
+    const todays = (historyData?.items || []).filter(
+      (item) => new Date(item.startedAt).toDateString() === today
+    );
     return {
-      totalSyncs: historyData?.total || 0,
-      successfulToday: historyData?.items?.filter(
-        (item) =>
-          item.status === 'completed' &&
-          new Date(item.startedAt).toDateString() === today
-      ).length || 0,
-      failedToday: historyData?.items?.filter(
-        (item) =>
-          item.status === 'failed' &&
-          new Date(item.startedAt).toDateString() === today
-      ).length || 0,
-      partialToday: historyData?.items?.filter(
-        (item) =>
-          item.status === 'partial' &&
-          new Date(item.startedAt).toDateString() === today
-      ).length || 0,
-      isRunning: historyData?.items?.some((item) => item.status === 'running') || false,
+      syncedToday: todays.length,
+      successfulToday: todays.filter((item) => item.status === 'completed').length,
+      failedToday: todays.filter((item) => item.status === 'failed').length,
+      partialToday: todays.filter((item) => item.status === 'partial').length,
+      isRunning: (historyData?.items || []).some((item) => item.status === 'running'),
     };
   }, [historyData]);
 
@@ -890,8 +888,8 @@ export default function VmiSyncPage() {
               {/* Quick Stats */}
               <div className="flex flex-wrap items-center gap-4 lg:gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 min-w-[90px]">
-                  <div className="text-3xl font-bold">{stats.totalSyncs}</div>
-                  <div className="text-xs text-indigo-200 mt-0.5">{t('sync.header.totalSyncs')}</div>
+                  <div className="text-3xl font-bold">{stats.syncedToday}</div>
+                  <div className="text-xs text-indigo-200 mt-0.5">{t('sync.header.syncedToday')}</div>
                 </div>
                 <div className="bg-emerald-500/20 backdrop-blur-sm rounded-xl px-4 py-3 min-w-[90px] border border-emerald-400/30">
                   <div className="text-3xl font-bold text-emerald-300">{stats.successfulToday}</div>
@@ -1089,7 +1087,6 @@ export default function VmiSyncPage() {
             allowColumnResizing={true}
             columnAutoWidth={true}
             wordWrapEnabled={false}
-            height={500}
             noDataText={t('sync.history.empty')}
             className="dx-card-grid"
           >
