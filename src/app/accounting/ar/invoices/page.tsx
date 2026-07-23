@@ -953,9 +953,16 @@ export default function ARInvoicesPage() {
             width={120}
             cellRender={statusCellRender}
           />
+          {/* Pinned right: the fixed column widths plus the auto-sized
+              description add up to more than the container, so an unfixed
+              actions column was pushed outside the grid and rendered over the
+              page background. Fixing it keeps the buttons reachable and inside
+              the card at any width. */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
             width={200}
+            fixed={true}
+            fixedPosition="right"
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}

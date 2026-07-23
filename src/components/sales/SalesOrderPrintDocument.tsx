@@ -164,7 +164,7 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
   const grandTotal = subtotal + vat + freight;
 
   return (
-    <div className="print-only so-print-doc" data-testid="so-print-document">
+    <div className="print-only print-doc so-print-doc" data-testid="so-print-document">
       {/* ===== Header: company (seller) + document title ===== */}
       <div className="so-print-header">
         <div className="so-print-company">

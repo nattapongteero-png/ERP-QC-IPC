@@ -12,7 +12,7 @@
  * - Packaging materials
  */
 
-import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql, like } from 'drizzle-orm';
 import { executeDbOperation, getInsertId, getTableRef } from '../db/db-helper';
 import { isSqlite } from '../db';
 import { parseAcceptanceStages, type AcceptanceStage } from '../master-data/ipc-stages';
@@ -40,6 +40,7 @@ import {
   sqliteItems,
   sqliteUsers,
   sqliteInventoryLots,
+  sqliteInventoryTransactions,
   sqliteBOMInProcessQC,
   sqliteIPCTestSamples,
   sqliteQualityTests,
@@ -67,13 +68,14 @@ import {
   mysqlItems,
   mysqlUsers,
   mysqlInventoryLots,
+  mysqlInventoryTransactions,
   mysqlBOMInProcessQC,
   mysqlIPCTestSamples,
   mysqlQualityTests,
   mysqlQualitySpecs,
 } from '../db/schema';
 import { getNow } from '../db/date-utils';
-import { issueMaterial, getLotsForPicking, getAvailableLots } from './inventory.service';
+import { issueMaterial, getLotsForPicking, getAvailableLots, recalculateItemOnHand } from './inventory.service';
 import { calculateMinMax } from '../utils/ipc-criteria-calc';
 
 // Get the appropriate tables based on database type
@@ -102,6 +104,7 @@ function getTables() {
       items: sqliteItems,
       users: sqliteUsers,
       inventoryLots: sqliteInventoryLots,
+      inventoryTransactions: sqliteInventoryTransactions,
       bomInProcessQC: sqliteBOMInProcessQC,
       ipcTestSamples: sqliteIPCTestSamples,
       qualityTests: sqliteQualityTests,
@@ -131,6 +134,7 @@ function getTables() {
     items: mysqlItems,
     users: mysqlUsers,
     inventoryLots: mysqlInventoryLots,
+    inventoryTransactions: mysqlInventoryTransactions,
     bomInProcessQC: mysqlBOMInProcessQC,
     ipcTestSamples: mysqlIPCTestSamples,
     qualityTests: mysqlQualityTests,
@@ -1989,20 +1993,56 @@ export async function reInspectWOFinishedInspection(inspectionId: number, reInsp
 export interface CreateWOPackagingMaterialInput {
   workOrderId: number;
   itemId?: number;
+  // Source lot to issue the packaging material from. When provided, the
+  // service deducts the requested qty from that lot via issueMaterial(),
+  // creating an inventory_transactions record and recalculating items.onHand.
+  lotId?: number;
   materialName: string;
   qtyRequisitioned: number;
   unit: string;
   operatorId?: number;
 }
 
+export interface ReturnWOPackagingMaterialInput {
+  materialId: number;
+  qtyReturned: number;
+  userId: number;
+  reason?: string;
+}
+
 export async function getWOPackagingMaterials(workOrderId: number) {
   const tables = getTables();
 
   return executeDbOperation(async (db: any) => {
+    // Join with items + lots so the UI can show item code, lot number, and
+    // remaining qty on the source lot without making extra round-trips.
     const materials = await db
-      .select()
+      .select({
+        id: tables.woPackagingMaterials.id,
+        workOrderId: tables.woPackagingMaterials.workOrderId,
+        itemId: tables.woPackagingMaterials.itemId,
+        lotId: tables.woPackagingMaterials.lotId,
+        materialName: tables.woPackagingMaterials.materialName,
+        qtyRequisitioned: tables.woPackagingMaterials.qtyRequisitioned,
+        qtyUsed: tables.woPackagingMaterials.qtyUsed,
+        qtyReturned: tables.woPackagingMaterials.qtyReturned,
+        returnedToLotId: tables.woPackagingMaterials.returnedToLotId,
+        unit: tables.woPackagingMaterials.unit,
+        operatorId: tables.woPackagingMaterials.operatorId,
+        verifierId: tables.woPackagingMaterials.verifierId,
+        createdAt: tables.woPackagingMaterials.createdAt,
+        updatedAt: tables.woPackagingMaterials.updatedAt,
+        // Joined display fields
+        itemCode: tables.items.code,
+        itemNameTh: tables.items.nameTh,
+        isPrimaryPacking: tables.items.isPrimaryPacking,
+        lotNumber: tables.inventoryLots.lotNumber,
+      })
       .from(tables.woPackagingMaterials)
-      .where(eq(tables.woPackagingMaterials.workOrderId, workOrderId));
+      .leftJoin(tables.items, eq(tables.woPackagingMaterials.itemId, tables.items.id))
+      .leftJoin(tables.inventoryLots, eq(tables.woPackagingMaterials.lotId, tables.inventoryLots.id))
+      .where(eq(tables.woPackagingMaterials.workOrderId, workOrderId))
+      .orderBy(desc(tables.woPackagingMaterials.id));
 
     return materials;
   });
@@ -2011,10 +2051,32 @@ export async function getWOPackagingMaterials(workOrderId: number) {
 export async function createWOPackagingMaterial(data: CreateWOPackagingMaterialInput) {
   const tables = getTables();
 
+  // GMP: when a source lot is provided, deduct from that lot via the
+  // shared issueMaterial helper. This guarantees items.onHand is updated
+  // and an inventory_transactions row is created — same flow used by
+  // raw-material weighing. We do this BEFORE inserting the WO row so a
+  // failure (insufficient stock, lot not released, etc.) doesn't leave a
+  // dangling packaging-material record.
+  if (data.lotId && data.operatorId) {
+    const [wo] = await executeDbOperation(async (db: any) => {
+      return db.select({ woNumber: tables.workOrders.woNumber }).from(tables.workOrders).where(eq(tables.workOrders.id, data.workOrderId));
+    });
+    await issueMaterial(
+      data.lotId,
+      data.qtyRequisitioned,
+      'work_order_packaging',
+      data.workOrderId,
+      wo?.woNumber || String(data.workOrderId),
+      data.operatorId,
+      `Packaging issue — ${data.materialName}`,
+    );
+  }
+
   return executeDbOperation(async (db: any) => {
     const values = {
       workOrderId: data.workOrderId,
       itemId: data.itemId,
+      lotId: data.lotId,
       materialName: data.materialName,
       qtyRequisitioned: data.qtyRequisitioned,
       unit: data.unit,
@@ -2032,6 +2094,154 @@ export async function createWOPackagingMaterial(data: CreateWOPackagingMaterialI
       const [material] = await db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, insertId));
       return material;
     }
+  });
+}
+
+/**
+ * Generate next packaging-return lot number `PKG-RTN-{YYYY}-{6digit}`.
+ * Mirrors the RTN-{YYYY}-{6digit} pattern used by raw-material returns but
+ * keeps packaging returns visually distinct in stock reports.
+ */
+async function generatePackagingReturnLotNumber(database: any, lots: any): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `PKG-RTN-${year}-`;
+  const existing = await database
+    .select({ lotNumber: lots.lotNumber })
+    .from(lots)
+    .where(like(lots.lotNumber, `${prefix}%`))
+    .orderBy(desc(lots.id))
+    .limit(1);
+  if (existing.length === 0) return `${prefix}000001`;
+  const seq = parseInt(String(existing[0].lotNumber).replace(prefix, ''), 10);
+  const nextSeq = (Number.isFinite(seq) ? seq + 1 : 1).toString().padStart(6, '0');
+  return `${prefix}${nextSeq}`;
+}
+
+/**
+ * Return leftover packaging material from a WO back into the warehouse.
+ *
+ * Creates a NEW lot (child of the original source lot) with the returned
+ * quantity in quarantine status, posts a 'return' inventory transaction,
+ * recalculates the item's on-hand, and updates the WO packaging material
+ * row with qtyReturned + returnedToLotId for traceability.
+ *
+ * Flow mirrors approveMaterialReturn() but simplified — packaging returns
+ * are single-step (no QA approval gate, no variance tolerance) because the
+ * material never enters the bulk product and so any unaccounted residual
+ * is a counting error, not a yield deviation.
+ */
+export async function returnWOPackagingMaterial(data: ReturnWOPackagingMaterialInput) {
+  const tables = getTables();
+
+  if (!(data.qtyReturned > 0)) {
+    throw new Error('Returned quantity must be greater than 0');
+  }
+
+  // 1. Load the packaging material row + source lot
+  const [material] = await executeDbOperation(async (db: any) => {
+    return db.select().from(tables.woPackagingMaterials).where(eq(tables.woPackagingMaterials.id, data.materialId));
+  });
+  if (!material) throw new Error('Packaging material not found');
+  if (!material.lotId) {
+    throw new Error('ไม่สามารถรับคืน — ไม่มี source lot อ้างอิง (Cannot return packaging material — no source lot)');
+  }
+  if (material.returnedToLotId) {
+    throw new Error('รายการนี้ถูกรับคืนไปแล้ว (Material already returned)');
+  }
+
+  const usableQty = Number(material.qtyUsed ?? 0);
+  const requisitioned = Number(material.qtyRequisitioned);
+  const allowedReturn = requisitioned - usableQty;
+  if (data.qtyReturned > allowedReturn + 1e-6) {
+    throw new Error(
+      `จำนวนรับคืนมากกว่าที่เบิก − ใช้: ${usableQty}, เบิก: ${requisitioned}, รับคืนได้สูงสุด: ${allowedReturn}`,
+    );
+  }
+
+  const [sourceLot] = await executeDbOperation(async (db: any) => {
+    return db.select().from(tables.inventoryLots).where(eq(tables.inventoryLots.id, material.lotId));
+  });
+  if (!sourceLot) throw new Error('Source lot not found');
+
+  return executeDbOperation(async (db: any) => {
+    const now = getNow();
+
+    // 2. Generate child lot inheriting source attributes
+    const newLotNumber = await generatePackagingReturnLotNumber(db, tables.inventoryLots);
+    const lotValues: Record<string, unknown> = {
+      itemId: sourceLot.itemId,
+      lotNumber: newLotNumber,
+      batchNumber: sourceLot.batchNumber ?? null,
+      warehouseId: sourceLot.warehouseId,
+      locationId: sourceLot.locationId ?? null,
+      quantity: data.qtyReturned,
+      reservedQuantity: 0,
+      unit: sourceLot.unit,
+      // Quarantine on receipt — physical re-check policy decided by QC
+      status: 'quarantine',
+      manufacturingDate: sourceLot.manufacturingDate ?? null,
+      expiryDate: sourceLot.expiryDate ?? null,
+      receivedDate: now,
+      vendorId: sourceLot.vendorId ?? null,
+      vendorLotNumber: sourceLot.vendorLotNumber ?? null,
+      cost: sourceLot.cost ?? null,
+      poNumber: sourceLot.poNumber ?? null,
+      coaNumber: sourceLot.coaNumber ?? null,
+      manufacturerName: sourceLot.manufacturerName ?? null,
+      manufacturerId: sourceLot.manufacturerId ?? null,
+      parentLotId: sourceLot.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    let newLotId: number;
+    if (isSqlite()) {
+      const [row] = await db.insert(tables.inventoryLots).values(lotValues).returning({ id: tables.inventoryLots.id });
+      newLotId = row.id;
+    } else {
+      const result = await db.insert(tables.inventoryLots).values(lotValues);
+      newLotId = getInsertId(result);
+    }
+
+    // 3. Inventory transaction — 'return' for the new lot
+    const txnValues = {
+      lotId: newLotId,
+      transactionType: 'return',
+      quantity: data.qtyReturned,
+      unit: sourceLot.unit,
+      referenceType: 'work_order_packaging',
+      referenceId: material.workOrderId,
+      referenceNumber: String(material.workOrderId),
+      toWarehouseId: sourceLot.warehouseId,
+      reason: data.reason || `Packaging return — ${material.materialName}`,
+      performedBy: data.userId,
+      createdAt: now,
+    };
+    if (isSqlite()) {
+      await db.insert(tables.inventoryTransactions).values(txnValues);
+    } else {
+      await db.insert(tables.inventoryTransactions).values(txnValues);
+    }
+
+    // 4. Update WO packaging material row
+    await db
+      .update(tables.woPackagingMaterials)
+      .set({
+        qtyReturned: data.qtyReturned,
+        returnedToLotId: newLotId,
+        updatedAt: now,
+      })
+      .where(eq(tables.woPackagingMaterials.id, data.materialId));
+
+    // 5. Recalculate items.onHand so dashboards reflect the new lot
+    await recalculateItemOnHand(sourceLot.itemId);
+
+    // 6. Return the updated material row
+    const [updated] = await db
+      .select()
+      .from(tables.woPackagingMaterials)
+      .where(eq(tables.woPackagingMaterials.id, data.materialId));
+    return { material: updated, newLotId, newLotNumber };
   });
 }
 

@@ -482,6 +482,46 @@ a:not([class]):hover {
     display: block !important;
   }
 
+  /* Document isolation: when a .print-doc document is on the page, ONLY that
+     document may reach the paper.
+
+     Without this the app chrome (sidebar, grid, KPI cards, toasts) printed as
+     page 1 and the actual form was pushed underneath it — the form is mounted
+     at the end of the page tree, so "hide .no-print" was never enough because
+     the list screens never carried that class.
+
+     How it works: hide every direct child of <body>, then walk the ancestor
+     chain of the print document back down to visible. `visibility` (not
+     `display`) is what makes this possible — a visible descendant can override
+     a hidden ancestor, which display:none cannot do.
+
+     Scoped to .print-doc — the opt-in marker for a STANDALONE document. It is
+     deliberately not keyed on .print-only, because eBMR uses .print-only for a
+     header/footer that sits INSIDE #ebmr-content; isolating on that class would
+     print the eBMR header alone and drop the batch record itself. */
+  body:has(.print-doc) > * {
+    visibility: hidden !important;
+  }
+  /* NOTE: keep these as two separate rules. Written as one selector list
+     (`... .print-doc, ... .print-doc *`) the CSS minifier emits a stray ")"
+     that invalidates the whole rule — the document then stays hidden with
+     everything else and the page prints BLANK. Verified in the built chunk. */
+  body:has(.print-doc) .print-doc {
+    visibility: visible !important;
+  }
+  .print-doc * {
+    visibility: visible !important;
+  }
+  /* Lift the document to the top-left of the sheet: its ancestors are still
+     laid out (only invisible), so without this it would print wherever the app
+     layout happened to place it — i.e. below a page of blank space. */
+  body:has(.print-doc) .print-doc {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
   /* Signature block: keep the 3 boxes side-by-side (the global grid→block
      reset would otherwise stack ผู้ผลิต/QC/QA vertically on paper). */
   #ebmr-content .ebmr-signature-grid {

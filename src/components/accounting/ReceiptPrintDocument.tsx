@@ -79,7 +79,7 @@ export function ReceiptPrintDocument({ receipt }: { receipt: ReceiptPrintData })
     : '-';
 
   return (
-    <div className="print-only rc-print-doc" data-testid="rc-print-document">
+    <div className="print-only print-doc rc-print-doc" data-testid="rc-print-document">
       <style jsx>{`
         .rc-print-doc {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;

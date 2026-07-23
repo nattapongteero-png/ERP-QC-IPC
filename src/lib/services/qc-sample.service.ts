@@ -2014,16 +2014,20 @@ export async function deleteTestPanel(
 // ============================================================================
 
 /**
- * Maps a signature role to the auto-transition (if any) it should trigger
- * after the row is inserted. Phase 3 wires reviewer/approver/qa_release into
- * the state machine; analyst is captured but does not auto-advance — the
- * analyst clicks 'Submit for review' explicitly.
+ * Maps a signature role to the status transition it triggers after the
+ * signature row is inserted. Each tier advances the sample exactly one step
+ * so the NEXT tier's "Sign" button becomes available in the UI:
+ *   reviewer   → testing  → reviewed
+ *   approver   → reviewed → approved
+ *   qa_release → approved → released
+ * analyst is captured but does not auto-advance — the sample stays in
+ * 'testing' so the reviewer can sign next.
  */
 const ROLE_AUTO_TRANSITION: Record<SignatureRole, SampleAction | null> = {
   analyst: null,
-  reviewer: 'approve',
-  approver: 'release', // approver→release is wired via qa_release signing in practice
-  qa_release: 'release',
+  reviewer: 'submit_for_review', // testing → reviewed
+  approver: 'approve',           // reviewed → approved
+  qa_release: 'release',         // approved → released
 };
 
 export interface SignQcSampleParams {
@@ -2057,8 +2061,8 @@ export interface SignQcSampleResult {
  *     and rejects with "Invalid password" on mismatch.
  *   - Inserts the signature row with IP + user-agent for the audit trail.
  *   - Auto-triggers the matching status transition (analyst → no-op,
- *     reviewer → reviewed→approved, approver → no-op (qa_release fires the
- *     release), qa_release → approved→released).
+ *     reviewer → testing→reviewed, approver → reviewed→approved,
+ *     qa_release → approved→released).
  *   - Segregation-of-duties (analyst != reviewer) is re-checked in
  *     updateSampleStatus when the auto-transition runs.
  */

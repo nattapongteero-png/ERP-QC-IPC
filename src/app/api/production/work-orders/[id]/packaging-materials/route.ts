@@ -10,6 +10,7 @@ import {
   createWOPackagingMaterial,
   updateWOPackagingMaterial,
   verifyWOPackagingMaterial,
+  returnWOPackagingMaterial,
 } from '@/lib/services/wo-execution.service';
 import { publishWorkOrderChanged } from '@/lib/realtime';
 
@@ -63,6 +64,7 @@ export async function POST(
       const material = await createWOPackagingMaterial({
         workOrderId,
         itemId: data.itemId,
+        lotId: data.lotId,
         materialName: data.materialName,
         qtyRequisitioned: data.qtyRequisitioned,
         unit: data.unit,

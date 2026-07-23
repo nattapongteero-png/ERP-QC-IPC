@@ -90,7 +90,7 @@ export function PRPrintDocument({ pr }: PRPrintDocumentProps) {
   );
 
   return (
-    <div className="print-only pr-print-doc" data-testid="pr-print-document">
+    <div className="print-only print-doc pr-print-doc" data-testid="pr-print-document">
       {/* ===== Header: company + document title ===== */}
       <div className="pr-print-header">
         <div className="pr-print-company">

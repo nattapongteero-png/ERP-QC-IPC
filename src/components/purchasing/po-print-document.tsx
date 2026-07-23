@@ -91,7 +91,7 @@ function fmtDate(d: string | null): string {
 
 export function POPrintDocument({ data }: { data: POPrintData }) {
   return (
-    <div className="print-only po-print" id="po-print-document">
+    <div className="print-only print-doc po-print" id="po-print-document">
       {/* ───────── Header: buyer + document title ───────── */}
       <div className="po-print-header">
         <div className="po-print-company">

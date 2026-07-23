@@ -57,7 +57,7 @@ export function QuotationPrintDocument({ quotation }: { quotation: QuotationWith
   );
 
   return (
-    <div className="print-only qt-print-doc" data-testid="qt-print-document">
+    <div className="print-only print-doc qt-print-doc" data-testid="qt-print-document">
       <style jsx>{`
         .qt-print-doc {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;

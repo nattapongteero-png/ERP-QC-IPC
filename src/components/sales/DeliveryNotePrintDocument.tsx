@@ -92,7 +92,7 @@ export function DeliveryNotePrintDocument({ note }: { note: DeliveryNotePrintDat
   const totalQty = note.lines.reduce((s, l) => s + (Number(l.quantity) || 0), 0);
 
   return (
-    <div className="print-only dn-print-doc" data-testid="dn-print-document">
+    <div className="print-only print-doc dn-print-doc" data-testid="dn-print-document">
       <style jsx>{`
         .dn-print-doc {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;

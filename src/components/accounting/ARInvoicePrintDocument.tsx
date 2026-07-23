@@ -86,7 +86,7 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
     Number(invoice.totalAmount) - (Number(invoice.paidAmount) || 0);
 
   return (
-    <div className="print-only ari-print-doc" data-testid="ari-print-document">
+    <div className="print-only print-doc ari-print-doc" data-testid="ari-print-document">
       <style jsx>{`
         .ari-print-doc {
           font-family: 'Sarabun', 'TH Sarabun New', sans-serif;

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search') || '';
       const type = searchParams.get('type') || '';
       const category = searchParams.get('category') || '';
+      const isPrimaryPacking = searchParams.get('isPrimaryPacking');
 
       const itemsTable = getTableRef('items');
 
@@ -39,6 +40,11 @@ export async function GET(request: NextRequest) {
       }
       if (category) {
         conditions.push(eq(itemsTable.category, category));
+      }
+      if (isPrimaryPacking === 'true') {
+        conditions.push(eq(itemsTable.isPrimaryPacking, true));
+      } else if (isPrimaryPacking === 'false') {
+        conditions.push(eq(itemsTable.isPrimaryPacking, false));
       }
 
       const whereClause = conditions.length > 0
