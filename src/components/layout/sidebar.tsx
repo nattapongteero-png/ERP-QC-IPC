@@ -225,6 +225,12 @@ const navigation: NavItem[] = [
       { name: 'Journal Entries', href: '/accounting/journal-entries', icon: FileText },
       { name: 'AP Invoices', href: '/accounting/ap', icon: Receipt },
       { name: 'AR Invoices', href: '/accounting/ar', icon: DollarSign },
+      // Link the AR sub-pages directly: the entry above only reaches the AR
+      // summary hub, so testers reported the invoice/receipt screens and their
+      // print forms as "missing" when they were simply one click deeper.
+      { name: 'AR Invoice List', href: '/accounting/ar/invoices', icon: FileText },
+      { name: 'Receipts', href: '/accounting/ar/receipts', icon: Receipt },
+      { name: 'AR Aging', href: '/accounting/ar/aging', icon: BarChart3 },
       { name: 'Fixed Assets', href: '/accounting/fixed-assets', icon: Building2 },
       { name: 'Equipment', href: '/accounting/equipment', icon: Wrench },
       { name: 'Period Close', href: '/accounting/period-close', icon: CalendarCheck },
