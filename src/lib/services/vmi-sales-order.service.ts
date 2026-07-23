@@ -226,7 +226,12 @@ export class VmiSalesOrderService {
           lineCounts[line.vmiSalesOrderId] = { total: 0, unmatched: 0 };
         }
         lineCounts[line.vmiSalesOrderId].total++;
-        if (line.matchStatus === 'unmatched') {
+        // `multiple_matches` counts as NOT matched. Auto-matching stores the
+        // first candidate's itemId but flags the line for review, so the row
+        // looks linked while a human still has to pick the right item. Counting
+        // it as matched made the list show "1/1 100%" on an order that
+        // confirmOrder would happily accept with a possibly wrong item.
+        if (line.matchStatus === 'unmatched' || line.matchStatus === 'multiple_matches') {
           lineCounts[line.vmiSalesOrderId].unmatched++;
         }
       }
@@ -361,7 +366,11 @@ export class VmiSalesOrderService {
       totalAmount: Number(orderRecord.order.totalAmount),
       currency: orderRecord.order.currency,
       lineCount: orderLines.length,
-      unmatchedLineCount: orderLines.filter((l: any) => l.matchStatus === 'unmatched').length,
+      // Same rule as listOrders: a line flagged `multiple_matches` still needs
+      // a human to choose, so it is not "matched".
+      unmatchedLineCount: orderLines.filter(
+        (l: any) => l.matchStatus === 'unmatched' || l.matchStatus === 'multiple_matches',
+      ).length,
       salesOrderId: orderRecord.order.salesOrderId,
       polledAt: new Date(orderRecord.order.polledAt as string),
       confirmedAt: orderRecord.order.confirmedAt
@@ -985,12 +994,22 @@ export class VmiSalesOrderService {
       throw new VmiSalesOrderError('ORDER_NOT_FOUND', 'Order not found', 404);
     }
 
-    // Check all items are matched
-    const unmatchedLines = order.lines.filter((l: any) => l.matchStatus === 'unmatched');
+    // Every line must be resolved before we turn this into a sales order.
+    // `multiple_matches` is included deliberately: auto-matching picked the
+    // FIRST of several candidates, so confirming would ship a guess. Requiring
+    // an explicit choice is the whole point of the flag.
+    const unmatchedLines = order.lines.filter(
+      (l: any) => l.matchStatus === 'unmatched' || l.matchStatus === 'multiple_matches',
+    );
     if (unmatchedLines.length > 0) {
+      const ambiguous = unmatchedLines.filter(
+        (l: any) => l.matchStatus === 'multiple_matches',
+      ).length;
       throw new VmiSalesOrderError(
         'UNMATCHED_ITEMS',
-        `Cannot confirm order: ${unmatchedLines.length} items are not matched`,
+        ambiguous > 0
+          ? `ยืนยันคำสั่งซื้อไม่ได้: มี ${unmatchedLines.length} รายการที่ยังไม่ได้จับคู่ (${ambiguous} รายการพบสินค้าที่ตรงกันหลายตัว ต้องเลือกเอง)`
+          : `ยืนยันคำสั่งซื้อไม่ได้: มี ${unmatchedLines.length} รายการที่ยังไม่ได้จับคู่`,
         400
       );
     }

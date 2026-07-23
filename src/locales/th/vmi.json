@@ -205,11 +205,12 @@
       "columns": {
         "syncType": "ประเภท",
         "status": "สถานะ",
-        "trigger": "Trigger",
+        "trigger": "สั่งโดย",
         "progress": "ความคืบหน้า",
-        "startedAt": "เวลาเริ่มต้น",
-        "duration": "ระยะเวลา",
-        "portal": "Portal"
+        "startedAt": "วันเวลาที่ซิงค์",
+        "duration": "ใช้เวลา",
+        "portal": "Portal",
+        "syncedItems": "รายการที่ซิงค์"
       },
       "headerFilter": {
         "inventory": "สินค้าคงคลัง",
@@ -222,7 +223,13 @@
         "manual": "Manual",
         "scheduled": "Scheduled",
         "auto": "Auto"
-      }
+      },
+      "viewItems": "ดู {count} รายการ",
+      "syncedItemsTitle": "รายการที่ซิงค์ไป VMI Portal",
+      "syncedItemsSummary": "ซิงค์{type} จำนวน {count} รายการ เมื่อ {time}",
+      "syncedItemsTruncated": "แสดง {shown} จาก {total} รายการแรกเท่านั้น",
+      "itemCode": "รหัสสินค้า",
+      "itemName": "ชื่อสินค้า"
     },
     "masterDetail": {
       "syncInfo": "ข้อมูลการซิงค์",

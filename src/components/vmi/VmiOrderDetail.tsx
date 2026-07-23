@@ -49,6 +49,9 @@ interface VmiOrderLine {
   matchedItemCode?: string;
   matchedItemName?: string;
   matchMethod?: 'tpp' | 'ttmt' | 'code' | 'manual' | null;
+  /** Raw status from the API; `multiple_matches` means a human must choose. */
+  matchStatus?: string;
+  needsReview?: boolean;
   quantity: number;
   unit?: string;
   unitPrice?: number;
@@ -122,12 +125,20 @@ async function fetchOrderDetail(orderId: number): Promise<VmiOrderDetail> {
     matchMethod: line.matchStatus === 'manual_mapped' ? 'manual'
       : line.matchStatus === 'matched' ? 'code'
       : null,
+    // Carried through so the grid can say WHY a line still needs attention.
+    matchStatus: line.matchStatus,
+    needsReview: line.matchStatus === 'multiple_matches',
     quantity: line.quantity,
     unit: line.unit,
     unitPrice: line.unitPrice,
     lineTotal: line.lineTotal,
   }));
-  const matchedCount = lines.filter(l => l.matchedItemId).length;
+  // A `multiple_matches` line HAS an itemId (auto-match kept the first
+  // candidate) but is not resolved — counting it as matched is what made the
+  // list claim 100% while the order still could not be confirmed.
+  const matchedCount = lines.filter(
+    (l) => l.matchedItemId && l.matchStatus !== 'multiple_matches',
+  ).length;
   return {
     id: data.id,
     portalId: data.portalId,
@@ -325,6 +336,19 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             </span>
           );
         }
+        // Auto-match found several candidates and kept the first. It looks
+        // matched but is a guess, so say so instead of showing a green tick.
+        if (line.needsReview) {
+          return (
+            <span
+              className="flex items-center gap-1 text-amber-600"
+              title="พบสินค้าที่ตรงกันหลายรายการ กรุณาเลือกรายการที่ถูกต้อง"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              ตรงหลายรายการ — ต้องเลือก
+            </span>
+          );
+        }
         return (
           <span className="flex items-center gap-1 text-green-600">
             <CheckCircle className="h-4 w-4" />
@@ -376,10 +400,12 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const line = cellInfo.data as VmiOrderLine;
         if (order?.status !== 'pending') return null;
-        if (!line.matchedItemId) {
+        // Unresolved lines (never matched, or matched ambiguously) get the
+        // prominent action — they block confirmation, so they are the work.
+        if (!line.matchedItemId || line.needsReview) {
           return (
             <DxButton
-              text="จับคู่"
+              text={line.needsReview ? 'เลือกรายการ' : 'จับคู่'}
               type="default"
               stylingMode="text"
               onClick={() => setMatchingLine(line)}

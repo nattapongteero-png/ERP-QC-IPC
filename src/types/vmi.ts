@@ -551,9 +551,22 @@ export interface VmiSyncHistory {
   itemsProcessed: number;
   itemsFailed: number;
   errorDetails?: Array<{ itemId: number; itemCode?: string; error: string }>;
+  /**
+   * Which items this run pushed, so history can answer "what was sent?" and not
+   * just "how many". Stored as a JSON string in the DB; `truncated` marks runs
+   * whose item list exceeded the recording cap.
+   */
+  syncedItems?: string | null;
   triggeredBy?: number | null;
   startedAt: Date;
   completedAt?: Date | null;
+}
+
+/** Parsed shape of {@link VmiSyncHistory.syncedItems}. */
+export interface VmiSyncedItemsDetail {
+  truncated: boolean;
+  total: number;
+  items: Array<{ itemId: number; code?: string; name?: string }>;
 }
 
 export interface VmiSyncRequest {

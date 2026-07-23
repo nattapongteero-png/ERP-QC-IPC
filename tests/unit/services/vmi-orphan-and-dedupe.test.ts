@@ -91,3 +91,26 @@ describe('portal status reconcile is safely one-directional', () => {
     expect(section).toContain('Status reconcile failed');
   });
 });
+
+describe('lines needing review must not count as matched', () => {
+  // Auto-matching stores the FIRST candidate's itemId but flags the line
+  // `multiple_matches`. Treating that as matched made the list show 100% on an
+  // order that still needed a human choice — and let confirmOrder build a sales
+  // order around a guess.
+  it('listOrders counts multiple_matches as unmatched', () => {
+    const body = methodBody('listOrders');
+    expect(body).toContain("line.matchStatus === 'multiple_matches'");
+  });
+
+  it('getOrderById counts multiple_matches as unmatched', () => {
+    const body = methodBody('getOrderById');
+    expect(body).toContain("l.matchStatus === 'multiple_matches'");
+  });
+
+  it('confirmOrder refuses to confirm while any line is ambiguous', () => {
+    const body = methodBody('confirmOrder');
+    expect(body).toContain("l.matchStatus === 'multiple_matches'");
+    // And says so in Thai rather than a bare count.
+    expect(body).toMatch(/[฀-๿]/);
+  });
+});

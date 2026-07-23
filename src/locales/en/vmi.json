@@ -205,11 +205,12 @@
       "columns": {
         "syncType": "Type",
         "status": "Status",
-        "trigger": "Trigger",
+        "trigger": "Triggered By",
         "progress": "Progress",
-        "startedAt": "Started At",
-        "duration": "Duration",
-        "portal": "Portal"
+        "startedAt": "Sync Date/Time",
+        "duration": "Took",
+        "portal": "Portal",
+        "syncedItems": "Synced Items"
       },
       "headerFilter": {
         "inventory": "Inventory",
@@ -222,7 +223,13 @@
         "manual": "Manual",
         "scheduled": "Scheduled",
         "auto": "Auto"
-      }
+      },
+      "viewItems": "View {count} items",
+      "syncedItemsTitle": "Items Synced to VMI Portal",
+      "syncedItemsSummary": "Synced {count} {type} item(s) at {time}",
+      "syncedItemsTruncated": "Showing the first {shown} of {total} items",
+      "itemCode": "Item Code",
+      "itemName": "Item Name"
     },
     "masterDetail": {
       "syncInfo": "Sync Info",

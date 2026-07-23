@@ -3226,6 +3226,10 @@ export const mysqlVmiSyncHistory = mysqlTable('vmi_sync_history', {
   itemsProcessed: int('items_processed').notNull().default(0),
   itemsFailed: int('items_failed').notNull().default(0),
   errorDetails: mysqlText('error_details'), // JSON array of {itemId, itemCode, error}
+  // Which items this run actually pushed — JSON array of {itemId, code, name}.
+  // Counts alone ("synced 12 items") gave operators no way to tell WHAT was
+  // sent, so a wrong or missing item could not be traced back to a run.
+  syncedItems: mysqlText('synced_items'),
   triggeredBy: int('triggered_by').references(() => mysqlUsers.id),
   startedAt: datetime('started_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   completedAt: datetime('completed_at'),
@@ -4040,6 +4044,9 @@ export const sqliteVmiSyncHistory = sqliteTable('vmi_sync_history', {
   itemsProcessed: integer('items_processed').notNull().default(0),
   itemsFailed: integer('items_failed').notNull().default(0),
   errorDetails: text('error_details'), // JSON array of {itemId, itemCode, error}
+  // Which items this run actually pushed — JSON array of {itemId, code, name}.
+  // See the MySQL table for why counts alone were not enough.
+  syncedItems: text('synced_items'),
   triggeredBy: integer('triggered_by').references(() => sqliteUsers.id),
   startedAt: text('started_at').notNull().default('CURRENT_TIMESTAMP'),
   completedAt: text('completed_at'),

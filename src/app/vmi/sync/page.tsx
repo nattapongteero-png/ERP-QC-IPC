@@ -27,6 +27,7 @@ import DataGrid, {
   MasterDetail,
 } from 'devextreme-react/data-grid';
 import { DxButton } from '@/components/ui/dx-button';
+import { DxPopup } from '@/components/ui/dx-popup';
 import { MobileListView } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -74,6 +75,15 @@ interface SyncHistoryItem {
   completedAt?: string | null;
   triggeredByName?: string | null;
   errorMessage?: string | null;
+  /** JSON string: {truncated, total, items:[{itemId, code, name}]} */
+  syncedItems?: string | null;
+}
+
+/** Parsed form of {@link SyncHistoryItem.syncedItems}. */
+interface SyncedItemsDetail {
+  truncated: boolean;
+  total: number;
+  items: Array<{ itemId: number; code?: string; name?: string }>;
 }
 
 interface SyncResult {
@@ -254,6 +264,8 @@ export default function VmiSyncPage() {
     prices: null,
     orders: null,
   });
+  // Which run's item list is open in the viewer dialog.
+  const [viewingItemsOf, setViewingItemsOf] = useState<SyncHistoryItem | null>(null);
 
   const formatTimeAgo = useCallback((dateString: string): string => {
     const date = new Date(dateString);
@@ -457,6 +469,43 @@ export default function VmiSyncPage() {
       </div>
     );
   }, [formatTimeAgo, locale]);
+
+  /** Parse the stored JSON blob, tolerating legacy rows that predate the column. */
+  const parseSyncedItems = useCallback((raw?: string | null): SyncedItemsDetail | null => {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as SyncedItemsDetail;
+      return Array.isArray(parsed?.items) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const renderSyncedItemsCell = useCallback(
+    (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
+      const row = cellInfo.data as SyncHistoryItem;
+      const detail = parseSyncedItems(row.syncedItems);
+
+      // Runs from before this column existed have nothing to show — say so
+      // rather than implying zero items were sent.
+      if (!detail || detail.items.length === 0) {
+        return <span className="text-gray-400 text-sm">-</span>;
+      }
+
+      return (
+        <button
+          type="button"
+          onClick={() => setViewingItemsOf(row)}
+          className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 hover:underline"
+          data-testid={`vmi-synced-items-${row.id}`}
+        >
+          <Package className="h-3.5 w-3.5" />
+          {t('sync.history.viewItems', { count: detail.total })}
+        </button>
+      );
+    },
+    [parseSyncedItems, t]
+  );
 
   const renderDurationCell = useCallback((cellInfo: DataGridTypes.ColumnCellTemplateData) => {
     const rowData = cellInfo.data as SyncHistoryItem;
@@ -1134,6 +1183,18 @@ export default function VmiSyncPage() {
               allowHeaderFiltering={true}
             />
 
+            {/* Which items went out — counts alone left operators unable to
+                trace a wrong or missing item back to a run. */}
+            <Column
+              dataField="syncedItems"
+              caption={t('sync.history.columns.syncedItems')}
+              width={150}
+              cellRender={renderSyncedItemsCell}
+              allowFiltering={false}
+              allowHeaderFiltering={false}
+              allowSorting={false}
+            />
+
             <Paging defaultPageSize={20} />
             <Pager
               visible={true}
@@ -1186,6 +1247,65 @@ export default function VmiSyncPage() {
             </div>
           </div>
         </div>
+
+        {/* Which items a run actually pushed. */}
+        <DxPopup
+          visible={viewingItemsOf !== null}
+          onHiding={() => setViewingItemsOf(null)}
+          title={t('sync.history.syncedItemsTitle')}
+          width={560}
+        >
+          {viewingItemsOf && (() => {
+            const detail = parseSyncedItems(viewingItemsOf.syncedItems);
+            if (!detail) return null;
+            return (
+              <div className="p-4 space-y-3">
+                <div className="text-sm text-gray-600">
+                  {t('sync.history.syncedItemsSummary', {
+                    type: t(`sync.syncTypes.${viewingItemsOf.syncType}.label`),
+                    count: detail.total,
+                    time: formatDateTime(viewingItemsOf.startedAt, locale),
+                  })}
+                </div>
+                {detail.truncated && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                    {t('sync.history.syncedItemsTruncated', {
+                      shown: detail.items.length,
+                      total: detail.total,
+                    })}
+                  </div>
+                )}
+                <div className="max-h-80 overflow-y-auto rounded-lg border border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left w-12 text-gray-500 font-medium">#</th>
+                        <th className="px-3 py-2 text-left text-gray-500 font-medium">
+                          {t('sync.history.itemCode')}
+                        </th>
+                        <th className="px-3 py-2 text-left text-gray-500 font-medium">
+                          {t('sync.history.itemName')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items.map((it, idx) => (
+                        <tr key={it.itemId} className="border-t border-gray-100">
+                          <td className="px-3 py-1.5 text-gray-400">{idx + 1}</td>
+                          <td className="px-3 py-1.5 font-mono">{it.code || '-'}</td>
+                          <td className="px-3 py-1.5">{it.name || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <DxButton text={t('common.close')} onClick={() => setViewingItemsOf(null)} />
+                </div>
+              </div>
+            );
+          })()}
+        </DxPopup>
       </div>
     </MainLayout>
   );

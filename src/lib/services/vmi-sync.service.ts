@@ -322,6 +322,7 @@ export class VmiSyncService {
         itemsFailed: failed,
         duration: Date.now() - startTime,
         errors,
+        syncedItems: items.map((i) => ({ itemId: i.id, code: i.code })),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -545,6 +546,11 @@ export class VmiSyncService {
         itemsFailed: failed,
         duration: Date.now() - startTime,
         errors,
+        syncedItems: items.map((i) => ({
+          itemId: i.id,
+          code: i.code,
+          name: i.nameTh,
+        })),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -784,6 +790,7 @@ export class VmiSyncService {
         itemsFailed: failed,
         duration: Date.now() - startTime,
         errors,
+        syncedItems: items.map((i) => ({ itemId: i.id, code: i.code })),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -1359,6 +1366,8 @@ export class VmiSyncService {
       itemsFailed: number;
       duration: number;
       errors?: Array<{ itemId: number; itemCode?: string; error: string }>;
+      /** Items actually pushed in this run, so the history can name them. */
+      syncedItems?: Array<{ itemId: number; code?: string; name?: string }>;
     }
   ): Promise<SyncResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1366,6 +1375,12 @@ export class VmiSyncService {
     const { syncHistory } = this.getTables();
 
     const now = getNow();
+
+    // Cap what we persist: a full-catalogue sync could be thousands of items
+    // and this is a TEXT column, not a log store. The count fields remain
+    // authoritative for totals; this list is for tracing what went out.
+    const MAX_RECORDED_ITEMS = 500;
+    const recorded = data.syncedItems?.slice(0, MAX_RECORDED_ITEMS);
 
     await db
       .update(syncHistory)
@@ -1375,6 +1390,15 @@ export class VmiSyncService {
         itemsProcessed: data.itemsProcessed,
         itemsFailed: data.itemsFailed,
         errorDetails: data.errors ? JSON.stringify(data.errors) : null,
+        // Always stringify — `synced_items` is TEXT in BOTH dialects, and
+        // handing MySQL a raw object writes the literal "[object Object]".
+        syncedItems: recorded?.length
+          ? JSON.stringify({
+              truncated: (data.syncedItems?.length ?? 0) > MAX_RECORDED_ITEMS,
+              total: data.syncedItems?.length ?? 0,
+              items: recorded,
+            })
+          : null,
         completedAt: now,
       } as Record<string, unknown>)
       .where(eq(syncHistory.id, syncId));
