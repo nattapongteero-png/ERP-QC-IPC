@@ -239,11 +239,14 @@ export default function NewQuotationPage() {
 
   const renderQuantityCell = useCallback((cell: { data: QuotationFormLine }) => (
     <NumberBox
-      // defaultValue + commit-on-change/blur: the browser owns the text while
-      // typing, so Chrome no longer resets the field mid-keystroke (list item 17).
+      // Commit on change/blur ONLY — never on keyup. With defaultValue the box is
+      // uncontrolled, so every commit re-renders the grid cell and remounts it;
+      // firing on keyup therefore stole focus after each character ("1" became
+      // "10" only if you re-clicked). change+blur lets the browser own the text
+      // until the field is left or Enter is pressed (list item 17).
       defaultValue={cell.data.quantity}
       onValueChanged={(e) => updateLine(cell.data.key, { quantity: e.value || 0 })}
-      valueChangeEvent="change blur keyup"
+      valueChangeEvent="change blur"
       min={0}
       format="#,##0.####"
       width="100%"
@@ -262,10 +265,10 @@ export default function NewQuotationPage() {
 
   const renderUnitPriceCell = useCallback((cell: { data: QuotationFormLine }) => (
     <NumberBox
-      // Same Chrome-typing fix as quantity (list item 17).
+      // Same as quantity: commit on change/blur only, never keyup (list item 17).
       defaultValue={cell.data.unitPrice}
       onValueChanged={(e) => updateLine(cell.data.key, { unitPrice: e.value || 0 })}
-      valueChangeEvent="change blur keyup"
+      valueChangeEvent="change blur"
       min={0}
       format="#,##0.00"
       width="100%"
