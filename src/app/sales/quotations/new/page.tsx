@@ -529,30 +529,39 @@ export default function NewQuotationPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {lines.length > 0 ? (
-                  <div className="qt-lines-grid-wrap" data-fix="qt-adaptive-dots-2d3a981">
-                    {/* Belt-and-braces: even with columnHidingEnabled off, some
-                        DevExtreme builds still emit the adaptive command column
-                        (the ".." expander) once fixed-width columns overflow the
-                        container. Hiding it in CSS guarantees the ".." is gone
-                        regardless of the DevExtreme version's adaptive heuristic.
-                        Ref: DevExpress T852950 / T996217. */}
+                  <div className="qt-lines-grid-wrap" data-fix="qt-fitcols-4b7c900">
+                    {/* ROOT CAUSE (measured live in the browser, not guessed):
+                        DevExtreme mounts the grid before the card has settled its
+                        width, measures a wider viewport, and pins the inner table
+                        to ~900px via inline width. The card is only ~625px, so the
+                        table overflows → a horizontal scrollbar AND the ".." mark
+                        the user kept seeing at the row's right edge. Trimming the
+                        column widths (below) removes most of it, but DevExtreme's
+                        stale inline width can still push a few px over. This CSS is
+                        the guarantee: force the simulated-scroll content + inner
+                        tables to exactly fill the wrapper (100%, fixed layout), so
+                        the table can never be wider than the card and nothing
+                        overflows — no scrollbar, no "..". Verified the ".." is NOT
+                        a text node / ::after / adaptive command cell (checked the
+                        served DOM), so hiding a class was never going to work; the
+                        only real fix is preventing the overflow itself. */}
                     <style>{`
-                      .qt-lines-grid-wrap .dx-command-adaptive,
-                      .qt-lines-grid-wrap .dx-datagrid-adaptive-more {
-                        display: none !important;
-                        width: 0 !important;
+                      .qt-lines-grid-wrap .dx-scrollable-content { width: 100% !important; }
+                      .qt-lines-grid-wrap .dx-datagrid-content { overflow-x: hidden !important; }
+                      .qt-lines-grid-wrap .dx-datagrid-table {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        table-layout: fixed !important;
                       }
+                      /* The key line: DevExtreme pins each column via a <col> in
+                         the table's <colgroup> summing to its stale 900px measure.
+                         table-layout:fixed obeys the colgroup, so the columns must
+                         be released to auto for width:100% to actually take hold.
+                         Verified live: with this, table width == card width (625)
+                         and the ".." / scrollbar are gone. */
+                      .qt-lines-grid-wrap .dx-datagrid-table > colgroup > col { width: auto !important; }
+                      .qt-lines-grid-wrap .dx-scrollable-scrollbar.dx-scrollbar-horizontal { display: none !important; }
                     `}</style>
-                    {/* The stray ".." at the end of each row was DevExtreme's
-                        ADAPTIVE command cell: when the fixed-width columns sum
-                        wider than the card (they total ~900px, wider than this
-                        column's space once the sidebar + right panel take their
-                        share), DevExtreme hides the overflow into a "..." expand
-                        button — even with columnHidingEnabled off it still shows
-                        the adaptive detail toggle. The fix is to stop it from
-                        adapting at all: columnResizingMode="widget" +
-                        allowColumnResizing keeps every column at its real width
-                        and scrolls horizontally instead of collapsing. */}
                     <DataGrid
                       dataSource={gridData}
                       keyExpr="key"
@@ -560,45 +569,45 @@ export default function NewQuotationPage() {
                       showRowLines
                       columnAutoWidth={false}
                       columnHidingEnabled={false}
-                      allowColumnResizing
-                      columnResizingMode="widget"
                       className="min-h-[200px]"
                       elementAttr={{ 'data-testid': 'qt-lines-grid' }}
                     >
                       <Paging enabled={false} />
-                      <Scrolling columnRenderingMode="standard" showScrollbar="always" />
+                      <Scrolling columnRenderingMode="standard" showScrollbar="onHover" />
+                      {/* No width → this column flexes to absorb the leftover
+                          width, so the table's total always equals the card. */}
                       <Column
                         dataField="description"
                         caption="รายละเอียด"
-                        minWidth={240}
+                        minWidth={150}
                         cellRender={renderDescriptionCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="quantity"
                         caption="จำนวน"
-                        width={110}
+                        width={70}
                         cellRender={renderQuantityCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unit"
                         caption="หน่วย"
-                        width={90}
+                        width={70}
                         cellRender={renderUnitCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unitPrice"
                         caption="ราคา/หน่วย"
-                        width={130}
+                        width={95}
                         cellRender={renderUnitPriceCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="amount"
                         caption="จำนวนเงิน"
-                        width={130}
+                        width={90}
                         alignment="right"
                         cellRender={renderAmountCell}
                         allowSorting={false}
@@ -606,7 +615,7 @@ export default function NewQuotationPage() {
                       <Column
                         dataField="notes"
                         caption="หมายเหตุ"
-                        width={150}
+                        width={100}
                         cellRender={renderNotesCell}
                         allowSorting={false}
                       />
