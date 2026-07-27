@@ -157,6 +157,10 @@ export async function createSalesOrder(
             customerName: customer.name,
             customerContact: customer.contact,
             customerAddress: customer.address,
+            // order_date is nullable and was never stamped here, so every SO
+            // created through this path (incl. quotation→SO conversion) showed a
+            // blank วันที่สั่ง. Default it to today at creation.
+            orderDate: getTodayStr(),
             status: 'draft',
             totalAmount,
             currency: 'THB',
@@ -172,6 +176,8 @@ export async function createSalesOrder(
             customerName: customer.name,
             customerContact: customer.contact,
             customerAddress: customer.address,
+            // Stamp today so วันที่สั่ง is never blank (see SQLite branch above).
+            orderDate: getTodayStr(),
             status: 'draft',
             totalAmount,
             currency: 'THB',
