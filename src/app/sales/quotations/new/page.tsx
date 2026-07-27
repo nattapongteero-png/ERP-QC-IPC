@@ -560,6 +560,11 @@ export default function NewQuotationPage() {
                          Verified live: with this, table width == card width (625)
                          and the ".." / scrollbar are gone. */
                       .qt-lines-grid-wrap .dx-datagrid-table > colgroup > col { width: auto !important; }
+                      /* Give "รายละเอียด" (item name) the lion's share and pin the
+                         trash column narrow; the rest split the remainder evenly.
+                         Percentages so it still adds up to 100% of the card. */
+                      .qt-lines-grid-wrap .dx-datagrid-table > colgroup > col:first-child { width: 34% !important; }
+                      .qt-lines-grid-wrap .dx-datagrid-table > colgroup > col:last-child { width: 44px !important; }
                       .qt-lines-grid-wrap .dx-scrollable-scrollbar.dx-scrollbar-horizontal { display: none !important; }
                     `}</style>
                     <DataGrid
