@@ -639,7 +639,7 @@ export default function APInvoicesPage() {
         </AccountingFilterPanel>
 
         {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727-v2">
         <DataGrid
           dataSource={invoicesWithRowNumber}
           keyExpr="id"
@@ -665,8 +665,12 @@ export default function APInvoicesPage() {
               register) — was the one thing this list still lacked. */}
           <Export enabled={true} />
 
+          {/* The custom Toolbar overrides the grid's default toolbar, so the
+              export button must be listed here explicitly or <Export /> shows
+              no button at all. */}
           <Toolbar>
             <Item name="searchPanel" location="before" />
+            <Item name="exportButton" location="after" />
           </Toolbar>
 
           <Column
