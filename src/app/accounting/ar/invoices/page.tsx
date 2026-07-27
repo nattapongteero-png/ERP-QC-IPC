@@ -48,7 +48,7 @@ import {
   ARInvoicePrintDocument,
   type ARInvoicePrintData,
 } from '@/components/accounting/ARInvoicePrintDocument';
-import { formatNumber } from '@/lib/utils/number-format';
+import { formatNumber, formatMoney } from '@/lib/utils/number-format';
 
 // Types
 interface ARInvoice {
@@ -999,9 +999,16 @@ export default function ARInvoicesPage() {
           />
 
           <Summary>
-            <TotalItem column="totalAmount" summaryType="sum" displayFormat={t('accountsReceivable.invoicesPage.summaryTotal')}>
-              <Format type="fixedPoint" precision={2} />
-            </TotalItem>
+            {/* customizeText with formatMoney: fixedPoint printed "205857.3"
+                (no thousand separators, dropped trailing zero). Money needs commas
+                + fixed 2dp + its unit — formatMoney gives "205,857.30", then บาท. */}
+            <TotalItem
+              column="totalAmount"
+              summaryType="sum"
+              customizeText={(item: { value: string | number | Date }) =>
+                `รวม: ${formatMoney(Number(item.value) || 0, 2)} บาท`
+              }
+            />
           </Summary>
         </DataGrid>
         </div>
