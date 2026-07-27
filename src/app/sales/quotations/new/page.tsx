@@ -18,7 +18,8 @@ import TextArea from 'devextreme-react/text-area';
 import TextBox from 'devextreme-react/text-box';
 import DateBox from 'devextreme-react/date-box';
 import NumberBox from 'devextreme-react/number-box';
-import DataGrid, { Column, Paging } from 'devextreme-react/data-grid';
+import SelectBox from 'devextreme-react/select-box';
+import DataGrid, { Column, Paging, Scrolling } from 'devextreme-react/data-grid';
 import { ItemSearchDialog, type Item } from '@/components/ui/item-search-dialog';
 import { CustomerSearchDialog, type Customer } from '@/components/ui/customer-search-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -65,6 +66,20 @@ const formatDateForApi = (value: unknown): string | null => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+// Fixed payment-term choices (pick from list only — no free text). The stored
+// value is the readable Thai label because the quotation detail page renders
+// paymentTerms verbatim; mirrors the sales-order paymentOptions.
+const PAYMENT_TERMS_OPTIONS = [
+  'เงินสด (Cash)',
+  'ชำระเมื่อส่งมอบ (COD)',
+  'ชำระภายใน 7 วัน',
+  'ชำระภายใน 15 วัน',
+  'ชำระภายใน 30 วัน',
+  'ชำระภายใน 45 วัน',
+  'ชำระภายใน 60 วัน',
+  'ชำระภายใน 90 วัน',
+] as const;
 
 export default function NewQuotationPage() {
   const router = useRouter();
@@ -223,17 +238,28 @@ export default function NewQuotationPage() {
 
   // ---- Cell renderers -------------------------------------------------------
 
+  // Item code sits INLINE to the left of the description input (not stacked
+  // above it) so this cell keeps the same height as จำนวน/หน่วย/ราคา and every
+  // input in the row shares one baseline (list item 1).
   const renderDescriptionCell = useCallback((cell: { data: QuotationFormLine }) => (
-    <div className="py-1">
+    <div className="flex items-center gap-2 py-1">
       {cell.data.itemCode && (
-        <p className="font-mono text-xs text-emerald-600">{cell.data.itemCode}</p>
+        <span className="font-mono text-xs text-emerald-600 whitespace-nowrap flex-shrink-0">
+          {cell.data.itemCode}
+        </span>
       )}
-      <TextBox
-        value={cell.data.description}
-        onValueChanged={(e) => updateLine(cell.data.key, { description: e.value || '' })}
-        placeholder="รายละเอียด"
-        stylingMode="outlined"
-      />
+      <div className="flex-1 min-w-0">
+        <TextBox
+          // defaultValue + commit-on-blur (not controlled value): writing to
+          // state on every keystroke remounts this cell and steals focus, so
+          // typing was lost — same fix as จำนวน/ราคา (list item 3).
+          defaultValue={cell.data.description}
+          onValueChanged={(e) => updateLine(cell.data.key, { description: e.value || '' })}
+          valueChangeEvent="change blur"
+          placeholder="รายละเอียด"
+          stylingMode="outlined"
+        />
+      </div>
     </div>
   ), [updateLine]);
 
@@ -257,8 +283,9 @@ export default function NewQuotationPage() {
 
   const renderUnitCell = useCallback((cell: { data: QuotationFormLine }) => (
     <TextBox
-      value={cell.data.unit}
+      defaultValue={cell.data.unit}
       onValueChanged={(e) => updateLine(cell.data.key, { unit: e.value || '' })}
+      valueChangeEvent="change blur"
       stylingMode="outlined"
     />
   ), [updateLine]);
@@ -283,10 +310,15 @@ export default function NewQuotationPage() {
     </span>
   ), []);
 
+  // Notes are now typeable: the controlled `value` remounted the box on every
+  // keystroke (each keystroke → updateLine → gridData re-derived → cell
+  // re-rendered) which swallowed input. defaultValue + commit-on-blur fixes it
+  // (list item 3).
   const renderNotesCell = useCallback((cell: { data: QuotationFormLine }) => (
     <TextBox
-      value={cell.data.notes || ''}
+      defaultValue={cell.data.notes || ''}
       onValueChanged={(e) => updateLine(cell.data.key, { notes: e.value || '' })}
+      valueChangeEvent="change blur"
       placeholder="หมายเหตุ"
       stylingMode="outlined"
     />
@@ -323,7 +355,7 @@ export default function NewQuotationPage() {
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900" data-testid="qt-form-title">
+                <h1 className="text-xl font-semibold text-gray-900" data-testid="qt-form-title" data-build="qt-form-fix-20260727">
                   สร้างใบเสนอราคา
                 </h1>
                 <p className="text-sm text-gray-500">เสนอราคาสินค้า/บริการให้ลูกค้า</p>
@@ -479,37 +511,39 @@ export default function NewQuotationPage() {
                       </span>
                     )}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      text="เพิ่มรายการอิสระ"
-                      icon="plus"
-                      stylingMode="outlined"
-                      onClick={handleAddBlankLine}
-                      elementAttr={{ 'data-testid': 'qt-add-blank-line-btn' }}
-                    />
-                    <Button
-                      text="เลือกจากคลัง"
-                      icon="search"
-                      type="default"
-                      onClick={() => setIsItemDialogOpen(true)}
-                      elementAttr={{ 'data-testid': 'qt-add-item-btn' }}
-                    />
-                  </div>
+                  {/* Header keeps only "เลือกจากคลัง" — the free-line button
+                      was removed because every line still has to be searched
+                      from the item catalogue anyway (list item 5). The blank
+                      line stays available from the empty state below. */}
+                  <Button
+                    text="เลือกจากคลัง"
+                    icon="search"
+                    type="default"
+                    onClick={() => setIsItemDialogOpen(true)}
+                    elementAttr={{ 'data-testid': 'qt-add-item-btn' }}
+                  />
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 {lines.length > 0 ? (
                   <>
+                    {/* No columnAutoWidth: with it, the columns' combined min
+                        widths overflowed the card and DevExtreme collapsed the
+                        actions column into an adaptive "..." command cell next
+                        to the trash icon. Letting columns fit the container (and
+                        scroll if narrow) removes the "..." (list item 4). */}
                     <DataGrid
                       dataSource={gridData}
                       keyExpr="key"
                       showBorders={false}
                       showRowLines
-                      columnAutoWidth
+                      columnAutoWidth={false}
+                      columnHidingEnabled={false}
                       className="min-h-[200px]"
                       elementAttr={{ 'data-testid': 'qt-lines-grid' }}
                     >
                       <Paging enabled={false} />
+                      <Scrolling columnRenderingMode="standard" showScrollbar="onHover" />
                       <Column
                         dataField="description"
                         caption="รายละเอียด"
@@ -668,10 +702,15 @@ export default function NewQuotationPage() {
                     <CreditCard className="h-4 w-4 inline mr-1" />
                     เงื่อนไขการชำระเงิน
                   </label>
-                  <TextBox
-                    value={form.paymentTerms}
+                  {/* Dropdown, pick-from-list only (no acceptCustomValue) — the
+                      free-text box became a fixed choice list (list item 6). */}
+                  <SelectBox
+                    dataSource={PAYMENT_TERMS_OPTIONS as unknown as string[]}
+                    value={form.paymentTerms || null}
                     onValueChanged={(e) => setForm((p) => ({ ...p, paymentTerms: e.value || '' }))}
-                    placeholder="เช่น ชำระภายใน 30 วัน"
+                    placeholder="เลือกเงื่อนไขการชำระเงิน"
+                    showClearButton
+                    searchEnabled
                     elementAttr={{ 'data-testid': 'qt-payment-terms-input' }}
                   />
                 </div>
