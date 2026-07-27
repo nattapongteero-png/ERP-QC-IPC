@@ -540,7 +540,7 @@
       "collectedThisMonth": "เก็บได้เดือนนี้"
     },
     "invoices": {
-      "title": "ใบแจ้งหนี้",
+      "title": "ใบแจ้งหนี้ลูกหนี้",
       "table": {
         "columns": {
           "invoiceNumber": "เลขที่ใบแจ้งหนี้",

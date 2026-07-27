@@ -540,7 +540,7 @@
       "collectedThisMonth": "Collected This Month"
     },
     "invoices": {
-      "title": "Invoices",
+      "title": "AR Invoices",
       "table": {
         "columns": {
           "invoiceNumber": "Invoice Number",
