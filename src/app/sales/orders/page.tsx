@@ -228,7 +228,15 @@ async function fetchOrders() {
     throw new Error(data.error || 'Failed to fetch orders');
   }
 
-  return data.data?.items || [];
+  // MySQL returns DECIMAL columns as strings ("61000.00"), so totalAmount
+  // arrived as a string. Every KPI/chart here does `sum + o.totalAmount`, which
+  // string-concatenates instead of adding — that is why มูลค่ารวม showed ฿0 and
+  // the "มูลค่าตามสถานะ" chart was empty (its value>0 filter compared a string).
+  // Coerce the numeric fields once here so all downstream maths is real addition.
+  return (data.data?.items || []).map((o: SalesOrder) => ({
+    ...o,
+    totalAmount: Number(o.totalAmount) || 0,
+  }));
 }
 
 // ============================================================================
