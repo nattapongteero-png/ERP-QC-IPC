@@ -836,7 +836,8 @@
       "confirmDelete": {
         "title": "Confirm Deletion",
         "message": "Do you want to delete receipt {receiptNumber}?<br/>This action cannot be undone."
-      }
+      },
+      "exportExcel": "Export Excel"
     },
     "agingPage": {
       "toast": {

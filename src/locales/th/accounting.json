@@ -836,7 +836,8 @@
       "confirmDelete": {
         "title": "ยืนยันการลบ",
         "message": "คุณต้องการลบรายการรับชำระ {receiptNumber} หรือไม่?<br/>การลบจะไม่สามารถย้อนกลับได้"
-      }
+      },
+      "exportExcel": "ส่งออก Excel"
     },
     "agingPage": {
       "toast": {

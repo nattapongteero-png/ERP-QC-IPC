@@ -6,7 +6,7 @@
  * Track and manage customer payment receipts
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { toLocalDateStr } from '@/lib/utils/date-format';
@@ -19,6 +19,8 @@ import DataGrid, {
   Toolbar,
   Item as ToolbarItem,
 } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
+import { exportGridToExcel } from '@/lib/utils/export-grid-excel';
 import { Popup } from 'devextreme-react/popup';
 import Form, { SimpleItem, GroupItem, RequiredRule } from 'devextreme-react/form';
 import { DateBox } from 'devextreme-react/date-box';
@@ -261,6 +263,7 @@ export default function ARReceiptsPage() {
   const queryClient = useQueryClient();
   const paymentMethodOptions = useMemo(() => buildPaymentMethodOptions(t), [t]);
   const statusOptions = useMemo(() => buildStatusOptions(t), [t]);
+  const gridRef = useRef<DataGridRef>(null);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -499,15 +502,10 @@ export default function ARReceiptsPage() {
     });
   }, [formData, receiptMutation, updateMutation, editingReceiptId, t]);
 
-  const handleExportJSON = useCallback(() => {
+  // Export to Excel (was JSON) so receipts match the other accounting registers.
+  const handleExportExcel = useCallback(() => {
     if (!receipts || receipts.length === 0) return;
-    const blob = new Blob([JSON.stringify(receipts, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ar-receipts-${toLocalDateStr(new Date())}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportGridToExcel(gridRef.current, 'ar-receipts', t('accountsReceivable.receiptsPage.grid.title'));
     notify(t('accountsReceivable.receiptsPage.toast.exportSuccess'), 'success', 3000);
   }, [receipts, t]);
 
@@ -667,10 +665,11 @@ export default function ARReceiptsPage() {
             />
             {receipts.length > 0 && (
               <Button
-                text={t('accountsReceivable.receiptsPage.export')}
-                icon="export"
-                stylingMode="outlined"
-                onClick={handleExportJSON}
+                text={t('accountsReceivable.receiptsPage.exportExcel')}
+                icon="xlsxfile"
+                type="success"
+                onClick={handleExportExcel}
+                elementAttr={{ 'data-testid': 'rc-export-excel-btn' }}
               />
             )}
           </div>
@@ -702,6 +701,7 @@ export default function ARReceiptsPage() {
               </div>
             ) : (
               <DataGrid
+                ref={gridRef}
                 dataSource={receiptsWithRowNumber}
                 keyExpr="id"
                 showBorders={false}
@@ -712,6 +712,7 @@ export default function ARReceiptsPage() {
                 allowColumnResizing
                 columnAutoWidth
                 hoverStateEnabled
+                data-build="ar-ap-export-20260727-v2"
               >
                 <Paging defaultPageSize={20} />
                 <SearchPanel visible placeholder={t('accountsReceivable.receiptsPage.grid.searchPlaceholder')} />
