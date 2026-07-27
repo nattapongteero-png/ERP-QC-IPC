@@ -735,7 +735,8 @@
         "addAtLeastOneLine": "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ",
         "selectPaymentAccount": "กรุณาเลือกบัญชีรับชำระ",
         "amountMustBePositive": "จำนวนเงินต้องมากกว่า 0"
-      }
+      },
+      "exportExcel": "ส่งออก Excel"
     },
     "receiptsPage": {
       "recordReceipt": "บันทึกใบเสร็จรับเงิน",
@@ -1066,7 +1067,8 @@
         "selectAccount": "เลือกบัญชี",
         "beforeVat": "ยอดก่อน VAT",
         "netTotal": "ยอดรวมสุทธิ"
-      }
+      },
+      "exportExcel": "ส่งออก Excel"
     },
     "paymentsPage": {
       "recordPayment": "บันทึกการชำระเงิน",
@@ -2793,6 +2795,7 @@
       "inputVatSubtitle": "ภาษีมูลค่าเพิ่มจากการซื้อ",
       "netVat": "ภาษีสุทธิ",
       "netVatSubtitle": "ภาษีขาย - ภาษีซื้อ"
-    }
+    },
+    "exportExcel": "ส่งออก Excel"
   }
 }

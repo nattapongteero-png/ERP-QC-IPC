@@ -14,7 +14,7 @@
  * the source AR/AP screen for editing.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import DataGrid, {
@@ -24,8 +24,11 @@ import DataGrid, {
   SearchPanel,
   Summary,
   TotalItem,
-  Export,
+  Toolbar,
+  Item,
 } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
+import { exportGridToExcel } from '@/lib/utils/export-grid-excel';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import {
@@ -93,6 +96,11 @@ export default function TaxInvoicesPage() {
   const [arPrintData, setArPrintData] = useState<ARInvoicePrintData | null>(null);
   const [apPrintData, setApPrintData] = useState<APInvoicePrintData | null>(null);
   const [printing, setPrinting] = useState(false);
+  const gridRef = useRef<DataGridRef>(null);
+
+  const handleExportExcel = useCallback(() => {
+    exportGridToExcel(gridRef.current, 'tax-invoices', t('taxInvoices.title'));
+  }, [t]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['tax-invoices', transactionType, dateFrom, dateTo],
@@ -316,6 +324,7 @@ export default function TaxInvoicesPage() {
         <Card className="rounded-lg border overflow-hidden">
           <CardContent className="p-0">
             <DataGrid
+              ref={gridRef}
               dataSource={rows}
               keyExpr="id"
               showBorders={false}
@@ -324,6 +333,7 @@ export default function TaxInvoicesPage() {
               wordWrapEnabled
               noDataText={t('taxInvoices.noData')}
               data-testid="tax-invoices-grid"
+              data-build="ar-ap-export-20260727-v2"
             >
               <SearchPanel visible placeholder={t('taxInvoices.searchPlaceholder')} />
               <Paging defaultPageSize={20} />
@@ -333,7 +343,21 @@ export default function TaxInvoicesPage() {
                 showPageSizeSelector
                 showInfo
               />
-              <Export enabled />
+
+              {/* A labelled "ส่งออก Excel" button that actually writes the file
+                  (DevExtreme's built-in <Export> only shows a button; it
+                  produced no file here). */}
+              <Toolbar>
+                <Item name="searchPanel" location="before" />
+                <Item location="after" widget="dxButton" options={{
+                  icon: 'xlsxfile',
+                  text: t('taxInvoices.exportExcel'),
+                  stylingMode: 'contained',
+                  type: 'success',
+                  onClick: handleExportExcel,
+                  elementAttr: { 'data-testid': 'tax-invoice-export-excel-btn' },
+                }} />
+              </Toolbar>
 
               <Column
                 caption="#"

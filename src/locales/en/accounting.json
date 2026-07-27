@@ -735,7 +735,8 @@
         "addAtLeastOneLine": "Please add at least one line item",
         "selectPaymentAccount": "Please select a receiving account",
         "amountMustBePositive": "Amount must be greater than 0"
-      }
+      },
+      "exportExcel": "Export Excel"
     },
     "receiptsPage": {
       "recordReceipt": "Record Receipt",
@@ -1066,7 +1067,8 @@
         "selectAccount": "Select account",
         "beforeVat": "Amount before VAT",
         "netTotal": "Net Total"
-      }
+      },
+      "exportExcel": "Export Excel"
     },
     "paymentsPage": {
       "recordPayment": "Record Payment",
@@ -2793,6 +2795,7 @@
       "inputVatSubtitle": "VAT on purchases",
       "netVat": "Net VAT",
       "netVatSubtitle": "Output - Input"
-    }
+    },
+    "exportExcel": "Export Excel"
   }
 }

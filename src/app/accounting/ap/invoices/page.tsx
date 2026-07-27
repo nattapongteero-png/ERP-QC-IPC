@@ -6,7 +6,7 @@
  * User Story 2: Record Purchase-to-Pay Transactions
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   useQuery,
   useMutation,
@@ -24,8 +24,9 @@ import DataGrid, {
   Summary,
   TotalItem,
   Format,
-  Export,
 } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
+import { exportGridToExcel } from '@/lib/utils/export-grid-excel';
 import { Popup } from 'devextreme-react/popup';
 import Form, {
   SimpleItem,
@@ -163,6 +164,11 @@ export default function APInvoicesPage() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
   const [printData, setPrintData] = useState<APInvoicePrintData | null>(null);
   const [printing, setPrinting] = useState(false);
+  const gridRef = useRef<DataGridRef>(null);
+
+  const handleExportExcel = useCallback(() => {
+    exportGridToExcel(gridRef.current, 'ap-invoices', t('accountsPayable.bills.title'));
+  }, [t]);
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     vendorId: null,
@@ -641,6 +647,7 @@ export default function APInvoicesPage() {
         {/* Data Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727-v2">
         <DataGrid
+          ref={gridRef}
           dataSource={invoicesWithRowNumber}
           keyExpr="id"
           showBorders={true}
@@ -661,16 +668,20 @@ export default function APInvoicesPage() {
           />
           <SearchPanel visible={true} placeholder={t('accountsPayable.invoicesPage.searchPlaceholder')} />
           <Sorting mode="multiple" />
-          {/* Excel export of the invoice register (same as the tax-invoice
-              register) — was the one thing this list still lacked. */}
-          <Export enabled={true} />
 
-          {/* The custom Toolbar overrides the grid's default toolbar, so the
-              export button must be listed here explicitly or <Export /> shows
-              no button at all. */}
+          {/* A labelled "ส่งออก Excel" button that actually writes the file
+              (DevExtreme's built-in <Export> only shows a button; it produced no
+              file here). Runs exportGridToExcel via the grid ref. */}
           <Toolbar>
             <Item name="searchPanel" location="before" />
-            <Item name="exportButton" location="after" />
+            <Item location="after" widget="dxButton" options={{
+              icon: 'xlsxfile',
+              text: t('accountsPayable.invoicesPage.exportExcel'),
+              stylingMode: 'contained',
+              type: 'success',
+              onClick: handleExportExcel,
+              elementAttr: { 'data-testid': 'ap-export-excel-btn' },
+            }} />
           </Toolbar>
 
           <Column
