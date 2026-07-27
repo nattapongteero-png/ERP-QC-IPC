@@ -529,7 +529,7 @@ export default function NewQuotationPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {lines.length > 0 ? (
-                  <div className="qt-lines-grid-wrap">
+                  <div className="qt-lines-grid-wrap" data-fix="qt-adaptive-dots-2d3a981">
                     {/* Belt-and-braces: even with columnHidingEnabled off, some
                         DevExtreme builds still emit the adaptive command column
                         (the ".." expander) once fixed-width columns overflow the

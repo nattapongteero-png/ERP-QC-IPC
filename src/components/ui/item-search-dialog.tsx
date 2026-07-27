@@ -594,7 +594,7 @@ export function ItemSearchDialog({
             the tabs on top of each other (RAW MATERIAL over PACKAGING). Pinning
             it to the container and clipping overflow makes it scroll instead. */}
         {typeTabs.length > 1 && (
-          <div className="w-full overflow-hidden">
+          <div className="w-full overflow-hidden" data-fix="isd-tab-flicker-2d3a981">
           <DxTabs
             width="100%"
             items={tabItems}
