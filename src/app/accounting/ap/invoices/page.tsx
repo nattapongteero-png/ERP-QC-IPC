@@ -24,6 +24,7 @@ import DataGrid, {
   Summary,
   TotalItem,
   Format,
+  Export,
 } from 'devextreme-react/data-grid';
 import { Popup } from 'devextreme-react/popup';
 import Form, {
@@ -638,7 +639,7 @@ export default function APInvoicesPage() {
         </AccountingFilterPanel>
 
         {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727">
         <DataGrid
           dataSource={invoicesWithRowNumber}
           keyExpr="id"
@@ -660,6 +661,9 @@ export default function APInvoicesPage() {
           />
           <SearchPanel visible={true} placeholder={t('accountsPayable.invoicesPage.searchPlaceholder')} />
           <Sorting mode="multiple" />
+          {/* Excel export of the invoice register (same as the tax-invoice
+              register) — was the one thing this list still lacked. */}
+          <Export enabled={true} />
 
           <Toolbar>
             <Item name="searchPanel" location="before" />
