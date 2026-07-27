@@ -977,9 +977,12 @@ export default function ARInvoicesPage() {
               actions column was pushed outside the grid and rendered over the
               page background. Fixing it keeps the buttons reachable and inside
               the card at any width. */}
+          {/* width 260 not 200: a draft row shows 6 controls (view, print,
+              edit, delete, อนุมัติ, ปฏิเสธ) which overflowed 200px and clipped
+              the last button. */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={200}
+            width={260}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}

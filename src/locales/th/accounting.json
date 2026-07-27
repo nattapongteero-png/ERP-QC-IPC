@@ -624,7 +624,7 @@
       "actions": {
         "edit": "แก้ไข",
         "delete": "ลบ",
-        "confirm": "ยืนยัน",
+        "confirm": "อนุมัติ",
         "reject": "ปฏิเสธ",
         "receivePayment": "รับชำระ"
       },
