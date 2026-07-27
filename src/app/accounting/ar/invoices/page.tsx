@@ -455,12 +455,16 @@ export default function ARInvoicesPage() {
 
   const handleConfirm = useCallback(
     async (invoice: ARInvoice) => {
+      // Build the message string directly instead of via t(): DevExtreme's
+      // confirm() renders on the client, and the ICU message with {placeholders}
+      // + HTML was not resolving there (it printed the raw key
+      // "…confirmInvoice.message"). A plain interpolated string always renders.
+      const taxLine = invoice.taxInvoiceNumber
+        ? `<br/><strong>ใบกำกับภาษี: ${invoice.taxInvoiceNumber}</strong>`
+        : '';
       const result = await confirm(
-        t('accountsReceivable.invoicesPage.confirmInvoice.message', {
-          invoiceNumber: invoice.invoiceNumber,
-          taxInvoiceNumber: invoice.taxInvoiceNumber,
-        }),
-        t('accountsReceivable.invoicesPage.confirmInvoice.title')
+        `คุณต้องการยืนยันใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?${taxLine}<br/>ระบบจะสร้างรายการบันทึกบัญชีและ Output VAT อัตโนมัติ`,
+        'ยืนยันใบแจ้งหนี้'
       );
       if (result) {
         confirmMutation.mutate(invoice.id);
@@ -720,7 +724,10 @@ export default function ARInvoicesPage() {
     (cellData: { data: ARInvoice }) => {
       const invoice = cellData.data;
       return (
-        <div style={{ display: 'flex', gap: '4px' }}>
+        // flexWrap so on a narrow column / smaller device the buttons wrap to a
+        // second line instead of being clipped ("อนุ..."); justifyContent keeps
+        // them tidy. Pairs with the wider fixed column width below.
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button
             icon="find"
             hint={t('accountsReceivable.invoicesPage.detailDialog.view')}
@@ -977,12 +984,13 @@ export default function ARInvoicesPage() {
               actions column was pushed outside the grid and rendered over the
               page background. Fixing it keeps the buttons reachable and inside
               the card at any width. */}
-          {/* width 260 not 200: a draft row shows 6 controls (view, print,
-              edit, delete, อนุมัติ, ปฏิเสธ) which overflowed 200px and clipped
-              the last button. */}
+          {/* width 300: a draft row shows up to 6 controls (view, print, edit,
+              delete, อนุมัติ, ปฏิเสธ). 260 still clipped "อนุมัติ" → "อนุ...".
+              300 + flexWrap on the cell keeps them all visible (wrapping to a
+              second line on very narrow / mobile widths). */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={260}
+            width={300}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
