@@ -503,7 +503,21 @@ export function ItemSearchDialog({
   }, [onSelectMultiple, allResults, checkedIds, onOpenChange]);
 
   const renderDialogContent = () => (
-    <div className="flex flex-col h-full bg-[#F6FCF9]">
+    <div className="flex flex-col h-full bg-[#F6FCF9] isd-root">
+      {/* Kill the tab-indicator slide/fade animation inside THIS dialog only.
+          DevExtreme animates the active-tab underline on selection change; on a
+          controlled index that animation replays every switch and, combined with
+          the grid re-filtering underneath, reads as a screen-wide flicker. The
+          selection is still fully functional — only its transition is removed. */}
+      <style>{`
+        .isd-root .dx-tabs .dx-tab,
+        .isd-root .dx-tabs .dx-tab::before,
+        .isd-root .dx-tabs .dx-tab::after,
+        .isd-root .dx-tabs .dx-tab-selected {
+          transition: none !important;
+          animation: none !important;
+        }
+      `}</style>
       {/* Header with Title and Stats */}
       <div className="bg-gradient-to-r from-[#064E3B] to-emerald-600 text-white px-6 py-4">
         <div className="flex items-center justify-between">
@@ -585,12 +599,18 @@ export function ItemSearchDialog({
             width="100%"
             items={tabItems}
             selectedIndex={selectedTypeTab}
-            onItemClick={(e) => {
-              // Ignore a click on the already-active tab — re-setting the same
-              // index still triggers the search effect and a needless refetch
-              // that reads as a flicker.
-              if (typeof e.itemIndex === 'number' && e.itemIndex !== selectedTypeTab) {
-                setSelectedTypeTab(e.itemIndex);
+            // onSelectedIndexChange (→ DevExtreme onSelectionChanged), NOT
+            // onItemClick. onItemClick fires on the raw click while DevExtreme
+            // has ALREADY moved its own selection; our setState then pushes
+            // selectedIndex back in a later render, so the strip paints the new
+            // tab and snaps back to the old one within a frame — the visible
+            // "flicker" on every tab click. onSelectionChanged fires after the
+            // selection settles, so the controlled index and the internal state
+            // never disagree. Guard against re-setting the same index (a no-op
+            // that would still re-run the filter memo).
+            onSelectedIndexChange={(index) => {
+              if (index !== selectedTypeTab) {
+                setSelectedTypeTab(index);
               }
             }}
           />

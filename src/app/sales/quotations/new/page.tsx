@@ -500,7 +500,10 @@ export default function NewQuotationPage() {
             </Card>
 
             <Card>
-              <CardHeader>
+              {/* py-3 (not the default p-6 pb-0): the tall header padding pushed
+                  the "เลือกจากคลัง" button far above the grid so it looked
+                  detached. A tighter header sits the button just above the rows. */}
+              <CardHeader className="py-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Package className="h-5 w-5 text-indigo-500" />
@@ -526,12 +529,30 @@ export default function NewQuotationPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {lines.length > 0 ? (
-                  <>
-                    {/* No columnAutoWidth: with it, the columns' combined min
-                        widths overflowed the card and DevExtreme collapsed the
-                        actions column into an adaptive "..." command cell next
-                        to the trash icon. Letting columns fit the container (and
-                        scroll if narrow) removes the "..." (list item 4). */}
+                  <div className="qt-lines-grid-wrap">
+                    {/* Belt-and-braces: even with columnHidingEnabled off, some
+                        DevExtreme builds still emit the adaptive command column
+                        (the ".." expander) once fixed-width columns overflow the
+                        container. Hiding it in CSS guarantees the ".." is gone
+                        regardless of the DevExtreme version's adaptive heuristic.
+                        Ref: DevExpress T852950 / T996217. */}
+                    <style>{`
+                      .qt-lines-grid-wrap .dx-command-adaptive,
+                      .qt-lines-grid-wrap .dx-datagrid-adaptive-more {
+                        display: none !important;
+                        width: 0 !important;
+                      }
+                    `}</style>
+                    {/* The stray ".." at the end of each row was DevExtreme's
+                        ADAPTIVE command cell: when the fixed-width columns sum
+                        wider than the card (they total ~900px, wider than this
+                        column's space once the sidebar + right panel take their
+                        share), DevExtreme hides the overflow into a "..." expand
+                        button — even with columnHidingEnabled off it still shows
+                        the adaptive detail toggle. The fix is to stop it from
+                        adapting at all: columnResizingMode="widget" +
+                        allowColumnResizing keeps every column at its real width
+                        and scrolls horizontally instead of collapsing. */}
                     <DataGrid
                       dataSource={gridData}
                       keyExpr="key"
@@ -539,11 +560,13 @@ export default function NewQuotationPage() {
                       showRowLines
                       columnAutoWidth={false}
                       columnHidingEnabled={false}
+                      allowColumnResizing
+                      columnResizingMode="widget"
                       className="min-h-[200px]"
                       elementAttr={{ 'data-testid': 'qt-lines-grid' }}
                     >
                       <Paging enabled={false} />
-                      <Scrolling columnRenderingMode="standard" showScrollbar="onHover" />
+                      <Scrolling columnRenderingMode="standard" showScrollbar="always" />
                       <Column
                         dataField="description"
                         caption="รายละเอียด"
@@ -608,7 +631,7 @@ export default function NewQuotationPage() {
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="text-center py-12 px-4">
                     <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
