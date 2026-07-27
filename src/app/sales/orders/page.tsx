@@ -700,11 +700,13 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="value">
                   <Label visible={false} />
                 </Series>
-                {/* Short currency (฿2.1M, ฿158K) not the full number: the full
-                    "ยืนยันแล้ว (2,078,525)" was so wide it pushed the other legend
-                    items off the row, so only 2 of the 4 slices showed a legend
-                    entry. The exact value is still in the tooltip. */}
-                <Legend orientation="horizontal" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" customizeText={(info: { pointName?: string; pointIndex?: number }) => { const d = valueChartData[info.pointIndex ?? -1]; return d ? `${info.pointName} (${formatCurrencyShort(d.value)})` : (info.pointName ?? ''); }} />
+                {/* VERTICAL legend: a horizontal one put all 4 items on one row,
+                    but "ยืนยันแล้ว (฿2.1M)" is wide enough that the row overflowed
+                    and DevExtreme dropped the last 2 items — the chart showed 4
+                    slices but only 2 legend entries. Stacking them vertically
+                    guarantees every slice gets its own line. Short currency
+                    (฿2.1M) keeps each line compact; exact value is in the tooltip. */}
+                <Legend orientation="vertical" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" columnCount={2} customizeText={(info: { pointName?: string; pointIndex?: number }) => { const d = valueChartData[info.pointIndex ?? -1]; return d ? `${info.pointName} (${formatCurrencyShort(d.value)})` : (info.pointName ?? ''); }} />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`,
                 })} />
