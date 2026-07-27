@@ -178,11 +178,7 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
           <div className="so-print-company-line">
             {company?.phone && <span>โทร: {company.phone}</span>}
             {company?.phone && company?.email && <span> | </span>}
-            {/* Show the address only — the Thai "อีเมล:" label rendered with
-                stacked/garbled vowels in the print font. The other two sales
-                print forms (Quotation, DeliveryNote) already show the bare
-                email, so match them for a consistent, glitch-free header. */}
-            {company?.email && <span>{company.email}</span>}
+            {company?.email && <span>อีเมล: {company.email}</span>}
           </div>
           {company?.taxId && (
             <div className="so-print-company-line">
