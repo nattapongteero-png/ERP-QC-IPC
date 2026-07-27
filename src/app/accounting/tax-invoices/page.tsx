@@ -8,9 +8,10 @@
  * testers reported the feature as missing. This lists both sides of VAT:
  * output (ภาษีขาย, from AR invoices) and input (ภาษีซื้อ, from AP invoices).
  *
- * Printing a single output tax invoice happens on the AR invoice screen, which
- * owns the legal form (ARInvoicePrintDocument) — this page links through to it
- * rather than duplicating that document.
+ * Each row can be printed straight from this register: output rows reuse the AR
+ * invoice form (ARInvoicePrintDocument, the legal ใบกำกับภาษี), input rows reuse
+ * the AP invoice form (APInvoicePrintDocument). The register still links back to
+ * the source AR/AP screen for editing.
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -33,8 +34,18 @@ import {
   AccountingKPICardSkeleton,
   AccountingFilterPanel,
 } from '@/components/accounting';
+import { Button } from 'devextreme-react/button';
+import notify from 'devextreme/ui/notify';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatNumber } from '@/lib/utils/number-format';
+import {
+  ARInvoicePrintDocument,
+  type ARInvoicePrintData,
+} from '@/components/accounting/ARInvoicePrintDocument';
+import {
+  APInvoicePrintDocument,
+  type APInvoicePrintData,
+} from '@/components/accounting/APInvoicePrintDocument';
 
 interface TaxInvoiceEntry {
   id: number;
@@ -76,6 +87,12 @@ export default function TaxInvoicesPage() {
   const [transactionType, setTransactionType] = useState<string>('output');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+  // Printing straight from the register: an output row prints via the AR invoice
+  // form (ARInvoicePrintDocument), an input row via the AP invoice form. Only
+  // one is set at a time.
+  const [arPrintData, setArPrintData] = useState<ARInvoicePrintData | null>(null);
+  const [apPrintData, setApPrintData] = useState<APInvoicePrintData | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['tax-invoices', transactionType, dateFrom, dateTo],
@@ -100,6 +117,76 @@ export default function TaxInvoicesPage() {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  // Print the legal document behind a register row. We fetch the source AR/AP
+  // invoice for its line items, but take the counter-party name and tax id from
+  // the register row itself (partyName/partyTaxId) — that is the party as it was
+  // recorded on the tax invoice.
+  const handlePrint = useCallback(async (row: TaxInvoiceEntry) => {
+    try {
+      if (row.transactionType === 'output' && row.arInvoiceId) {
+        const res = await fetch(`/api/accounting/ar-invoices/${row.arInvoiceId}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const d = json.data;
+        setApPrintData(null);
+        setArPrintData({
+          invoiceNumber: d.invoiceNumber,
+          taxInvoiceNumber: d.taxInvoiceNumber || row.taxInvoiceNumber,
+          invoiceDate: d.invoiceDate,
+          dueDate: d.dueDate,
+          description: d.description,
+          subtotal: Number(d.subtotal) || 0,
+          vatAmount: Number(d.vatAmount) || 0,
+          totalAmount: Number(d.totalAmount) || 0,
+          paidAmount: Number(d.paidAmount) || 0,
+          lines: (d.lines || []).map((l: any) => ({
+            description: l.description || '',
+            quantity: Number(l.quantity) || 0,
+            unitPrice: Number(l.unitPrice) || 0,
+            amount: Number(l.amount) || 0,
+            vatAmount: l.vatAmount != null ? Number(l.vatAmount) : null,
+          })),
+          customer: { name: row.partyName, taxId: row.partyTaxId },
+        });
+      } else if (row.transactionType === 'input' && row.apInvoiceId) {
+        const res = await fetch(`/api/accounting/ap-invoices/${row.apInvoiceId}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const d = json.data;
+        setArPrintData(null);
+        setApPrintData({
+          invoiceNumber: d.invoiceNumber,
+          invoiceDate: d.invoiceDate,
+          dueDate: d.dueDate,
+          receivedDate: d.receivedDate,
+          description: d.description,
+          subtotal: Number(d.subtotal) || 0,
+          vatAmount: Number(d.vatAmount) || 0,
+          whtAmount: Number(d.whtAmount) || 0,
+          totalAmount: Number(d.totalAmount) || 0,
+          paidAmount: Number(d.paidAmount) || 0,
+          lines: (d.lines || []).map((l: any) => ({
+            description: l.description || '',
+            quantity: Number(l.quantity) || 0,
+            unitPrice: Number(l.unitPrice) || 0,
+            amount: Number(l.amount) || 0,
+          })),
+          vendor: { name: row.partyName, taxId: row.partyTaxId },
+        });
+      } else {
+        notify(t('taxInvoices.noSourceToPrint'), 'warning', 3000);
+        return;
+      }
+      setPrinting(true);
+      requestAnimationFrame(() => {
+        window.print();
+        setPrinting(false);
+      });
+    } catch (err: any) {
+      notify(err?.message || t('taxInvoices.printError'), 'error', 4000);
+    }
+  }, [t]);
 
   // Link each row back to the document that produced it, so the printable legal
   // form is always one click away.
@@ -329,6 +416,22 @@ export default function TaxInvoicesPage() {
                 alignment="center"
                 cellRender={renderSource}
               />
+              <Column
+                caption={t('taxInvoices.columns.print')}
+                width={90}
+                alignment="center"
+                allowFiltering={false}
+                allowSorting={false}
+                cellRender={(c: any) => (
+                  <Button
+                    icon="print"
+                    stylingMode="text"
+                    hint={t('taxInvoices.printHint')}
+                    onClick={() => handlePrint(c.data as TaxInvoiceEntry)}
+                    elementAttr={{ 'data-testid': `tax-invoice-print-${c.data.id}` }}
+                  />
+                )}
+              />
 
               <Summary>
                 <TotalItem
@@ -351,6 +454,10 @@ export default function TaxInvoicesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hidden on screen; the global @media print rules reveal .print-only. */}
+      {printing && arPrintData && <ARInvoicePrintDocument invoice={arPrintData} />}
+      {printing && apPrintData && <APInvoicePrintDocument invoice={apPrintData} />}
     </div>
   );
 }

@@ -1018,7 +1018,8 @@
         "edit": "Edit",
         "delete": "Delete",
         "approve": "Approve",
-        "pay": "Pay"
+        "pay": "Pay",
+        "print": "Print"
       },
       "kpi": {
         "totalItems": "Total Bills",
@@ -2748,6 +2749,50 @@
         "cogs": "COGS",
         "operatingExpenses": "Operating Expenses"
       }
+    }
+  },
+  "taxInvoices": {
+    "title": "Tax Invoice Register",
+    "description": "All output VAT (sales) and input VAT (purchases) transactions",
+    "noData": "No tax invoices found",
+    "searchPlaceholder": "Search...",
+    "sourceAR": "AR Invoice",
+    "sourceAP": "AP Invoice",
+    "printHint": "Print document",
+    "printError": "Failed to print document",
+    "noSourceToPrint": "No source document to print",
+    "columns": {
+      "number": "Tax Invoice No.",
+      "date": "Date",
+      "type": "Type",
+      "party": "Party",
+      "partyTaxId": "Tax ID",
+      "branch": "Branch",
+      "taxableAmount": "Amount before VAT",
+      "vatAmount": "VAT",
+      "totalAmount": "Total",
+      "source": "Source",
+      "print": "Print"
+    },
+    "types": {
+      "output": "Output VAT",
+      "input": "Input VAT",
+      "all": "All"
+    },
+    "filters": {
+      "type": "Type",
+      "dateFrom": "Date from",
+      "dateTo": "Date to"
+    },
+    "kpi": {
+      "count": "Documents",
+      "documents": "docs",
+      "outputVat": "Output VAT",
+      "outputVatSubtitle": "VAT on sales",
+      "inputVat": "Input VAT",
+      "inputVatSubtitle": "VAT on purchases",
+      "netVat": "Net VAT",
+      "netVatSubtitle": "Output - Input"
     }
   }
 }

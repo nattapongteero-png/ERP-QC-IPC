@@ -41,6 +41,10 @@ import {
   AccountingFilterPanel,
   AccountingStatusBadge,
 } from '@/components/accounting';
+import {
+  APInvoicePrintDocument,
+  type APInvoicePrintData,
+} from '@/components/accounting/APInvoicePrintDocument';
 
 // Types
 interface APInvoice {
@@ -66,6 +70,11 @@ interface Vendor {
   id: number;
   code: string;
   name: string;
+  // Carried through for the printable invoice — the print document shows the
+  // vendor's tax id and address on the ผู้ขาย block.
+  taxId?: string | null;
+  address?: string | null;
+  contactPerson?: string | null;
 }
 
 interface GLAccount {
@@ -151,6 +160,8 @@ export default function APInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState<number | null>(null);
+  const [printData, setPrintData] = useState<APInvoicePrintData | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     invoiceNumber: '',
     vendorId: null,
@@ -360,6 +371,53 @@ export default function APInvoicesPage() {
     }
   }, []);
 
+  const handlePrint = useCallback(
+    async (invoice: APInvoice) => {
+      try {
+        const res = await fetch(`/api/accounting/ap-invoices/${invoice.id}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const detail = json.data;
+        const vendor = vendors.find((v) => v.id === detail.vendorId);
+        setPrintData({
+          invoiceNumber: detail.invoiceNumber,
+          invoiceDate: detail.invoiceDate,
+          dueDate: detail.dueDate,
+          receivedDate: detail.receivedDate,
+          description: detail.description,
+          subtotal: Number(detail.subtotal) || 0,
+          vatAmount: Number(detail.vatAmount) || 0,
+          whtAmount: Number(detail.whtAmount) || 0,
+          totalAmount: Number(detail.totalAmount) || 0,
+          paidAmount: Number(detail.paidAmount) || 0,
+          lines: (detail.lines || []).map((l: any) => ({
+            description: l.description || '',
+            quantity: Number(l.quantity) || 0,
+            unitPrice: Number(l.unitPrice) || 0,
+            amount: Number(l.amount) || 0,
+          })),
+          vendor: vendor
+            ? {
+                name: vendor.name,
+                taxId: vendor.taxId,
+                address: vendor.address,
+                contactPerson: vendor.contactPerson,
+              }
+            : { name: invoice.vendorName },
+        });
+        setPrinting(true);
+        // Let React paint the hidden document before handing off to the browser.
+        requestAnimationFrame(() => {
+          window.print();
+          setPrinting(false);
+        });
+      } catch (err: any) {
+        notify(err.message || t('accountsPayable.invoicesPage.toast.loadError'), 'error', 4000);
+      }
+    },
+    [vendors, t]
+  );
+
   const handleDelete = useCallback(
     async (invoice: APInvoice) => {
       const result = await confirm(
@@ -428,6 +486,14 @@ export default function APInvoicesPage() {
       const invoice = cellData.data as APInvoice;
       return (
         <div style={{ display: 'flex', gap: '4px' }}>
+          <Button
+            icon="print"
+            hint={t('accountsPayable.invoicesPage.actions.print')}
+            stylingMode="text"
+            height={28}
+            onClick={() => handlePrint(invoice)}
+            elementAttr={{ 'data-testid': `ap-print-btn-${invoice.id}` }}
+          />
           {invoice.status === 'draft' && (
             <>
               <Button
@@ -465,7 +531,7 @@ export default function APInvoicesPage() {
         </div>
       );
     },
-    [handleApprove, handleEdit, handleDelete]
+    [handleApprove, handleEdit, handleDelete, handlePrint, t]
   );
 
   // Calculate stats
@@ -880,6 +946,9 @@ export default function APInvoicesPage() {
         </div>
         </Popup>
       </div>
+
+      {/* Hidden on screen; the global @media print rules reveal .print-only. */}
+      {printing && printData && <APInvoicePrintDocument invoice={printData} />}
     </div>
   );
 }

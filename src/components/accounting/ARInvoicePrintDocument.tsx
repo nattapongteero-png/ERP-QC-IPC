@@ -15,7 +15,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { formatNumber } from '@/lib/utils/number-format';
+import { formatNumber, formatMoney } from '@/lib/utils/number-format';
+import { thaiBahtText } from '@/lib/utils/thai-baht-text';
 
 interface CompanyInfo {
   companyName: string;
@@ -103,7 +104,8 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
         th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; vertical-align: top; }
         th { background: #f0f0f0; font-weight: 700; }
         td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-        .ari-totals { margin-top: 12px; display: flex; justify-content: flex-end; }
+        .ari-totals { margin-top: 12px; display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+        .ari-amount-text { flex: 1; border: 1.5px solid #000; padding: 10px 12px; font-size: 11pt; align-self: stretch; }
         .ari-totals table { width: auto; min-width: 320px; margin-top: 0; }
         .ari-totals td { border: none; padding: 3px 8px; }
         .ari-totals td.num { border: none; }
@@ -179,8 +181,8 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
                 <td className="num">{i + 1}</td>
                 <td>{l.description || '-'}</td>
                 <td className="num">{formatNumber(l.quantity)}</td>
-                <td className="num">{formatNumber(l.unitPrice)}</td>
-                <td className="num">{formatNumber(amount)}</td>
+                <td className="num">{formatMoney(l.unitPrice)}</td>
+                <td className="num">{formatMoney(amount)}</td>
               </tr>
             );
           })}
@@ -188,29 +190,33 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
       </table>
 
       <div className="ari-totals">
+        <div className="ari-amount-text">
+          จำนวนเงินรวมทั้งสิ้น (ตัวอักษร):<br />
+          <b>{thaiBahtText(Number(invoice.totalAmount) || 0)}</b>
+        </div>
         <table>
           <tbody>
             <tr>
               <td>มูลค่าก่อนภาษี</td>
-              <td className="num">{formatNumber(invoice.subtotal)}</td>
+              <td className="num">{formatMoney(invoice.subtotal)}</td>
             </tr>
             <tr>
               <td>ภาษีมูลค่าเพิ่ม 7%</td>
-              <td className="num">{formatNumber(invoice.vatAmount)}</td>
+              <td className="num">{formatMoney(invoice.vatAmount)}</td>
             </tr>
             <tr className="ari-grand">
               <td>จำนวนเงินรวมทั้งสิ้น</td>
-              <td className="num">{formatNumber(invoice.totalAmount)}</td>
+              <td className="num">{formatMoney(invoice.totalAmount)}</td>
             </tr>
             {Number(invoice.paidAmount) > 0 && (
               <>
                 <tr>
                   <td>ชำระแล้ว</td>
-                  <td className="num">{formatNumber(invoice.paidAmount)}</td>
+                  <td className="num">{formatMoney(invoice.paidAmount)}</td>
                 </tr>
                 <tr>
                   <td>ยอดคงค้าง</td>
-                  <td className="num">{formatNumber(outstanding)}</td>
+                  <td className="num">{formatMoney(outstanding)}</td>
                 </tr>
               </>
             )}
