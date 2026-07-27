@@ -654,6 +654,7 @@ export default function SalesOrdersPage() {
               <h3 className="font-semibold text-gray-900 text-base">{t('orders.charts.statusDistribution')}</h3>
             </div>
             {statusChartData.length > 0 ? (
+              <>
               <PieChart
                 key={`status-${locale}`}
                 dataSource={statusChartData}
@@ -665,16 +666,25 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="count">
                   <Label visible={false} />
                 </Series>
-                {/* Match by pointName, NOT pointIndex: DevExtreme reorders slices
-                    by value, so valueChartData[pointIndex] pointed at the wrong
-                    row — legend labels/counts didn't line up with their slices.
-                    pointName is the status string DevExtreme paints, so looking
-                    the row up by it is always correct. */}
-                <Legend orientation="vertical" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" columnCount={2} customizeText={(info: { pointName?: string }) => { const d = statusChartData.find(x => x.status === info.pointName); return d ? `${info.pointName} (${d.count})` : (info.pointName ?? ''); }} />
+                {/* DevExtreme's own <Legend> silently DROPS items that don't fit
+                    the space (its columnCount is ignored when they overflow — see
+                    DevExpress docs), which is why only 2 of 4 statuses showed. We
+                    render our own HTML legend below the chart instead, so all 4
+                    always appear with the right colour. */}
+                <Legend visible={false} />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${arg.valueText}`,
                 })} />
               </PieChart>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
+                {statusChartData.map((d) => (
+                  <div key={d.status} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: d.color }} />
+                    <span>{d.status} ({d.count})</span>
+                  </div>
+                ))}
+              </div>
+              </>
             ) : (
               <div className="flex items-center justify-center h-[200px] text-gray-400">
                 <div className="text-center">
@@ -694,6 +704,7 @@ export default function SalesOrdersPage() {
               <h3 className="font-semibold text-gray-900 text-base">{t('orders.charts.valueByStatus')}</h3>
             </div>
             {valueChartData.length > 0 ? (
+              <>
               <PieChart
                 key={`value-${locale}`}
                 dataSource={valueChartData}
@@ -705,14 +716,22 @@ export default function SalesOrdersPage() {
                 <Series argumentField="status" valueField="value">
                   <Label visible={false} />
                 </Series>
-                {/* Match by pointName (see the count chart above): pointIndex
-                    lookup was showing the wrong value/colour against each legend
-                    item because DevExtreme reorders slices by value. */}
-                <Legend orientation="vertical" horizontalAlignment="center" verticalAlignment="bottom" itemTextPosition="right" columnCount={2} customizeText={(info: { pointName?: string }) => { const d = valueChartData.find(x => x.status === info.pointName); return d ? `${info.pointName} (${formatCurrencyShort(d.value)})` : (info.pointName ?? ''); }} />
+                {/* Own HTML legend below (see the count chart) — DevExtreme's
+                    legend dropped items that didn't fit. */}
+                <Legend visible={false} />
                 <Tooltip enabled customizeTooltip={(arg) => ({
                   text: `${arg.argumentText}: ${formatCurrency(arg.value as number)}`,
                 })} />
               </PieChart>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
+                {valueChartData.map((d) => (
+                  <div key={d.status} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: d.color }} />
+                    <span>{d.status} ({formatCurrencyShort(d.value)})</span>
+                  </div>
+                ))}
+              </div>
+              </>
             ) : (
               <div className="flex items-center justify-center h-[200px] text-gray-400">
                 <div className="text-center">
