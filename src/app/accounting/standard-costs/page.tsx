@@ -293,10 +293,15 @@ export default function StandardCostsPage() {
           onHiding={() => setShowCreateDialog(false)}
           title={t('standardCosts.dialog.createTitle')}
           width={500}
+          // height="auto" let the popup grow taller than the viewport when the
+          // form was long, pushing the Save button off-screen with no way to
+          // scroll to it. Cap the height and scroll the body instead so Save is
+          // always reachable.
           height="auto"
+          maxHeight="90vh"
           showCloseButton={true}
         >
-          <div className="p-4">
+          <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
             <Form
               formData={formData}
               onFieldDataChanged={(e) =>

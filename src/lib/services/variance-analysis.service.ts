@@ -78,7 +78,10 @@ export async function createStandardCost(
     // Insert new standard cost
     const result = await db.insert(tables.standardCosts).values({
       itemId: data.itemId,
-      effectiveDate: data.effectiveDate,
+      // toDbDate: MySQL datetime needs a Date object, not the raw string the
+      // date picker sends. Passing the string through made the driver call
+      // .toISOString() on a non-Date → "a.toISOString is not a function" on save.
+      effectiveDate: toDbDate(data.effectiveDate),
       materialCost: data.materialCost || 0,
       laborCost: data.laborCost || 0,
       overheadCost: data.overheadCost || 0,
