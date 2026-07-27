@@ -97,7 +97,7 @@ export function APInvoicePrintDocument({ invoice }: { invoice: APInvoicePrintDat
     <div className="print-only print-doc api-print-doc" data-testid="api-print-document" data-build="ap-print-doc-20260727">
       <style jsx>{`
         .api-print-doc {
-          font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+          font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
           color: #000;
           padding: 16mm;
           font-size: 12pt;

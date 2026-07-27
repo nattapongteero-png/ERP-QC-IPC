@@ -60,7 +60,7 @@ export function QuotationPrintDocument({ quotation }: { quotation: QuotationWith
     <div className="print-only print-doc qt-print-doc" data-testid="qt-print-document">
       <style jsx>{`
         .qt-print-doc {
-          font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+          font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
           color: #000;
           padding: 16mm;
           font-size: 12pt;

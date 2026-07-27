@@ -408,7 +408,7 @@ a:not([class]):hover {
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
   }
 
   /* Force white background on eBMR CONTAINERS only (not cells).
@@ -1074,7 +1074,7 @@ body.ebmr-preview-active #ebmr-content {
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
   padding: 12mm 10mm 14mm 10mm;  /* same visual margin as print body padding */
   margin: 0 0 40px 0;
-  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
   color: #111827;
 }
 
@@ -1362,7 +1362,7 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
    print) so only the document prints.
    ========================================================= */
 .pr-print-doc {
-  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
   color: #000;
   font-size: 12px;
   line-height: 1.45;
@@ -1531,7 +1531,7 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
    document prints. Mirrors the .pr-print-* (requisition) pattern.
    ========================================================= */
 .po-print {
-  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
   color: #000;
   font-size: 12px;
   line-height: 1.45;
@@ -1763,13 +1763,22 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
    plus a customer block and a VAT totals block.
    ========================================================= */
 .so-print-doc {
-  font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
   color: #000;
   font-size: 12px;
   line-height: 1.45;
 }
 
 @media print {
+  /* Outer frame + inner breathing room around the whole document.
+     @page margin is 0 and body padding is small, so without this the form
+     printed edge-to-edge with no border. A 1.2px frame + 6mm inner padding
+     gives it a proper document look with margin space. */
+  .so-print-doc {
+    border: 1.2px solid #000;
+    padding: 6mm;
+  }
+
   /* Header */
   .so-print-header {
     display: flex;

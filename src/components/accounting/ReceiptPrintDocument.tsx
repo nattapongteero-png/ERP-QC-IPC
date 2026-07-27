@@ -82,7 +82,7 @@ export function ReceiptPrintDocument({ receipt }: { receipt: ReceiptPrintData })
     <div className="print-only print-doc rc-print-doc" data-testid="rc-print-document">
       <style jsx>{`
         .rc-print-doc {
-          font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+          font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
           color: #000;
           padding: 16mm;
           font-size: 12pt;

@@ -95,7 +95,7 @@ export function DeliveryNotePrintDocument({ note }: { note: DeliveryNotePrintDat
     <div className="print-only print-doc dn-print-doc" data-testid="dn-print-document">
       <style jsx>{`
         .dn-print-doc {
-          font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+          font-family: var(--font-sarabun), 'TH Sarabun New', 'Leelawadee UI', Tahoma, 'Noto Sans Thai', sans-serif;
           color: #000;
           padding: 16mm;
           font-size: 12pt;
