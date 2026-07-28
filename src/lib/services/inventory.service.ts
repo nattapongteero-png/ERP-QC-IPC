@@ -515,7 +515,21 @@ export async function receiveMaterial(
    * determine an actual mfg date (e.g. legacy back-fill). Production
    * Output callers MUST pass the real WO actual-start date.
    */
-  manufacturingDate?: string | null
+  manufacturingDate?: string | null,
+  /**
+   * Cost per unit for this receipt, in THB.
+   *
+   * Stock used to arrive with no cost at all: `inventory_lots.cost` was never
+   * written, so `items.current_wac` stayed NULL on every item, `getItemWAC`
+   * returned 0, `calculateCOGS` returned 0, and the shipment journal skipped
+   * the COGS leg behind its `costOfGoodsSold > 0` guard. Net effect: every
+   * sale booked revenue with no cost of sale — 100% gross margin, and no
+   * inventory value on the balance sheet.
+   *
+   * Passing the cost here closes that chain at its source. Omitted or 0 keeps
+   * the previous (uncosted) behaviour so existing callers are unaffected.
+   */
+  unitCost?: number | null
 ): Promise<number> {
   const { lots, transactions } = getTables();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -526,6 +540,10 @@ export async function receiveMaterial(
   const dbExpiryDate = expiryDate ? toDbDate(expiryDate) : null;
   const dbReceivedDate = toDbDate(getTodayStr());
   const dbManufacturingDate = manufacturingDate ? toDbDate(manufacturingDate) : null;
+  // Only record a cost when a real one was supplied — writing 0 would look like
+  // "this stock is genuinely free" rather than "cost unknown".
+  const lotCost =
+    unitCost != null && Number.isFinite(unitCost) && unitCost > 0 ? Number(unitCost) : null;
 
   if (isSqlite()) {
     const [newLot] = await database
@@ -543,6 +561,7 @@ export async function receiveMaterial(
         receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
+        cost: lotCost,
       })
       .returning({ id: lots.id });
     newLotId = newLot.id;
@@ -562,6 +581,7 @@ export async function receiveMaterial(
         receivedDate: dbReceivedDate,
         vendorId,
         poNumber,
+        cost: lotCost,
       });
     newLotId = getInsertId(result);
   }
@@ -605,6 +625,35 @@ export async function receiveMaterial(
       });
   }
 
+  // Roll this receipt into the item's moving-average cost.
+  //
+  // Without this, items.current_wac stays NULL forever and COGS silently
+  // computes to 0 at shipment (see the `unitCost` param doc above). Failure
+  // here must not roll back a physical goods receipt that already happened —
+  // the stock IS on the shelf — so it is logged rather than thrown. A NULL WAC
+  // is visible downstream as a zero-cost sale, which is the condition this
+  // whole change exists to surface.
+  if (lotCost !== null) {
+    try {
+      const { recalculateWAC } = await import('./unit-cost.service');
+      await recalculateWAC({
+        itemId,
+        transactionType: 'receipt',
+        transactionId: newLotId, // lot id doubles as the cost-layer reference
+        quantity,
+        unitCost: lotCost,
+        transactionDate: getTodayStr(),
+        notes: `Receive: lot ${lotNumber}${poNumber ? `, PO ${poNumber}` : ''}`,
+        createdBy: userId,
+      });
+    } catch (err) {
+      console.error(
+        `[receiveMaterial] WAC update failed for item ${itemId}, lot ${newLotId}:`,
+        err,
+      );
+    }
+  }
+
   // Create audit log
   await createAuditLog({
     userId,
@@ -616,6 +665,7 @@ export async function receiveMaterial(
       quantity,
       status: 'quarantine',
       poNumber,
+      unitCost: lotCost,
     },
   });
 

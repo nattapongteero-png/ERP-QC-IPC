@@ -114,15 +114,33 @@ export async function POST(
           return errorResponse(`Insufficient lot quantity. Available: ${availableQty}, Required: ${qtyToUse}`);
         }
 
-        // Reserve quantity in lot
-        await executeDbOperation(async (db) => {
-          return db
-            .update(inventoryLots)
-            .set({
-              reservedQuantity: sql`${inventoryLots.reservedQuantity} + ${qtyToUse}`,
-            })
-            .where(eq(inventoryLots.id, lotId));
-        });
+        // Issuing material to a work order physically removes it from the lot,
+        // so on-hand quantity must go DOWN. This previously only incremented
+        // reservedQuantity and never touched `quantity`, so stock never fell:
+        // UAT lot 88 showed 100 on hand after issuing 25 (should be 75), and
+        // the issue transaction's balance_after actually ROSE. Reservation is
+        // for material that is spoken for but still on the shelf; an issue is
+        // a consumption, which is a different thing.
+        if (actualQuantity) {
+          await executeDbOperation(async (db) => {
+            return db
+              .update(inventoryLots)
+              .set({
+                quantity: sql`${inventoryLots.quantity} - ${actualQuantity}`,
+              })
+              .where(eq(inventoryLots.id, lotId));
+          });
+        } else {
+          // Planned-only line: nothing has physically moved yet, so reserve it.
+          await executeDbOperation(async (db) => {
+            return db
+              .update(inventoryLots)
+              .set({
+                reservedQuantity: sql`${inventoryLots.reservedQuantity} + ${qtyToUse}`,
+              })
+              .where(eq(inventoryLots.id, lotId));
+          });
+        }
       }
 
       // Add material to work order
@@ -142,9 +160,10 @@ export async function POST(
 
       const materialId = getInsertId(result);
 
-      // If lot is provided and actualQuantity, create inventory transaction
+      // If lot is provided and actualQuantity, create inventory transaction.
+      // Read the balance AFTER the decrement above so balance_after reflects
+      // reality — previously it was read before any stock moved.
       if (lotId && actualQuantity) {
-        // Snapshot balance after reservation
         const [lotAfter] = await executeDbOperation(async (db) => {
           return db.select({ quantity: inventoryLots.quantity }).from(inventoryLots).where(eq(inventoryLots.id, lotId));
         });
@@ -160,7 +179,11 @@ export async function POST(
           return db.insert(inventoryTransactions).values({
             lotId,
             transactionType: 'issue',
-            quantity: actualQuantity,
+            // Negative for issue — matches issueLot() in inventory.service.ts.
+            // This route wrote a POSITIVE quantity, so the ledger held 32
+            // positive vs 23 negative issues and any SUM-based stock report
+            // was silently wrong.
+            quantity: -actualQuantity,
             unit,
             referenceType: 'WO',
             referenceId: workOrderId,
