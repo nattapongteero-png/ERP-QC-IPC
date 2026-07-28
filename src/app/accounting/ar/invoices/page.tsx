@@ -763,6 +763,10 @@ export default function ARInvoicesPage() {
         // overflow with full labels. A primary action that does not apply to the
         // current status is DISABLED with a reason, never removed — a button
         // that vanishes makes the user wonder where it went.
+        // `ar-action-btn` (globals.css) forces white-space:nowrap and width:auto
+        // on the DevExtreme button label. Without it the widget sizes itself to
+        // the cell and ellipsises Thai text — "อนุมัติ" became "อนุ…" on draft
+        // rows, which carry one control more than the others.
         <div className="flex items-center justify-end gap-1">
           {invoice.status === 'draft' ? (
             <Button
@@ -774,6 +778,7 @@ export default function ARInvoicesPage() {
               elementAttr={{
                 'data-testid': 'confirm-invoice-btn',
                 'aria-label': t('accountsReceivable.invoicesPage.actions.confirm'),
+                class: 'ar-action-btn',
               }}
             />
           ) : (
@@ -794,6 +799,7 @@ export default function ARInvoicesPage() {
               elementAttr={{
                 'data-testid': 'receive-payment-btn',
                 'aria-label': t('accountsReceivable.invoicesPage.actions.receivePayment'),
+                class: 'ar-action-btn',
               }}
             />
           )}
@@ -1274,8 +1280,8 @@ export default function ARInvoicesPage() {
               you cannot trust. */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={200}
-            minWidth={200}
+            width={240}
+            minWidth={240}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
@@ -1300,7 +1306,10 @@ export default function ARInvoicesPage() {
               column="totalAmount"
               summaryType="sum"
               customizeText={(item: { value: string | number | Date }) =>
-                `รวมทั้งหมด ${invoices.length} รายการ: ${formatMoney(Number(item.value) || 0, 2)} บาท`
+                // Kept short so it fits the amount column's width even if the
+                // CSS overflow rule is ever overridden — the FIGURE is the part
+                // that must never be lost.
+                `รวม ${invoices.length} รายการ ${formatMoney(Number(item.value) || 0, 2)} บาท`
               }
             />
           </Summary>

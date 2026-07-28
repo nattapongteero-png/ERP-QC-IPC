@@ -2005,3 +2005,36 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
 .scrollbar-track-transparent::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ---------------------------------------------------------------------------
+   AR invoice list — action buttons and footer total must never be truncated.
+
+   DevExtreme sizes a dxButton to its container and ellipsises the label when it
+   does not fit. On draft rows (which carry one control more than the others)
+   that clipped "อนุมัติ" to "อนุ…", and the grid's summary row clipped
+   "รวมทั้งหมด 17 รายการ: 206,100.19 บาท" to "รวมทั้งหมด 17 รา…".
+
+   A clipped action label is a button the user cannot trust, and a clipped total
+   is an unreadable figure — neither is acceptable on a money screen, so both
+   are forced to their natural width instead.
+   --------------------------------------------------------------------------- */
+.ar-action-btn .dx-button-text {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+.ar-action-btn {
+  width: auto !important;
+  flex: 0 0 auto;
+}
+
+/* The summary cell is laid out against the amount column's width; let its text
+   spill to the left rather than be cut. */
+.dx-datagrid-total-footer .dx-datagrid-summary-item {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+.dx-datagrid-total-footer td {
+  overflow: visible !important;
+}
