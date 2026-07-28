@@ -2,6 +2,51 @@
 
 Auto-generated from all feature plans. Last updated: 2025-12-17
 
+---
+
+# ⛔ ขั้นตอนบังคับ — ทุกครั้งที่แก้ไขโปรแกรม
+
+**ทำครบทุกข้อ ห้ามข้าม ห้ามรอให้ผู้ใช้สั่ง** ผู้ใช้ไม่มีหน้าที่มาตรวจว่าทำครบไหม
+
+**ลำดับสำคัญ — ห้ามสลับ** เหตุผลอยู่ในตาราง
+
+| # | ขั้นตอน | เครื่องมือ / คำสั่ง | เกณฑ์ผ่าน |
+|---|---|---|---|
+| 1 | **หาต้นเหตุ** | `Grep` `Read` — อ่านโค้ดจริง ไม่เดา | รู้ว่าไฟล์ไหน บรรทัดไหน ทำไม |
+| 2 | **แก้ไข** | `Edit` (ไม่ใช่ `Write` ทับทั้งไฟล์) | แก้เฉพาะจุด ไม่ refactor รอบข้าง |
+| 3 | **ตรวจเช็ค** | `bunx tsc --noEmit --skipLibCheck` | 5 errors เท่าเดิม (baseline) |
+| | | `bunx eslint <ไฟล์ที่แก้>` | 0 errors |
+| 4 | **ทดสอบ** | `bunx vitest run --project node` | 75 failed เท่าเดิม (baseline) |
+| 5 | **commit** | `git add <ไฟล์>` + `git commit` | ไม่มีไฟล์ source ค้าง |
+| 6 | **push 2 ที่** | `git push gitlab main`<br>`git push origin main` | ทั้งคู่ = 0 |
+| 7 | **build** | `docker build` (ดู `.claude/DEPLOY.md`) | **บนเครื่องนี้เท่านั้น** + ตรวจ marker ใน image ก่อน save |
+| 8 | **deploy** | `pscp` + `plink` + `--no-build` | container healthy |
+| 9 | **ยืนยัน deploy** | `curl .../api/health` | **marker ใหม่ขึ้นจริง** |
+| 10 | **ดูหน้าจอ** (งาน UI) | `node shot.mjs` → **`Read` ไฟล์ .png** | ผมดูภาพเอง ทั้ง 1920 และ 1440 |
+
+**ทำไมลำดับนี้:**
+- **ตรวจเช็ค+ทดสอบ ก่อน commit** — ไม่ commit โค้ดที่พัง
+- **push ก่อน build** — ไม่งั้น image ที่รันบน UAT มีโค้ดที่ไม่มีใน remote (Docker build จาก working tree ไม่ใช่ HEAD)
+- **ยืนยัน marker ก่อนดูหน้าจอ** — ไม่งั้นอาจแคปภาพของ image เก่า
+- **ดูหน้าจอก่อนบอกเสร็จ** — ขั้นที่เคยข้ามแล้วผู้ใช้ต้องมาเจอเอง
+
+**หลังทำครบ** รายงานผู้ใช้พร้อม: ผลแต่ละขั้น · marker ที่ live · ลิงก์หน้าจอ · **ภาพที่แคป** · สิ่งที่ยังไม่ได้ตรวจ
+
+## กฎที่ห้ามฝ่าฝืน
+
+- **ห้ามบอกว่า "เสร็จแล้ว"** ถ้ายังไม่ได้ดูภาพหน้าจอ (สำหรับงาน UI)
+- **ห้าม build บนเซิร์ฟเวอร์** — RAM ไม่พอ จะ OOM กระทบ 8 ระบบที่รันอยู่
+- **ห้าม push แค่ที่เดียว** — repo นี้มี 2 remote (`gitlab` + `origin`=GitHub)
+- **ห้ามเชื่อว่า deploy สำเร็จ** เพราะ container healthy — ต้อง curl ดู marker
+- **ห้ามออกแบบ UI เอง** — แก้เฉพาะข้อบกพร่องที่วัดได้ (ข้อความถูกตัด, คอลัมน์ล้น, key ดิบ) เรื่องความสวยต้องถามผู้ใช้
+- **ห้ามส่งภาษาไทยผ่าน shell** — ใช้ไฟล์ `.sql` แล้วตรวจด้วย `HEX()` (`E0B8xx` = ถูก, `EFBFBD` = พัง)
+- **ห้าม query โดยไม่เช็ค `SELECT DATABASE()`** — MCP tool ชี้ไป local ไม่ใช่ UAT
+
+## ตัวช่วยอัตโนมัติ
+
+`scripts/claude-done-gate.mjs` รันเป็น Stop hook ทุกครั้งที่จบงาน — บล็อกถ้าขาด commit / push / deploy / screenshot / typecheck
+
+
 ## Active Technologies
 - TypeScript  with Next.js , React , DevExpress / DevExtreme React 25.x
 - TypeScript 5.x with Next.js 14+ + Drizzle ORM, DevExtreme React 25.x, TanStack Query, Zod (009-gmp-compliance-gap-analysis)
