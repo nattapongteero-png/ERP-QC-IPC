@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       const {
+        customerId,
         customerName,
         customerContact,
         customerAddress,
@@ -129,6 +130,25 @@ export async function POST(request: NextRequest) {
       const soTable = getTableRef('salesOrders');
       const soLinesTable = getTableRef('salesOrderLines');
 
+      // Resolve the customer master link. Prefer the id the form sends; fall
+      // back to an exact name match so older clients still link correctly.
+      // Storing this is what lets the AR invoice carry a real buyer (and its
+      // tax ID) instead of the customer_id = 0 sentinel that made every tax
+      // invoice in UAT incomplete under มาตรา 86/4.
+      let resolvedCustomerId: number | null =
+        Number.isInteger(customerId) && customerId > 0 ? Number(customerId) : null;
+      if (resolvedCustomerId === null) {
+        const customersTable = getTableRef('customers');
+        const [match] = await executeDbOperation(async (db) =>
+          db
+            .select({ id: (customersTable as { id: unknown }).id })
+            .from(customersTable)
+            .where(eq((customersTable as { name: unknown }).name as never, customerName))
+            .limit(1),
+        );
+        resolvedCustomerId = match?.id ?? null;
+      }
+
       const soNumber = generateSONumber();
 
       // Calculate total
@@ -143,10 +163,13 @@ export async function POST(request: NextRequest) {
       const result = await executeDbOperation(async (db) => {
         return db.insert(soTable).values({
           soNumber,
+          customerId: resolvedCustomerId,
           customerName,
           customerContact,
           customerAddress,
-          status: 'draft',
+          // Was hard-coded 'draft', which silently discarded a "ยืนยันแล้ว"
+          // choice on the form even though `status` was computed above.
+          status,
           orderDate: dbDate(),
           requiredDate: parsedRequiredDate,
           totalAmount,

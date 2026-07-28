@@ -260,6 +260,10 @@ export default function NewSalesOrderPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Send the master-data link, not just the name. Without it the AR
+          // invoice cannot identify the buyer and its tax invoice ends up with
+          // no ผู้ซื้อ / เลขประจำตัวผู้เสียภาษี.
+          customerId: selectedCustomer?.id,
           customerName: form.customerName,
           customerContact: form.customerContact,
           customerAddress: form.customerAddress,

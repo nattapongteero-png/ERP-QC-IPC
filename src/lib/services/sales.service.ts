@@ -639,7 +639,9 @@ export async function fulfillSalesOrderLine(
           {
             soId: input.soId,
             soNumber: so.soNumber,
-            customerId: undefined, // Customer ID not available in denormalized schema
+            // sales_orders.customer_id now links to the customer master, so
+            // the invoice no longer has to guess the buyer from a name string.
+            customerId: (so as { customerId?: number | null }).customerId ?? undefined,
             customerName: so.customerName,
             shipmentDate: getTodayStr(),
             dueDate: dueDateStr,
@@ -838,7 +840,7 @@ export async function retryAccountingForDelivery(
       {
         soId: delivery.soId,
         soNumber: so.soNumber,
-        customerId: undefined,
+        customerId: (so as { customerId?: number | null }).customerId ?? undefined,
         customerName: so.customerName,
         shipmentDate: getTodayStr(),
         dueDate: dueDate.toISOString().split('T')[0],

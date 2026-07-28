@@ -5384,10 +5384,13 @@ export async function createARInvoiceFromSOShipment(
     }
   }
 
-  // Sales orders carry only customerName, so the caller cannot supply a
-  // customerId. Resolve it here by name: without it the AR invoice is stored
-  // against customer 0 and its tax invoice has no buyer tax ID, which is not a
-  // valid Thai tax invoice (list items 30-31).
+  // Resolve the buyer. Sales orders now carry `customerId` (added after every
+  // AR invoice in UAT ended up stored against customer 0 with no buyer tax ID
+  // — not a valid ใบกำกับภาษี under มาตรา 86/4), so the caller should pass it.
+  // The name lookup stays as a fallback for orders created before that column
+  // existed, but it is unreliable: a name that isn't an exact match in the
+  // customer master silently yields nothing, which is exactly how UAT got 5
+  // invoices with customer_id = 0.
   let resolvedCustomerId: number | undefined;
   if (!input.customerId && input.customerName) {
     const customersTable = getTableRef('customers');
@@ -5397,6 +5400,17 @@ export async function createARInvoiceFromSOShipment(
       .where(eq((customersTable as any).name, input.customerName))
       .limit(1);
     if (match) resolvedCustomerId = match.id;
+  }
+
+  const effectiveCustomerId = input.customerId || resolvedCustomerId;
+  if (!effectiveCustomerId) {
+    // Posting a tax invoice with no identifiable buyer produces a document the
+    // customer cannot use to claim input VAT and that fails a Revenue
+    // Department check. Refuse rather than write the 0 sentinel.
+    throw new Error(
+      `ไม่สามารถออกใบกำกับภาษีได้: ไม่พบลูกค้า "${input.customerName}" ในทะเบียนลูกค้า — ` +
+        'กรุณาเพิ่มลูกค้าในระบบและระบุเลขประจำตัวผู้เสียภาษีก่อนออกใบกำกับภาษี',
+    );
   }
 
   // Generate AR invoice number, tax invoice number and create invoice with retry to prevent duplicate numbers
@@ -5410,7 +5424,7 @@ export async function createARInvoiceFromSOShipment(
         {
           invoiceNumber: arInvoiceNumber,
           taxInvoiceNumber: taxInvoiceNumber,
-          customerId: input.customerId || resolvedCustomerId || 0,
+          customerId: effectiveCustomerId,
           salesOrderId: input.soId,
           invoiceDate: input.shipmentDate,
           dueDate: input.dueDate,

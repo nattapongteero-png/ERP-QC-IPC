@@ -741,6 +741,8 @@ export const sqlitePurchaseOrderLines = sqliteTable('purchase_order_lines', {
 export const sqliteSalesOrders = sqliteTable('sales_orders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   soNumber: text('so_number').notNull().unique(),
+  /** See mysqlSalesOrders.customerId — link to the customer master. */
+  customerId: integer('customer_id').references(() => sqliteCustomers.id),
   customerName: text('customer_name').notNull(),
   customerContact: text('customer_contact'),
   customerAddress: text('customer_address'),
@@ -2505,6 +2507,18 @@ export const mysqlPurchaseOrderLines = mysqlTable('purchase_order_lines', {
 export const mysqlSalesOrders = mysqlTable('sales_orders', {
   id: int('id').primaryKey().autoincrement(),
   soNumber: varchar('so_number', { length: 50 }).notNull().unique(),
+  /**
+   * Link to the customer master. Nullable for backward compatibility with
+   * rows created before this column existed.
+   *
+   * The order used to carry only `customerName` as free text, so the AR
+   * invoice had no way to reach the customer record and fell back to
+   * `customer_id = 0` — every tax invoice in UAT was stored against customer
+   * 0 with no buyer tax ID, which is not a valid ใบกำกับภาษี under มาตรา 86/4.
+   * It also forced a fragile match-by-name in the recall service. Resolve the
+   * customer once, here, at the point the order is taken.
+   */
+  customerId: int('customer_id').references(() => mysqlCustomers.id),
   customerName: varchar('customer_name', { length: 255 }).notNull(),
   customerContact: varchar('customer_contact', { length: 255 }),
   customerAddress: mysqlText('customer_address'),
