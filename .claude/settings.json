@@ -6,5 +6,18 @@
     "additionalDirectories": [
       "C:\\Users\\kook_\\zoom-summary"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\\\Herbal ERP\\\\herbal-medicine-erp\\\\scripts\\\\claude-done-gate.mjs\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
   }
 }
