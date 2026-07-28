@@ -216,9 +216,15 @@
    Feature: 007-hr-personnel-management
    ================================ */
 
-/* Mobile: Hide toolbar button text, show icons only */
+/* Mobile: Hide toolbar button text, show icons only.
+
+   Scoped to .dx-button-has-icon on purpose. The unscoped version hid the label
+   of EVERY toolbar button under 767px, including popup dialog buttons, which
+   carry no icon — so "บันทึก"/"ยกเลิก" rendered as two identical blank 44x44
+   green squares and the user had no way to tell Save from Cancel. Hiding a
+   label is only safe when an icon remains to carry the meaning. */
 @media (max-width: 767px) {
-  .dx-toolbar .dx-button-text {
+  .dx-toolbar .dx-button.dx-button-has-icon .dx-button-text {
     display: none;
   }
 
