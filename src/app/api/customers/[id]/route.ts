@@ -8,6 +8,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizeTaxId } from '@/lib/utils/tax-id';
 
 // GET /api/customers/[id] - Get customer details
 export async function GET(
@@ -135,6 +136,14 @@ export async function PUT(
         return errorResponse('Code and name are required');
       }
 
+      // Exactly 13 digits when present — see the create route. Validating on
+      // update too stops an edit from reintroducing a value that would print
+      // onto an invalid ใบกำกับภาษี.
+      const normalizedTaxId = normalizeTaxId(taxId);
+      if (normalizedTaxId === null) {
+        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก');
+      }
+
       const customersTable = getTableRef('customers');
 
       // Check if customer exists
@@ -164,7 +173,7 @@ export async function PUT(
             phone,
             email,
             address,
-            taxId,
+            taxId: normalizedTaxId,
             customerType: customerType ?? existing[0].customerType,
             creditLimit,
             creditTermDays,

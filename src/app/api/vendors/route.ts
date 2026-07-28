@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizeTaxId } from '@/lib/utils/tax-id';
 
 // GET /api/vendors - List vendors
 export async function GET(request: NextRequest) {
@@ -97,6 +98,14 @@ export async function POST(request: NextRequest) {
         return errorResponse('Code and name are required');
       }
 
+      // 13 digits when present. A vendor's number is required on the WHT
+      // certificate (หนังสือรับรองการหักภาษี ณ ที่จ่าย) and the ภ.ง.ด. filing,
+      // so a malformed one breaks a statutory document later rather than here.
+      const normalizedTaxId = normalizeTaxId(taxId);
+      if (normalizedTaxId === null) {
+        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก');
+      }
+
       const vendorsTable = getTableRef('vendors');
 
       // Check if code exists
@@ -120,7 +129,7 @@ export async function POST(request: NextRequest) {
           phone,
           email,
           address,
-          taxId,
+          taxId: normalizedTaxId,
           isApproved: isApproved || false,
           isVMI: isVMI || false,
           leadTimeDays,

@@ -119,6 +119,9 @@ function syncSchema() {
     schema.sqliteCustomers,
     schema.sqliteSalesOrders,
     schema.sqliteSalesOrderLines,
+    // The shipment record of truth — recall traceability reads the shipped lot
+    // from here, not from sales_order_lines.lot_id (NULL in practice).
+    schema.sqliteSalesDeliveries,
     schema.sqliteComplaints,
     schema.sqliteRecalls,
     schema.sqliteRecallNotifications,
@@ -151,20 +154,32 @@ function seed() {
     VALUES (${CUSTOMER.HOSPITAL}, 'CUST-001', '${CUSTOMER_NAME}', '02-111-2222', 'hospital@test.com', 'hospital', 1)
   `);
 
-  // DELIVERED order: 600 boxes of LOT A — should be counted.
+  // SHIPPED order: 600 boxes of LOT A — should be counted.
+  //
+  // What makes a quantity "distributed" is the existence of a DELIVERY record,
+  // not the order's status string. The service used to filter on
+  // sales_orders.status = 'delivered', a value no real order ever carries
+  // (live data is 'draft'/'shipped' only), and read the lot from
+  // sales_order_lines.lot_id, which is NULL on every real row. Both are fixed;
+  // this seed now models what production actually writes.
   sqlite.exec(`
-    INSERT OR IGNORE INTO sales_orders (id, so_number, customer_name, status, order_date, shipped_date, currency, source)
-    VALUES (1, 'SO-0001', '${CUSTOMER_NAME}', 'delivered', '${DATES.PAST}', '${DATES.PAST}', 'THB', 'direct')
+    INSERT OR IGNORE INTO sales_orders (id, so_number, customer_id, customer_name, status, order_date, shipped_date, currency, source)
+    VALUES (1, 'SO-0001', ${CUSTOMER.HOSPITAL}, '${CUSTOMER_NAME}', 'shipped', '${DATES.PAST}', '${DATES.PAST}', 'THB', 'direct')
   `);
   sqlite.exec(`
     INSERT OR IGNORE INTO sales_order_lines (id, so_id, item_id, lot_id, quantity, allocated_quantity, shipped_quantity, unit, unit_price, total_price)
     VALUES (1, 1, ${PRODUCT.A}, ${LOT.A}, 600, 600, 600, 'box', 100, 60000)
   `);
-
-  // NOT-yet-delivered order for the same lot — must be IGNORED.
   sqlite.exec(`
-    INSERT OR IGNORE INTO sales_orders (id, so_number, customer_name, status, order_date, currency, source)
-    VALUES (2, 'SO-0002', '${CUSTOMER_NAME}', 'confirmed', '${DATES.PAST}', 'THB', 'direct')
+    INSERT OR IGNORE INTO sales_deliveries (id, so_id, so_line_id, item_id, lot_id, lot_number, quantity, unit, delivery_date, delivery_number, status, created_by)
+    VALUES (1, 1, 1, ${PRODUCT.A}, ${LOT.A}, 'LOT-A-0001', 600, 'box', '${DATES.PAST}', 'DL-0001', 'delivered', ${USER.COORDINATOR})
+  `);
+
+  // Order with NOTHING shipped for the same lot — must be IGNORED, because no
+  // delivery record exists for it.
+  sqlite.exec(`
+    INSERT OR IGNORE INTO sales_orders (id, so_number, customer_id, customer_name, status, order_date, currency, source)
+    VALUES (2, 'SO-0002', ${CUSTOMER.HOSPITAL}, '${CUSTOMER_NAME}', 'confirmed', '${DATES.PAST}', 'THB', 'direct')
   `);
   sqlite.exec(`
     INSERT OR IGNORE INTO sales_order_lines (id, so_id, item_id, lot_id, quantity, allocated_quantity, shipped_quantity, unit, unit_price, total_price)
@@ -175,7 +190,7 @@ function seed() {
 function clean() {
   for (const t of [
     'recall_reconciliation', 'recall_notifications', 'recalls',
-    'sales_order_lines', 'sales_orders', 'customers',
+    'sales_deliveries', 'sales_order_lines', 'sales_orders', 'customers',
     'inventory_lots', 'items', 'warehouses', 'users',
   ]) {
     sqlite.exec(`DELETE FROM ${t}`);
@@ -207,7 +222,7 @@ describe('Recall — Distribution Linkage', () => {
   beforeEach(() => { clean(); seed(); });
 
   describe('auto-derived distribution (delivered sales orders only)', () => {
-    it('counts only DELIVERED shipped qty (600), ignoring the undelivered 200', async () => {
+    it('counts only delivered qty (600), ignoring the 200 with no delivery record', async () => {
       const qty = await calculateDistributedQuantity([LOT.A]);
       expect(qty).toBe(600);
     });

@@ -151,6 +151,7 @@ function syncSchemaFromDrizzle() {
     schema.sqliteComplaints,
     schema.sqliteSalesOrders,
     schema.sqliteSalesOrderLines,
+    schema.sqliteSalesDeliveries,
     schema.sqliteRecalls,
     schema.sqliteRecallNotifications,
     schema.sqliteRecallReconciliation,
@@ -194,6 +195,7 @@ describe('Recall Service Real Integration Tests', () => {
     sqlite.exec('DELETE FROM recall_reconciliation');
     sqlite.exec('DELETE FROM recall_notifications');
     sqlite.exec('DELETE FROM recalls');
+    sqlite.exec('DELETE FROM sales_deliveries');
     sqlite.exec('DELETE FROM sales_order_lines');
     sqlite.exec('DELETE FROM sales_orders');
     sqlite.exec('DELETE FROM inventory_lots');

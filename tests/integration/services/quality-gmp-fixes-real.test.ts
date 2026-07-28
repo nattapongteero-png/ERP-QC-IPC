@@ -252,12 +252,16 @@ describe('#1 CAPA approval e-signature password verify', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('accepts approval with CORRECT password (plain seed account)', async () => {
+  it('REJECTS a plain (un-hashed) stored password', async () => {
     const capaId = await buildPendingApprovalCapa();
-    // user 2 has a plain (un-hashed) password — fallback path
+    // User 2's password is stored un-hashed. This used to be accepted via a
+    // `hash === input` fallback, i.e. a plaintext comparison on a 21 CFR Part
+    // 11 signing path. That fallback is gone: only bcrypt-verifiable
+    // credentials can produce a signature, so this must now fail even though
+    // the supplied password "matches" the stored value.
     await expect(
       processCapaApproval(capaId, { action: 'approve' }, 2, PLAIN_PW)
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow(/Invalid password/i);
   });
 
   it('rejects when user has no password set', async () => {

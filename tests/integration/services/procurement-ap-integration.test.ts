@@ -87,6 +87,9 @@ const ALL_TABLES = [
   schema.sqlitePayments,
   schema.sqlitePaymentAllocations,
   schema.sqliteVATTransactions,
+  // recordAPPayment now writes the WHT certificate row (หนังสือรับรองการหัก
+  // ภาษี ณ ที่จ่าย) that ภ.ง.ด.3/53 is filed from.
+  schema.sqliteWHTTransactions,
   schema.sqliteUsers,
   schema.sqliteAuditTrail,
   schema.sqliteItems,

@@ -8,6 +8,7 @@ import {
   withAuth,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizeTaxId } from '@/lib/utils/tax-id';
 
 // GET /api/vendors/[id] - Get vendor details
 export async function GET(
@@ -153,12 +154,12 @@ export async function PUT(
         return errorResponse('Code and name are required');
       }
 
-      // Thai tax ID must be digits only and at most 13 characters. Normalise
-      // here so a direct API call can't bypass the UI-side cap.
-      const normalizedTaxId =
-        taxId == null ? taxId : String(taxId).replace(/\D/g, '');
-      if (normalizedTaxId && normalizedTaxId.length > 13) {
-        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องไม่เกิน 13 หลัก');
+      // A Thai tax ID is exactly 13 digits — not "at most 13", which let a
+      // 5-digit value through and onto the WHT certificate. Blank stays
+      // allowed; malformed is rejected.
+      const normalizedTaxId = normalizeTaxId(taxId);
+      if (normalizedTaxId === null) {
+        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก');
       }
 
       const vendorsTable = getTableRef('vendors');

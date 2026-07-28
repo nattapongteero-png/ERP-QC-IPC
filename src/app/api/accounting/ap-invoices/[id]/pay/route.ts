@@ -23,6 +23,10 @@ const paymentSchema = z.object({
   referenceNumber: z.string().optional().nullable(),
   amount: z.number().positive(),
   whtRate: z.number().min(0).max(100).optional(),
+  // ภ.ง.ด.3 = natural person, ภ.ง.ด.53 = juristic person. Defaults to pnd53
+  // in the service when omitted.
+  whtCertificateType: z.enum(['pnd3', 'pnd53']).optional(),
+  whtType: z.string().max(255).optional(),
   description: z.string().optional().nullable(),
 });
 
@@ -60,6 +64,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             referenceNumber: parseResult.data.referenceNumber || undefined,
             amount: parseResult.data.amount,
             whtRate: parseResult.data.whtRate,
+            whtCertificateType: parseResult.data.whtCertificateType,
+            whtType: parseResult.data.whtType,
             description: parseResult.data.description || undefined,
           },
           session.userId

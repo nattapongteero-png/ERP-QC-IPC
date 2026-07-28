@@ -2409,6 +2409,16 @@ export async function recordAPPayment(
     referenceNumber?: string;
     amount: number;
     whtRate?: number; // WHT percentage if applicable
+    /**
+     * Which return the WHT is filed on. ภ.ง.ด.3 is for payments to natural
+     * persons, ภ.ง.ด.53 for juristic persons. There is no vendor-type field to
+     * derive this from, and guessing wrong misfiles a statutory return, so the
+     * caller states it. Defaults to pnd53 (the common case for a company
+     * paying suppliers).
+     */
+    whtCertificateType?: 'pnd3' | 'pnd53';
+    /** e.g. "ค่าบริการ", "ค่าเช่า" — printed on the certificate. */
+    whtType?: string;
     description?: string;
   },
   recordedBy: number
@@ -2592,6 +2602,28 @@ export async function recordAPPayment(
     })
     .where(eq(apInvoices.id, apInvoiceId));
 
+  // Record the WHT certificate.
+  //
+  // createWHTTransaction() existed with a working certificate-number
+  // generator, PDF renderer and ภ.ง.ด.3/53 report queries, but had ZERO call
+  // sites — so wht_transactions was empty and no หนังสือรับรองการหักภาษี ณ
+  // ที่จ่าย could be issued. Thai law requires the payer to issue one at the
+  // time of payment, and the ภ.ง.ด. filing is built from these rows.
+  let whtCertificateNumber: string | undefined;
+  if (whtAmount > 0 && input.whtRate) {
+    const { id: _whtId, certificateNumber } = await createWHTTransaction({
+      certificateType: input.whtCertificateType ?? 'pnd53',
+      paymentId,
+      vendorId: invoice.vendorId,
+      paymentDate: input.paymentDate,
+      whtType: input.whtType ?? 'ค่าบริการ',
+      whtDescription: input.description ?? `หัก ณ ที่จ่าย ${input.whtRate}% — ${invoice.invoiceNumber}`,
+      paymentAmount: input.amount,
+      whtRate: input.whtRate,
+    });
+    whtCertificateNumber = certificateNumber;
+  }
+
   await createAuditLog({
     action: 'CREATE',
     tableName: 'payment',
@@ -2603,6 +2635,7 @@ export async function recordAPPayment(
       amount: input.amount,
       whtAmount,
       netPayment,
+      whtCertificateNumber,
     },
   });
 
@@ -2615,6 +2648,7 @@ export async function recordAPPayment(
       amount: input.amount,
       whtAmount,
       netPayment,
+      whtCertificateNumber,
       journalEntryId: paymentJE.id,
     },
     invoice: updatedInvoice,
@@ -4297,8 +4331,14 @@ export async function createWHTTransaction(
         createdAt: getNow(),
       };
 
-      const [inserted] = await database.insert(whtTransactions).values(values).$returningId();
-      return { id: inserted.id, certificateNumber: certNumber };
+      // $returningId() is MySQL-only and throws on SQLite. This never surfaced
+      // while the function had no callers; now that recordAPPayment calls it,
+      // use the same dual-dialect pattern as every other insert in this file.
+      const insertResult = await database.insert(whtTransactions).values(values);
+      const insertedId = isSqlite()
+        ? (insertResult as unknown as { lastInsertRowid: number }).lastInsertRowid
+        : (insertResult as unknown as [{ insertId: number }])[0].insertId;
+      return { id: Number(insertedId), certificateNumber: certNumber };
     } catch (error: any) {
       if (attempt < MAX_WHT_RETRIES - 1 && (error.code === 'ER_DUP_ENTRY' || error.message?.includes('UNIQUE constraint failed'))) {
         continue;

@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { normalizeTaxId } from '@/lib/utils/tax-id';
 
 // GET /api/customers - List customers
 export async function GET(request: NextRequest) {
@@ -96,6 +97,15 @@ export async function POST(request: NextRequest) {
         return errorResponse('Code and name are required');
       }
 
+      // A Thai เลขประจำตัวผู้เสียภาษี is exactly 13 digits. It is not required
+      // here — cash/retail buyers legitimately have none — but a malformed one
+      // is worse than a blank, because it prints onto the ใบกำกับภาษี and makes
+      // the document invalid without anyone noticing. Reject early instead.
+      const normalizedTaxId = normalizeTaxId(taxId);
+      if (normalizedTaxId === null) {
+        return errorResponse('เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก');
+      }
+
       const customersTable = getTableRef('customers');
 
       // Check if code exists
@@ -119,7 +129,7 @@ export async function POST(request: NextRequest) {
           phone,
           email,
           address,
-          taxId,
+          taxId: normalizedTaxId,
           customerType: customerType || 'hospital',
           creditLimit,
           creditTermDays,
