@@ -234,7 +234,7 @@ export default function StandardCostsPage() {
                   icon="add"
                   text={t('standardCosts.actions.add')}
                   onClick={() => setShowCreateDialog(true)}
-                  data-testid="new-cost-btn"
+                  elementAttr={{ 'data-testid': 'new-cost-btn' }}
                 />
               </Item>
               <Item location="after">
@@ -242,7 +242,10 @@ export default function StandardCostsPage() {
                   icon="refresh"
                   text={t('standardCosts.actions.rollup')}
                   onClick={handleRollup}
-                  data-testid="rollup-btn"
+                  // elementAttr, not a bare data-testid prop: DevExtreme's Button
+                  // does not forward unknown props to the DOM, so the attribute
+                  // never appeared and no E2E test could target this button.
+                  elementAttr={{ 'data-testid': 'rollup-btn' }}
                 />
               </Item>
             </Toolbar>

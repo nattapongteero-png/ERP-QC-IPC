@@ -39,8 +39,8 @@ console.log('concatenated-looking values:', bad.length?JSON.stringify(bad.slice(
 // The date filter must genuinely narrow the result set.
 const q=async(u)=>{const r=await p.request.get(`${BASE}${u}`);const j=await r.json().catch(()=>null);
   return j?.data?.total ?? (Array.isArray(j?.data)?j.data.length:null);};
-const past=await q('/api/accounting/variances?dateFrom=2000-01-01&dateTo=2000-01-02&limit=100');
-const wide=await q('/api/accounting/variances?dateFrom=2000-01-01&dateTo=2099-12-31&limit=100');
+const past=await q('/api/accounting/variances?date_from=2000-01-01&date_to=2000-01-02&limit=100');
+const wide=await q('/api/accounting/variances?date_from=2000-01-01&date_to=2099-12-31&limit=100');
 console.log('\ndate filter — 2000 window:', past, '| wide window:', wide);
 console.log('filter applied:', (past===0 && wide>0) ? 'YES' : 'NO / inconclusive');
 
