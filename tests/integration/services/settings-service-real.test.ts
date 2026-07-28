@@ -224,7 +224,7 @@ describe('Settings Service Real Integration Tests', () => {
       expect(row.updated_by).toBe(42);
     });
 
-    it('should save all 12 company setting fields', async () => {
+    it('should save all 13 company setting fields', async () => {
       const fullSettings = {
         companyName: 'Full Co',
         companyNameTh: 'บริษัทเต็ม',
@@ -232,6 +232,8 @@ describe('Settings Service Real Integration Tests', () => {
         phone: '02-000-0000',
         email: 'full@test.com',
         taxId: '0000000000000',
+        // Printed on the tax invoice as สาขาที่ 00001 (blank = สำนักงานใหญ่).
+        branch: '00001',
         fdaLicense: 'FDA-000',
         gmpCertificate: 'GMP-000',
         lotPrefix: 'LT',

@@ -293,7 +293,7 @@ describe('Financial Reports Service with Real-World Data', () => {
       expect(outputVat?.amount).toBe(42_000);
 
       // WHT Payable = 5,000
-      const whtPayable = report.liabilities.currentLiabilities.accounts.find(a => a.code === '2143');
+      const whtPayable = report.liabilities.currentLiabilities.accounts.find(a => a.code === '2132');
       expect(whtPayable).toBeDefined();
       expect(whtPayable?.amount).toBe(5_000);
     });

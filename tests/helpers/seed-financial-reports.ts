@@ -34,7 +34,7 @@ export const REPORT_ACCT_IDS = {
   // Liabilities (2xxx) - Normal balance: Credit
   AP_DOMESTIC: 201,             // 2111 Accounts Payable
   OUTPUT_VAT: 202,              // 2131 Output VAT
-  WHT_PAYABLE: 205,             // 2143 WHT Payable
+  WHT_PAYABLE: 205,             // 2132 WHT Payable
   BANK_LOAN: 206,               // 2211 Bank Loan (we'll add this)
 
   // Equity (3xxx) - Normal balance: Credit
@@ -274,7 +274,7 @@ export function seedFinancialReportAccounts(sqlite: Database.Database): void {
       -- Current Liabilities (21xx)
       (${REPORT_ACCT_IDS.AP_DOMESTIC}, '2111', 'เจ้าหนี้การค้า', 'Accounts Payable', 2, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
       (${REPORT_ACCT_IDS.OUTPUT_VAT}, '2131', 'ภาษีขาย', 'Output VAT', 2, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-      (${REPORT_ACCT_IDS.WHT_PAYABLE}, '2143', 'ภาษีหัก ณ ที่จ่ายค้างจ่าย', 'WHT Payable', 2, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (${REPORT_ACCT_IDS.WHT_PAYABLE}, '2132', 'ภาษีหัก ณ ที่จ่ายค้างจ่าย', 'WHT Payable', 2, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
       -- Non-Current Liabilities (22xx)
       (${REPORT_ACCT_IDS.BANK_LOAN}, '2211', 'เงินกู้ยืมธนาคาร', 'Bank Loan', 2, NULL, 1, 1, 1, 0, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
