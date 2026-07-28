@@ -57,6 +57,42 @@ if (uiTouched && !shotSeen) {
   );
 }
 
+// 4. Typecheck. Baseline is 5 pre-existing errors; anything above that is mine.
+//    Only run when source actually changed — tsc is slow and this fires on
+//    every turn, including pure conversation.
+const srcChanged =
+  dirty.length > 0 ||
+  sh('git diff --name-only HEAD~3..HEAD 2>/dev/null')
+    .split('\n')
+    .some((f) => f.startsWith('src/'));
+const TYPECHECK_BASELINE = 5;
+if (srcChanged) {
+  const count = Number(
+    sh('bunx tsc --noEmit --skipLibCheck 2>&1 | grep -c "error TS"') || '0',
+  );
+  if (count > TYPECHECK_BASELINE) {
+    problems.push(
+      `TYPECHECK regressed: ${count} errors (baseline ${TYPECHECK_BASELINE}). Run: bunx tsc --noEmit --skipLibCheck`,
+    );
+  }
+}
+
+// 5. Deployed marker. A change that is committed and pushed but never deployed
+//    is invisible to the user — they can only see UAT. If the buildMarker in
+//    the working tree differs from the one UAT is serving, the deploy is
+//    outstanding.
+const localMarker = (sh('grep -o "HERBAL-BUILD-[a-zA-Z0-9._-]*" src/app/api/health/route.ts') || '').split('\n')[0];
+if (localMarker && srcChanged) {
+  const liveMarker = (
+    sh('curl -s --max-time 20 https://herbal-erp-test-uat.bmscloud.in.th/api/health | grep -o "HERBAL-BUILD-[a-zA-Z0-9._-]*"') || ''
+  ).split('\n')[0];
+  if (liveMarker && liveMarker !== localMarker) {
+    problems.push(
+      `NOT DEPLOYED: UAT is serving "${liveMarker}" but the working tree says "${localMarker}". Build, ship the image, recreate app-uat, then curl /api/health to confirm.`,
+    );
+  }
+}
+
 if (problems.length) {
   console.error(
     `\n[done-gate] ${problems.length} item(s) outstanding — do not report this as finished yet:\n` +
