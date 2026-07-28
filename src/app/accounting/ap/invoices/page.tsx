@@ -34,6 +34,8 @@ import Form, {
   RequiredRule,
 } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
+import DropDownButton from 'devextreme-react/drop-down-button';
+import { formatMoney } from '@/lib/utils/number-format';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
@@ -472,6 +474,14 @@ export default function APInvoicesPage() {
   }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
+  /** Compact Thai date (28/7/69) for the secondary line under a date. */
+  const formatShortDate = useCallback((value: string | Date | null | undefined): string => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' });
+  }, []);
+
   const statusCellRender = useCallback((cellData: any) => {
     const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'approved';
     // Map AP-specific statuses to badge statuses
@@ -492,49 +502,58 @@ export default function APInvoicesPage() {
     (cellData: any) => {
       const invoice = cellData.data as APInvoice;
       return (
-        <div style={{ display: 'flex', gap: '4px' }}>
-          <Button
-            icon="print"
-            hint={t('accountsPayable.invoicesPage.actions.print')}
-            stylingMode="text"
-            height={28}
-            onClick={() => handlePrint(invoice)}
-            elementAttr={{ 'data-testid': `ap-print-btn-${invoice.id}` }}
-          />
+        // One primary action per row, the rest behind an overflow menu —
+        // same rule as the AR invoice list. Showing every applicable control
+        // side by side is what forced these action columns wide enough to push
+        // the grid past its container.
+        <div className="flex items-center justify-end gap-1">
           {invoice.status === 'draft' && (
-            <>
-              <Button
-                icon="edit"
-                hint={t('accountsPayable.invoicesPage.actions.edit')}
-                stylingMode="text"
-                height={28}
-                onClick={() => handleEdit(invoice)}
-              />
-              <Button
-                icon="trash"
-                hint={t('accountsPayable.invoicesPage.actions.delete')}
-                stylingMode="text"
-                height={28}
-                onClick={() => handleDelete(invoice)}
-              />
-              <Button
-                text={t('accountsPayable.invoicesPage.actions.approve')}
-                type="success"
-                stylingMode="outlined"
-                height={24}
-                onClick={() => handleApprove(invoice)}
-              />
-            </>
+            <Button
+              text={t('accountsPayable.invoicesPage.actions.approve')}
+              type="success"
+              stylingMode="contained"
+              height={28}
+              onClick={() => handleApprove(invoice)}
+              elementAttr={{ 'data-testid': `ap-approve-btn-${invoice.id}` }}
+            />
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
               text={t('accountsPayable.invoicesPage.actions.pay')}
               type="default"
-              stylingMode="outlined"
-              height={24}
+              stylingMode="contained"
+              height={28}
               onClick={() => notify(t('accountsPayable.invoicesPage.toast.paymentUnderDevelopment'), 'info', 3000)}
+              elementAttr={{ 'data-testid': `ap-pay-btn-${invoice.id}` }}
             />
           )}
+          <DropDownButton
+            icon="overflow"
+            stylingMode="text"
+            height={28}
+            width={36}
+            showArrowIcon={false}
+            dropDownOptions={{ width: 190 }}
+            displayExpr="text"
+            keyExpr="key"
+            items={[
+              { key: 'print', text: t('accountsPayable.invoicesPage.actions.print'), icon: 'print' },
+              ...(invoice.status === 'draft'
+                ? [
+                    { key: 'edit', text: t('accountsPayable.invoicesPage.actions.edit'), icon: 'edit' },
+                    { key: 'delete', text: t('accountsPayable.invoicesPage.actions.delete'), icon: 'trash' },
+                  ]
+                : []),
+            ]}
+            onItemClick={(e: { itemData?: { key?: string } }) => {
+              switch (e.itemData?.key) {
+                case 'print': handlePrint(invoice); break;
+                case 'edit': handleEdit(invoice); break;
+                case 'delete': handleDelete(invoice); break;
+              }
+            }}
+            elementAttr={{ 'data-testid': `ap-actions-menu-${invoice.id}` }}
+          />
         </div>
       );
     },
@@ -644,8 +663,78 @@ export default function APInvoicesPage() {
           </div>
         </AccountingFilterPanel>
 
-        {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727-v2">
+        {/* Mobile card list — a 10-column grid is unreadable on a phone. */}
+        <div className="md:hidden space-y-3" data-testid="ap-invoices-cards">
+          {invoicesWithRowNumber.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+              ไม่พบใบแจ้งหนี้
+            </div>
+          ) : (
+            invoicesWithRowNumber.map((invoice: APInvoice) => {
+              const total = Number(invoice.totalAmount) || 0;
+              const paid = Number(invoice.paidAmount) || 0;
+              const outstanding = total - paid;
+              return (
+                <div
+                  key={invoice.id}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+                  data-testid={`ap-invoice-card-${invoice.id}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 truncate">{invoice.invoiceNumber}</div>
+                      {invoice.vendorName && (
+                        <div className="text-xs text-gray-500 truncate">{invoice.vendorName}</div>
+                      )}
+                    </div>
+                    {statusCellRender({ value: invoice.status })}
+                  </div>
+
+                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">{invoice.description}</p>
+
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div className="text-xs text-gray-500">
+                      <div>วันที่ {formatShortDate(invoice.invoiceDate)}</div>
+                      {invoice.dueDate && <div>ครบกำหนด {formatShortDate(invoice.dueDate)}</div>}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-gray-900 tabular-nums">
+                        {formatMoney(total, 2)} บาท
+                      </div>
+                      {paid > 0 && outstanding > 0.004 && (
+                        <div className="text-xs text-amber-600 tabular-nums">
+                          ค้าง {formatMoney(outstanding, 2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+                    {invoice.status === 'draft' && (
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(invoice)}
+                        className="flex-1 h-11 rounded-lg bg-emerald-600 text-white text-sm font-medium active:bg-emerald-700"
+                      >
+                        {t('accountsPayable.invoicesPage.actions.approve')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handlePrint(invoice)}
+                      className="h-11 px-4 rounded-lg border border-gray-300 text-sm text-gray-700 active:bg-gray-50"
+                    >
+                      {t('accountsPayable.invoicesPage.actions.print')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Data Grid — desktop / tablet only */}
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ap-invoices-grid" data-build="ar-ap-export-20260727-v2">
         <DataGrid
           ref={gridRef}
           dataSource={invoicesWithRowNumber}
@@ -656,8 +745,11 @@ export default function APInvoicesPage() {
           rowAlternationEnabled={true}
           allowColumnReordering={true}
           allowColumnResizing={true}
-          columnAutoWidth={true}
-          wordWrapEnabled={true}
+          // See the AR invoice list: autoWidth lets a long description stretch
+          // the table past its container and pushes the actions off-screen.
+          columnAutoWidth={false}
+          columnHidingEnabled={true}
+          wordWrapEnabled={false}
         >
           <Paging defaultPageSize={20} />
           <Pager
@@ -698,26 +790,71 @@ export default function APInvoicesPage() {
               </span>
             )}
           />
-          <Column dataField="invoiceNumber" caption={t('accountsPayable.bills.table.columns.billNumber')} width={150} />
+          <Column dataField="invoiceNumber" caption={t('accountsPayable.bills.table.columns.billNumber')} width={165} />
           <Column dataField="vendorId" caption={t('accountsPayable.invoicesPage.columns.vendor')} width={150} visible={false} />
-          <Column dataField="invoiceDate" caption={t('accountsPayable.bills.table.columns.billDate')} dataType="date" width={110} />
-          <Column dataField="dueDate" caption={t('accountsPayable.bills.table.columns.dueDate')} dataType="date" width={110} />
-          <Column dataField="description" caption={t('accountsPayable.invoicesPage.columns.description')} minWidth={150} />
+          {/* Bill date over due date: read together, so one column instead of
+              two 110px ones. */}
+          <Column
+            dataField="invoiceDate"
+            caption={t('accountsPayable.bills.table.columns.billDate')}
+            dataType="date"
+            width={115}
+            cellRender={(c: { data: APInvoice; text: string }) => (
+              <div className="leading-tight">
+                <div>{c.text}</div>
+                {c.data.dueDate && (
+                  <div className="text-xs text-gray-500">
+                    ครบกำหนด {formatShortDate(c.data.dueDate)}
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <Column dataField="dueDate" caption={t('accountsPayable.bills.table.columns.dueDate')} dataType="date" width={110} visible={false} />
+          {/* Truncate instead of letting a long description size the table and
+              push the action column off-screen. */}
+          <Column
+            dataField="description"
+            caption={t('accountsPayable.invoicesPage.columns.description')}
+            minWidth={180}
+            cellRender={(c: { data: APInvoice }) => (
+              <span className="block truncate text-gray-700" title={c.data.description ?? ''}>
+                {c.data.description}
+              </span>
+            )}
+          />
+          {/* Total with the outstanding balance underneath, so the reader does
+              not have to subtract two columns in their head. */}
           <Column
             dataField="totalAmount"
             caption={t('accountsPayable.invoicesPage.columns.total')}
             dataType="number"
-            width={120}
+            width={140}
             alignment="right"
-          >
-            <Format type="fixedPoint" precision={2} />
-          </Column>
+            cellRender={(c: { data: APInvoice }) => {
+              const total = Number(c.data.totalAmount) || 0;
+              const paid = Number(c.data.paidAmount) || 0;
+              const outstanding = total - paid;
+              return (
+                <div className="leading-tight text-right">
+                  <div className="font-medium text-gray-900 tabular-nums">{formatMoney(total, 2)}</div>
+                  {paid > 0 && outstanding > 0.004 && (
+                    <div className="text-xs text-amber-600 tabular-nums">ค้าง {formatMoney(outstanding, 2)}</div>
+                  )}
+                  {outstanding <= 0.004 && paid > 0 && (
+                    <div className="text-xs text-emerald-600">ชำระครบ</div>
+                  )}
+                </div>
+              );
+            }}
+          />
           <Column
             dataField="paidAmount"
             caption={t('accountsPayable.bills.table.columns.paidAmount')}
             dataType="number"
             width={120}
             alignment="right"
+            visible={false}
           >
             <Format type="fixedPoint" precision={2} />
           </Column>
@@ -727,9 +864,13 @@ export default function APInvoicesPage() {
             width={120}
             cellRender={statusCellRender}
           />
+          {/* Pinned right so the action is always reachable; 140px is enough
+              now that the cell holds one button plus an overflow menu. */}
           <Column
             caption={t('accountsPayable.invoicesPage.columns.actions')}
-            width={200}
+            width={140}
+            fixed={true}
+            fixedPosition="right"
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
