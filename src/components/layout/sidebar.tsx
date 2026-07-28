@@ -637,20 +637,22 @@ export function Sidebar({ user, onLogout, onNavigate }: SidebarProps) {
 
                   {/* Submenu with smooth animation.
                       max-h-96 (384px) was clipping any section with more
-                      than ~9 children — Quality currently has 15 and the
-                      bottom 7 (Certificate of Analysis, COA Templates,
-                      Test Panels, Tests, Specifications, Deviations,
-                      QC Audit Trail) silently disappeared under
-                      overflow-hidden. Bumped the expanded cap to 48rem
-                      (~768px ≈ 19 rows) so the animation still has a
-                      target height but no real submenu gets truncated. */}
+                      than ~9 children — Quality once had 15 and the bottom
+                      7 silently disappeared under overflow-hidden. The cap
+                      was then 48rem (~19 rows), but Accounting has since
+                      grown to 20 children (~55rem tall), so its last 3
+                      (Standard Costs, Variance Reports, Reports) got clipped
+                      too. The cap must stay ABOVE the tallest real submenu so
+                      the collapse animation has a target height while nothing
+                      is ever truncated. 80rem (~1280px ≈ 32 rows) clears the
+                      current max (20) with room for growth. */}
                   <div
                     className={cn(
                       'overflow-hidden',
                       'transition-all duration-300 ease-out',
                       'motion-reduce:transition-none',
                       isExpanded(item.name)
-                        ? 'max-h-[48rem] opacity-100'
+                        ? 'max-h-[80rem] opacity-100'
                         : 'max-h-0 opacity-0'
                     )}
                   >
