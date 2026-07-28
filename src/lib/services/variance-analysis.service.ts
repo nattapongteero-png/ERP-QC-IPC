@@ -64,8 +64,19 @@ export async function createStandardCost(
   return executeDbOperation(async (db) => {
     const tables = getTables();
 
-    // Calculate total cost
-    const totalCost = (data.materialCost || 0) + (data.laborCost || 0) + (data.overheadCost || 0);
+    // Calculate total cost.
+    //
+    // Number() on each part is load-bearing, not defensive noise. MySQL returns
+    // DECIMAL columns as STRINGS, so the BOM roll-up — which reads laborCost and
+    // overheadCost straight out of an existing row — was doing
+    //   0 + "0.0000" + "0.0000"  ->  "00.00000.0000"
+    // i.e. string concatenation, and the insert then failed on every single item
+    // with "Failed query: insert into standard_costs". The Zod schema types these
+    // as numbers, so TypeScript could not catch it; only real MySQL data shows it.
+    const materialCost = Number(data.materialCost) || 0;
+    const laborCost = Number(data.laborCost) || 0;
+    const overheadCost = Number(data.overheadCost) || 0;
+    const totalCost = materialCost + laborCost + overheadCost;
 
     // If setAsCurrent is true, first mark existing current as not current
     if (data.setAsCurrent !== false) {
@@ -82,12 +93,14 @@ export async function createStandardCost(
       // date picker sends. Passing the string through made the driver call
       // .toISOString() on a non-Date → "a.toISOString is not a function" on save.
       effectiveDate: toDbDate(data.effectiveDate),
-      materialCost: data.materialCost || 0,
-      laborCost: data.laborCost || 0,
-      overheadCost: data.overheadCost || 0,
+      materialCost,
+      laborCost,
+      overheadCost,
       totalCost,
-      standardHours: data.standardHours || 0,
-      standardLaborRate: data.standardLaborRate || 0,
+      // Same string-from-DECIMAL hazard as the cost fields above: the roll-up
+      // carries these over from an existing row.
+      standardHours: Number(data.standardHours) || 0,
+      standardLaborRate: Number(data.standardLaborRate) || 0,
       notes: data.notes || null,
       isCurrent: data.setAsCurrent !== false,
       createdBy,
@@ -533,7 +546,10 @@ export async function rollupStandardCosts(
         for (const line of bomLines) {
           const componentCost = await getCurrentStandardCost(line.componentId);
           if (componentCost) {
-            totalMaterialCost += componentCost.totalCost * Number(line.quantity);
+            // Number() on totalCost for the same reason as in createStandardCost:
+            // it arrives from MySQL as a DECIMAL string, and `+=` against a
+            // string would concatenate rather than add.
+            totalMaterialCost += Number(componentCost.totalCost) * Number(line.quantity);
           }
         }
 
