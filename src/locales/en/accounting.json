@@ -41,6 +41,7 @@
       "daysUnit": "days"
     },
     "expenseBreakdown": "Expense Breakdown",
+    "totalExpenses": "Total Expenses",
     "revenueVsExpenses": "Revenue vs Expenses Trend",
     "expenseCategories": {
       "Raw Materials": "Raw Materials",

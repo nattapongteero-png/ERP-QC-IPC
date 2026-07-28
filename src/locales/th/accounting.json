@@ -41,6 +41,7 @@
       "daysUnit": "วัน"
     },
     "expenseBreakdown": "สัดส่วนค่าใช้จ่าย",
+    "totalExpenses": "ค่าใช้จ่ายรวม",
     "revenueVsExpenses": "แนวโน้มรายได้เทียบกับค่าใช้จ่าย",
     "expenseCategories": {
       "Raw Materials": "วัตถุดิบ",

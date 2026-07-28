@@ -40,12 +40,26 @@ function formatCurrency(amount: number): string {
 
 export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, className = '' }: ExpenseBreakdownChartProps) {
   const t = useTranslations('accounting');
-  // Localize the expense category name (the data carries the English GL-category
-  // name); fall back to the raw name if no translation key exists.
+  // Localize the expense category name.
+  //
+  // The translation table is keyed on ENGLISH names ("Raw Materials", "Labor"),
+  // but the dashboard service fills categoryName from gl_accounts.name_th — so
+  // for a Thai account like "ต้นทุนวัตถุดิบใช้ไป" the lookup misses. The old
+  // fallback compared t(key) against the bare key, while next-intl returns the
+  // FULL path on a miss ("accounting.dashboard.expenseCategories.<name>"), so
+  // the comparison never matched and the raw key was rendered into the legend.
+  //
+  // Names coming from the GL are already in the user's language, so a miss
+  // should simply show the name as-is.
   const localizeCategory = (name: string) => {
     const key = `dashboard.expenseCategories.${name}`;
-    const v = t(key);
-    return v === key ? name : v;
+    try {
+      const v = t(key);
+      // Treat any result that still looks like the key path as "not translated".
+      return v.includes('expenseCategories.') ? name : v;
+    } catch {
+      return name;
+    }
   };
 
   // Transform data to include index-based access for labels
@@ -55,11 +69,21 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
     percentage: item.percentage,
   }));
 
-  // Custom label renderer for pie chart - use any to avoid recharts strict typing
+  /**
+   * On-slice label: percentage only.
+   *
+   * This used to print "<category> (NN%)" around the pie AND render a <Legend>
+   * underneath, so every name appeared twice — and Thai GL account names like
+   * "ต้นทุนวัตถุดิบใช้ไป" are long enough that the two labels overlapped each
+   * other inside a 250px card. The name belongs in one place; the legend is
+   * that place, so the slice keeps just the number.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderLabel = (entry: any) => {
-    if (!entry || !entry.categoryName) return '';
-    return `${entry.categoryName} (${entry.percentage?.toFixed(0) ?? 0}%)`;
+    const pct = entry?.percentage ?? 0;
+    // Hide labels for slivers — they collide with their neighbours.
+    if (pct < 5) return '';
+    return `${pct.toFixed(0)}%`;
   };
 
   return (
@@ -72,11 +96,14 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-[250px] flex items-center justify-center">
+          // Same height as the loaded chart so the card does not jump.
+          <div className="h-[290px] flex items-center justify-center">
             <div className="animate-pulse text-gray-400">Loading...</div>
           </div>
         ) : (
-          <div className="h-[250px]">
+          // 290px, up from 250: the legend now reserves 48px for wrapped Thai
+          // category names, which was squeezing the donut.
+          <div className="h-[290px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -101,13 +128,34 @@ export function ExpenseBreakdownChart({ data, totalExpenses, isLoading, classNam
                     return formatCurrency(typeof value === 'number' ? value : Number(value));
                   }}
                 />
-                <Legend />
+                {/* Long Thai account names ran off the card and collided with
+                    each other on the default single-line legend. Constrain each
+                    entry and truncate with the full name on hover. */}
+                <Legend
+                  verticalAlign="bottom"
+                  height={48}
+                  iconSize={10}
+                  formatter={(value: string) => (
+                    <span
+                      title={value}
+                      className="inline-block max-w-[150px] truncate align-middle text-xs text-gray-700"
+                    >
+                      {value}
+                    </span>
+                  )}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
         <div className="mt-2 text-center">
-          <p className="text-sm text-gray-500">Total Expenses</p>
+          {/* Was a hardcoded English string sitting on a Thai page. */}
+          <p className="text-sm text-gray-500">
+            {(() => {
+              const v = t('dashboard.totalExpenses');
+              return v.includes('totalExpenses') ? 'Total Expenses' : v;
+            })()}
+          </p>
           <p className="text-lg font-bold text-gray-900">{formatCurrency(totalExpenses)}</p>
         </div>
       </CardContent>
