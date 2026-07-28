@@ -798,12 +798,16 @@ export default function APInvoicesPage() {
             dataField="invoiceDate"
             caption={t('accountsPayable.bills.table.columns.billDate')}
             dataType="date"
-            width={115}
+            // 115px clipped the Thai second line to "ครบกำหนด 24/7/6" — the
+            // label "ครบกำหนด" is far longer than the English "Due", so the
+            // width has to clear the longer of the two languages.
+            width={150}
+            minWidth={150}
             cellRender={(c: { data: APInvoice; text: string }) => (
               <div className="leading-tight">
                 <div>{c.text}</div>
                 {c.data.dueDate && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 whitespace-nowrap">
                     {t(`accountsPayable.invoicesPage.dueLabel`)} {formatShortDate(c.data.dueDate)}
                   </div>
                 )}
@@ -877,9 +881,19 @@ export default function APInvoicesPage() {
           />
 
           <Summary>
-            <TotalItem column="totalAmount" summaryType="sum" displayFormat={`${t('accountsPayable.invoicesPage.summaryTotal')}: {0}`}>
-              <Format type="fixedPoint" precision={2} />
-            </TotalItem>
+            <TotalItem
+              column="totalAmount"
+              summaryType="sum"
+              // DevExtreme's <Format type="fixedPoint"> renders no thousand
+              // separators and no unit, so the footer read "206124.8".
+              // formatMoney() is the project-wide rule for any displayed figure.
+              customizeText={(item: { value: string | number | Date }) =>
+                t(`accountsPayable.invoicesPage.summaryTotalCount`, {
+                  count: invoices.length,
+                  amount: formatMoney(Number(item.value) || 0, 2),
+                })
+              }
+            />
           </Summary>
         </DataGrid>
         </div>

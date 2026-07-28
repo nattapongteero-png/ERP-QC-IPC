@@ -1088,7 +1088,8 @@
       "dueLabel": "ครบกำหนด",
       "outstandingLabel": "ค้าง",
       "paidInFull": "ชำระครบ",
-      "noInvoices": "ไม่พบใบแจ้งหนี้"
+      "noInvoices": "ไม่พบใบแจ้งหนี้",
+      "summaryTotalCount": "รวม {count} รายการ {amount} บาท"
     },
     "paymentsPage": {
       "recordPayment": "บันทึกการชำระเงิน",

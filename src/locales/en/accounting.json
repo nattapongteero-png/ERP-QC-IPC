@@ -1088,7 +1088,8 @@
       "dueLabel": "Due",
       "outstandingLabel": "Outstanding",
       "paidInFull": "Paid in full",
-      "noInvoices": "No invoices found"
+      "noInvoices": "No invoices found",
+      "summaryTotalCount": "Total {count} items {amount} THB"
     },
     "paymentsPage": {
       "recordPayment": "Record Payment",
