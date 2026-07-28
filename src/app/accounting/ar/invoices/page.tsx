@@ -34,6 +34,7 @@ import Form, {
   RequiredRule,
 } from 'devextreme-react/form';
 import { Button } from 'devextreme-react/button';
+import DropDownButton from 'devextreme-react/drop-down-button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TextArea } from 'devextreme-react/text-area';
 import notify from 'devextreme/ui/notify';
@@ -702,6 +703,14 @@ export default function ARInvoicesPage() {
     return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
   }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
 
+  /** Compact Thai date (28/7/69) for the secondary line under the invoice date. */
+  const formatShortDate = useCallback((value: string | Date | null | undefined): string => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' });
+  }, []);
+
   // Status badge render using AccountingStatusBadge
   const statusCellRender = useCallback((cellData: { value: string }) => {
     const statusValue = cellData.value as 'draft' | 'posted' | 'partial' | 'paid' | 'cancelled' | 'confirmed' | 'rejected';
@@ -727,65 +736,66 @@ export default function ARInvoicesPage() {
         // flexWrap so on a narrow column / smaller device the buttons wrap to a
         // second line instead of being clipped ("อนุ..."); justifyContent keeps
         // them tidy. Pairs with the wider fixed column width below.
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Button
-            icon="find"
-            hint={t('accountsReceivable.invoicesPage.detailDialog.view')}
-            stylingMode="text"
-            height={28}
-            onClick={() => handleView(invoice)}
-            elementAttr={{ 'data-testid': 'view-invoice-btn' }}
-          />
-          <Button
-            icon="print"
-            hint="พิมพ์ใบกำกับภาษี"
-            stylingMode="text"
-            height={28}
-            onClick={() => handlePrint(invoice)}
-            elementAttr={{ 'data-testid': 'print-invoice-btn' }}
-          />
+        // ONE primary action, the rest behind a menu.
+        //
+        // This cell used to render up to SEVEN controls side by side (view,
+        // print, edit, delete, อนุมัติ, ปฏิเสธ, รับชำระ), which is why the
+        // column had to be 300px wide and still wrapped — and why the grid
+        // could not fit without a horizontal scrollbar. Each row has exactly
+        // one action that matters at that moment; showing all seven made the
+        // user hunt for it instead of just doing it.
+        <div className="flex items-center justify-end gap-1">
           {invoice.status === 'draft' && (
-            <>
-              <Button
-                icon="edit"
-                hint={t('accountsReceivable.invoicesPage.actions.edit')}
-                stylingMode="text"
-                height={28}
-                onClick={() => handleEdit(invoice)}
-              />
-              <Button
-                icon="trash"
-                hint={t('accountsReceivable.invoicesPage.actions.delete')}
-                stylingMode="text"
-                height={28}
-                onClick={() => handleDelete(invoice)}
-              />
-              <Button
-                text={t('accountsReceivable.invoicesPage.actions.confirm')}
-                type="success"
-                stylingMode="outlined"
-                height={24}
-                onClick={() => handleConfirm(invoice)}
-              />
-              <Button
-                text={t('accountsReceivable.invoicesPage.actions.reject')}
-                type="danger"
-                stylingMode="outlined"
-                height={24}
-                onClick={() => handleOpenReject(invoice)}
-                elementAttr={{ 'data-testid': 'reject-invoice-btn' }}
-              />
-            </>
+            <Button
+              text={t('accountsReceivable.invoicesPage.actions.confirm')}
+              type="success"
+              stylingMode="contained"
+              height={28}
+              onClick={() => handleConfirm(invoice)}
+              elementAttr={{ 'data-testid': 'confirm-invoice-btn' }}
+            />
           )}
           {['posted', 'partial'].includes(invoice.status) && (
             <Button
               text={t('accountsReceivable.invoicesPage.actions.receivePayment')}
               type="default"
-              stylingMode="outlined"
-              height={24}
+              stylingMode="contained"
+              height={28}
               onClick={() => handleOpenPaymentDialog(invoice)}
+              elementAttr={{ 'data-testid': 'receive-payment-btn' }}
             />
           )}
+          <DropDownButton
+            icon="overflow"
+            stylingMode="text"
+            height={28}
+            width={36}
+            showArrowIcon={false}
+            dropDownOptions={{ width: 190 }}
+            displayExpr="text"
+            keyExpr="key"
+            items={[
+              { key: 'view', text: t('accountsReceivable.invoicesPage.detailDialog.view'), icon: 'find' },
+              { key: 'print', text: 'พิมพ์ใบกำกับภาษี', icon: 'print' },
+              ...(invoice.status === 'draft'
+                ? [
+                    { key: 'edit', text: t('accountsReceivable.invoicesPage.actions.edit'), icon: 'edit' },
+                    { key: 'reject', text: t('accountsReceivable.invoicesPage.actions.reject'), icon: 'clear' },
+                    { key: 'delete', text: t('accountsReceivable.invoicesPage.actions.delete'), icon: 'trash' },
+                  ]
+                : []),
+            ]}
+            onItemClick={(e: { itemData?: { key?: string } }) => {
+              switch (e.itemData?.key) {
+                case 'view': handleView(invoice); break;
+                case 'print': handlePrint(invoice); break;
+                case 'edit': handleEdit(invoice); break;
+                case 'reject': handleOpenReject(invoice); break;
+                case 'delete': handleDelete(invoice); break;
+              }
+            }}
+            elementAttr={{ 'data-testid': 'invoice-actions-menu' }}
+          />
         </div>
       );
     },
@@ -895,8 +905,106 @@ export default function ARInvoicesPage() {
           </div>
         </AccountingFilterPanel>
 
-        {/* Data Grid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid" data-build="ar-ap-export-20260727-v2">
+        {/* Mobile card list.
+            A 10-column DataGrid is unusable on a phone — you cannot read a row
+            without scrolling sideways, and the action buttons are the first
+            thing to go off-screen. Below md we render each invoice as a card
+            with the same one-primary-action rule as the grid: the number and
+            amount are the headline, everything else is secondary. */}
+        <div className="md:hidden space-y-3" data-testid="ar-invoices-cards">
+          {invoicesWithRowNumber.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+              ไม่พบใบแจ้งหนี้
+            </div>
+          ) : (
+            invoicesWithRowNumber.map((invoice) => {
+              const total = Number(invoice.totalAmount) || 0;
+              const paid = Number(invoice.paidAmount) || 0;
+              const outstanding = total - paid;
+              return (
+                <div
+                  key={invoice.id}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+                  data-testid={`ar-invoice-card-${invoice.id}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 truncate">
+                        {invoice.invoiceNumber}
+                      </div>
+                      {invoice.taxInvoiceNumber && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {invoice.taxInvoiceNumber}
+                        </div>
+                      )}
+                    </div>
+                    {statusCellRender({ value: invoice.status })}
+                  </div>
+
+                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                    {invoice.description}
+                  </p>
+
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div className="text-xs text-gray-500">
+                      <div>วันที่ {formatShortDate(invoice.invoiceDate)}</div>
+                      {invoice.dueDate && <div>ครบกำหนด {formatShortDate(invoice.dueDate)}</div>}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-gray-900 tabular-nums">
+                        {formatMoney(total, 2)} บาท
+                      </div>
+                      {paid > 0 && outstanding > 0.004 && (
+                        <div className="text-xs text-amber-600 tabular-nums">
+                          ค้าง {formatMoney(outstanding, 2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 44px tap targets — comfortable on a phone. */}
+                  <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+                    {invoice.status === 'draft' && (
+                      <button
+                        type="button"
+                        onClick={() => handleConfirm(invoice)}
+                        className="flex-1 h-11 rounded-lg bg-emerald-600 text-white text-sm font-medium active:bg-emerald-700"
+                      >
+                        {t('accountsReceivable.invoicesPage.actions.confirm')}
+                      </button>
+                    )}
+                    {['posted', 'partial'].includes(invoice.status) && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPaymentDialog(invoice)}
+                        className="flex-1 h-11 rounded-lg bg-blue-600 text-white text-sm font-medium active:bg-blue-700"
+                      >
+                        {t('accountsReceivable.invoicesPage.actions.receivePayment')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleView(invoice)}
+                      className="h-11 px-4 rounded-lg border border-gray-300 text-sm text-gray-700 active:bg-gray-50"
+                    >
+                      ดู
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePrint(invoice)}
+                      className="h-11 px-4 rounded-lg border border-gray-300 text-sm text-gray-700 active:bg-gray-50"
+                    >
+                      พิมพ์
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Data Grid — desktop / tablet only; phones get the cards above. */}
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid" data-build="ar-ap-export-20260727-v2">
         <DataGrid
           ref={gridRef}
           dataSource={invoicesWithRowNumber}
@@ -907,8 +1015,16 @@ export default function ARInvoicesPage() {
           rowAlternationEnabled={true}
           allowColumnReordering={true}
           allowColumnResizing={true}
-          columnAutoWidth={true}
-          wordWrapEnabled={true}
+          // columnAutoWidth was TRUE, letting columns grow to fit their
+          // content. With a long generated description that pushed the table
+          // past its container and forced a horizontal scrollbar on every row,
+          // so the action buttons sat off-screen until you scrolled. False
+          // keeps the grid inside the card and lets the description truncate.
+          columnAutoWidth={false}
+          // Drop the least important columns on narrow screens instead of
+          // making the user scroll sideways to reach anything.
+          columnHidingEnabled={true}
+          wordWrapEnabled={false}
         >
           <Paging defaultPageSize={20} />
           <Pager
@@ -949,27 +1065,97 @@ export default function ARInvoicesPage() {
               </span>
             )}
           />
-          <Column dataField="invoiceNumber" caption={t('accountsReceivable.invoices.table.columns.invoiceNumber')} width={150} />
-          <Column dataField="taxInvoiceNumber" caption={t('accountsReceivable.invoicesPage.columns.taxInvoiceNumber')} width={160} />
+          {/* Invoice no. + tax invoice no. in one cell. They are always read
+              together, and as two 150/160px columns they were a third of the
+              table width on their own — a major reason the grid needed a
+              horizontal scrollbar at all. */}
+          <Column
+            dataField="invoiceNumber"
+            caption={t('accountsReceivable.invoices.table.columns.invoiceNumber')}
+            width={175}
+            cellRender={(c: { data: ARInvoice }) => (
+              <div className="leading-tight">
+                <div className="font-medium text-gray-900">{c.data.invoiceNumber}</div>
+                {c.data.taxInvoiceNumber && (
+                  <div className="text-xs text-gray-500">{c.data.taxInvoiceNumber}</div>
+                )}
+              </div>
+            )}
+          />
           <Column dataField="customerId" caption={t('accountsReceivable.invoices.table.columns.customer')} width={150} visible={false} />
-          <Column dataField="invoiceDate" caption={t('accountsReceivable.invoicesPage.columns.date')} dataType="date" width={110} />
-          <Column dataField="dueDate" caption={t('accountsReceivable.invoices.table.columns.dueDate')} dataType="date" width={110} />
-          <Column dataField="description" caption={t('accountsReceivable.invoicesPage.columns.description')} minWidth={150} />
+          {/* Invoice date over due date — same pairing logic as above. */}
+          <Column
+            dataField="invoiceDate"
+            caption={t('accountsReceivable.invoicesPage.columns.date')}
+            dataType="date"
+            width={110}
+            cellRender={(c: { data: ARInvoice; text: string }) => (
+              <div className="leading-tight">
+                <div>{c.text}</div>
+                {c.data.dueDate && (
+                  <div className="text-xs text-gray-500">
+                    ครบกำหนด {formatShortDate(c.data.dueDate)}
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          {/* Truncate rather than grow. The description is a long generated
+              string ("ขายสินค้า SO… - FG-0001 x 1 (Delivery: DL-…)"), and letting
+              it size itself pushed the whole grid past the container so every
+              row needed horizontal scrolling to reach the buttons. Full text
+              stays available on hover and in the detail dialog. */}
+          <Column
+            dataField="description"
+            caption={t('accountsReceivable.invoicesPage.columns.description')}
+            minWidth={180}
+            cellRender={(c: { data: ARInvoice }) => (
+              <span
+                className="block truncate text-gray-700"
+                title={c.data.description ?? ''}
+              >
+                {c.data.description}
+              </span>
+            )}
+          />
+          {/* Amount with what is still owed underneath. Two separate 120px
+              money columns forced the reader to subtract in their head to
+              answer the only question that matters here — how much is left to
+              collect — and cost 240px of width to do it. */}
           <Column
             dataField="totalAmount"
             caption={t('accountsReceivable.invoicesPage.columns.totalAmount')}
             dataType="number"
-            width={120}
+            width={140}
             alignment="right"
-          >
-            <Format type="fixedPoint" precision={2} />
-          </Column>
+            cellRender={(c: { data: ARInvoice }) => {
+              const total = Number(c.data.totalAmount) || 0;
+              const paid = Number(c.data.paidAmount) || 0;
+              const outstanding = total - paid;
+              return (
+                <div className="leading-tight text-right">
+                  <div className="font-medium text-gray-900 tabular-nums">
+                    {formatMoney(total, 2)}
+                  </div>
+                  {paid > 0 && outstanding > 0.004 && (
+                    <div className="text-xs text-amber-600 tabular-nums">
+                      ค้าง {formatMoney(outstanding, 2)}
+                    </div>
+                  )}
+                  {outstanding <= 0.004 && paid > 0 && (
+                    <div className="text-xs text-emerald-600">ชำระครบ</div>
+                  )}
+                </div>
+              );
+            }}
+          />
           <Column
             dataField="paidAmount"
             caption={t('accountsReceivable.invoicesPage.columns.paidAmount')}
             dataType="number"
             width={120}
             alignment="right"
+            visible={false}
           >
             <Format type="fixedPoint" precision={2} />
           </Column>
@@ -979,18 +1165,14 @@ export default function ARInvoicesPage() {
             width={120}
             cellRender={statusCellRender}
           />
-          {/* Pinned right: the fixed column widths plus the auto-sized
-              description add up to more than the container, so an unfixed
-              actions column was pushed outside the grid and rendered over the
-              page background. Fixing it keeps the buttons reachable and inside
-              the card at any width. */}
-          {/* width 300: a draft row shows up to 6 controls (view, print, edit,
-              delete, อนุมัติ, ปฏิเสธ). 260 still clipped "อนุมัติ" → "อนุ...".
-              300 + flexWrap on the cell keeps them all visible (wrapping to a
-              second line on very narrow / mobile widths). */}
+          {/* Pinned right so the action stays reachable at any width.
+              140px now, down from 300: the cell renders one primary button
+              plus an overflow menu instead of up to seven side-by-side
+              controls, which is what made the old column need that much room
+              (and still wrap). */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={300}
+            width={140}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
