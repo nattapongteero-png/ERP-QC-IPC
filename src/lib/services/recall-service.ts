@@ -19,6 +19,7 @@ import {
   sqliteComplaints,
   sqliteSalesOrders,
   sqliteSalesOrderLines,
+  sqliteSalesDeliveries,
   sqliteCustomers,
   mysqlRecalls,
   mysqlRecallNotifications,
@@ -29,6 +30,7 @@ import {
   mysqlComplaints,
   mysqlSalesOrders,
   mysqlSalesOrderLines,
+  mysqlSalesDeliveries,
   mysqlCustomers,
 } from '../db/schema';
 
@@ -47,6 +49,7 @@ function getTables() {
       complaints: sqliteComplaints,
       salesOrders: sqliteSalesOrders,
       salesOrderLines: sqliteSalesOrderLines,
+      salesDeliveries: sqliteSalesDeliveries,
       customers: sqliteCustomers,
     };
   }
@@ -60,6 +63,7 @@ function getTables() {
     complaints: mysqlComplaints,
     salesOrders: mysqlSalesOrders,
     salesOrderLines: mysqlSalesOrderLines,
+    salesDeliveries: mysqlSalesDeliveries,
     customers: mysqlCustomers,
   };
 }
@@ -477,36 +481,58 @@ export async function getDistributionData(
   if (!lotIds || lotIds.length === 0) return [];
 
   const db = await getDb();
-  const { salesOrderLines, salesOrders, lots, customers } = getTables();
+  const { salesDeliveries, salesOrders, lots, customers } = getTables();
 
-  // Get sales orders that shipped these lots
+  // Find every customer who received one of the affected lots.
+  //
+  // This query used to be unable to find ANYTHING, for three independent
+  // reasons — and because it returned an empty set rather than an error, the
+  // mock drill reported a clean PASS while identifying zero customers. A
+  // recall drill that silently finds nothing is worse than one that crashes:
+  // it manufactures a compliance record that says traceability works.
+  //
+  //  1. It filtered `sales_orders.status = 'delivered'`, a status no order
+  //     ever has — the live vocabulary is 'draft' and 'shipped' only.
+  //  2. It read the lot from `sales_order_lines.lot_id`, which is NULL on all
+  //     23 rows. The lot actually shipped is recorded on `sales_deliveries`
+  //     (populated on 20/20 rows) — that is the shipment record of truth.
+  //  3. It INNER JOINed customers on an exact name-string match, so any order
+  //     whose customer_name is not byte-identical to a master record dropped
+  //     out entirely.
+  //
+  // Now: source from deliveries, drop the phantom status filter, and prefer
+  // the real customer_id FK with the name match only as a fallback. A LEFT
+  // JOIN keeps the row even when the customer cannot be resolved — for a
+  // recall, "we shipped this lot but cannot identify the buyer" must be
+  // visible, never silently dropped.
   const result = await (db as any)
     .select({
       customerId: customers.id,
       customerName: customers.name,
+      soCustomerName: salesOrders.customerName,
       contactInfo: customers.phone,
-      lotId: salesOrderLines.lotId,
+      lotId: salesDeliveries.lotId,
       lotNumber: lots.lotNumber,
-      quantityDistributed: salesOrderLines.shippedQuantity,
-      shipDate: salesOrders.shippedDate,
+      quantityDistributed: salesDeliveries.quantity,
+      shipDate: salesDeliveries.deliveryDate,
     })
-    .from(salesOrderLines)
-    .innerJoin(salesOrders, eq(salesOrderLines.soId, salesOrders.id))
-    .innerJoin(lots, eq(salesOrderLines.lotId, lots.id))
-    // Match the sales order's customer name to the customer record. A plain
-    // column comparison works on both engines — the previous CAST(... AS TEXT)
-    // is SQLite-only syntax and is a parse error on MySQL.
-    .innerJoin(customers, eq(salesOrders.customerName, customers.name))
-    .where(
-      and(
-        inArray(salesOrderLines.lotId, lotIds),
-        eq(salesOrders.status, 'delivered')
-      )
-    );
+    .from(salesDeliveries)
+    .innerJoin(salesOrders, eq(salesDeliveries.soId, salesOrders.id))
+    .innerJoin(lots, eq(salesDeliveries.lotId, lots.id))
+    .leftJoin(
+      customers,
+      sql`(${salesOrders.customerId} IS NOT NULL AND ${customers.id} = ${salesOrders.customerId})
+          OR (${salesOrders.customerId} IS NULL AND ${customers.name} = ${salesOrders.customerName})`,
+    )
+    .where(inArray(salesDeliveries.lotId, lotIds));
 
   return result.map((row: any) => ({
     customerId: row.customerId || 0,
-    customerName: row.customerName || 'Unknown',
+    // Fall back to the name recorded on the order itself. An unresolvable
+    // buyer must still be reported — with the name we DO have — so a recall
+    // coordinator can chase it manually rather than never seeing the shipment.
+    customerName:
+      row.customerName || row.soCustomerName || 'ไม่ระบุลูกค้า (ไม่พบในทะเบียน)',
     contactInfo: row.contactInfo || '',
     lotId: row.lotId || 0,
     lotNumber: row.lotNumber || '',
@@ -524,20 +550,20 @@ export async function calculateDistributedQuantity(
   if (lotIds.length === 0) return 0;
 
   const db = await getDb();
-  const { salesOrderLines, salesOrders } = getTables();
+  const { salesDeliveries } = getTables();
 
+  // Same three defects as getDistributionRecords above: read the shipped lot
+  // from sales_deliveries (sales_order_lines.lot_id is NULL everywhere) and
+  // drop the `status = 'delivered'` filter that matched no order in existence.
+  // This function feeds the recall's distributed_quantity, which is the
+  // denominator of the effectiveness rate — it returning 0 is why both live
+  // recalls sit at distributed_quantity = 0.
   const result = await (db as any)
     .select({
-      total: sql<number>`SUM(${salesOrderLines.shippedQuantity})`,
+      total: sql<number>`SUM(${salesDeliveries.quantity})`,
     })
-    .from(salesOrderLines)
-    .innerJoin(salesOrders, eq(salesOrderLines.soId, salesOrders.id))
-    .where(
-      and(
-        inArray(salesOrderLines.lotId, lotIds),
-        eq(salesOrders.status, 'delivered')
-      )
-    );
+    .from(salesDeliveries)
+    .where(inArray(salesDeliveries.lotId, lotIds));
 
   return result[0]?.total || 0;
 }
@@ -1054,7 +1080,7 @@ export async function executeMockDrill(
   const drillId = `DRILL-${Date.now()}`;
 
   const db = await getDb();
-  const { lots, salesOrderLines, salesOrders, customers } = getTables();
+  const { lots, salesDeliveries, salesOrders, customers } = getTables();
 
   // Get lot information
   const lot = await (db as any)
@@ -1070,37 +1096,42 @@ export async function executeMockDrill(
     throw new Error(`Lot ID ${data.lotId} not found`);
   }
 
-  // Get distribution data
+  // Get distribution data.
+  //
+  // This is the query the mock drill grades itself on, so its correctness IS
+  // the compliance evidence. It carried the same three defects as
+  // getDistributionRecords (phantom 'delivered' status, NULL
+  // sales_order_lines.lot_id, exact-name customer join), which meant the drill
+  // consistently identified ZERO customers in a fast time and recorded a PASS.
+  // See the comment on getDistributionRecords for the full explanation.
   const distribution = await (db as any)
     .select({
       customerId: customers.id,
       customerName: customers.name,
+      soCustomerName: salesOrders.customerName,
       contactInfo: customers.phone,
-      lotId: salesOrderLines.lotId,
+      lotId: salesDeliveries.lotId,
       lotNumber: lots.lotNumber,
-      quantityDistributed: salesOrderLines.shippedQuantity,
-      shipDate: salesOrders.shippedDate,
+      quantityDistributed: salesDeliveries.quantity,
+      shipDate: salesDeliveries.deliveryDate,
     })
-    .from(salesOrderLines)
-    .innerJoin(salesOrders, eq(salesOrderLines.soId, salesOrders.id))
-    .innerJoin(lots, eq(salesOrderLines.lotId, lots.id))
-    .leftJoin(customers, eq(
-      sql`${salesOrders.customerName}`,
-      customers.name
-    ))
-    .where(
-      and(
-        eq(salesOrderLines.lotId, data.lotId),
-        eq(salesOrders.status, 'delivered')
-      )
-    );
+    .from(salesDeliveries)
+    .innerJoin(salesOrders, eq(salesDeliveries.soId, salesOrders.id))
+    .innerJoin(lots, eq(salesDeliveries.lotId, lots.id))
+    .leftJoin(
+      customers,
+      sql`(${salesOrders.customerId} IS NOT NULL AND ${customers.id} = ${salesOrders.customerId})
+          OR (${salesOrders.customerId} IS NULL AND ${customers.name} = ${salesOrders.customerName})`,
+    )
+    .where(eq(salesDeliveries.lotId, data.lotId));
 
   const endTime = Date.now();
   const timeToIdentify = (endTime - startTime) / 1000; // Convert to seconds
 
   const distributionReport: DistributionRecord[] = distribution.map((row: any) => ({
     customerId: row.customerId || 0,
-    customerName: row.customerName || 'Unknown',
+    customerName:
+      row.customerName || row.soCustomerName || 'ไม่ระบุลูกค้า (ไม่พบในทะเบียน)',
     contactInfo: row.contactInfo || '',
     lotId: row.lotId || 0,
     lotNumber: row.lotNumber || '',
@@ -1116,8 +1147,17 @@ export async function executeMockDrill(
   // Unique customers
   const uniqueCustomers = new Set(distributionReport.map(d => d.customerId)).size;
 
-  // FDA requires 4-hour target for traceability
-  const passedTarget = timeToIdentify < (4 * 60 * 60); // 4 hours in seconds
+  // A drill passes only if traceability actually WORKED.
+  //
+  // This used to be a pure stopwatch check — `timeToIdentify < 4h` — so a
+  // query that found nobody at all completed in milliseconds and was recorded
+  // as a PASS. That is precisely how a broken traceability chain produced
+  // clean compliance evidence. Speed is meaningless if the search returned
+  // nothing: a lot that was distributed but whose recipients cannot be
+  // identified is the exact failure a mock drill exists to detect.
+  const withinTimeTarget = timeToIdentify < (4 * 60 * 60); // FDA 4-hour target
+  const foundRecipients = uniqueCustomers > 0 && totalDistributed > 0;
+  const passedTarget = withinTimeTarget && foundRecipients;
 
   await createAuditLog({
     action: 'CREATE',
