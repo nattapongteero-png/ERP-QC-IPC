@@ -18,7 +18,7 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
-import { Popup } from 'devextreme-react/popup';
+import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import { Form, SimpleItem, GroupItem, RequiredRule } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
 import type { StandardCost } from '@/types/variance';
@@ -301,7 +301,11 @@ export default function StandardCostsPage() {
           maxHeight="90vh"
           showCloseButton={true}
         >
-          <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
+          {/* 100% of the content area (which DevExtreme already sizes to the
+              popup minus title and bottom toolbar) rather than a vh calculation
+              — the old calc(90vh - 80px) guessed at the chrome height and did
+              not match reality, so the body never actually scrolled. */}
+          <div className="p-4 overflow-y-auto" style={{ maxHeight: '100%' }}>
             <Form
               formData={formData}
               onFieldDataChanged={(e) =>
@@ -368,18 +372,38 @@ export default function StandardCostsPage() {
               <SimpleItem dataField="setAsCurrent" editorType="dxCheckBox" />
             </Form>
 
-            <div className="flex justify-end gap-2 mt-4">
-              <Button text={t('common.cancel')} onClick={() => setShowCreateDialog(false)} />
-              <Button
-                text={submitting ? t('common.saving') : t('common.save')}
-                type="success"
-                stylingMode="contained"
-                onClick={handleCreate}
-                disabled={submitting}
-                data-testid="save-cost-btn"
-              />
-            </div>
           </div>
+
+          {/* Save/Cancel live in the Popup's own bottom toolbar, NOT inside the
+              scrolling body. Previously they sat at the end of the form, so on a
+              form this long they were pushed to y≈1337px on a 1000px-tall
+              viewport — off-screen, with the popup's overlay swallowing the
+              click. The maxHeight/overflow-y-auto on the body did not save them
+              because the buttons scrolled away with the content they followed.
+              A toolbar item is rendered outside that scroll area, so Save is
+              always visible no matter how tall the form grows. */}
+          <ToolbarItem
+            widget="dxButton"
+            location="after"
+            toolbar="bottom"
+            options={{
+              text: t('common.cancel'),
+              onClick: () => setShowCreateDialog(false),
+            }}
+          />
+          <ToolbarItem
+            widget="dxButton"
+            location="after"
+            toolbar="bottom"
+            options={{
+              text: submitting ? t('common.saving') : t('common.save'),
+              type: 'success',
+              stylingMode: 'contained',
+              disabled: submitting,
+              onClick: handleCreate,
+              elementAttr: { 'data-testid': 'save-cost-btn' },
+            }}
+          />
         </Popup>
       </div>
   );
