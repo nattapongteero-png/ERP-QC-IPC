@@ -11,9 +11,28 @@
 import { chromium } from '@playwright/test';
 
 const BASE = 'https://herbal-erp-test-uat.bmscloud.in.th';
+
+// Width/lang are arguments so the same real-click proof runs at every size the
+// project requires (1920 desktop, 1440 laptop, 768 tablet, 390 phone) in both
+// languages. A short viewport is the case that broke: the popup grows with the
+// form, so Save leaves the screen soonest on the smallest height.
+//   node test-std-cost.mjs 390 en
+const width = Number(process.argv[2] || 1920);
+const lang = process.argv[3] || 'th';
+// Heights matched to real devices rather than a constant, so 390 is genuinely
+// phone-shaped and not a tall narrow window no user actually has.
+const height = width >= 1920 ? 1000 : width >= 1440 ? 900 : width >= 768 ? 1024 : 844;
+
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1920, height: 1000 }, locale: 'th-TH' });
+const ctx = await browser.newContext({
+  viewport: { width, height },
+  locale: lang === 'en' ? 'en-US' : 'th-TH',
+});
+await ctx.addCookies([
+  { name: 'locale', value: lang, domain: 'herbal-erp-test-uat.bmscloud.in.th', path: '/' },
+]);
 const page = await ctx.newPage();
+console.log(`\n=== ${width}x${height} · ${lang.toUpperCase()} ===`);
 
 const problems = [];
 page.on('console', (m) => { if (m.type() === 'error') problems.push(`CONSOLE: ${m.text().slice(0, 200)}`); });
@@ -40,7 +59,7 @@ await page.waitForTimeout(3000);
 const addBtn = page.locator('.dx-button').filter({ hasText: /เพิ่ม|Add|New/ }).first();
 await addBtn.click();
 await page.waitForTimeout(2000);
-await page.screenshot({ path: 'std-1-open.png', fullPage: false });
+await page.screenshot({ path: `std-${width}-${lang}-1-open.png`, fullPage: false });
 
 // BUG 1: is Save inside the viewport and actually clickable?
 // Scope to the whole popup, not .dx-popup-content: the fix deliberately moves
@@ -77,7 +96,7 @@ if (await sel.count()) {
     console.log('NO ITEMS in dropdown — cannot select');
   }
 }
-await page.screenshot({ path: 'std-2-filled.png', fullPage: false });
+await page.screenshot({ path: `std-${width}-${lang}-2-filled.png`, fullPage: false });
 
 // BUG 2: click Save for real and see what the API says.
 if (cnt) {
@@ -89,7 +108,7 @@ if (cnt) {
   }
   await page.waitForTimeout(4000);
 }
-await page.screenshot({ path: 'std-3-after-save.png', fullPage: false });
+await page.screenshot({ path: `std-${width}-${lang}-3-after-save.png`, fullPage: false });
 
 console.log('\nPOST result:', postResult ? `${postResult.status} ${postResult.body}` : 'no POST fired');
 console.log(problems.length ? `\nruntime problems:\n  ${[...new Set(problems)].slice(0, 8).join('\n  ')}` : '\nno console/JS errors');

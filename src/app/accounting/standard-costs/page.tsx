@@ -292,7 +292,11 @@ export default function StandardCostsPage() {
           visible={showCreateDialog}
           onHiding={() => setShowCreateDialog(false)}
           title={t('standardCosts.dialog.createTitle')}
-          width={500}
+          // A fixed 500px overflowed a 390px phone: the popup hung off the left
+          // edge, clipping the title, every field label and half the Save
+          // button. Cap it at the viewport instead so it fits any screen and
+          // still stays 500px on desktop.
+          width="min(500px, 96vw)"
           // height="auto" let the popup grow taller than the viewport when the
           // form was long, pushing the Save button off-screen with no way to
           // scroll to it. Cap the height and scroll the body instead so Save is
