@@ -277,7 +277,14 @@ export default function ARInvoicesPage() {
   });
 
   // Queries
-  const { data: invoices = [] } = useQuery({
+  // isLoading / isError were unused, so a slow or failed fetch rendered as an
+  // empty table — indistinguishable from "there are genuinely no invoices".
+  const {
+    data: invoices = [],
+    isLoading: invoicesLoading,
+    isError: invoicesError,
+    refetch: refetchInvoices,
+  } = useQuery({
     queryKey: ['ar-invoices', statusFilter],
     queryFn: () => fetchARInvoices({ status: statusFilter || undefined }),
   });
@@ -744,58 +751,107 @@ export default function ARInvoicesPage() {
         // could not fit without a horizontal scrollbar. Each row has exactly
         // one action that matters at that moment; showing all seven made the
         // user hunt for it instead of just doing it.
+        // Actions are VISIBLE, not hidden behind a "⋯" menu.
+        //
+        // An earlier revision put everything behind an overflow button. That
+        // turned a one-click job into two and, worse, gave no clue what the row
+        // could do until you opened it — three dots mean nothing to someone who
+        // just wants to record a payment. Frequent actions now sit in the row.
+        //
+        // The primary action is text (it is the thing you came to do); view and
+        // print are icons with tooltips; destructive/rare actions stay in an
+        // overflow with full labels. A primary action that does not apply to the
+        // current status is DISABLED with a reason, never removed — a button
+        // that vanishes makes the user wonder where it went.
         <div className="flex items-center justify-end gap-1">
-          {invoice.status === 'draft' && (
+          {invoice.status === 'draft' ? (
             <Button
               text={t('accountsReceivable.invoicesPage.actions.confirm')}
               type="success"
               stylingMode="contained"
-              height={28}
+              height={30}
               onClick={() => handleConfirm(invoice)}
-              elementAttr={{ 'data-testid': 'confirm-invoice-btn' }}
+              elementAttr={{
+                'data-testid': 'confirm-invoice-btn',
+                'aria-label': t('accountsReceivable.invoicesPage.actions.confirm'),
+              }}
             />
-          )}
-          {['posted', 'partial'].includes(invoice.status) && (
+          ) : (
             <Button
               text={t('accountsReceivable.invoicesPage.actions.receivePayment')}
               type="default"
               stylingMode="contained"
-              height={28}
+              height={30}
+              disabled={!['posted', 'partial'].includes(invoice.status)}
+              hint={
+                ['posted', 'partial'].includes(invoice.status)
+                  ? undefined
+                  : invoice.status === 'paid'
+                    ? 'ชำระครบแล้ว'
+                    : 'ต้องอนุมัติใบแจ้งหนี้ก่อนจึงจะรับชำระได้'
+              }
               onClick={() => handleOpenPaymentDialog(invoice)}
-              elementAttr={{ 'data-testid': 'receive-payment-btn' }}
+              elementAttr={{
+                'data-testid': 'receive-payment-btn',
+                'aria-label': t('accountsReceivable.invoicesPage.actions.receivePayment'),
+              }}
             />
           )}
-          <DropDownButton
-            icon="overflow"
+
+          <Button
+            icon="find"
             stylingMode="text"
-            height={28}
-            width={36}
-            showArrowIcon={false}
-            dropDownOptions={{ width: 190 }}
-            displayExpr="text"
-            keyExpr="key"
-            items={[
-              { key: 'view', text: t('accountsReceivable.invoicesPage.detailDialog.view'), icon: 'find' },
-              { key: 'print', text: 'พิมพ์ใบกำกับภาษี', icon: 'print' },
-              ...(invoice.status === 'draft'
-                ? [
-                    { key: 'edit', text: t('accountsReceivable.invoicesPage.actions.edit'), icon: 'edit' },
-                    { key: 'reject', text: t('accountsReceivable.invoicesPage.actions.reject'), icon: 'clear' },
-                    { key: 'delete', text: t('accountsReceivable.invoicesPage.actions.delete'), icon: 'trash' },
-                  ]
-                : []),
-            ]}
-            onItemClick={(e: { itemData?: { key?: string } }) => {
-              switch (e.itemData?.key) {
-                case 'view': handleView(invoice); break;
-                case 'print': handlePrint(invoice); break;
-                case 'edit': handleEdit(invoice); break;
-                case 'reject': handleOpenReject(invoice); break;
-                case 'delete': handleDelete(invoice); break;
-              }
+            height={30}
+            hint={t('accountsReceivable.invoicesPage.detailDialog.view')}
+            onClick={() => handleView(invoice)}
+            elementAttr={{
+              'data-testid': 'view-invoice-btn',
+              'aria-label': t('accountsReceivable.invoicesPage.detailDialog.view'),
             }}
-            elementAttr={{ 'data-testid': 'invoice-actions-menu' }}
           />
+          <Button
+            icon="print"
+            stylingMode="text"
+            height={30}
+            hint="พิมพ์ใบกำกับภาษี"
+            onClick={() => handlePrint(invoice)}
+            elementAttr={{
+              'data-testid': 'print-invoice-btn',
+              'aria-label': 'พิมพ์ใบกำกับภาษี',
+            }}
+          />
+
+          {/* Destructive / rarely-used actions only. Drafts only — nothing here
+              applies once the invoice is posted. */}
+          {invoice.status === 'draft' && (
+            <DropDownButton
+              icon="overflow"
+              stylingMode="text"
+              height={30}
+              width={32}
+              showArrowIcon={false}
+              hint="ตัวเลือกเพิ่มเติม"
+              dropDownOptions={{ width: 190 }}
+              displayExpr="text"
+              keyExpr="key"
+              items={[
+                { key: 'edit', text: t('accountsReceivable.invoicesPage.actions.edit'), icon: 'edit' },
+                { key: 'reject', text: t('accountsReceivable.invoicesPage.actions.reject'), icon: 'clear' },
+                { key: 'delete', text: t('accountsReceivable.invoicesPage.actions.delete'), icon: 'trash' },
+              ]}
+              onItemClick={(e: { itemData?: { key?: string } }) => {
+                switch (e.itemData?.key) {
+                  case 'edit': handleEdit(invoice); break;
+                  case 'reject': handleOpenReject(invoice); break;
+                  case 'delete': handleDelete(invoice); break;
+                }
+              }}
+              elementAttr={{
+                'data-testid': 'invoice-actions-menu',
+                'aria-label': 'ตัวเลือกเพิ่มเติม',
+              }}
+            />
+          )}
         </div>
       );
     },
@@ -905,13 +961,55 @@ export default function ARInvoicesPage() {
           </div>
         </AccountingFilterPanel>
 
+        {/* Loading and error states.
+            Without these a slow fetch looked like an empty list, and a failed
+            one looked identical to "no invoices" — the user had no way to tell
+            that anything had gone wrong, or that retrying would help. */}
+        {invoicesLoading && (
+          <div
+            className="bg-white rounded-xl border border-gray-200 p-6 space-y-3"
+            data-testid="ar-invoices-loading"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="sr-only">กำลังโหลดข้อมูล</span>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-4 animate-pulse">
+                <div className="h-4 w-40 rounded bg-gray-200" />
+                <div className="h-4 flex-1 rounded bg-gray-100" />
+                <div className="h-4 w-24 rounded bg-gray-200" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {invoicesError && !invoicesLoading && (
+          <div
+            className="bg-white rounded-xl border border-red-200 p-8 text-center"
+            data-testid="ar-invoices-error"
+            role="alert"
+          >
+            <p className="text-red-700 font-medium">ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้</p>
+            <p className="mt-1 text-sm text-gray-500">
+              กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง
+            </p>
+            <button
+              type="button"
+              onClick={() => refetchInvoices()}
+              className="mt-4 h-10 px-5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800"
+            >
+              ลองใหม่
+            </button>
+          </div>
+        )}
+
         {/* Mobile card list.
             A 10-column DataGrid is unusable on a phone — you cannot read a row
             without scrolling sideways, and the action buttons are the first
             thing to go off-screen. Below md we render each invoice as a card
             with the same one-primary-action rule as the grid: the number and
             amount are the headline, everything else is secondary. */}
-        <div className="md:hidden space-y-3" data-testid="ar-invoices-cards">
+        <div className={`md:hidden space-y-3 ${invoicesLoading || invoicesError ? "hidden" : ""}`} data-testid="ar-invoices-cards">
           {invoicesWithRowNumber.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
               ไม่พบใบแจ้งหนี้
@@ -1004,7 +1102,7 @@ export default function ARInvoicesPage() {
         </div>
 
         {/* Data Grid — desktop / tablet only; phones get the cards above. */}
-        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200" data-testid="ar-invoices-grid" data-build="ar-ap-export-20260727-v2">
+        <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${invoicesLoading || invoicesError ? "hidden" : "hidden md:block"}`} data-testid="ar-invoices-grid" data-build="ar-ap-export-20260727-v2">
         <DataGrid
           ref={gridRef}
           dataSource={invoicesWithRowNumber}
@@ -1122,11 +1220,15 @@ export default function ARInvoicesPage() {
               money columns forced the reader to subtract in their head to
               answer the only question that matters here — how much is left to
               collect — and cost 240px of width to do it. */}
+          {/* 160px fits 9 digits + 2 decimals + separators without wrapping or
+              truncating. Money is never allowed to be cut: a figure ending in
+              "…" is unreadable and unusable for an accountant. */}
           <Column
             dataField="totalAmount"
             caption={t('accountsReceivable.invoicesPage.columns.totalAmount')}
             dataType="number"
-            width={140}
+            width={160}
+            minWidth={160}
             alignment="right"
             cellRender={(c: { data: ARInvoice }) => {
               const total = Number(c.data.totalAmount) || 0;
@@ -1134,11 +1236,11 @@ export default function ARInvoicesPage() {
               const outstanding = total - paid;
               return (
                 <div className="leading-tight text-right">
-                  <div className="font-medium text-gray-900 tabular-nums">
+                  <div className="font-medium text-gray-900 tabular-nums whitespace-nowrap">
                     {formatMoney(total, 2)}
                   </div>
                   {paid > 0 && outstanding > 0.004 && (
-                    <div className="text-xs text-amber-600 tabular-nums">
+                    <div className="text-xs text-amber-600 tabular-nums whitespace-nowrap">
                       ค้าง {formatMoney(outstanding, 2)}
                     </div>
                   )}
@@ -1165,30 +1267,40 @@ export default function ARInvoicesPage() {
             width={120}
             cellRender={statusCellRender}
           />
-          {/* Pinned right so the action stays reachable at any width.
-              140px now, down from 300: the cell renders one primary button
-              plus an overflow menu instead of up to seven side-by-side
-              controls, which is what made the old column need that much room
-              (and still wrap). */}
+          {/* Pinned right so the action is reachable at any width.
+              200px: enough for the primary button's full Thai label plus two
+              icon buttons and the overflow. At 140 the label was clipped to
+              "รับ…" / "อน…" — an action button whose text is cut is a button
+              you cannot trust. */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={140}
+            width={200}
+            minWidth={200}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
             allowFiltering={false}
             allowSorting={false}
+            allowResizing={false}
           />
 
           <Summary>
-            {/* customizeText with formatMoney: fixedPoint printed "205857.3"
-                (no thousand separators, dropped trailing zero). Money needs commas
-                + fixed 2dp + its unit — formatMoney gives "205,857.30", then บาท. */}
+            {/* Bound to the totalAmount column, so the figure lands in the same
+                vertical line as the amounts above it.
+
+                customizeText with formatMoney: fixedPoint printed "205857.3"
+                (no thousand separators, dropped trailing zero). Money needs
+                commas + fixed 2dp + its unit.
+
+                The label states the row count because "รวม" alone was
+                ambiguous — a reader cannot tell whether it covers every invoice
+                or only the current page. It is every invoice: the grid holds
+                the full result set and pages client-side. */}
             <TotalItem
               column="totalAmount"
               summaryType="sum"
               customizeText={(item: { value: string | number | Date }) =>
-                `รวม: ${formatMoney(Number(item.value) || 0, 2)} บาท`
+                `รวมทั้งหมด ${invoices.length} รายการ: ${formatMoney(Number(item.value) || 0, 2)} บาท`
               }
             />
           </Summary>
