@@ -209,6 +209,13 @@ export async function getCashBalance(asOfDate: string): Promise<number> {
     .where(
       and(
         sql`${glAccounts.code} LIKE '111%'`,
+        // Postable leaf accounts only, matching the balance sheet. Header
+        // accounts such as 1100 (Current Assets) and 1130 (Inventory) carry
+        // direct postings in this data, so including them double-counts their
+        // children — that is what left the dashboard's working capital 2,795
+        // adrift from the balance sheet.
+        eq(glAccounts.isActive, true),
+        eq(glAccounts.isPostable, true),
         eq(journalEntries.status, 'posted'),
         lte(journalEntries.entryDate, toQueryDate(asOfDate))
       )
@@ -243,6 +250,9 @@ export async function getARBalance(asOfDate: string): Promise<number> {
     .where(
       and(
         sql`${glAccounts.code} LIKE '112%'`,
+        // Postable leaf accounts only — see the note on getCashBalance.
+        eq(glAccounts.isActive, true),
+        eq(glAccounts.isPostable, true),
         eq(journalEntries.status, 'posted'),
         lte(journalEntries.entryDate, toQueryDate(asOfDate))
       )
@@ -313,6 +323,10 @@ export async function getInventoryBalance(asOfDate: string): Promise<number> {
     .where(
       and(
         sql`${glAccounts.code} LIKE '113%'`,
+        // Postable leaf accounts only — 1130 Inventory is itself a header with
+        // direct postings, so counting it alongside 1131/1132/1133 would double.
+        eq(glAccounts.isActive, true),
+        eq(glAccounts.isPostable, true),
         eq(journalEntries.status, 'posted'),
         lte(journalEntries.entryDate, toQueryDate(asOfDate))
       )
@@ -348,6 +362,12 @@ export async function getCurrentAssets(asOfDate: string): Promise<number> {
     .where(
       and(
         sql`${glAccounts.code} LIKE '11%'`,
+        // Postable leaf accounts only — see the note on getCashBalance. This is
+        // the query the user reported: working capital here did not agree with
+        // the balance sheet, because that report filters headers out and this
+        // one did not.
+        eq(glAccounts.isActive, true),
+        eq(glAccounts.isPostable, true),
         eq(journalEntries.status, 'posted'),
         lte(journalEntries.entryDate, toQueryDate(asOfDate))
       )
@@ -382,6 +402,11 @@ export async function getCurrentLiabilities(asOfDate: string): Promise<number> {
     .where(
       and(
         sql`${glAccounts.code} LIKE '21%'`,
+        // Postable leaf accounts only — see the note on getCashBalance. No 21xx
+        // header carries postings in today's data, so this changes nothing now,
+        // but it keeps liabilities consistent with assets and the balance sheet.
+        eq(glAccounts.isActive, true),
+        eq(glAccounts.isPostable, true),
         eq(journalEntries.status, 'posted'),
         lte(journalEntries.entryDate, toQueryDate(asOfDate))
       )
