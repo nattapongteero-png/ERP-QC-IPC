@@ -329,8 +329,12 @@ export default function TaxInvoicesPage() {
               keyExpr="id"
               showBorders={false}
               rowAlternationEnabled
-              columnAutoWidth
-              wordWrapEnabled
+              // autoWidth stretches the table past its container (see the AR
+              // invoice list); hide low-priority columns on narrow screens
+              // instead of forcing a horizontal scrollbar.
+              columnAutoWidth={false}
+              columnHidingEnabled
+              wordWrapEnabled={false}
               noDataText={t('taxInvoices.noData')}
               data-testid="tax-invoices-grid"
               data-build="ar-ap-export-20260727-v2"

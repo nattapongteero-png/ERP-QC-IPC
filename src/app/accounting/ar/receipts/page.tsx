@@ -710,7 +710,11 @@ export default function ARReceiptsPage() {
                 rowAlternationEnabled
                 allowColumnReordering
                 allowColumnResizing
-                columnAutoWidth
+                // autoWidth stretches the table past its container (see the AR
+                // invoice list); hide low-priority columns on narrow screens
+                // instead of forcing a horizontal scrollbar.
+                columnAutoWidth={false}
+                columnHidingEnabled
                 hoverStateEnabled
                 data-build="ar-ap-export-20260727-v2"
               >
