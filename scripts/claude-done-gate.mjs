@@ -13,7 +13,12 @@
  */
 import { execSync } from 'node:child_process';
 
-const REPO = 'C:\\Herbal ERP\\herbal-medicine-erp';
+// Derive the repo from this file's own location. A hardcoded Windows path with
+// a space in it silently produced empty output from every git command, so the
+// gate passed everything — the exact class of false-negative it exists to stop.
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sh = (cmd) => {
   try {
     return execSync(cmd, { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -29,7 +34,9 @@ const problems = [];
 const dirty = sh('git status --porcelain')
   .split('\n')
   .filter((l) => /^\s*[MARD]/.test(l) && /\.(ts|tsx|css|json)$/.test(l))
-  .map((l) => l.slice(3));
+  // porcelain is 'XY <path>'; trim the status columns without eating the path
+  // (a fixed slice(3) turned 'src/…' into 'rc/…').
+  .map((l) => l.replace(/^.{2}\s+/, '').trim());
 if (dirty.length) {
   problems.push(`UNCOMMITTED source (${dirty.length}): ${dirty.slice(0, 5).join(', ')}${dirty.length > 5 ? ' …' : ''}`);
 }
@@ -45,7 +52,7 @@ for (const remote of ['gitlab', 'origin']) {
 }
 
 // 3. A UI change with no screenshot taken. Reading code is not looking at it.
-const uiTouched = sh('git diff --name-only HEAD~3..HEAD 2>/dev/null')
+const uiTouched = sh('git diff --name-only HEAD~3..HEAD ')
   .split('\n')
   .some((f) => f.endsWith('.tsx') || f.endsWith('globals.css'));
 const shotSeen = sh('git status --porcelain --ignored')
@@ -57,12 +64,40 @@ if (uiTouched && !shotSeen) {
   );
 }
 
+// 3b. Hardcoded Thai in UI code. The app is bilingual (next-intl): every
+//     user-visible string must come from a translation key, or switching to EN
+//     leaves Thai on screen. I added ~56 such strings on 2026-07-28 despite the
+//     rule already being in CLAUDE.md.
+// Look back far enough to cover a working session, and include files still
+// uncommitted — a 3-commit window missed files edited earlier in the same day.
+const recentUi = [
+  ...sh('git diff --name-only HEAD~10..HEAD ').split('\n'),
+  ...dirty,
+].filter((f) => (f.startsWith('src/app/') || f.startsWith('src/components/')) && f.endsWith('.tsx'));
+// Match in JS rather than shell — escaping a Thai character class through
+// execSync silently produced no matches even though the pattern was correct.
+const THAI_IN_UI = /(?:text=|hint=|placeholder=|title=|label=)["'][฀-๿]|>[฀-๿][^<]{2,}</;
+const thaiOffenders = [];
+for (const f of [...new Set(recentUi)]) {
+  const src = sh(`git show HEAD:${f}`) || '';
+  const offending = src
+    .split('\n')
+    .filter((line) => !/^\s*(\/\/|\*)/.test(line)) // skip comments
+    .some((line) => THAI_IN_UI.test(line));
+  if (offending) thaiOffenders.push(f.split('/').pop());
+}
+if (thaiOffenders.length) {
+  problems.push(
+    `HARDCODED THAI in ${thaiOffenders.join(', ')} — the app is bilingual. Move to src/locales/th + en and use useTranslations, then re-check in EN.`,
+  );
+}
+
 // 4. Typecheck. Baseline is 5 pre-existing errors; anything above that is mine.
 //    Only run when source actually changed — tsc is slow and this fires on
 //    every turn, including pure conversation.
 const srcChanged =
   dirty.length > 0 ||
-  sh('git diff --name-only HEAD~3..HEAD 2>/dev/null')
+  sh('git diff --name-only HEAD~3..HEAD ')
     .split('\n')
     .some((f) => f.startsWith('src/'));
 const TYPECHECK_BASELINE = 5;
