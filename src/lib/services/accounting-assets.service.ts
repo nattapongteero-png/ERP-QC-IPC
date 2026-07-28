@@ -13,7 +13,7 @@
 import { getDb, isSqlite } from '../db';
 import { getNow, toDbDate, toQueryDate, getTodayStr, formatDateFromDb } from '../db/date-utils';
 import { eq, and, sql, desc, asc, gte, lte, or, isNull, between, count, sum } from 'drizzle-orm';
-import { getAccountingTables, createJournalEntry } from './accounting.service';
+import { getAccountingTables, createJournalEntry, postJournalEntry } from './accounting.service';
 import { auditedDelete } from '../db/audit-wrapper';
 import { executeDbOperation } from '../db/db-helper';
 import {
@@ -465,16 +465,106 @@ export async function runMonthlyDepreciation(
       .where(eq(fixedAssets.id, record.fixedAssetId));
   }
 
-  // TODO: Create journal entry for depreciation
-  // Debit: Depreciation Expense
-  // Credit: Accumulated Depreciation
-  const journalEntryId = null; // Will be implemented with proper GL account lookup
+  // Post the depreciation journal entry.
+  //
+  // This used to be a TODO returning null, which meant `asset_depreciations`
+  // and the asset's NBV moved while the GL did not — a guaranteed
+  // subledger-to-GL divergence the moment the module was used. Depreciation
+  // must be recognised in the GL each period, and the asset register must
+  // reconcile to its control accounts.
+  //
+  // Accounts come from the asset's category (asset_categories already carries
+  // depreciation_expense_gl_account_id and accumulated_depreciation_gl_account_id),
+  // so different asset classes hit their own expense / accumulated accounts.
+  // Amounts are grouped per account pair to keep the entry compact rather than
+  // emitting two lines per asset.
+  const categories = await database.select().from(assetCategories);
+  const categoryById = new Map<number, AssetCategory>(
+    (categories as AssetCategory[]).map((c) => [c.id, c]),
+  );
+  const assetById = new Map<number, FixedAsset>(
+    (activeAssets as FixedAsset[]).map((a) => [a.id, a]),
+  );
+
+  // key: `${expenseAccountId}:${accumulatedAccountId}` → summed amount
+  const byAccountPair = new Map<string, number>();
+  const unmappedAssetIds: number[] = [];
+
+  for (const record of depreciationRecords) {
+    const asset = assetById.get(record.fixedAssetId);
+    const category = asset?.categoryId != null ? categoryById.get(asset.categoryId) : undefined;
+    const expenseAccountId = category?.depreciationExpenseGLAccountId;
+    const accumulatedAccountId = category?.accumulatedDepreciationGLAccountId;
+
+    if (!expenseAccountId || !accumulatedAccountId) {
+      unmappedAssetIds.push(record.fixedAssetId);
+      continue;
+    }
+
+    const key = `${expenseAccountId}:${accumulatedAccountId}`;
+    byAccountPair.set(key, (byAccountPair.get(key) || 0) + record.depreciationAmount);
+  }
+
+  // An asset whose category has no GL mapping cannot be posted. Failing loudly
+  // beats silently under-posting depreciation and leaving the GL short.
+  if (unmappedAssetIds.length > 0) {
+    throw new Error(
+      `ไม่สามารถบันทึกบัญชีค่าเสื่อมราคาได้: สินทรัพย์รหัส ${unmappedAssetIds.join(', ')} ` +
+        'ไม่ได้กำหนดผังบัญชีค่าเสื่อมราคา/ค่าเสื่อมราคาสะสมในประเภทสินทรัพย์',
+    );
+  }
+
+  const journalLines: { glAccountId: number; debit: number; credit: number; description: string }[] = [];
+  for (const [key, amount] of byAccountPair) {
+    const [expenseAccountId, accumulatedAccountId] = key.split(':').map(Number);
+    const rounded = Math.round(amount * 100) / 100;
+    if (rounded <= 0) continue;
+    journalLines.push({
+      glAccountId: expenseAccountId,
+      debit: rounded,
+      credit: 0,
+      description: `ค่าเสื่อมราคาประจำงวด ${depreciationMonth}`,
+    });
+    journalLines.push({
+      glAccountId: accumulatedAccountId,
+      debit: 0,
+      credit: rounded,
+      description: `ค่าเสื่อมราคาสะสม ${depreciationMonth}`,
+    });
+  }
+
+  let journalEntryId: number | null = null;
+  if (journalLines.length >= 2) {
+    const je = await createJournalEntry({
+      // Depreciation is recognised on the last day of the month it belongs to.
+      entryDate: getMonthEndDate(depreciationMonth),
+      description: `ค่าเสื่อมราคาประจำงวด ${depreciationMonth}`,
+      sourceType: 'DEPRECIATION',
+      lines: journalLines,
+      createdBy: createdBy ?? 0,
+    });
+    journalEntryId = je.id;
+
+    // Depreciation is a period-end recognition, not a draft proposal — post it
+    // so it reaches the trial balance and financial statements.
+    if (createdBy != null) {
+      await postJournalEntry(je.id, createdBy);
+    }
+  }
 
   return {
     processedCount: depreciationRecords.length,
     totalDepreciation,
     journalEntryId,
   };
+}
+
+/** Last calendar day of a YYYY-MM month, as YYYY-MM-DD. */
+function getMonthEndDate(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  // Day 0 of the NEXT month is the last day of this one.
+  const d = new Date(Date.UTC(y, m, 0));
+  return d.toISOString().split('T')[0];
 }
 
 /**

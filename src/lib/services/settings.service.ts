@@ -21,6 +21,14 @@ export interface CompanySettings {
   phone: string;
   email: string;
   taxId: string;
+  /**
+   * Branch identifier printed on the tax invoice (ประมวลรัษฎากร requires every
+   * tax invoice to state the issuing establishment). Empty string means the
+   * head office, which prints as "สำนักงานใหญ่"; otherwise the value is printed
+   * as "สาขาที่ <branch>". Stored as free text so branch codes like "00001"
+   * keep their leading zeros.
+   */
+  branch: string;
   fdaLicense: string;
   gmpCertificate: string;
   lotPrefix: string;
@@ -37,6 +45,7 @@ const SETTING_CATEGORIES: Record<keyof CompanySettings, string> = {
   phone: COMPANY_SETTINGS_CATEGORY,
   email: COMPANY_SETTINGS_CATEGORY,
   taxId: REGULATORY_SETTINGS_CATEGORY,
+  branch: REGULATORY_SETTINGS_CATEGORY,
   fdaLicense: REGULATORY_SETTINGS_CATEGORY,
   gmpCertificate: REGULATORY_SETTINGS_CATEGORY,
   lotPrefix: PREFIX_SETTINGS_CATEGORY,
@@ -52,6 +61,7 @@ const DEFAULTS: CompanySettings = {
   phone: '',
   email: '',
   taxId: '',
+  branch: '',
   fdaLicense: '',
   gmpCertificate: '',
   lotPrefix: 'LOT',

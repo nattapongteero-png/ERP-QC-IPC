@@ -2511,15 +2511,26 @@ export async function recordAPPayment(
     .where(eq(glAccounts.code, '2111'))
     .limit(1);
 
-  // Find WHT payable account if WHT applied
+  // Find WHT payable account if WHT applied.
+  // Account code is 2132 (ภาษีหัก ณ ที่จ่ายค้างจ่าย) — the seeded chart of
+  // accounts has no 2143, so the previous code silently resolved to undefined
+  // and the `whtAccountId` guard below dropped the WHT credit leg, producing an
+  // unbalanced entry (Dr AP full vs Cr bank net). Missing the account is a
+  // configuration error, not something to swallow: throw so the payment fails
+  // loudly instead of posting a broken journal.
   let whtAccountId = null;
   if (whtAmount > 0) {
     const [whtAccount] = await database
       .select({ id: glAccounts.id })
       .from(glAccounts)
-      .where(eq(glAccounts.code, '2143')) // WHT Payable
+      .where(eq(glAccounts.code, '2132')) // WHT Payable
       .limit(1);
-    whtAccountId = whtAccount?.id;
+    if (!whtAccount) {
+      throw new Error(
+        'ไม่พบบัญชีภาษีหัก ณ ที่จ่ายค้างจ่าย (รหัส 2132) ในผังบัญชี — ไม่สามารถบันทึกการจ่ายเงินที่มีภาษีหัก ณ ที่จ่ายได้',
+      );
+    }
+    whtAccountId = whtAccount.id;
   }
 
   // Create journal entry for payment

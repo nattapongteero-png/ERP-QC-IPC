@@ -13,6 +13,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { CheckBox } from 'devextreme-react/check-box';
 import { TextBox } from 'devextreme-react/text-box';
 import DataGrid, { Column } from 'devextreme-react/data-grid';
+import notify from 'devextreme/ui/notify';
 
 interface CSVImportDialogProps {
   visible: boolean;
@@ -159,6 +160,41 @@ export function CSVImportDialog({
     const refIdx = mapping.referenceColumn ? columnNames.indexOf(mapping.referenceColumn) : -1;
     const balIdx = mapping.balanceColumn ? columnNames.indexOf(mapping.balanceColumn) : -1;
 
+    // A mapped-but-unresolvable column means the file was not split into fields
+    // the way the user thinks (wrong delimiter, or a header row that doesn't
+    // match the picked names). Importing anyway is how UAT ended up with the
+    // whole CSV row dumped into `description` and the YEAR parsed as an amount
+    // (debit_amount = 2025.00 on every line). Refuse instead of importing junk.
+    const unresolved: string[] = [];
+    if (dateIdx < 0) unresolved.push(mapping.dateColumn || '(วันที่)');
+    if (descIdx < 0) unresolved.push(mapping.descriptionColumn || '(รายละเอียด)');
+    if (mapping.debitColumn && debitIdx < 0) unresolved.push(mapping.debitColumn);
+    if (mapping.creditColumn && creditIdx < 0) unresolved.push(mapping.creditColumn);
+    if (mapping.referenceColumn && refIdx < 0) unresolved.push(mapping.referenceColumn);
+    if (mapping.balanceColumn && balIdx < 0) unresolved.push(mapping.balanceColumn);
+
+    if (unresolved.length > 0) {
+      notify(
+        `ไม่พบคอลัมน์ในไฟล์: ${unresolved.join(', ')} — ` +
+          'ตรวจสอบว่าไฟล์คั่นด้วยเครื่องหมายจุลภาค (,) และเลือกคอลัมน์ให้ตรงกับหัวตาราง',
+        'error',
+        6000,
+      );
+      return;
+    }
+
+    // A single-field split means the delimiter never matched — every row would
+    // become one long description. Catch it before it reaches the database.
+    if (columnNames.length < 2) {
+      notify(
+        'ไฟล์นี้แยกคอลัมน์ไม่ได้ (พบเพียงคอลัมน์เดียว) — ' +
+          'กรุณาตรวจสอบว่าเป็นไฟล์ CSV ที่คั่นด้วยเครื่องหมายจุลภาค (,)',
+        'error',
+        6000,
+      );
+      return;
+    }
+
     const lines = dataRows.map((row, idx) => ({
       rowNumber: idx + 1,
       transactionDate: parseDate(row[dateIdx] || ''),
@@ -168,6 +204,15 @@ export function CSVImportDialog({
       reference: refIdx >= 0 ? row[refIdx] : undefined,
       balance: balIdx >= 0 ? parseAmount(row[balIdx]) : undefined,
     })).filter(line => line.transactionDate && line.description);
+
+    if (lines.length === 0) {
+      notify(
+        'ไม่พบรายการที่นำเข้าได้ — ตรวจสอบรูปแบบวันที่และคอลัมน์ที่เลือก',
+        'error',
+        6000,
+      );
+      return;
+    }
 
     setParsedLines(lines);
     setStep('preview');

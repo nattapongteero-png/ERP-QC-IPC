@@ -3,7 +3,7 @@
  * Part of 011-accounting-spec-gap - User Story 2
  */
 
-import { eq, and, or, like, gte, lte, desc, asc, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, like, gte, lte, desc, asc, sql, isNull, inArray } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
 import type {
@@ -896,11 +896,38 @@ export async function finalizeReconciliation(
       })
       .where(eq(tables.statements.id, statementId));
 
-    // Mark all lines as reconciled
-    await db
-      .update(tables.lines)
-      .set({ status: 'reconciled' })
-      .where(eq(tables.lines.statementId, statementId));
+    // Mark ONLY genuinely matched lines as reconciled.
+    //
+    // This used to be a blanket `UPDATE ... WHERE statement_id = ?`, which
+    // stamped every line 'reconciled' whether or not anything had been matched
+    // against it. In UAT that produced 16 lines marked reconciled while
+    // `reconciliation_matches` held 0 rows — an assertion with no evidence
+    // behind it, so nobody could show WHAT each bank line was cleared against.
+    // "Reconciled" must mean "has a supporting match record"; a line with no
+    // match stays open even when the statement is force-closed.
+    // `reconciliation_matches` has no statement_id — it hangs off the line —
+    // so join through the lines of this statement.
+    const matchedLineIds = (
+      await db
+        .selectDistinct({ lineId: tables.matches.statementLineId })
+        .from(tables.matches)
+        .innerJoin(tables.lines, eq(tables.lines.id, tables.matches.statementLineId))
+        .where(eq(tables.lines.statementId, statementId))
+    )
+      .map((r: { lineId: number | null }) => r.lineId)
+      .filter((id: number | null): id is number => id != null);
+
+    if (matchedLineIds.length > 0) {
+      await db
+        .update(tables.lines)
+        .set({ status: 'reconciled' })
+        .where(
+          and(
+            eq(tables.lines.statementId, statementId),
+            inArray(tables.lines.id, matchedLineIds),
+          ),
+        );
+    }
 
     return { success: true };
   });

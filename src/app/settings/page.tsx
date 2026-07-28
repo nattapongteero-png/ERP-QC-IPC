@@ -18,6 +18,8 @@ interface Settings {
   phone: string;
   email: string;
   taxId: string;
+  /** Blank = head office. Printed on the tax invoice as สำนักงานใหญ่ / สาขาที่ N. */
+  branch: string;
   fdaLicense: string;
   gmpCertificate: string;
   lotPrefix: string;
@@ -35,6 +37,7 @@ export default function SettingsPage() {
     phone: '',
     email: '',
     taxId: '',
+    branch: '',
     fdaLicense: '',
     gmpCertificate: '',
     lotPrefix: 'LOT',
@@ -208,6 +211,16 @@ export default function SettingsPage() {
                 <DxTextBox
                   value={settings.taxId}
                   onValueChange={(value) => handleChange('taxId', value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  สาขา (เว้นว่าง = สำนักงานใหญ่)
+                </label>
+                <DxTextBox
+                  value={settings.branch}
+                  onValueChange={(value) => handleChange('branch', value)}
+                  placeholder="เช่น 00001"
                 />
               </div>
               <div>

@@ -25,6 +25,27 @@ interface CompanyInfo {
   phone: string;
   email: string;
   taxId: string;
+  /** '' = head office → prints "สำนักงานใหญ่"; otherwise "สาขาที่ <branch>". */
+  branch?: string;
+}
+
+/**
+ * Which statutory copy this rendering is. ประมวลรัษฎากร requires every tax
+ * invoice to be marked: the buyer's copy is เอกสารออกเป็นชุด "ต้นฉบับ" and the
+ * seller's retained copy "สำเนา". Printing an unmarked invoice is a defect the
+ * Revenue Department can penalise, so this is not optional decoration.
+ */
+export type TaxInvoiceCopyType = 'original' | 'copy';
+
+const COPY_LABEL: Record<TaxInvoiceCopyType, string> = {
+  original: 'ต้นฉบับ (Original)',
+  copy: 'สำเนา (Copy)',
+};
+
+/** "สำนักงานใหญ่" when no branch is configured, else "สาขาที่ <branch>". */
+function formatBranch(branch?: string | null): string {
+  const b = (branch ?? '').trim();
+  return b === '' ? 'สำนักงานใหญ่' : `สาขาที่ ${b}`;
 }
 
 export interface ARInvoicePrintLine {
@@ -64,7 +85,14 @@ function formatThaiDate(value?: string | null): string {
   return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintData }) {
+export function ARInvoicePrintDocument({
+  invoice,
+  copyType = 'original',
+}: {
+  invoice: ARInvoicePrintData;
+  /** Defaults to the buyer's ต้นฉบับ — the copy that leaves the building. */
+  copyType?: TaxInvoiceCopyType;
+}) {
   const [company, setCompany] = useState<CompanyInfo | null>(null);
 
   useEffect(() => {
@@ -97,6 +125,15 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
         }
         .ari-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
         .ari-title { font-size: 18pt; font-weight: 700; text-align: right; }
+        .ari-copy-mark {
+          margin-top: 4px;
+          font-size: 11pt;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          border: 1.5px solid #000;
+          padding: 2px 8px;
+          display: inline-block;
+        }
         .ari-meta { display: flex; justify-content: space-between; gap: 24px; margin-top: 12px; }
         .ari-block { flex: 1; }
         .ari-label { font-size: 10pt; color: #444; }
@@ -132,10 +169,15 @@ export function ARInvoicePrintDocument({ invoice }: { invoice: ARInvoicePrintDat
           {company?.taxId && (
             <div style={{ fontSize: '10pt' }}>เลขประจำตัวผู้เสียภาษี: {company.taxId}</div>
           )}
+          {/* Statutory: the issuing establishment must appear on the face of the
+              tax invoice. Always printed — head office is an explicit statement,
+              not an omission. */}
+          <div style={{ fontSize: '10pt' }}>{formatBranch(company?.branch)}</div>
         </div>
         <div className="ari-title">
           ใบกำกับภาษี / ใบแจ้งหนี้
           <div style={{ fontSize: '10pt', fontWeight: 400 }}>Tax Invoice / Invoice</div>
+          <div className="ari-copy-mark">{COPY_LABEL[copyType]}</div>
         </div>
       </div>
 
