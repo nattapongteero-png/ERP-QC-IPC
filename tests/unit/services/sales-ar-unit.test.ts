@@ -300,6 +300,78 @@ describe('Sales + AR Unit Tests', () => {
       );
       expect(secondFreight).toHaveLength(0);
     });
+
+    // Buyer identification (มาตรา 86/4).
+    //
+    // Every AR invoice in the local dataset was stored against customer_id = 0
+    // because sales_orders carried only a free-text customer_name and the
+    // by-name lookup silently returned nothing when the name wasn't an exact
+    // match. A tax invoice with no identifiable buyer cannot be used by the
+    // customer to claim input VAT and fails a Revenue Department check, so the
+    // service must refuse to issue one rather than write the 0 sentinel.
+    it('stores the real customer id when the caller supplies it', async () => {
+      testSqlite.exec(`
+        INSERT INTO sales_orders (id, so_number, customer_name, status, total_amount, currency, shipping_cost, created_at, updated_at)
+        VALUES (9101, 'SO-BUYER-OK', 'ลูกค้าทดสอบ 1', 'confirmed', 1000, 'THB', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+
+      const res = await createARInvoiceFromSOShipment(
+        {
+          soId: 9101,
+          soNumber: 'SO-BUYER-OK',
+          customerId: ACCT_TEST_IDS.CUSTOMER_1,
+          customerName: 'ลูกค้าทดสอบ 1',
+          shipmentDate: '2026-02-01',
+          dueDate: '2026-03-03',
+          deliveryId: 101,
+          deliveryNumber: 'DL-101',
+          itemId: 1,
+          itemCode: 'FG-001',
+          itemName: 'สินค้า',
+          quantity: 1,
+          unitPrice: 1000,
+          totalAmount: 1070,
+          vatAmount: 70,
+          netAmount: 1000,
+        },
+        1,
+      );
+
+      const inv = await getARInvoiceById(res.arInvoiceId);
+      expect(inv.customerId).toBe(ACCT_TEST_IDS.CUSTOMER_1);
+      expect(inv.customerId).not.toBe(0); // the sentinel this fix removes
+    });
+
+    it('REFUSES to issue a tax invoice when the buyer cannot be identified', async () => {
+      testSqlite.exec(`
+        INSERT INTO sales_orders (id, so_number, customer_name, status, total_amount, currency, shipping_cost, created_at, updated_at)
+        VALUES (9102, 'SO-BUYER-UNKNOWN', 'ลูกค้าที่ไม่มีในทะเบียน', 'confirmed', 1000, 'THB', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+
+      await expect(
+        createARInvoiceFromSOShipment(
+          {
+            soId: 9102,
+            soNumber: 'SO-BUYER-UNKNOWN',
+            // No customerId, and the name matches no customer record.
+            customerName: 'ลูกค้าที่ไม่มีในทะเบียน',
+            shipmentDate: '2026-02-01',
+            dueDate: '2026-03-03',
+            deliveryId: 102,
+            deliveryNumber: 'DL-102',
+            itemId: 1,
+            itemCode: 'FG-001',
+            itemName: 'สินค้า',
+            quantity: 1,
+            unitPrice: 1000,
+            totalAmount: 1070,
+            vatAmount: 70,
+            netAmount: 1000,
+          },
+          1,
+        ),
+      ).rejects.toThrow(/ไม่พบลูกค้า/);
+    });
   });
 
   // ============================================

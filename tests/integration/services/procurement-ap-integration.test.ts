@@ -369,7 +369,7 @@ describe('Procurement to AP Integration Tests', () => {
       expect(whtCalc.whtAmount).toBe(321);
       expect(whtCalc.netPayment).toBe(10379);
 
-      const { invoice: paid } = await recordAPPayment(
+      const { invoice: paid, payment } = await recordAPPayment(
         invoice.id,
         { paymentDate: '2025-02-01', bankAccountId: ACCT_TEST_IDS.BANK, paymentMethod: 'transfer', amount: 10700, whtRate: 3 },
         1
@@ -383,6 +383,61 @@ describe('Procurement to AP Integration Tests', () => {
       expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.BANK)).toBe(-10379);
       // AP fully cleared
       expect(getAccountBalance(testSqlite, ACCT_TEST_IDS.AP_DOMESTIC)).toBe(0);
+      expect(verifyTrialBalance(testSqlite).isBalanced).toBe(true);
+    });
+
+    it('issues a WHT certificate row so ภ.ง.ด.3/53 can be filed', async () => {
+      // createWHTTransaction() had a certificate-number generator, a PDF
+      // renderer and report queries, but ZERO call sites — so
+      // wht_transactions stayed empty and no หนังสือรับรองการหักภาษี ณ ที่จ่าย
+      // could be issued, even though Thai law requires the payer to issue one
+      // at the time of payment and the ภ.ง.ด. return is built from these rows.
+      const invoice = await createAPInvoice(
+        {
+          invoiceNumber: 'AP-WHT-CERT-001',
+          vendorId: ACCT_TEST_IDS.VENDOR,
+          invoiceDate: '2025-01-20',
+          dueDate: '2025-02-20',
+          receivedDate: '2025-01-20',
+          lines: [{ description: 'ค่าบริการที่ปรึกษา', glAccountId: ACCT_TEST_IDS.COGS, quantity: 1, unitPrice: 20000 }],
+        },
+        1
+      );
+      await approveAPInvoice(invoice.id, 1);
+
+      const { payment } = await recordAPPayment(
+        invoice.id,
+        {
+          paymentDate: '2025-02-05',
+          bankAccountId: ACCT_TEST_IDS.BANK,
+          paymentMethod: 'transfer',
+          amount: 21400,
+          whtRate: 3,
+          whtCertificateType: 'pnd53',
+          whtType: 'ค่าบริการ',
+        },
+        1
+      );
+
+      // The payment now reports the certificate it issued. Number carries the
+      // return type (53 = ภ.ง.ด.53) and the tax period: WHT53-YYYYMM-NNNNNN.
+      expect(payment.whtCertificateNumber).toMatch(/^WHT53-202502-\d{6}$/);
+
+      const rows = testSqlite
+        .prepare('SELECT * FROM wht_transactions ORDER BY id DESC LIMIT 1')
+        .all() as Record<string, unknown>[];
+      expect(rows).toHaveLength(1);
+
+      const cert = rows[0];
+      expect(cert.certificate_type).toBe('pnd53');
+      expect(cert.vendor_id).toBe(ACCT_TEST_IDS.VENDOR);
+      expect(Number(cert.payment_amount)).toBe(21400);
+      expect(Number(cert.wht_rate)).toBe(3);
+      expect(Number(cert.wht_amount)).toBe(642);   // 21400 * 3%
+      expect(Number(cert.net_amount)).toBe(20758); // 21400 - 642
+      expect(cert.tax_period).toBe('2025-02');     // derived from payment date
+
+      // The books must still balance with the certificate written.
       expect(verifyTrialBalance(testSqlite).isBalanced).toBe(true);
     });
   });
