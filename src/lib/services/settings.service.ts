@@ -165,6 +165,26 @@ const INVOICE_PAYMENT_TERMS_KEY = 'invoice_payment_terms_days';
 const DEFAULT_INVOICE_PAYMENT_TERMS_DAYS = 30;
 
 /**
+ * Settings key controlling WHO issues the tax invoice, and therefore whether
+ * several shipments can share one.
+ *
+ * `false` (default, unchanged behaviour): shipping a line immediately creates
+ * AND posts its own AR invoice. One delivery line = one ใบกำกับภาษี, so a
+ * customer who ordered five items and received them together still gets five
+ * tax invoices.
+ *
+ * `true`: shipping leaves the invoice in `draft`. Accounting reviews it and
+ * confirms when ready, which posts the journal entry. Because a draft can be
+ * appended to (confirmed invoices cannot — see updateARInvoice), later
+ * shipments on the same order and the same day join the existing draft instead
+ * of minting a new tax-invoice number.
+ *
+ * Defaults to false so enabling this is a deliberate business decision: with
+ * it on, nobody issues a tax invoice until Accounting acts.
+ */
+const INVOICE_REQUIRES_ACCOUNTING_KEY = 'invoice_requires_accounting_approval';
+
+/**
  * How many days after the sale/shipment an auto-generated AR invoice is due
  * (list item 3). Configurable instead of the previously hard-coded 30. Falls
  * back to 30 when unset or malformed.
@@ -210,6 +230,58 @@ export async function setInvoicePaymentTermsDays(
         key: INVOICE_PAYMENT_TERMS_KEY,
         value,
         description: 'จำนวนวันครบกำหนดชำระหลังออกใบแจ้งหนี้',
+        category: 'accounting',
+        updatedBy: userId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  });
+}
+
+/**
+ * Whether Accounting must confirm an AR invoice before it posts.
+ * See INVOICE_REQUIRES_ACCOUNTING_KEY. Defaults to false (ship = post).
+ */
+export async function getInvoiceRequiresAccountingApproval(): Promise<boolean> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const rows = await db
+      .select({ value: tables.settings.value })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, INVOICE_REQUIRES_ACCOUNTING_KEY))
+      .limit(1);
+
+    return String(rows[0]?.value ?? '').toLowerCase() === 'true';
+  });
+}
+
+/** Turn the accounting-approval workflow on or off. */
+export async function setInvoiceRequiresAccountingApproval(
+  enabled: boolean,
+  userId?: number,
+): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const tables = getTables();
+    const now = getNow();
+    const value = enabled ? 'true' : 'false';
+
+    const existing = await db
+      .select({ id: tables.settings.id })
+      .from(tables.settings)
+      .where(eq(tables.settings.key, INVOICE_REQUIRES_ACCOUNTING_KEY))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(tables.settings)
+        .set({ value, category: 'accounting', updatedBy: userId ?? null, updatedAt: now })
+        .where(eq(tables.settings.key, INVOICE_REQUIRES_ACCOUNTING_KEY));
+    } else {
+      await db.insert(tables.settings).values({
+        key: INVOICE_REQUIRES_ACCOUNTING_KEY,
+        value,
+        description: 'ให้ฝ่ายบัญชียืนยันก่อนออกใบกำกับภาษี (รวมหลายรายการที่ส่งวันเดียวกันเป็นใบเดียว)',
         category: 'accounting',
         updatedBy: userId ?? null,
         createdAt: now,

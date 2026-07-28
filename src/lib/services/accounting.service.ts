@@ -3247,6 +3247,45 @@ export async function updateARInvoice(
   if (input.dueDate !== undefined) updateValues.dueDate = input.dueDate ? toDbDate(input.dueDate) : null;
   if (input.description !== undefined) updateValues.description = input.description;
 
+  // Replace the line set when one is supplied.
+  //
+  // `lines` was already accepted by this function's signature but silently
+  // ignored — only header fields were ever written, so a caller passing lines
+  // got a success back and no change. Totals are recomputed here because the
+  // header's subtotal/vat/total must never drift from the lines they describe.
+  if (input.lines) {
+    const { arInvoiceLines } = getAccountingTables();
+    const VAT_RATE = 0.07;
+
+    const processed = input.lines.map((line, index) => {
+      const amount = line.quantity * line.unitPrice;
+      return {
+        arInvoiceId: id,
+        lineNumber: index + 1,
+        description: line.description,
+        itemId: line.itemId ?? null,
+        glAccountId: line.glAccountId,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        amount,
+        vatAmount: Math.round(amount * VAT_RATE * 100) / 100,
+        lotId: line.lotId ?? null,
+        createdAt: getNow(),
+      };
+    });
+
+    await database.delete(arInvoiceLines).where(eq(arInvoiceLines.arInvoiceId, id));
+    if (processed.length > 0) {
+      await database.insert(arInvoiceLines).values(processed as any);
+    }
+
+    const subtotal = processed.reduce((s, l) => s + l.amount, 0);
+    const vatAmount = processed.reduce((s, l) => s + l.vatAmount, 0);
+    updateValues.subtotal = subtotal;
+    updateValues.vatAmount = vatAmount;
+    updateValues.totalAmount = subtotal + vatAmount;
+  }
+
   await database
     .update(arInvoices)
     .set(updateValues)
@@ -5453,6 +5492,97 @@ export async function createARInvoiceFromSOShipment(
     );
   }
 
+  // Does Accounting gate the tax invoice? See
+  // getInvoiceRequiresAccountingApproval — off by default, so the historical
+  // "ship = post immediately" behaviour is unchanged unless a business turns
+  // this on.
+  const { getInvoiceRequiresAccountingApproval } = await import('./settings.service');
+  const requiresApproval = await getInvoiceRequiresAccountingApproval();
+
+  // With the gate on, fold this shipment into the order's existing OPEN draft
+  // for the same invoice date instead of minting a second tax-invoice number.
+  //
+  // Consolidation is only possible while the invoice is a draft: once
+  // confirmARInvoice posts it, updateARInvoice refuses to touch it (and
+  // amending it would mean reversing a posted journal entry). That is exactly
+  // why the gate and the consolidation are the same feature — deferring the
+  // post is what creates the window in which lines can still be added.
+  //
+  // Scoped to the same invoice_date on purpose: goods delivered on different
+  // days are separate tax points and belong on separate ใบกำกับภาษี.
+  let draftToExtend: { id: number } | undefined;
+  if (requiresApproval) {
+    const [openDraft] = await database
+      .select({ id: arInvoices.id })
+      .from(arInvoices)
+      .where(
+        and(
+          eq(arInvoices.salesOrderId, input.soId),
+          eq(arInvoices.status, 'draft'),
+          eq(arInvoices.invoiceDate, toDbDate(input.shipmentDate) as never),
+        ),
+      )
+      .limit(1);
+    draftToExtend = openDraft;
+  }
+
+  if (draftToExtend) {
+    const existingInvoice = await getARInvoiceById(draftToExtend.id);
+    const existingLines = (existingInvoice.lines ?? []).map((l: any) => ({
+      description: String(l.description ?? ''),
+      quantity: Number(l.quantity) || 0,
+      unitPrice: Number(l.unitPrice) || 0,
+      glAccountId: Number(l.glAccountId),
+      itemId: l.itemId ?? null,
+      lotId: l.lotId ?? null,
+    }));
+
+    const updated = await updateARInvoice(
+      draftToExtend.id,
+      {
+        description:
+          `${existingInvoice.description ?? ''} + ${input.itemCode} x ${input.quantity} (Delivery: ${input.deliveryNumber})`.trim(),
+        lines: [
+          ...existingLines,
+          {
+            description: `${input.itemCode} - ${input.itemName}`,
+            itemId: input.itemId,
+            glAccountId: salesAccount.id,
+            quantity: input.quantity,
+            unitPrice: input.unitPrice,
+            lotId: input.lotId,
+          },
+          ...(freightLine ? [freightLine] : []),
+        ],
+      },
+      createdBy,
+    );
+
+    await createAuditLog({
+      action: 'UPDATE',
+      tableName: 'ar_invoice',
+      recordId: updated.id,
+      userId: createdBy,
+      newValue: {
+        type: 'SO_SHIPMENT_CONSOLIDATED',
+        soNumber: input.soNumber,
+        deliveryNumber: input.deliveryNumber,
+        itemCode: input.itemCode,
+        quantity: input.quantity,
+      },
+    });
+
+    return {
+      success: true,
+      arInvoiceId: updated.id,
+      arInvoiceNumber: updated.invoiceNumber,
+      taxInvoiceNumber: updated.taxInvoiceNumber,
+      journalEntryId: undefined,
+      journalEntryNumber: undefined,
+      message: `เพิ่มรายการเข้าใบแจ้งหนี้ฉบับร่าง ${updated.invoiceNumber} — รอฝ่ายบัญชียืนยัน`,
+    };
+  }
+
   // Generate AR invoice number, tax invoice number and create invoice with retry to prevent duplicate numbers
   const MAX_AR_RETRIES = 3;
   let arInvoice: any;
@@ -5493,8 +5623,13 @@ export async function createARInvoiceFromSOShipment(
     }
   }
 
-  // Confirm and post the AR invoice (creates journal entry)
-  const confirmedInvoice = await confirmARInvoice(arInvoice.id, createdBy);
+  // Confirm and post the AR invoice (creates journal entry) — unless
+  // Accounting gates it, in which case it stays a draft they must confirm.
+  // Leaving it draft is also what lets a later shipment on the same day be
+  // folded in above.
+  const confirmedInvoice = requiresApproval
+    ? await getARInvoiceById(arInvoice.id)
+    : await confirmARInvoice(arInvoice.id, createdBy);
 
   // Create audit log
   await createAuditLog({
@@ -5523,6 +5658,8 @@ export async function createARInvoiceFromSOShipment(
     journalEntryNumber: confirmedInvoice.journalEntryId
       ? (await getJournalEntryById(confirmedInvoice.journalEntryId))?.entryNumber
       : undefined,
-    message: `สร้างใบแจ้งหนี้ AR สำเร็จ: ${confirmedInvoice.invoiceNumber}`,
+    message: requiresApproval
+      ? `สร้างใบแจ้งหนี้ฉบับร่าง ${confirmedInvoice.invoiceNumber} — รอฝ่ายบัญชียืนยันก่อนออกใบกำกับภาษี`
+      : `สร้างใบแจ้งหนี้ AR สำเร็จ: ${confirmedInvoice.invoiceNumber}`,
   };
 }

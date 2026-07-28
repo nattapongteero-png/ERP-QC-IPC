@@ -94,6 +94,9 @@ const REQUIRED_TABLES = [
   schema.sqliteItems, schema.sqliteWarehouses,
   schema.sqliteInventoryLots, schema.sqliteInventoryTransactions,
   schema.sqliteSalesOrders, schema.sqliteSalesOrderLines, schema.sqliteSalesDeliveries,
+  // Holds invoice_requires_accounting_approval, which decides whether a
+  // shipment posts its own tax invoice or joins a draft for Accounting.
+  schema.sqliteSettings,
 ];
 
 describe('Sales + AR Unit Tests', () => {
@@ -371,6 +374,103 @@ describe('Sales + AR Unit Tests', () => {
           1,
         ),
       ).rejects.toThrow(/ไม่พบลูกค้า/);
+    });
+  });
+
+  // ============================================
+  // Accounting-gated invoicing + consolidation
+  // ============================================
+  //
+  // Two behaviours, one switch. With the gate ON the invoice stays a draft for
+  // Accounting to confirm — and because a draft can still be amended (a posted
+  // one cannot, without reversing its journal entry), a second shipment on the
+  // same order and the same day joins it instead of minting a second
+  // ใบกำกับภาษี. A customer who ordered several items and received them
+  // together gets ONE tax invoice, not one per delivery line.
+  describe('accounting-gated invoicing (invoice_requires_accounting_approval)', () => {
+    const shipment = (n: number, itemCode: string) => ({
+      soId: 9200,
+      soNumber: 'SO-GATE-1',
+      customerId: ACCT_TEST_IDS.CUSTOMER_1,
+      customerName: 'ลูกค้าทดสอบ 1',
+      shipmentDate: '2026-02-10',
+      dueDate: '2026-03-12',
+      deliveryId: n,
+      deliveryNumber: `DL-G${n}`,
+      itemId: 1,
+      itemCode,
+      itemName: 'สินค้า',
+      quantity: 1,
+      unitPrice: 1000,
+      totalAmount: 1070,
+      vatAmount: 70,
+      netAmount: 1000,
+    });
+
+    beforeEach(() => {
+      testSqlite.exec(`
+        INSERT INTO sales_orders (id, so_number, customer_name, status, total_amount, currency, shipping_cost, created_at, updated_at)
+        VALUES (9200, 'SO-GATE-1', 'ลูกค้าทดสอบ 1', 'confirmed', 2000, 'THB', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+    });
+
+    const enableGate = (on: boolean) => {
+      testSqlite.exec(`
+        INSERT INTO settings ("key", value, description, category, created_at, updated_at)
+        VALUES ('invoice_requires_accounting_approval', '${on}', 'test', 'accounting', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+    };
+
+    it('OFF (default): each shipment posts its own tax invoice — unchanged behaviour', async () => {
+      const a = await createARInvoiceFromSOShipment(shipment(201, 'FG-A'), 1);
+      const b = await createARInvoiceFromSOShipment(shipment(202, 'FG-B'), 1);
+
+      expect(a.arInvoiceId).not.toBe(b.arInvoiceId);
+      expect(a.taxInvoiceNumber).not.toBe(b.taxInvoiceNumber);
+
+      // Both posted straight away.
+      expect((await getARInvoiceById(a.arInvoiceId)).status).toBe('posted');
+      expect((await getARInvoiceById(b.arInvoiceId)).status).toBe('posted');
+    });
+
+    it('ON: two same-day shipments share ONE draft tax invoice', async () => {
+      enableGate(true);
+
+      const a = await createARInvoiceFromSOShipment(shipment(203, 'FG-A'), 1);
+      const b = await createARInvoiceFromSOShipment(shipment(204, 'FG-B'), 1);
+
+      // Same document — no second tax-invoice number burned.
+      expect(b.arInvoiceId).toBe(a.arInvoiceId);
+      expect(b.taxInvoiceNumber).toBe(a.taxInvoiceNumber);
+
+      const inv = await getARInvoiceById(a.arInvoiceId);
+      expect(inv.status).toBe('draft');          // waiting on Accounting
+      expect(inv.journalEntryId).toBeFalsy();    // nothing posted yet
+      expect(inv.lines!.length).toBe(2);         // both shipments on one invoice
+    });
+
+    it('ON: Accounting confirming the draft posts it once, and it balances', async () => {
+      enableGate(true);
+
+      const a = await createARInvoiceFromSOShipment(shipment(205, 'FG-A'), 1);
+      await createARInvoiceFromSOShipment(shipment(206, 'FG-B'), 1);
+
+      const posted = await confirmARInvoice(a.arInvoiceId, 1);
+      expect(posted.status).toBe('posted');
+      expect(posted.journalEntryId).toBeTruthy();
+      expect(verifyTrialBalance(testSqlite).isBalanced).toBe(true);
+    });
+
+    it('ON: a DIFFERENT delivery date gets its own invoice (separate tax point)', async () => {
+      enableGate(true);
+
+      const day1 = await createARInvoiceFromSOShipment(shipment(207, 'FG-A'), 1);
+      const day2 = await createARInvoiceFromSOShipment(
+        { ...shipment(208, 'FG-B'), shipmentDate: '2026-02-11' },
+        1,
+      );
+
+      expect(day2.arInvoiceId).not.toBe(day1.arInvoiceId);
     });
   });
 
