@@ -737,7 +737,20 @@
         "selectPaymentAccount": "Please select a receiving account",
         "amountMustBePositive": "Amount must be greater than 0"
       },
-      "exportExcel": "Export Excel"
+      "exportExcel": "Export Excel",
+      "print": "Print Tax Invoice",
+      "moreActions": "More actions",
+      "loading": "Loading data",
+      "loadError": "Unable to load invoices",
+      "loadErrorHint": "Please check your connection and try again",
+      "retry": "Retry",
+      "noInvoices": "No invoices found",
+      "dateLabel": "Date",
+      "dueLabel": "Due",
+      "outstandingLabel": "Outstanding",
+      "paidInFull": "Paid in full",
+      "taxInvoiceLabel": "Tax Invoice",
+      "summaryTotalCount": "Total {count} items {amount} THB"
     },
     "receiptsPage": {
       "recordReceipt": "Record Receipt",

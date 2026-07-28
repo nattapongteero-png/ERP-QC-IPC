@@ -737,7 +737,20 @@
         "selectPaymentAccount": "กรุณาเลือกบัญชีรับชำระ",
         "amountMustBePositive": "จำนวนเงินต้องมากกว่า 0"
       },
-      "exportExcel": "ส่งออก Excel"
+      "exportExcel": "ส่งออก Excel",
+      "print": "พิมพ์ใบกำกับภาษี",
+      "moreActions": "ตัวเลือกเพิ่มเติม",
+      "loading": "กำลังโหลดข้อมูล",
+      "loadError": "ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้",
+      "loadErrorHint": "กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง",
+      "retry": "ลองใหม่",
+      "noInvoices": "ไม่พบใบแจ้งหนี้",
+      "dateLabel": "วันที่",
+      "dueLabel": "ครบกำหนด",
+      "outstandingLabel": "ค้าง",
+      "paidInFull": "ชำระครบ",
+      "taxInvoiceLabel": "ใบกำกับภาษี",
+      "summaryTotalCount": "รวม {count} รายการ {amount} บาท"
     },
     "receiptsPage": {
       "recordReceipt": "บันทึกใบเสร็จรับเงิน",

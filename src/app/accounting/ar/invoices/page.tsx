@@ -468,7 +468,7 @@ export default function ARInvoicesPage() {
       // + HTML was not resolving there (it printed the raw key
       // "…confirmInvoice.message"). A plain interpolated string always renders.
       const taxLine = invoice.taxInvoiceNumber
-        ? `<br/><strong>ใบกำกับภาษี: ${invoice.taxInvoiceNumber}</strong>`
+        ? `<br/><strong>${t(`accountsReceivable.invoicesPage.taxInvoiceLabel`)}: ${invoice.taxInvoiceNumber}</strong>`
         : '';
       const result = await confirm(
         `คุณต้องการยืนยันใบแจ้งหนี้ ${invoice.invoiceNumber} หรือไม่?${taxLine}<br/>ระบบจะสร้างรายการบันทึกบัญชีและ Output VAT อัตโนมัติ`,
@@ -819,11 +819,11 @@ export default function ARInvoicesPage() {
             icon="print"
             stylingMode="text"
             height={30}
-            hint="พิมพ์ใบกำกับภาษี"
+            hint={t(`accountsReceivable.invoicesPage.print`)}
             onClick={() => handlePrint(invoice)}
             elementAttr={{
               'data-testid': 'print-invoice-btn',
-              'aria-label': 'พิมพ์ใบกำกับภาษี',
+              'aria-label': t(`accountsReceivable.invoicesPage.print`),
             }}
           />
 
@@ -836,7 +836,7 @@ export default function ARInvoicesPage() {
               height={30}
               width={32}
               showArrowIcon={false}
-              hint="ตัวเลือกเพิ่มเติม"
+              hint={t(`accountsReceivable.invoicesPage.moreActions`)}
               dropDownOptions={{ width: 190 }}
               displayExpr="text"
               keyExpr="key"
@@ -854,7 +854,7 @@ export default function ARInvoicesPage() {
               }}
               elementAttr={{
                 'data-testid': 'invoice-actions-menu',
-                'aria-label': 'ตัวเลือกเพิ่มเติม',
+                'aria-label': t(`accountsReceivable.invoicesPage.moreActions`),
               }}
             />
           )}
@@ -978,7 +978,7 @@ export default function ARInvoicesPage() {
             role="status"
             aria-live="polite"
           >
-            <span className="sr-only">กำลังโหลดข้อมูล</span>
+            <span className="sr-only">{t(`accountsReceivable.invoicesPage.loading`)}</span>
             {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="flex gap-4 animate-pulse">
                 <div className="h-4 w-40 rounded bg-gray-200" />
@@ -995,7 +995,7 @@ export default function ARInvoicesPage() {
             data-testid="ar-invoices-error"
             role="alert"
           >
-            <p className="text-red-700 font-medium">ไม่สามารถโหลดข้อมูลใบแจ้งหนี้ได้</p>
+            <p className="text-red-700 font-medium">{t(`accountsReceivable.invoicesPage.loadError`)}</p>
             <p className="mt-1 text-sm text-gray-500">
               กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง
             </p>
@@ -1051,8 +1051,8 @@ export default function ARInvoicesPage() {
 
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <div className="text-xs text-gray-500">
-                      <div>วันที่ {formatShortDate(invoice.invoiceDate)}</div>
-                      {invoice.dueDate && <div>ครบกำหนด {formatShortDate(invoice.dueDate)}</div>}
+                      <div>{t(`accountsReceivable.invoicesPage.dateLabel`)} {formatShortDate(invoice.invoiceDate)}</div>
+                      {invoice.dueDate && <div>{t(`accountsReceivable.invoicesPage.dueLabel`)} {formatShortDate(invoice.dueDate)}</div>}
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-gray-900 tabular-nums">
@@ -1060,7 +1060,7 @@ export default function ARInvoicesPage() {
                       </div>
                       {paid > 0 && outstanding > 0.004 && (
                         <div className="text-xs text-amber-600 tabular-nums">
-                          ค้าง {formatMoney(outstanding, 2)}
+                          {t(`accountsReceivable.invoicesPage.outstandingLabel`)} {formatMoney(outstanding, 2)}
                         </div>
                       )}
                     </div>
@@ -1198,7 +1198,7 @@ export default function ARInvoicesPage() {
                 <div>{c.text}</div>
                 {c.data.dueDate && (
                   <div className="text-xs text-gray-500">
-                    ครบกำหนด {formatShortDate(c.data.dueDate)}
+                    {t(`accountsReceivable.invoicesPage.dueLabel`)} {formatShortDate(c.data.dueDate)}
                   </div>
                 )}
               </div>
@@ -1247,11 +1247,11 @@ export default function ARInvoicesPage() {
                   </div>
                   {paid > 0 && outstanding > 0.004 && (
                     <div className="text-xs text-amber-600 tabular-nums whitespace-nowrap">
-                      ค้าง {formatMoney(outstanding, 2)}
+                      {t(`accountsReceivable.invoicesPage.outstandingLabel`)} {formatMoney(outstanding, 2)}
                     </div>
                   )}
                   {outstanding <= 0.004 && paid > 0 && (
-                    <div className="text-xs text-emerald-600">ชำระครบ</div>
+                    <div className="text-xs text-emerald-600">{t(`accountsReceivable.invoicesPage.paidInFull`)}</div>
                   )}
                 </div>
               );
