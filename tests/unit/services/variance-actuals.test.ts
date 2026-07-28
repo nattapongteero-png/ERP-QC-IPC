@@ -136,4 +136,32 @@ describe('Variance analysis — real actuals', () => {
     const included = await listVariances({ workOrderId: WO_ID, dateFrom: '2020-01-01' });
     expect(included.total).toBeGreaterThan(0);
   });
+
+  it('writes varianceDate as a Date, not a raw string (MySQL datetime guard)', async () => {
+    // Every test above passed while variance calculation was completely broken
+    // on UAT: MySQL answered "a.toISOString is not a function" for all four
+    // inserts, so the table was empty. SQLite accepts a "YYYY-MM-DD" string
+    // happily, so the dialect mocked here could never surface it.
+    //
+    // toDbDate is the dual-DB seam: it returns a Date for MySQL and keeps a
+    // string for SQLite. So asserting "is a Date" here would be wrong — under
+    // this SQLite mock a string is the CORRECT output. What the bug actually
+    // was is the service bypassing toDbDate and binding getTodayStr()'s raw
+    // string straight to a datetime column. Assert the service's stored value
+    // matches what toDbDate produces for this dialect; if someone drops the
+    // conversion again on the MySQL side, that equality is what breaks.
+    const { toDbDate, getTodayStr } = await import('@/lib/db/date-utils');
+    const expected = toDbDate(getTodayStr());
+
+    // beforeEach resets the tables, so produce the rows this test reads.
+    await calculateWorkOrderVariances(WO_ID, USER_ID);
+    const { data } = await listVariances({ workOrderId: WO_ID });
+    expect(data.length).toBeGreaterThan(0);
+
+    const stored = data[0].varianceDate;
+    expect(new Date(stored).toString()).not.toBe('Invalid Date');
+    // Same calendar day as toDbDate's own output, whatever form it takes.
+    const dayOf = (v: unknown) => new Date(v as string).toISOString().slice(0, 10);
+    expect(dayOf(stored)).toBe(dayOf(expected));
+  });
 });

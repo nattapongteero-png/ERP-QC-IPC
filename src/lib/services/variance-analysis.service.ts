@@ -314,7 +314,12 @@ export async function calculateWorkOrderVariances(
       throw new Error('No standard cost defined for item');
     }
 
-    const today = getTodayStr();
+    // toDbDate, not the bare string. getTodayStr() returns "YYYY-MM-DD", and a
+    // MySQL datetime column makes the driver call .toISOString() on whatever it
+    // is given — so every variance calculation died with "a.toISOString is not
+    // a function" and UAT ended up with zero variance records. Identical to the
+    // bug fixed in createStandardCost; this second write path was missed.
+    const today = toDbDate(getTodayStr());
     const quantityProduced = Number(workOrder.quantityProduced) || 0;
 
     // Actual material consumption for this work order (list item 9a). Sum the
@@ -688,7 +693,10 @@ async function postVariancesUnsafe_DO_NOT_USE(
       // Create journal entry
       const jeResult = await db.insert(tables.journalEntries).values({
         entryNumber: jeNumber,
-        entryDate: getTodayStr(),
+        // journal_entries.entry_date is datetime (verified on UAT), so the raw
+        // "YYYY-MM-DD" string hits the same .toISOString() failure as
+        // variance_records.variance_date above.
+        entryDate: toDbDate(getTodayStr()),
         periodId: targetPeriodId,
         description: `Manufacturing Variance - WO #${workOrderId}`,
         totalDebit: Math.abs(totalVariance),

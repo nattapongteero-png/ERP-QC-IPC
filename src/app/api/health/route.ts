@@ -94,7 +94,7 @@ export async function GET() {
       // Build marker — lets a deploy be PROVEN live by curling /api/health,
       // rather than inferred from "container is healthy" (which stays true
       // when a stale image is running).
-      buildMarker: 'HERBAL-BUILD-bom-rollup-sum',
+      buildMarker: 'HERBAL-BUILD-variance-date',
     },
     // Keep 200 so container health checks and load balancers don't cycle the
     // app: the process is up and mostly serving. The body carries the truth.
