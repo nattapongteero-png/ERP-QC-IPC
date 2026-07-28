@@ -15,13 +15,22 @@
 import { chromium } from '@playwright/test';
 
 const BASE = 'https://herbal-erp-test-uat.bmscloud.in.th';
-const [, , path = '/accounting/ar/invoices', out = 'shot.png', width = '1920'] = process.argv;
+const [, , path = '/accounting/ar/invoices', out = 'shot.png', width = '1920', lang = 'th'] =
+  process.argv;
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({
   viewport: { width: Number(width), height: 1000 },
-  locale: 'th-TH',
+  locale: lang === 'en' ? 'en-US' : 'th-TH',
 });
+
+// The app reads its language from the `locale` cookie (LOCALE_COOKIE_NAME).
+// Setting it here lets the same page be captured in EN — English strings run
+// longer than Thai, so a button that fits in one can overflow in the other.
+await ctx.addCookies([
+  { name: 'locale', value: lang, domain: 'herbal-erp-test-uat.bmscloud.in.th', path: '/' },
+]);
+
 const page = await ctx.newPage();
 
 // Anything collected here means the page is broken at runtime even if it
@@ -53,7 +62,7 @@ await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForTimeout(3000);
 
 await page.screenshot({ path: out, fullPage: true });
-console.log('saved:', out, `(${width}px)`);
+console.log("saved:", out, `(${width}px, ${lang})`);
 
 if (problems.length) {
   console.log(`\n⚠️  ${problems.length} runtime problem(s) — a screenshot would NOT show these:`);

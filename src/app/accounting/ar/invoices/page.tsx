@@ -1280,8 +1280,8 @@ export default function ARInvoicesPage() {
               you cannot trust. */}
           <Column
             caption={t('accountsReceivable.invoicesPage.columns.actions')}
-            width={240}
-            minWidth={240}
+            width={290}
+            minWidth={290}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
@@ -1309,7 +1309,10 @@ export default function ARInvoicesPage() {
                 // Kept short so it fits the amount column's width even if the
                 // CSS overflow rule is ever overridden — the FIGURE is the part
                 // that must never be lost.
-                `รวม ${invoices.length} รายการ ${formatMoney(Number(item.value) || 0, 2)} บาท`
+                t(`accountsReceivable.invoicesPage.summaryTotalCount`, {
+                  count: invoices.length,
+                  amount: formatMoney(Number(item.value) || 0, 2),
+                })
               }
             />
           </Summary>

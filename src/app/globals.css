@@ -2020,12 +2020,23 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
    --------------------------------------------------------------------------- */
 .ar-action-btn .dx-button-text {
   white-space: nowrap;
-  overflow: visible;
+  /* NOT overflow:visible — that let the label spill OUTSIDE the button box.
+     English labels run much longer than Thai ("RECEIVE PAYMENT" vs "รับชำระ"),
+     so the text escaped the green pill on every row. The button must grow to
+     fit its text instead of the text escaping the button. */
+  overflow: hidden;
   text-overflow: clip;
 }
 .ar-action-btn {
   width: auto !important;
+  min-width: max-content;   /* size to the longest label, whichever language */
   flex: 0 0 auto;
+}
+/* DevExtreme wraps the label in .dx-button-content with its own padding; let
+   that size to content too, or the outer width has nothing to grow around. */
+.ar-action-btn .dx-button-content {
+  width: auto;
+  white-space: nowrap;
 }
 
 /* The summary cell is laid out against the amount column's width; let its text
