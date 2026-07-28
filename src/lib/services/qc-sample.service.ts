@@ -2097,34 +2097,47 @@ export async function signQcSample(
       );
     }
 
-    // 3. Optional password re-entry (21 CFR Part 11 §11.200(a)(1)(ii)).
-    if (input.passwordReentry !== undefined && input.passwordReentry !== '') {
-      const [user] = await db
-        .select({ password: tables.users.password })
-        .from(tables.users)
-        .where(eq(tables.users.id, input.userId))
-        .limit(1);
-      if (!user) {
-        throw new Error(`User ${input.userId} not found`);
+    // 3. Password re-entry — REQUIRED (21 CFR Part 11 §11.200(a)(1)(ii)).
+    //
+    // This was previously skipped whenever the caller sent nothing, so a QA
+    // user could release a lot by clicking Sign with the password box empty.
+    // §11.200(a)(1) requires an electronic signature to use two distinct
+    // identification components; being already logged in supplies one, and the
+    // re-entered password is the second. Without it the signature is not a
+    // Part 11 signature at all.
+    if (input.passwordReentry === undefined || input.passwordReentry === '') {
+      const err = new Error(
+        'ต้องกรอกรหัสผ่านเพื่อยืนยันการลงนามอิเล็กทรอนิกส์ (21 CFR Part 11)',
+      );
+      (err as any).statusCode = 401;
+      throw err;
+    }
+
+    const [user] = await db
+      .select({ password: tables.users.password })
+      .from(tables.users)
+      .where(eq(tables.users.id, input.userId))
+      .limit(1);
+    if (!user) {
+      throw new Error(`User ${input.userId} not found`);
+    }
+    const userPassword = String(user.password || '');
+    // Only bcrypt-hashed credentials are accepted. The previous plaintext
+    // fallback for unhashed seed accounts meant a stored password could be
+    // compared directly — latent today (all 7 live users are bcrypt-hashed)
+    // but it is not a comparison that should exist on a signing path.
+    let valid = false;
+    if (userPassword.startsWith('$2')) {
+      try {
+        valid = await verifyPassword(input.passwordReentry, userPassword);
+      } catch {
+        valid = false;
       }
-      const userPassword = String(user.password || '');
-      let valid = false;
-      // bcrypt hashes start with $2 — fall back to plain compare for seed
-      // accounts that have unhashed passwords (dev only).
-      if (userPassword.startsWith('$2')) {
-        try {
-          valid = await verifyPassword(input.passwordReentry, userPassword);
-        } catch {
-          valid = false;
-        }
-      } else {
-        valid = userPassword === input.passwordReentry;
-      }
-      if (!valid) {
-        const err = new Error('Invalid password — signature rejected');
-        (err as any).statusCode = 401;
-        throw err;
-      }
+    }
+    if (!valid) {
+      const err = new Error('Invalid password — signature rejected');
+      (err as any).statusCode = 401;
+      throw err;
     }
 
     // 4. Pre-flight segregation-of-duties for reviewer role.

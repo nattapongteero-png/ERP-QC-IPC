@@ -207,9 +207,12 @@ export const signatureRoleSchema = z.enum([
 /**
  * E-signature payload — captures one of the four sign-off tiers.
  * Server pulls userId from session and IP/UA from request headers.
- * passwordReentry is OPTIONAL: when provided the server bcrypt-verifies
- * against users.password (per 21 CFR Part 11). Soft path for environments
- * not enforcing password re-entry yet.
+ *
+ * passwordReentry is REQUIRED and bcrypt-verified against users.password.
+ * 21 CFR Part 11 §11.200(a)(1) requires two distinct identification
+ * components; the active session supplies one, this password the other. It
+ * used to be optional ("soft path"), which meant a QA user could release a
+ * lot with the password box empty — i.e. not a Part 11 signature at all.
  */
 export const signQcSampleSchema = z.object({
   role: signatureRoleSchema,
@@ -218,7 +221,10 @@ export const signQcSampleSchema = z.object({
     .min(1, 'signatureMeaning is required (e.g. "Tested", "Reviewed")')
     .max(50),
   notes: z.string().max(2000).nullable().optional(),
-  passwordReentry: z.string().max(255).optional(),
+  passwordReentry: z
+    .string()
+    .min(1, 'ต้องกรอกรหัสผ่านเพื่อยืนยันการลงนามอิเล็กทรอนิกส์')
+    .max(255),
 });
 
 // ----------------------------------------------------------------------------

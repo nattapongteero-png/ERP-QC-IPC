@@ -1891,6 +1891,10 @@ export async function processCapaApproval(
   // supplied password against the stored hash before allowing the signature.
   // bcrypt hashes start with $2 — fall back to plain compare for seed/dev
   // accounts that have unhashed passwords (matches qc-sample.service pattern).
+  // Only bcrypt-hashed credentials are accepted. The previous `else` branch
+  // compared a stored plaintext password directly — latent today (all live
+  // users are bcrypt-hashed) but a plaintext comparison has no place on a
+  // 21 CFR Part 11 signing path.
   let passwordValid = false;
   if (storedHash.startsWith('$2')) {
     try {
@@ -1898,8 +1902,6 @@ export async function processCapaApproval(
     } catch {
       passwordValid = false;
     }
-  } else {
-    passwordValid = storedHash === userPassword;
   }
   if (!passwordValid) {
     throw new Error('Invalid password. Please re-enter your password to sign.');

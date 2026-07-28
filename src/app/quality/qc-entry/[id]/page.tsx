@@ -834,6 +834,15 @@ export default function QcSampleDetailPage() {
 
   const handleSign = async () => {
     if (!detail || !signRole) return;
+    // Part 11 requires the password as the second identification component;
+    // catch it here so the user gets a clear message instead of a 401.
+    if (!signPassword) {
+      toast.error(
+        'ต้องกรอกรหัสผ่าน',
+        'กรุณากรอกรหัสผ่านเพื่อยืนยันการลงนามอิเล็กทรอนิกส์',
+      );
+      return;
+    }
     setWorking(true);
     try {
       const res = await fetch(
@@ -845,8 +854,9 @@ export default function QcSampleDetailPage() {
             role: signRole,
             signatureMeaning: meaningForRole(signRole),
             notes: signNotes || null,
-            // Server treats empty string as "no password supplied" — soft path.
-            ...(signPassword ? { passwordReentry: signPassword } : {}),
+            // Always sent — the server now requires it (21 CFR Part 11
+            // §11.200(a)(1)(ii)) and rejects a signature without it.
+            passwordReentry: signPassword,
           }),
         },
       );
