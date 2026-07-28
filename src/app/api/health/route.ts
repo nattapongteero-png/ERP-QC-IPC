@@ -36,6 +36,10 @@ export async function GET() {
         status: dbStatus,
         schemaSynced,
       },
+      // Build marker — lets a deploy be PROVEN live by curling /api/health,
+      // rather than inferred from "container is healthy" (which stays true
+      // when a stale image is running).
+      buildMarker: 'HERBAL-BUILD-59a9528eb-cogs-recall-part11-wht',
     },
     // Keep 200 so container health checks and load balancers don't cycle the
     // app: the process is up and mostly serving. The body carries the truth.
