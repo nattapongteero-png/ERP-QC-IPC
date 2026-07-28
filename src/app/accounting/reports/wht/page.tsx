@@ -4,13 +4,15 @@
 // Feature: 010-accounting-module-integration
 // User Story 6: Manage VAT and Withholding Tax
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
+import { exportGridToExcel } from '@/lib/utils/export-grid-excel';
 import notify from 'devextreme/ui/notify';
 import {
   AccountingPageHeader,
@@ -61,6 +63,7 @@ export default function WHTReportPage() {
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedCertificate, setSelectedCertificate] = useState<WHTCertificateEntry | null>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const gridRef = useRef<DataGridRef>(null);
 
   const { data: report, isLoading, refetch } = useQuery({
     queryKey: ['wht-certificates', formatTaxPeriod(taxPeriod), certificateType],
@@ -73,17 +76,23 @@ export default function WHTReportPage() {
     refetch();
   }, [refetch]);
 
-  const handleExportJSON = useCallback(() => {
+  /**
+   * Export the WHT certificate list to Excel.
+   *
+   * This used to dump raw JSON.stringify(report) to a .json file. Nobody files
+   * a Thai tax return with a JSON file — the Revenue Department and every
+   * accountant work in Excel — so the button produced something no one could
+   * use. Now it writes a real .xlsx via the shared grid exporter, the same one
+   * the AR/AP invoice lists use.
+   */
+  const handleExportExcel = useCallback(() => {
     if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `wht-${certificateType}-${formatTaxPeriod(taxPeriod)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify(t('reports.wht.toastExportSuccess'), 'success', 3000);
-  }, [report, taxPeriod, certificateType]);
+    exportGridToExcel(
+      gridRef.current,
+      `wht-${certificateType}-${formatTaxPeriod(taxPeriod)}`,
+      t('reports.wht.title'),
+    );
+  }, [report, taxPeriod, certificateType, t]);
 
   const handleViewCertificate = useCallback((e: { data: WHTCertificateEntry }) => {
     setSelectedCertificate(e.data);
@@ -180,11 +189,12 @@ export default function WHTReportPage() {
           {report && (
             <Button
               variant="outline"
-              onClick={handleExportJSON}
+              onClick={handleExportExcel}
               className="gap-2"
+              data-testid="wht-export-excel-btn"
             >
               <Download className="h-4 w-4" />
-              {t('reports.actions.exportJson')}
+              ส่งออก Excel
             </Button>
           )}
         </div>
@@ -243,6 +253,7 @@ export default function WHTReportPage() {
             </div>
             <div className="p-4">
               <DataGrid
+                ref={gridRef}
                 dataSource={report.entries}
                 showBorders
                 columnAutoWidth

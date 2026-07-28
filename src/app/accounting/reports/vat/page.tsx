@@ -4,12 +4,14 @@
 // Feature: 010-accounting-module-integration
 // User Story 6: Manage VAT and Withholding Tax
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { DateBox } from 'devextreme-react/date-box';
 import { Button as DxButton } from 'devextreme-react/button';
 import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
+import type { DataGridRef } from 'devextreme-react/data-grid';
+import { exportGridToExcel } from '@/lib/utils/export-grid-excel';
 import notify from 'devextreme/ui/notify';
 import {
   AccountingPageHeader,
@@ -47,6 +49,8 @@ export default function VATReportPage() {
   const t = useTranslations('accounting');
   const [taxPeriod, setTaxPeriod] = useState<Date>(new Date());
   const [reportGenerated, setReportGenerated] = useState(false);
+  const outputGridRef = useRef<DataGridRef>(null);
+  const inputGridRef = useRef<DataGridRef>(null);
 
   const { data: report, isLoading, refetch } = useQuery({
     queryKey: ['vat-report', formatTaxPeriod(taxPeriod)],
@@ -59,17 +63,23 @@ export default function VATReportPage() {
     refetch();
   }, [refetch]);
 
-  const handleExportJSON = useCallback(() => {
+  /**
+   * Export both VAT registers to Excel.
+   *
+   * This used to write raw JSON.stringify(report) to a .json file. รายงานภาษีขาย
+   * and รายงานภาษีซื้อ are filing attachments — the Revenue Department and
+   * every accountant work in Excel, so a .json file was unusable by anyone.
+   *
+   * Output (ภาษีขาย) and input (ภาษีซื้อ) are separate registers, so they are
+   * exported as two files rather than merged into one sheet.
+   */
+  const handleExportExcel = useCallback(async () => {
     if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `vat-report-${formatTaxPeriod(taxPeriod)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const period = formatTaxPeriod(taxPeriod);
+    await exportGridToExcel(outputGridRef.current, `vat-ขาย-${period}`, 'รายงานภาษีขาย');
+    await exportGridToExcel(inputGridRef.current, `vat-ซื้อ-${period}`, 'รายงานภาษีซื้อ');
     notify(t('reports.vat.toastExportSuccess'), 'success', 3000);
-  }, [report, taxPeriod]);
+  }, [report, taxPeriod, t]);
 
   return (
     <div className="flex flex-col gap-6 pb-8" data-testid="vat-report-page" data-title={t('page.title')}>
@@ -143,11 +153,12 @@ export default function VATReportPage() {
           {report && (
             <Button
               variant="outline"
-              onClick={handleExportJSON}
+              onClick={handleExportExcel}
               className="gap-2"
+              data-testid="vat-export-excel-btn"
             >
               <Download className="h-4 w-4" />
-              {t('reports.actions.exportJson')}
+              ส่งออก Excel
             </Button>
           )}
         </div>
@@ -206,6 +217,7 @@ export default function VATReportPage() {
             </div>
             <div className="p-4">
               <DataGrid
+                ref={outputGridRef}
                 dataSource={report.outputVAT.entries}
                 showBorders
                 columnAutoWidth
@@ -272,6 +284,7 @@ export default function VATReportPage() {
             </div>
             <div className="p-4">
               <DataGrid
+                ref={inputGridRef}
                 dataSource={report.inputVAT.entries}
                 showBorders
                 columnAutoWidth
