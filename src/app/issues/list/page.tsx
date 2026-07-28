@@ -98,7 +98,7 @@ function IssuesListPageHeader() {
               type="default"
               stylingMode="contained"
               icon="add"
-              data-testid="new-issue-btn"
+              elementAttr={{ 'data-testid': 'new-issue-btn' }}
             />
           </Link>
         }

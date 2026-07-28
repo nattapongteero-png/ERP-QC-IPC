@@ -395,7 +395,7 @@ export default function MatchingExceptionsPage() {
                 stylingMode="contained"
                 onClick={submitReview}
                 disabled={actionLoading}
-                data-testid="submit-review-btn"
+                elementAttr={{ 'data-testid': 'submit-review-btn' }}
               />
             </div>
           </div>

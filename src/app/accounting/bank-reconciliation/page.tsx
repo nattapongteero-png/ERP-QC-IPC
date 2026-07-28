@@ -201,7 +201,7 @@ export default function BankReconciliationPage() {
             type="success"
             stylingMode="contained"
             onClick={handleNewStatement}
-            data-testid="import-btn"
+            elementAttr={{ 'data-testid': 'import-btn' }}
           />
         }
       />

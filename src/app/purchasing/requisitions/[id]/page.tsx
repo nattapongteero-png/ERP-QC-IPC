@@ -391,7 +391,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 stylingMode="contained"
                 icon="export"
                 onClick={handleConvertClick}
-                data-testid="convert-to-po-btn"
+                elementAttr={{ 'data-testid': 'convert-to-po-btn' }}
               />
             )}
           </div>
@@ -598,7 +598,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 type={approvalAction === 'approve' ? 'success' : 'danger'}
                 onClick={handleApprovalAction}
                 disabled={processing || (approvalAction === 'reject' && !approvalComments)}
-                data-testid="confirm-approval-btn"
+                elementAttr={{ 'data-testid': 'confirm-approval-btn' }}
               />
             </div>
           </div>
@@ -642,7 +642,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 stylingMode="contained"
                 onClick={handleCancelPR}
                 disabled={cancelling}
-                data-testid="confirm-cancel-pr-btn"
+                elementAttr={{ 'data-testid': 'confirm-cancel-pr-btn' }}
               />
             </div>
           </div>
@@ -675,7 +675,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                 icon="trash"
                 onClick={handleDeletePR}
                 disabled={deleting}
-                data-testid="confirm-delete-pr-btn"
+                elementAttr={{ 'data-testid': 'confirm-delete-pr-btn' }}
               />
             </div>
           </div>

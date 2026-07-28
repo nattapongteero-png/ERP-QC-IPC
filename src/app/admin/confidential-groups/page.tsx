@@ -69,7 +69,7 @@ function PageHeader({
             hint="Refresh"
             onClick={onRefresh}
             disabled={isRefreshing}
-            data-testid="refresh-btn"
+            elementAttr={{ 'data-testid': 'refresh-btn' }}
           />
         )}
         {actions}
@@ -377,7 +377,7 @@ export default function ConfidentialAccessGroupsPage() {
               icon="add"
               type="success"
               onClick={openCreateDialog}
-              data-testid="add-group-btn"
+              elementAttr={{ 'data-testid': 'add-group-btn' }}
             />
           </>
         }

@@ -709,7 +709,7 @@ export default function GrnDetailPage() {
                 text={t('actions.save')}
                 disabled={updateLineMut.isPending}
                 onClick={saveEditLine}
-                data-testid="save-line-btn"
+                elementAttr={{ 'data-testid': 'save-line-btn' }}
               />
             </div>
           </div>
@@ -1028,9 +1028,9 @@ export default function GrnDetailPage() {
             <Button
               text={t('actions.cancelGrn')}
               type="danger"
-              data-testid="confirm-cancel-grn"
               disabled={cancelReason.trim().length < 10 || cancelGrnMut.isPending}
               onClick={() => cancelGrnMut.mutate()}
+              elementAttr={{ 'data-testid': 'confirm-cancel-grn' }}
             />
           </div>
         </div>

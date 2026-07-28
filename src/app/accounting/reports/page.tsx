@@ -608,7 +608,7 @@ export default function ReportsPage() {
               type="default"
               stylingMode="contained"
               onClick={handleGenerateReport}
-              data-testid="generate-report-btn"
+              elementAttr={{ 'data-testid': 'generate-report-btn' }}
             />
             {reportData && (
               <Button
@@ -616,7 +616,7 @@ export default function ReportsPage() {
                 type="normal"
                 stylingMode="outlined"
                 onClick={handleExport}
-                data-testid="export-btn"
+                elementAttr={{ 'data-testid': 'export-btn' }}
               />
             )}
           </div>

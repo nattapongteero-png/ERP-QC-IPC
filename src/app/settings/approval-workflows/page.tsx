@@ -69,7 +69,7 @@ function PageHeader({
             hint="Refresh"
             onClick={onRefresh}
             disabled={isRefreshing}
-            data-testid="refresh-btn"
+            elementAttr={{ 'data-testid': 'refresh-btn' }}
           />
         )}
         {actions}

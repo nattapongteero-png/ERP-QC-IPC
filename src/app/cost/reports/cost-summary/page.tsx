@@ -241,7 +241,7 @@ export default function CostSummaryReportPage() {
               type="default"
               onClick={handleExportExcel}
               disabled={items.length === 0}
-              data-testid="export-excel-btn"
+              elementAttr={{ 'data-testid': 'export-excel-btn' }}
             />
           </>
         }

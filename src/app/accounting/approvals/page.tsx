@@ -261,7 +261,7 @@ export default function ApprovalDashboardPage() {
                   icon="refresh"
                   onClick={fetchDashboard}
                   hint={t('approvals.actions.refresh')}
-                  data-testid="refresh-btn"
+                  elementAttr={{ 'data-testid': 'refresh-btn' }}
                 />
               </Item>
             </Toolbar>
@@ -376,7 +376,7 @@ export default function ApprovalDashboardPage() {
                 stylingMode="contained"
                 onClick={submitAction}
                 disabled={actionLoading || (actionType === 'reject' && !actionComments.trim())}
-                data-testid="submit-action-btn"
+                elementAttr={{ 'data-testid': 'submit-action-btn' }}
               />
             </div>
           </div>

@@ -117,7 +117,7 @@ function IssueDetailPageHeader({ issue }: { issue: Issue }) {
             type="normal"
             stylingMode="outlined"
             icon="edit"
-            data-testid="edit-issue-btn"
+            elementAttr={{ 'data-testid': 'edit-issue-btn' }}
           />
         </Link>
       </div>

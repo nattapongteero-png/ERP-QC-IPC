@@ -171,7 +171,7 @@ function PageHeader({
             hint="Refresh"
             onClick={onRefresh}
             disabled={isRefreshing}
-            data-testid="refresh-btn"
+            elementAttr={{ 'data-testid': 'refresh-btn' }}
           />
         )}
         {actions}
@@ -360,7 +360,7 @@ export default function GroupMembersPage() {
             type="success"
             onClick={openAddDialog}
             disabled={isLoading}
-            data-testid="add-member-btn"
+            elementAttr={{ 'data-testid': 'add-member-btn' }}
           />
         }
       />

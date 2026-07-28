@@ -265,7 +265,7 @@ export default function MatchingTolerancesPage() {
                   type="danger"
                   onClick={confirmDelete}
                   disabled={deleteMutation.isPending}
-                  data-testid="confirm-delete-btn"
+                  elementAttr={{ 'data-testid': 'confirm-delete-btn' }}
                 />
               </div>
             </div>

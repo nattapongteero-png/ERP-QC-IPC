@@ -164,7 +164,7 @@ export default function DebitNotesPage() {
                   type="default"
                   stylingMode="contained"
                   onClick={handleNewNote}
-                  data-testid="new-note-btn"
+                  elementAttr={{ 'data-testid': 'new-note-btn' }}
                 />
               </Item>
             </Toolbar>

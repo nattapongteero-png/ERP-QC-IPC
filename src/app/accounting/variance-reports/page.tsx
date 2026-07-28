@@ -207,7 +207,7 @@ export default function VarianceReportsPage() {
               icon="refresh"
               text={t('varianceReports.filters.refresh')}
               onClick={handleRefresh}
-              data-testid="refresh-btn"
+              elementAttr={{ 'data-testid': 'refresh-btn' }}
             />
           </div>
         </div>
@@ -280,7 +280,21 @@ export default function VarianceReportsPage() {
                 data-testid="summary-grid"
               >
                 <Paging defaultPageSize={10} />
-                <Column dataField="groupName" caption={t('varianceReports.columns.group')} />
+                {/* groupName arrives from the API as an English constant
+                    (VARIANCE_LABELS), so the column read "Material Price
+                    Variance" even in Thai while the chart above it was
+                    translated. When grouping by variance type the groupKey IS
+                    the type, so translate it here; for item / work order /
+                    month the name is real data and must pass through as-is. */}
+                <Column
+                  dataField="groupName"
+                  caption={t('varianceReports.columns.group')}
+                  cellRender={(c: { data: { groupKey: string; groupName: string } }) =>
+                    groupBy === 'variance_type'
+                      ? t(`varianceReports.chart.types.${c.data.groupKey}`)
+                      : c.data.groupName
+                  }
+                />
                 <Column dataField="mpv" caption={t('varianceReports.columns.mpv')} dataType="number" format="#,##0.00" />
                 <Column dataField="muv" caption={t('varianceReports.columns.muv')} dataType="number" format="#,##0.00" />
                 <Column dataField="lrv" caption={t('varianceReports.columns.lrv')} dataType="number" format="#,##0.00" />

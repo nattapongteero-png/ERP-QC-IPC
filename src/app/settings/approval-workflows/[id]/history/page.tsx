@@ -154,7 +154,7 @@ export default function WorkflowHistoryPage({
             icon="refresh"
             onClick={fetchData}
             hint="รีเฟรช"
-            data-testid="refresh-btn"
+            elementAttr={{ 'data-testid': 'refresh-btn' }}
           />
         </div>
 

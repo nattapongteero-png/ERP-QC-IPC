@@ -127,7 +127,7 @@ export default function APAgingReportPage() {
               type="default"
               stylingMode="contained"
               onClick={handleGenerateReport}
-              data-testid="generate-report-btn"
+              elementAttr={{ 'data-testid': 'generate-report-btn' }}
             />
           </div>
         </AccountingFilterPanel>

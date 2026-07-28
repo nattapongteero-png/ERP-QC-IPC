@@ -486,7 +486,7 @@ export default function NewCreditDebitNotePage() {
               stylingMode="contained"
               onClick={handleSave}
               disabled={saving}
-              data-testid="save-btn"
+              elementAttr={{ 'data-testid': 'save-btn' }}
             />
           </div>
         </div>

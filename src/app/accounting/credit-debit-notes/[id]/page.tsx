@@ -523,7 +523,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 icon="check"
                 onClick={handleSubmit}
                 disabled={actionLoading}
-                data-testid="submit-btn"
+                elementAttr={{ 'data-testid': 'submit-btn' }}
               />
             )}
             {canApprove && (
@@ -534,7 +534,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 icon="check"
                 onClick={handleApprove}
                 disabled={actionLoading}
-                data-testid="approve-btn"
+                elementAttr={{ 'data-testid': 'approve-btn' }}
               />
             )}
             {canReject && (
@@ -556,7 +556,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 icon="save"
                 onClick={handlePost}
                 disabled={actionLoading}
-                data-testid="post-btn"
+                elementAttr={{ 'data-testid': 'post-btn' }}
               />
             )}
             {canCancel && (
@@ -578,7 +578,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 icon="trash"
                 onClick={handleDelete}
                 disabled={actionLoading}
-                data-testid="delete-btn"
+                elementAttr={{ 'data-testid': 'delete-btn' }}
               />
             )}
           </div>
@@ -613,7 +613,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 stylingMode="contained"
                 onClick={handleCancel}
                 disabled={actionLoading}
-                data-testid="confirm-cancel-btn"
+                elementAttr={{ 'data-testid': 'confirm-cancel-btn' }}
               />
             </div>
           </div>
@@ -648,7 +648,7 @@ export default function CreditDebitNoteDetailPage({ params }: PageProps) {
                 stylingMode="contained"
                 onClick={handleReject}
                 disabled={actionLoading}
-                data-testid="confirm-reject-btn"
+                elementAttr={{ 'data-testid': 'confirm-reject-btn' }}
               />
             </div>
           </div>

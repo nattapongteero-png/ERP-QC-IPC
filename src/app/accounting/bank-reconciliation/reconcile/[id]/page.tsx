@@ -297,7 +297,7 @@ export default function ReconciliationPage({ params }: PageProps) {
                   type="default"
                   onClick={handleAutoMatch}
                   disabled={processing}
-                  data-testid="auto-match-btn"
+                  elementAttr={{ 'data-testid': 'auto-match-btn' }}
                 />
                 <Button
                   text={t('bankReconciliation.reconcile.finalize')}
@@ -306,7 +306,7 @@ export default function ReconciliationPage({ params }: PageProps) {
                   stylingMode="contained"
                   onClick={handleFinalize}
                   disabled={processing}
-                  data-testid="finalize-btn"
+                  elementAttr={{ 'data-testid': 'finalize-btn' }}
                 />
               </>
             )}
