@@ -1815,9 +1815,13 @@ export async function getWorkflowHistory(
       .limit(limit)
       .offset(offset);
 
-    // Count total
+    // Count total.
+    // This selected `requests.id` — a COLUMN, not an aggregate — so it returned
+    // the first row's id rather than how many rows there are. The workflow
+    // history header therefore read "Total requests: 1" while the grid below it
+    // listed 20 and the status cards added up to 20.
     const [countResult] = await db
-      .select({ count: tables.requests.id })
+      .select({ count: sql<number>`COUNT(*)` })
       .from(tables.requests)
       .where(eq(tables.requests.flowId, flowId));
 
