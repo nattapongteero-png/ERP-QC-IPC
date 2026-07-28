@@ -350,9 +350,8 @@
       "urgent": "เร่งด่วน"
     },
     "stats": {
-      "total": "รวม",
-      "pending": "รอดำเนินการ",
-      "urgent": "เร่งด่วน"
+      "unit": "ใบ",
+      "totalValue": "รวมมูลค่า"
     },
     "actions": {
       "refresh": "รีเฟรช",
@@ -449,10 +448,6 @@
       "urgent": "เร่งด่วน (≤7 วัน)",
       "normal": "ปกติ (8–30 วัน)",
       "low": "ต่ำ (>30 วัน)"
-    },
-    "stats": {
-      "unit": "ใบ",
-      "totalValue": "รวมมูลค่า"
     }
   },
   "receiving": {
@@ -496,5 +491,6 @@
         "rowNum": "#"
       }
     }
-  }
+  },
+  "selectVendorPlaceholder": "เลือกบริษัทผู้ขาย"
 }

@@ -415,5 +415,24 @@
         "deleteSuccess": "Tolerance deleted successfully"
       }
     }
+  },
+  "approvalHistory": {
+    "totalRequests": "Total requests",
+    "approved": "Approved",
+    "pageTitle": "Workflow history",
+    "pageSubtitle": "Audit log of every approval request processed by this workflow",
+    "requestHistory": "Request history",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "columns": {
+      "requestId": "Request ID",
+      "documentType": "Document type",
+      "documentCode": "Document code",
+      "requester": "Requester",
+      "step": "Step",
+      "status": "Status",
+      "requestedAt": "Requested at",
+      "completedAt": "Completed at"
+    }
   }
 }

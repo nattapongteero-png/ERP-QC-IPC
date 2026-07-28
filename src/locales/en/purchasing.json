@@ -350,9 +350,8 @@
       "urgent": "Urgent"
     },
     "stats": {
-      "total": "total",
-      "pending": "pending",
-      "urgent": "urgent"
+      "unit": "PRs",
+      "totalValue": "total value"
     },
     "actions": {
       "refresh": "Refresh",
@@ -449,10 +448,6 @@
       "urgent": "Urgent (≤7 days)",
       "normal": "Normal (8–30 days)",
       "low": "Low (>30 days)"
-    },
-    "stats": {
-      "unit": "PRs",
-      "totalValue": "total value"
     }
   },
   "receiving": {
@@ -496,5 +491,6 @@
         "rowNum": "#"
       }
     }
-  }
+  },
+  "selectVendorPlaceholder": "Select a vendor"
 }

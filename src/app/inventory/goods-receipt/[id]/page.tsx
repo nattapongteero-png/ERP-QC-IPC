@@ -89,6 +89,8 @@ export default function GrnDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useTranslations('goodsReceipt');
+  // Shared strings (loading, generic actions) live in the common namespace.
+  const tc = useTranslations('common');
 
   const [activeLineId, setActiveLineId] = useState<number | null>(null);
   const [checklistOpen, setChecklistOpen] = useState(false);
@@ -325,7 +327,7 @@ export default function GrnDetailPage() {
   });
 
   if (!data) {
-    return <div className="p-6 text-gray-500">กำลังโหลด…</div>;
+    return <div className="p-6 text-gray-500">{tc(`loading.loading`)}</div>;
   }
 
   const { grn, lines } = data;
@@ -393,7 +395,7 @@ export default function GrnDetailPage() {
               ];
         return (
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t(`workflowStatus`)}
             current={stepKey}
             tone={stepKey === 'rejected' || stepKey === 'cancelled' ? 'violet' : 'emerald'}
             steps={steps}
@@ -531,7 +533,7 @@ export default function GrnDetailPage() {
                 )}
                 {/* Warehouse view of a line still awaiting QC checklist */}
                 {line.status === 'created' && !canChecklist && (
-                  <span className="text-xs text-amber-600">รอ QC ตรวจ checklist</span>
+                  <span className="text-xs text-amber-600">{t(`awaitingQcChecklist`)}</span>
                 )}
                 {/* Warehouse releases a QC-approved line into stock */}
                 {line.status === 'qc_approved' && canRelease && (
@@ -746,7 +748,7 @@ export default function GrnDetailPage() {
               value={checklistSampleQty}
               onChange={(e) => setChecklistSampleQty(e.target.value)}
               className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-              placeholder="กรอกจำนวนที่สุ่มไปตรวจ"
+              placeholder={t(`sampleQtyPlaceholder`)}
               data-testid="checklist-sample-qty"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -825,7 +827,7 @@ export default function GrnDetailPage() {
           {/* Sticky footer — password + sign action stay visible without scrolling */}
           <div className="border-t bg-white p-4 space-y-3 flex-shrink-0">
             <div>
-              <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+              <label className="block text-sm font-medium mb-1">{t(`password`)}</label>
               <input
                 type="password"
                 name="esign-password"
@@ -835,7 +837,7 @@ export default function GrnDetailPage() {
                 value={sigPassword}
                 onChange={(e) => setSigPassword(e.target.value)}
                 className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-                placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
+                placeholder={t(`signWithPassword`)}
               />
             </div>
 
@@ -877,7 +879,7 @@ export default function GrnDetailPage() {
             <>
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded p-3 text-emerald-900 text-sm">
                 <CheckCircle2 className="w-5 h-5" />
-                <span>กดยืนยันเพื่อปล่อยล็อตเข้าสต็อก (Triple Independence enforced)</span>
+                <span>{t(`releaseConfirmHint`)}</span>
               </div>
               {(() => {
                 const rl = lines.find((l) => l.id === qaActionOpen.lineId);
@@ -903,7 +905,7 @@ export default function GrnDetailPage() {
                       value={releaseActualQty}
                       onChange={(e) => setReleaseActualQty(e.target.value)}
                       className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-                      placeholder="กรอกจำนวนรวมที่รับจริง"
+                      placeholder={t(`totalReceivedPlaceholder`)}
                       data-testid="release-actual-qty"
                     />
                     <div className="text-xs text-gray-600 space-y-0.5">
@@ -928,7 +930,7 @@ export default function GrnDetailPage() {
             <>
               <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded p-3 text-rose-900 text-sm">
                 <XCircle className="w-5 h-5" />
-                <span>การปฏิเสธจะสร้าง Deviation อัตโนมัติ</span>
+                <span>{t(`rejectCreatesDeviation`)}</span>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -938,14 +940,14 @@ export default function GrnDetailPage() {
                   value={rejectionReason}
                   height={80}
                   onValueChanged={(e) => setRejectionReason(String(e.value ?? ''))}
-                  placeholder="ระบุเหตุผลการปฏิเสธ (อย่างน้อย 10 ตัวอักษร)"
+                  placeholder={t(`rejectReasonPlaceholder`)}
                   inputAttr={{ autoComplete: 'off', name: 'grn-rejection-reason', 'data-lpignore': 'true', 'data-form-type': 'other' }}
                 />
               </div>
             </>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+            <label className="block text-sm font-medium mb-1">{t(`password`)}</label>
             <input
               type="password"
               name="esign-password"
@@ -954,7 +956,7 @@ export default function GrnDetailPage() {
               value={sigPassword}
               onChange={(e) => setSigPassword(e.target.value)}
               className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
-              placeholder="ลงนามด้วยรหัสผ่านปัจจุบัน"
+              placeholder={t(`signWithPassword`)}
             />
           </div>
 

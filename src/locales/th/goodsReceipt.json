@@ -72,19 +72,45 @@
     }
   },
   "form": {
-    "sourceType": { "label": "ประเภทแหล่งที่มา" },
-    "po": { "label": "Purchase Order" },
-    "wo": { "label": "Work Order" },
-    "warehouse": { "label": "คลังกักกัน" },
-    "receivedDate": { "label": "วันที่รับ" },
-    "notes": { "label": "หมายเหตุ" },
-    "actualQuantity": { "label": "จำนวนรับจริง" },
-    "vendorLotNumber": { "label": "เลขล็อตผู้ขาย" },
-    "batchNumber": { "label": "เลข Batch" },
-    "manufacturingDate": { "label": "วันผลิต" },
-    "expiryDate": { "label": "วันหมดอายุ" },
-    "varianceReason": { "label": "เหตุผลความคลาดเคลื่อน" },
-    "rejectionReason": { "label": "เหตุผลการปฏิเสธ" }
+    "sourceType": {
+      "label": "ประเภทแหล่งที่มา"
+    },
+    "po": {
+      "label": "Purchase Order"
+    },
+    "wo": {
+      "label": "Work Order"
+    },
+    "warehouse": {
+      "label": "คลังกักกัน"
+    },
+    "receivedDate": {
+      "label": "วันที่รับ"
+    },
+    "notes": {
+      "label": "หมายเหตุ"
+    },
+    "actualQuantity": {
+      "label": "จำนวนรับจริง"
+    },
+    "vendorLotNumber": {
+      "label": "เลขล็อตผู้ขาย"
+    },
+    "batchNumber": {
+      "label": "เลข Batch"
+    },
+    "manufacturingDate": {
+      "label": "วันผลิต"
+    },
+    "expiryDate": {
+      "label": "วันหมดอายุ"
+    },
+    "varianceReason": {
+      "label": "เหตุผลความคลาดเคลื่อน"
+    },
+    "rejectionReason": {
+      "label": "เหตุผลการปฏิเสธ"
+    }
   },
   "table": {
     "columns": {
@@ -179,5 +205,14 @@
     "PERMISSION_DENIED": "ไม่มีสิทธิ์ดำเนินการ",
     "NOT_FOUND": "ไม่พบข้อมูล",
     "INVALID_SOURCE": "แหล่งที่มาไม่ถูกต้อง"
-  }
+  },
+  "workflowStatus": "สถานะการดำเนินงาน",
+  "awaitingQcChecklist": "รอ QC ตรวจ checklist",
+  "sampleQtyPlaceholder": "กรอกจำนวนที่สุ่มไปตรวจ",
+  "password": "รหัสผ่าน",
+  "signWithPassword": "ลงนามด้วยรหัสผ่านปัจจุบัน",
+  "releaseConfirmHint": "กดยืนยันเพื่อปล่อยล็อตเข้าสต็อก (Triple Independence enforced)",
+  "totalReceivedPlaceholder": "กรอกจำนวนรวมที่รับจริง",
+  "rejectCreatesDeviation": "การปฏิเสธจะสร้าง Deviation อัตโนมัติ",
+  "rejectReasonPlaceholder": "ระบุเหตุผลการปฏิเสธ (อย่างน้อย 10 ตัวอักษร)"
 }

@@ -209,5 +209,6 @@
       "daysAgo": "{days} วันที่แล้ว",
       "weeksAgo": "{weeks} สัปดาห์ที่แล้ว"
     }
-  }
+  },
+  "workflowStatus": "สถานะการดำเนินงาน"
 }

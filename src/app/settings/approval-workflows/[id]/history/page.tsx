@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -54,6 +55,9 @@ export default function WorkflowHistoryPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations('settings');
+  // Generic back/refresh labels come from the shared common namespace.
+  const tc = useTranslations('common');
   const [loading, setLoading] = useState(true);
   const [workflow, setWorkflow] = useState<WorkflowInfo | null>(null);
   const [history, setHistory] = useState<WorkflowHistoryItem[]>([]);
@@ -139,21 +143,21 @@ export default function WorkflowHistoryPage({
           <div>
             <Button
               icon="back"
-              text="ย้อนกลับ"
+              text={tc(`actions.back`)}
               stylingMode="text"
               onClick={() => router.push(`/settings/approval-workflows/${id}`)}
             />
             <h1 className="text-2xl font-bold text-gray-800" data-testid="page-title">
-              ประวัติเวิร์กโฟลว์: {workflow?.name}
+              {t(`approvalHistory.pageTitle`)}: {workflow?.name}
             </h1>
             <p className="text-gray-600">
-              บันทึกการตรวจสอบคำขออนุมัติทั้งหมดที่ผ่านเวิร์กโฟลว์นี้
+              {t(`approvalHistory.pageSubtitle`)}
             </p>
           </div>
           <Button
             icon="refresh"
             onClick={fetchData}
-            hint="รีเฟรช"
+            hint={tc(`actions.refresh`)}
             elementAttr={{ 'data-testid': 'refresh-btn' }}
           />
         </div>
@@ -161,23 +165,23 @@ export default function WorkflowHistoryPage({
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-            <div className="text-sm text-gray-500">คำขอทั้งหมด</div>
+            <div className="text-sm text-gray-500">{t(`approvalHistory.totalRequests`)}</div>
             <div className="text-2xl font-bold text-blue-600">{total}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-            <div className="text-sm text-gray-500">อนุมัติแล้ว</div>
+            <div className="text-sm text-gray-500">{t(`approvalHistory.approved`)}</div>
             <div className="text-2xl font-bold text-green-600">
               {history.filter((h) => h.status === 'approved').length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-            <div className="text-sm text-gray-500">ปฏิเสธ</div>
+            <div className="text-sm text-gray-500">{t(`approvalHistory.rejected`)}</div>
             <div className="text-2xl font-bold text-red-600">
               {history.filter((h) => h.status === 'rejected').length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-            <div className="text-sm text-gray-500">รอดำเนินการ</div>
+            <div className="text-sm text-gray-500">{t(`approvalHistory.pending`)}</div>
             <div className="text-2xl font-bold text-yellow-600">
               {history.filter((h) => h.status === 'pending').length}
             </div>
@@ -197,34 +201,34 @@ export default function WorkflowHistoryPage({
             <Paging defaultPageSize={20} />
             <Toolbar>
               <Item location="before">
-                <span className="text-lg font-medium">ประวัติคำขอ</span>
+                <span className="text-lg font-medium">{t(`approvalHistory.requestHistory`)}</span>
               </Item>
             </Toolbar>
 
-            <Column dataField="id" caption="รหัสคำขอ" width={100} />
-            <Column dataField="documentType" caption="ประเภทเอกสาร" width={150} />
-            <Column dataField="documentId" caption="รหัสเอกสาร" width={100} />
+            <Column dataField="id" caption={t(`approvalHistory.columns.requestId`)} width={100} />
+            <Column dataField="documentType" caption={t(`approvalHistory.columns.documentType`)} width={150} />
+            <Column dataField="documentId" caption={t(`approvalHistory.columns.documentCode`)} width={100} />
             <Column
               dataField="status"
-              caption="สถานะ"
+              caption={t(`approvalHistory.columns.status`)}
               width={120}
               cellRender={renderStatus}
             />
             <Column
-              caption="ขั้นตอน"
+              caption={t(`approvalHistory.columns.step`)}
               width={150}
               cellRender={renderSteps}
             />
-            <Column dataField="requestedByName" caption="ผู้ขอ" width={150} />
+            <Column dataField="requestedByName" caption={t(`approvalHistory.columns.requester`)} width={150} />
             <Column
               dataField="requestedAt"
-              caption="ขอเมื่อ"
+              caption={t(`approvalHistory.columns.requestedAt`)}
               width={180}
               dataType="datetime"
             />
             <Column
               dataField="completedAt"
-              caption="เสร็จเมื่อ"
+              caption={t(`approvalHistory.columns.completedAt`)}
               width={180}
               dataType="datetime"
             />

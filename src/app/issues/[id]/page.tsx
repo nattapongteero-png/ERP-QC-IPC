@@ -416,7 +416,7 @@ export default function IssueDetailPage({ params }: PageProps) {
 
       <div className="mb-6">
         <StatusStepper
-          title="สถานะการดำเนินงาน"
+          title={t(`workflowStatus`)}
           steps={[
             { key: 'draft', label: 'ร่าง' },
             { key: 'submitted', label: 'ส่งเรื่อง' },

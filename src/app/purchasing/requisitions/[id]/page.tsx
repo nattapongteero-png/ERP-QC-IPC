@@ -507,7 +507,7 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
                             v ? (v.code ? `${v.code} - ${v.name}` : v.name ?? '') : ''
                           }
                           valueExpr="id"
-                          placeholder="เลือกบริษัทผู้ขาย"
+                          placeholder={t(`selectVendorPlaceholder`)}
                           searchEnabled
                           data-testid={`line-vendor-select-${line.id}`}
                         />

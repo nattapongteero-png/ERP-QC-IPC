@@ -209,5 +209,6 @@
       "daysAgo": "{days} days ago",
       "weeksAgo": "{weeks} weeks ago"
     }
-  }
+  },
+  "workflowStatus": "Workflow status"
 }

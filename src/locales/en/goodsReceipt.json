@@ -72,19 +72,45 @@
     }
   },
   "form": {
-    "sourceType": { "label": "Source Type" },
-    "po": { "label": "Purchase Order" },
-    "wo": { "label": "Work Order" },
-    "warehouse": { "label": "Quarantine Warehouse" },
-    "receivedDate": { "label": "Received Date" },
-    "notes": { "label": "Notes" },
-    "actualQuantity": { "label": "Actual Quantity" },
-    "vendorLotNumber": { "label": "Vendor Lot Number" },
-    "batchNumber": { "label": "Batch Number" },
-    "manufacturingDate": { "label": "Manufacturing Date" },
-    "expiryDate": { "label": "Expiry Date" },
-    "varianceReason": { "label": "Variance Reason" },
-    "rejectionReason": { "label": "Rejection Reason" }
+    "sourceType": {
+      "label": "Source Type"
+    },
+    "po": {
+      "label": "Purchase Order"
+    },
+    "wo": {
+      "label": "Work Order"
+    },
+    "warehouse": {
+      "label": "Quarantine Warehouse"
+    },
+    "receivedDate": {
+      "label": "Received Date"
+    },
+    "notes": {
+      "label": "Notes"
+    },
+    "actualQuantity": {
+      "label": "Actual Quantity"
+    },
+    "vendorLotNumber": {
+      "label": "Vendor Lot Number"
+    },
+    "batchNumber": {
+      "label": "Batch Number"
+    },
+    "manufacturingDate": {
+      "label": "Manufacturing Date"
+    },
+    "expiryDate": {
+      "label": "Expiry Date"
+    },
+    "varianceReason": {
+      "label": "Variance Reason"
+    },
+    "rejectionReason": {
+      "label": "Rejection Reason"
+    }
   },
   "table": {
     "columns": {
@@ -179,5 +205,14 @@
     "PERMISSION_DENIED": "Permission denied",
     "NOT_FOUND": "Not found",
     "INVALID_SOURCE": "Invalid source document"
-  }
+  },
+  "workflowStatus": "Workflow status",
+  "awaitingQcChecklist": "Awaiting QC checklist",
+  "sampleQtyPlaceholder": "Enter the sampled quantity",
+  "password": "Password",
+  "signWithPassword": "Sign with your current password",
+  "releaseConfirmHint": "Confirm to release the lot into stock (Triple Independence enforced)",
+  "totalReceivedPlaceholder": "Enter the total quantity actually received",
+  "rejectCreatesDeviation": "Rejecting automatically raises a Deviation",
+  "rejectReasonPlaceholder": "State the reason for rejection (at least 10 characters)"
 }

@@ -415,5 +415,24 @@
         "deleteSuccess": "ลบค่าความคลาดเคลื่อนสำเร็จ"
       }
     }
+  },
+  "approvalHistory": {
+    "totalRequests": "คำขอทั้งหมด",
+    "approved": "อนุมัติแล้ว",
+    "pageTitle": "ประวัติเวิร์กโฟลว์",
+    "pageSubtitle": "บันทึกการตรวจสอบคำขออนุมัติทั้งหมดที่ผ่านเวิร์กโฟลว์นี้",
+    "requestHistory": "ประวัติคำขอ",
+    "rejected": "ปฏิเสธ",
+    "pending": "รอดำเนินการ",
+    "columns": {
+      "requestId": "รหัสคำขอ",
+      "documentType": "ประเภทเอกสาร",
+      "documentCode": "รหัสเอกสาร",
+      "requester": "ผู้ขอ",
+      "step": "ขั้นตอน",
+      "status": "สถานะ",
+      "requestedAt": "ขอเมื่อ",
+      "completedAt": "เสร็จเมื่อ"
+    }
   }
 }
