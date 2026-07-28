@@ -530,12 +530,51 @@ export async function syncDatabaseSchema(): Promise<{
     console.log(`[Schema Sync] Tables created: ${result.tablesCreated.length}`);
     console.log(`[Schema Sync] Columns added: ${result.columnsAdded.length}`);
     console.log(`[Schema Sync] Columns widened: ${result.columnsModified.length}`);
+
+    // Failures must be impossible to miss.
+    //
+    // UAT ran for months with 37 schema-declared tables absent from the
+    // database — goods receipt, material withdrawal, quotations, QC
+    // inspections, scale verification, water quality and more — which meant 8
+    // sidebar entries were hard 500s. Nobody knew, because the only signal was
+    // a console.log line with a count on it, and this function still called
+    // markSchemaSynced() as if everything had worked.
     if (result.errors.length > 0) {
-      console.log(`[Schema Sync] Errors: ${result.errors.length}`);
+      console.error(
+        `[Schema Sync] ${result.errors.length} ERROR(S) — the database does NOT match the ORM schema:`,
+      );
+      for (const e of result.errors) console.error(`[Schema Sync]   - ${e}`);
     }
 
-    // Mark schema as synced
-    markSchemaSynced();
+    // Verify every schema table actually exists now. A table that silently
+    // failed to be created is exactly the condition that went unnoticed, and
+    // it will not show up as an ALTER error on a later boot.
+    const stillMissing: string[] = [];
+    const existingAfter = usingSqlite
+      ? await getSqliteExistingTables(db)
+      : await getMysqlExistingTables(db);
+    for (const tableName of schemaTables.keys()) {
+      if (!existingAfter.has(tableName)) stillMissing.push(tableName);
+    }
+    if (stillMissing.length > 0) {
+      result.errors.push(
+        `${stillMissing.length} table(s) missing after sync: ${stillMissing.join(', ')}`,
+      );
+      console.error(
+        `[Schema Sync] ${stillMissing.length} TABLE(S) STILL MISSING after sync — ` +
+          `pages backed by these will fail at the SQL layer: ${stillMissing.join(', ')}`,
+      );
+    }
+
+    // Only claim the schema is synced when it genuinely is. Marking it synced
+    // after failures is what let a half-built database look healthy.
+    if (result.errors.length === 0) {
+      markSchemaSynced();
+    } else {
+      console.error(
+        '[Schema Sync] NOT marking schema as synced — resolve the errors above.',
+      );
+    }
 
   } catch (err) {
     const errorMsg = `Schema sync failed: ${err}`;

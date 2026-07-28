@@ -17,9 +17,19 @@ export async function register() {
       await initializeDatabaseWithSync();
       console.log('[Instrumentation] Database schema sync completed successfully');
     } catch (error) {
-      console.error('[Instrumentation] Database schema sync failed:', error);
-      // Don't throw - allow server to start even if sync fails
-      // The app can still work if tables already exist
+      // Still don't throw — a server that refuses to boot helps nobody, and
+      // most of the app works even with a partial schema. But this must be
+      // shouted, not whispered: UAT ran for months with 37 tables missing
+      // because the only trace was one console.error nobody was reading.
+      console.error(
+        '\n' +
+          '='.repeat(78) + '\n' +
+          '[Instrumentation] DATABASE SCHEMA SYNC FAILED\n' +
+          'The database does NOT match the ORM schema. Pages backed by missing\n' +
+          'tables will return HTTP 500. Check the [Schema Sync] errors above.\n' +
+          '='.repeat(78) + '\n',
+        error,
+      );
     }
 
     // Drain any Metaherb PR-status webhooks that were left pending across a
