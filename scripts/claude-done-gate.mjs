@@ -12,6 +12,7 @@
  * Exit 2 + stderr   = blocking reason, shown back to the assistant.
  */
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 // Derive the repo from this file's own location. A hardcoded Windows path with
 // a space in it silently produced empty output from every git command, so the
@@ -77,18 +78,41 @@ const recentUi = [
 // Match in JS rather than shell — escaping a Thai character class through
 // execSync silently produced no matches even though the pattern was correct.
 const THAI_IN_UI = /(?:text=|hint=|placeholder=|title=|label=)["'][฀-๿]|>[฀-๿][^<]{2,}</;
+
+// Statutory documents are EXEMPT. A Thai tax invoice must print the wording the
+// Revenue Code prescribes — "ใบกำกับภาษี", "ต้นฉบับ", "สำนักงานใหญ่",
+// "เลขประจำตัวผู้เสียภาษี". Those words are the legal content of the document,
+// not UI copy, and translating them would make the document invalid. Same for
+// the Excel sheet names on the VAT registers (รายงานภาษีขาย / รายงานภาษีซื้อ),
+// which are the statutory report titles.
+const I18N_EXEMPT = [
+  /PrintDocument\.tsx$/,           // ใบกำกับภาษี / ใบเสร็จ / ใบส่งของ
+  /wht-certificate-dialog\.tsx$/,  // หนังสือรับรองการหักภาษี ณ ที่จ่าย
+  /reports\/(vat|wht)\/page\.tsx$/,// ชื่อรายงานภาษีตามกฎหมาย
+];
+
 const thaiOffenders = [];
-for (const f of [...new Set(recentUi)]) {
-  const src = sh(`git show HEAD:${f}`) || '';
-  const offending = src
+for (const f of [...new Set(recentUi)].filter((f) => !I18N_EXEMPT.some((re) => re.test(f)))) {
+  // Read the WORKING TREE, not `git show HEAD:` — HEAD is the version before
+  // the fix, so the gate kept reporting strings that were already translated
+  // and pointed at no line, which made it impossible to act on.
+  let src = '';
+  try {
+    src = readFileSync(resolve(REPO, f), 'utf8');
+  } catch {
+    continue; // deleted or renamed
+  }
+  const hits = src
     .split('\n')
-    .filter((line) => !/^\s*(\/\/|\*)/.test(line)) // skip comments
-    .some((line) => THAI_IN_UI.test(line));
-  if (offending) thaiOffenders.push(f.split('/').pop());
+    .map((line, i) => [i + 1, line])
+    .filter(([, line]) => !/^\s*(\/\/|\*)/.test(line)) // skip comments
+    .filter(([, line]) => THAI_IN_UI.test(line));
+  // Report path:line so the offender is directly openable.
+  if (hits.length) thaiOffenders.push(`${f}:${hits.map(([n]) => n).slice(0, 4).join(',')}`);
 }
 if (thaiOffenders.length) {
   problems.push(
-    `HARDCODED THAI in ${thaiOffenders.join(', ')} — the app is bilingual. Move to src/locales/th + en and use useTranslations, then re-check in EN.`,
+    `HARDCODED THAI in ${thaiOffenders.join(' | ')} — the app is bilingual. Move to src/locales/th + en and use useTranslations, then re-check in EN. (Statutory tax documents are exempt — see I18N_EXEMPT.)`,
   );
 }
 

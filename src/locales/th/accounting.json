@@ -1083,7 +1083,12 @@
         "beforeVat": "ยอดก่อน VAT",
         "netTotal": "ยอดรวมสุทธิ"
       },
-      "exportExcel": "ส่งออก Excel"
+      "exportExcel": "ส่งออก Excel",
+      "dateLabel": "วันที่",
+      "dueLabel": "ครบกำหนด",
+      "outstandingLabel": "ค้าง",
+      "paidInFull": "ชำระครบ",
+      "noInvoices": "ไม่พบใบแจ้งหนี้"
     },
     "paymentsPage": {
       "recordPayment": "บันทึกการชำระเงิน",

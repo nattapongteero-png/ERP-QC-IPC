@@ -76,6 +76,9 @@ export default function VATReportPage() {
   const handleExportExcel = useCallback(async () => {
     if (!report) return;
     const period = formatTaxPeriod(taxPeriod);
+    // NOT i18n. These are the statutory names of the two VAT registers filed
+    // with ภ.พ.30; the Revenue Department expects the Thai titles regardless of
+    // the UI language the user happens to be in. Do not translate.
     await exportGridToExcel(outputGridRef.current, `vat-ขาย-${period}`, 'รายงานภาษีขาย');
     await exportGridToExcel(inputGridRef.current, `vat-ซื้อ-${period}`, 'รายงานภาษีซื้อ');
     notify(t('reports.vat.toastExportSuccess'), 'success', 3000);

@@ -1083,7 +1083,12 @@
         "beforeVat": "Amount before VAT",
         "netTotal": "Net Total"
       },
-      "exportExcel": "Export Excel"
+      "exportExcel": "Export Excel",
+      "dateLabel": "Date",
+      "dueLabel": "Due",
+      "outstandingLabel": "Outstanding",
+      "paidInFull": "Paid in full",
+      "noInvoices": "No invoices found"
     },
     "paymentsPage": {
       "recordPayment": "Record Payment",

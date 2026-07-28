@@ -694,8 +694,8 @@ export default function APInvoicesPage() {
 
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <div className="text-xs text-gray-500">
-                      <div>วันที่ {formatShortDate(invoice.invoiceDate)}</div>
-                      {invoice.dueDate && <div>ครบกำหนด {formatShortDate(invoice.dueDate)}</div>}
+                      <div>{t(`accountsPayable.invoicesPage.dateLabel`)} {formatShortDate(invoice.invoiceDate)}</div>
+                      {invoice.dueDate && <div>{t(`accountsPayable.invoicesPage.dueLabel`)} {formatShortDate(invoice.dueDate)}</div>}
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-gray-900 tabular-nums">
@@ -804,7 +804,7 @@ export default function APInvoicesPage() {
                 <div>{c.text}</div>
                 {c.data.dueDate && (
                   <div className="text-xs text-gray-500">
-                    ครบกำหนด {formatShortDate(c.data.dueDate)}
+                    {t(`accountsPayable.invoicesPage.dueLabel`)} {formatShortDate(c.data.dueDate)}
                   </div>
                 )}
               </div>
@@ -839,10 +839,10 @@ export default function APInvoicesPage() {
                 <div className="leading-tight text-right">
                   <div className="font-medium text-gray-900 tabular-nums">{formatMoney(total, 2)}</div>
                   {paid > 0 && outstanding > 0.004 && (
-                    <div className="text-xs text-amber-600 tabular-nums">ค้าง {formatMoney(outstanding, 2)}</div>
+                    <div className="text-xs text-amber-600 tabular-nums">{t(`accountsPayable.invoicesPage.outstandingLabel`)} {formatMoney(outstanding, 2)}</div>
                   )}
                   {outstanding <= 0.004 && paid > 0 && (
-                    <div className="text-xs text-emerald-600">ชำระครบ</div>
+                    <div className="text-xs text-emerald-600">{t(`accountsPayable.invoicesPage.paidInFull`)}</div>
                   )}
                 </div>
               );
