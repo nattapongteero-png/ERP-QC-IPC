@@ -505,7 +505,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 <p className="text-xs text-gray-500">{t(`orderDetail.requiredDate`)}</p>
                 <p className="font-medium">
                   {order.requestedDeliveryDate
-                    ? new Date(order.requestedDeliveryDate).toLocaleDateString()
+                    ? new Date(order.requestedDeliveryDate).toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US')
                     : t(`orderDetail.notSpecified`)}
                 </p>
               </div>
@@ -528,7 +528,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.confirmedAt && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
               <p>
-                <strong>{t(`orderDetail.confirmedAt`)}</strong> {new Date(order.confirmedAt).toLocaleString()}
+                <strong>{t(`orderDetail.confirmedAt`)}</strong> {new Date(order.confirmedAt).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US')}
                 {order.confirmedByName && t(`orderDetail.byWhom`, { name: order.confirmedByName })}
               </p>
               {order.salesOrderNumber && (
@@ -540,7 +540,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.shippedAt && (
             <div className="mt-4 p-3 bg-green-50 rounded-lg text-sm">
               <p>
-                <strong>{t(`orderDetail.shippedAt`)}</strong> {new Date(order.shippedAt).toLocaleString()}
+                <strong>{t(`orderDetail.shippedAt`)}</strong> {new Date(order.shippedAt).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US')}
                 {order.shippedByName && t(`orderDetail.byWhom`, { name: order.shippedByName })}
               </p>
               {order.trackingNumber && (
