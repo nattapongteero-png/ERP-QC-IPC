@@ -21,6 +21,8 @@ export interface DxTextBoxProps {
   placeholder?: string;
   /** Label text */
   label?: string;
+  /** Override when the value-change event fires (defaults: search=keyup, otherwise change) */
+  valueChangeEvent?: string;
   /** Label mode */
   labelMode?: 'static' | 'floating' | 'hidden' | 'outside';
   /** Input mode */
@@ -99,6 +101,7 @@ export function DxTextBox({
   label,
   labelMode = 'floating',
   mode = 'text',
+  valueChangeEvent,
   disabled = false,
   readOnly = false,
   required = false,
@@ -135,6 +138,11 @@ export function DxTextBox({
       value={value}
       defaultValue={defaultValue}
       onValueChanged={handleValueChanged}
+      // DevExtreme defaults valueChangeEvent to "change", which only fires on
+      // blur/Enter — so a search box looked broken: typing filtered nothing
+      // until you clicked away. Search boxes filter as you type; ordinary text
+      // inputs keep the default so form state is not rewritten per keystroke.
+      valueChangeEvent={valueChangeEvent ?? (mode === 'search' ? 'keyup' : 'change')}
       placeholder={placeholder}
       label={label}
       labelMode={labelMode}

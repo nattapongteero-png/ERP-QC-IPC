@@ -33,6 +33,17 @@ import type { VmiPortalTestResult } from '@/types/vmi';
 // Types
 // ============================================
 
+// This form holds an API-key field in password mode, which makes Chrome's
+// password manager treat the whole form as a login and autofill the
+// neighbouring inputs — the Portal URL was showing a saved e-mail address
+// while Portal Name and Vendor ID came up blank, and saving would have
+// written that rubbish over a working portal config.
+const AUTOFILL_OFF = {
+  autoComplete: 'off',
+  'data-lpignore': 'true',
+  'data-form-type': 'other',
+} as const;
+
 interface VmiPortalConfigSummary {
   id: number;
   name: string;
@@ -452,6 +463,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'e.g., Siriraj VMI Portal',
+                    inputAttr: AUTOFILL_OFF,
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.nameRequired') },
@@ -464,6 +476,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'Your vendor ID in this portal',
+                    inputAttr: AUTOFILL_OFF,
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.vendorIdRequired') },
@@ -476,6 +489,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'https://vmi-portal.example.com',
+                    inputAttr: AUTOFILL_OFF,
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.urlRequired') },
@@ -494,6 +508,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   editorOptions={{
                     mode: 'password',
                     placeholder: isNewMode ? 'Enter API key' : '••••••••••••••••',
+                    inputAttr: { ...AUTOFILL_OFF, autoComplete: 'new-password' },
                   }}
                   validationRules={
                     isNewMode
