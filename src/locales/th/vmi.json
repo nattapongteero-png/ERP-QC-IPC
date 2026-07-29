@@ -333,6 +333,8 @@
     "cancelFailed": "ยกเลิกคำสั่งซื้อไม่สำเร็จ",
     "close": "ปิด",
     "confirmCancel": "ยืนยันการยกเลิก",
-    "cancel": "ยกเลิก"
+    "cancel": "ยกเลิก",
+    "portalNotSynced": "ระบบภายในอัปเดตแล้ว แต่ VMI Portal ไม่รับ",
+    "portalNotSyncedHint": "สถานะสองฝั่งไม่ตรงกัน กรุณาแจ้งผู้ดูแลระบบ ({error})"
   }
 }

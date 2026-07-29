@@ -80,6 +80,11 @@ export async function POST(
           vmiOrderId: id,
           salesOrderId: result.salesOrder.id,
           salesOrderNumber: result.salesOrder.soNumber,
+          // Pass the portal outcome through. The confirmation itself succeeded
+          // locally, so this stays a 200 — but the caller must be able to tell
+          // that the portal was not updated instead of being told it was.
+          portalSynced: result.portalSynced,
+          portalSyncError: result.portalSyncError,
           message: result.message || 'Order confirmed successfully',
         },
       });

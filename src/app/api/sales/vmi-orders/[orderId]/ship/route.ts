@@ -72,6 +72,9 @@ export async function POST(
       success: true,
       data: {
         vmiOrderId: id,
+        // See the confirm route: a portal rejection must not read as success.
+        portalSynced: result.portalSynced,
+        portalSyncError: result.portalSyncError,
         message: result.message || 'Order shipped successfully',
         order: result.vmiOrder,
       },

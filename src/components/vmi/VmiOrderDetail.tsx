@@ -186,7 +186,13 @@ async function matchLine(
   }
 }
 
-async function confirmOrder(orderId: number, userId: number): Promise<void> {
+/** Portal outcome of a local action, so the UI can warn when the two sides disagree. */
+interface PortalSyncResult {
+  portalSynced?: boolean;
+  portalSyncError?: string;
+}
+
+async function confirmOrder(orderId: number, userId: number): Promise<PortalSyncResult> {
   const response = await fetch(`/api/sales/vmi-orders/${orderId}/confirm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -196,13 +202,14 @@ async function confirmOrder(orderId: number, userId: number): Promise<void> {
   if (!result.success) {
     throw new Error(result.error || 'Failed to confirm order');
   }
+  return { portalSynced: result.data?.portalSynced, portalSyncError: result.data?.portalSyncError };
 }
 
 async function shipOrder(
   orderId: number,
   userId: number,
   shipmentData: { trackingNumber?: string; carrier?: string }
-): Promise<void> {
+): Promise<PortalSyncResult> {
   const response = await fetch(`/api/sales/vmi-orders/${orderId}/ship`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -212,6 +219,7 @@ async function shipOrder(
   if (!result.success) {
     throw new Error(result.error || 'Failed to ship order');
   }
+  return { portalSynced: result.data?.portalSynced, portalSyncError: result.data?.portalSyncError };
 }
 
 // Cancel an order and push it to the VMI Portal (CANCEL-PO-VENDOR-GUIDE).
@@ -244,6 +252,9 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   const queryClient = useQueryClient();
   const [matchingLine, setMatchingLine] = useState<VmiOrderLine | null>(null);
   const [showShipDialog, setShowShipDialog] = useState(false);
+  // Set when the local action succeeded but the VMI Portal rejected it, so the
+  // two systems disagree. Silence here used to be indistinguishable from sync.
+  const [portalWarning, setPortalWarning] = useState<string | undefined>();
   const [trackingNumber, setTrackingNumber] = useState('');
   const [carrier, setCarrier] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -280,7 +291,10 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
 
   const confirmMutation = useMutation({
     mutationFn: () => confirmOrder(orderId, requireUserId()),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      // Confirmed locally either way, but if the portal refused, the two
+      // systems now disagree — the operator has to be told.
+      if (res?.portalSynced === false) setPortalWarning(res.portalSyncError);
       refetch();
       queryClient.invalidateQueries({ queryKey: ['vmi-orders'] });
       onConfirm?.();
@@ -289,7 +303,8 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
 
   const shipMutation = useMutation({
     mutationFn: () => shipOrder(orderId, requireUserId(), { trackingNumber, carrier }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res?.portalSynced === false) setPortalWarning(res.portalSyncError);
       setShowShipDialog(false);
       refetch();
       queryClient.invalidateQueries({ queryKey: ['vmi-orders'] });
@@ -604,6 +619,19 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 ? `[${VMI_CANCEL_REASON_LABELS[order.cancelReasonCode] ?? order.cancelReasonCode}] `
                 : ''}
               {order.rejectionReason}
+            </div>
+          )}
+
+          {/* The local action went through but the portal refused it, so our
+              status and the portal's no longer agree. Red, not yellow: someone
+              has to reconcile this by hand. */}
+          {portalWarning && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="text-sm text-red-800">
+                <strong>{t(`orderDetail.portalNotSynced`)}</strong>
+                <p>{t(`orderDetail.portalNotSyncedHint`, { error: portalWarning })}</p>
+              </div>
             </div>
           )}
 

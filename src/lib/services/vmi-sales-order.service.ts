@@ -114,6 +114,59 @@ interface PortalOrderDetail {
   }>;
 }
 
+/**
+ * PATCH an order action to the VMI Portal and report honestly whether it
+ * landed.
+ *
+ * The point of this helper is the `response.ok` check. `fetch` only rejects on
+ * a network-level failure, so an HTTP 401/404/500 resolves like a success —
+ * awaiting it inside a try/catch (which is what confirm and ship used to do)
+ * silently treats a rejected call as done. UAT's portal answers
+ * 401 {"code":"UNAUTHORIZED"} to exactly these calls, and nothing was ever
+ * logged or surfaced.
+ *
+ * Never throws: the local transaction is already committed by the time this
+ * runs, so the caller decides what to tell the user.
+ */
+async function notifyPortal(
+  portal: { portalUrl: string; apiKeyEncrypted: string },
+  vmiOrderId: string | number,
+  body: Record<string, unknown>,
+  action: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const apiKey = decrypt(portal.apiKeyEncrypted);
+    const response = await fetch(
+      `${portal.portalUrl}/api/external/vendor/orders/${vmiOrderId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+
+    if (!response.ok) {
+      // Portal errors are a flat { code, message } envelope.
+      let detail = `HTTP ${response.status}`;
+      try {
+        const payload = await response.json();
+        if (payload?.message) detail = `${payload.code || response.status}: ${payload.message}`;
+      } catch {
+        // Non-JSON body — the status alone is the best we have.
+      }
+      console.error(`[VMI Sales Order] Portal rejected "${action}" for order ${vmiOrderId}: ${detail}`);
+      return { ok: false, error: detail };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(`[VMI Sales Order] Could not reach portal for "${action}" on order ${vmiOrderId}: ${detail}`);
+    return { ok: false, error: detail };
+  }
+}
+
 // ============================================
 // VMI Sales Order Service
 // ============================================
@@ -982,6 +1035,11 @@ export class VmiSalesOrderService {
   ): Promise<{
     vmiOrder: VmiSalesOrderDetail;
     salesOrder: { id: number; soNumber: string; status: string };
+    /** False when the portal refused or was unreachable. The local order is
+     *  still confirmed/shipped, so callers must surface this rather than
+     *  assume the portal agrees. */
+    portalSynced: boolean;
+    portalSyncError?: string;
     message: string;
   }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1062,24 +1120,20 @@ export class VmiSalesOrderService {
       } as Record<string, unknown>)
       .where(eq(orders.id, orderId));
 
-    // Notify VMI Portal
-    try {
-      const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
-        body: JSON.stringify({
-          action: 'confirm',
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch (error) {
-      console.error('[VMI Sales Order] Failed to notify portal:', error);
-      // Continue even if portal notification fails
-    }
+    // Notify VMI Portal.
+    //
+    // fetch() only rejects on a network-level failure — an HTTP 401/404/500
+    // RESOLVES. The previous version awaited it without inspecting the
+    // response, so a portal that answered 401 "Invalid API key" looked
+    // identical to success: nothing was logged, and the caller was still told
+    // "synced to VMI Portal". Verified against UAT, where this endpoint does
+    // in fact answer 401. Check the status explicitly.
+    const portalSync = await notifyPortal(
+      portal,
+      order.vmiOrderId,
+      { action: 'confirm' },
+      'confirm',
+    );
 
     const updatedOrder = await this.getOrderById(orderId);
 
@@ -1090,7 +1144,14 @@ export class VmiSalesOrderService {
         soNumber,
         status: 'confirmed',
       },
-      message: 'Order confirmed and synced to VMI Portal',
+      // The sales order is already committed, so a portal failure must not
+      // roll the confirmation back — but it must not be reported as a success
+      // either. Say what actually happened.
+      portalSynced: portalSync.ok,
+      portalSyncError: portalSync.error,
+      message: portalSync.ok
+        ? 'Order confirmed and synced to VMI Portal'
+        : `Order confirmed locally, but the VMI Portal was NOT updated: ${portalSync.error}`,
     };
   }
 
@@ -1106,6 +1167,11 @@ export class VmiSalesOrderService {
     request: VmiOrderShipRequest
   ): Promise<{
     vmiOrder: VmiSalesOrderDetail;
+    /** False when the portal refused or was unreachable. The local order is
+     *  still confirmed/shipped, so callers must surface this rather than
+     *  assume the portal agrees. */
+    portalSynced: boolean;
+    portalSyncError?: string;
     message: string;
   }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1160,31 +1226,24 @@ export class VmiSalesOrderService {
       newValue: { localStatus: 'shipped', vmiStatus: 'shipped' },
     });
 
-    // Notify VMI Portal
-    try {
-      const apiKey = decrypt(portal.apiKeyEncrypted);
-      await fetch(`${portal.portalUrl}/api/external/vendor/orders/${order.vmiOrderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
-        body: JSON.stringify({
-          action: 'ship',
-          expectedDeliveryDate: request.expectedDeliveryDate,
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch (error) {
-      console.error('[VMI Sales Order] Failed to notify portal:', error);
-      // Continue even if portal notification fails
-    }
+    // Same unchecked-response bug as confirm: an HTTP error resolved and was
+    // reported as a successful sync. See notifyPortal().
+    const portalSync = await notifyPortal(
+      portal,
+      order.vmiOrderId,
+      { action: 'ship', expectedDeliveryDate: request.expectedDeliveryDate },
+      'ship',
+    );
 
     const updatedOrder = await this.getOrderById(orderId);
 
     return {
       vmiOrder: updatedOrder!,
-      message: 'Order marked as shipped and synced to VMI Portal',
+      portalSynced: portalSync.ok,
+      portalSyncError: portalSync.error,
+      message: portalSync.ok
+        ? 'Order marked as shipped and synced to VMI Portal'
+        : `Order marked as shipped locally, but the VMI Portal was NOT updated: ${portalSync.error}`,
     };
   }
 

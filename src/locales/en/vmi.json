@@ -333,6 +333,8 @@
     "cancelFailed": "Failed to cancel the order",
     "close": "Close",
     "confirmCancel": "Confirm Cancellation",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "portalNotSynced": "Updated locally, but the VMI Portal refused",
+    "portalNotSyncedHint": "The two systems now disagree — please tell an administrator ({error})"
   }
 }
