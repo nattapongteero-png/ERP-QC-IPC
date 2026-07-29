@@ -20,6 +20,7 @@ import {
   upsertTolerance as upsertToleranceRow,
 } from './goods-receipt-tolerance.service';
 import { resolveDestinationWarehouseByItemType } from './warehouse-resolver.service';
+import { checkLotCostUnit } from '../utils/lot-cost-unit';
 
 function getTables() {
   return {
@@ -174,6 +175,29 @@ export async function qaReleaseLine(
         }
       }
       if (destWarehouseId == null) destWarehouseId = Number(grn?.warehouseId);
+
+      // Unit sanity check. Inventory value is quantity * cost everywhere, which
+      // is only meaningful when both are in the same unit. A lot received in
+      // grams while the item is costed per kilogram overstates its value 1000x —
+      // that is how the expiry dashboard came to report ฿35,610,750 for a lot
+      // worth about ฿35,610. We log rather than reject: the receipt itself is
+      // legitimate, and we cannot tell whether the quantity or the cost is the
+      // one that was entered wrong. The record makes it findable.
+      {
+        const itemUnit = itemRows[0]?.primaryUnit;
+        const check = checkLotCostUnit({
+          quantity: remainder,
+          lotUnit: line.unit,
+          cost: (line as { unitCost?: number | null }).unitCost ?? null,
+          costUnit: itemUnit,
+        });
+        if (check.mismatch) {
+          console.warn(
+            `[goods-receipt] lot unit/cost mismatch on GRN line ${lineId}: ${check.reason}. ` +
+              `Stored value ${check.storedValue}, expected ~${check.correctedValue}.`,
+          );
+        }
+      }
 
       const lotInsert = await db.insert(t.inventoryLots).values({
         itemId: Number(line.itemId),
