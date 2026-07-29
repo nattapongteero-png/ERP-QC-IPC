@@ -639,7 +639,7 @@ export default function VmiOrdersPage() {
   const renderDateCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
     return <span className="text-sm">{formatDate(data.data.orderDate, locale)}</span>;
-  }, []);
+  }, [locale]);
 
   const renderDeliveryDateCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
@@ -677,14 +677,14 @@ export default function VmiOrdersPage() {
         )}
       </div>
     );
-  }, [t]);
+  }, [t, locale]);
 
   const renderAmountCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
     return (
       <span className="font-semibold text-green-600">{formatCurrency(data.data.totalAmount, locale)}</span>
     );
-  }, []);
+  }, [locale]);
 
   const renderStatusCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;

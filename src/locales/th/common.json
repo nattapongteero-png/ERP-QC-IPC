@@ -32,7 +32,8 @@
     "selectAll": "เลือกทั้งหมด",
     "cannotUndo": "การดำเนินการนี้ไม่สามารถย้อนกลับได้",
     "preview": "ดูตัวอย่าง",
-    "changeHistory": "ประวัติการเปลี่ยนแปลง"
+    "changeHistory": "ประวัติการเปลี่ยนแปลง",
+    "searchPlaceholder": "ค้นหา..."
   },
   "status": {
     "active": "ใช้งาน",
@@ -136,5 +137,9 @@
     "detailPlaceholder": "เพิ่มรายละเอียด...",
     "categoryPlaceholder": "เลือกหมวดหมู่",
     "title": "เอกสารแนบ"
+  },
+  "grid": {
+    "noData": "ไม่มีข้อมูล",
+    "groupPanelEmpty": "ลากคอลัมน์มาวางที่นี่เพื่อจัดกลุ่ม"
   }
 }

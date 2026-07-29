@@ -244,7 +244,9 @@ export function DxDataGrid<T = Record<string, unknown>>({
   repaintChangesOnly = false,
   height,
   width,
-  noDataText = 'ไม่มีข้อมูล',
+  // No literal default — a hardcoded Thai default cannot be translated, and this
+  // wrapper backs every grid in the app. Falls back to common.grid.noData below.
+  noDataText,
   paging = true,
   pageSize = 20,
   allowedPageSizes = [10, 20, 50, 100],
@@ -335,7 +337,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
       columnHidingEnabled={columnHidingEnabled}
       height={responsiveHeight}
       width={width}
-      noDataText={noDataText}
+      noDataText={noDataText ?? tCommon(`grid.noData`)}
       onRowClick={onRowClick}
       onRowDblClick={onRowDblClick}
       className={className}
@@ -384,11 +386,11 @@ export function DxDataGrid<T = Record<string, unknown>>({
       )}
 
       {groupPanel && (
-        <GroupPanel visible emptyPanelText="ลากคอลัมน์มาวางที่นี่เพื่อจัดกลุ่ม" />
+        <GroupPanel visible emptyPanelText={tCommon(`grid.groupPanelEmpty`)} />
       )}
 
       {/* Explicitly control SearchPanel visibility - always render but control visible prop */}
-      <SearchPanel visible={searchPanel} placeholder="ค้นหา..." />
+      <SearchPanel visible={searchPanel} placeholder={tCommon(`actions.searchPlaceholder`)} />
 
       {(toolbarItems || enableExport || columnChooser) && (
         <Toolbar>

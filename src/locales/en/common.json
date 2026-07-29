@@ -32,7 +32,8 @@
     "selectAll": "Select All",
     "cannotUndo": "This action cannot be undone",
     "preview": "Preview",
-    "changeHistory": "Change history"
+    "changeHistory": "Change history",
+    "searchPlaceholder": "Search..."
   },
   "status": {
     "active": "Active",
@@ -136,5 +137,9 @@
     "detailPlaceholder": "Add a description...",
     "categoryPlaceholder": "Select a category",
     "title": "Attachments"
+  },
+  "grid": {
+    "noData": "No data",
+    "groupPanelEmpty": "Drag a column here to group by it"
   }
 }
