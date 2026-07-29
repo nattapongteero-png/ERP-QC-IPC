@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { Badge } from '@/components/ui/badge';
@@ -163,7 +163,10 @@ type POStatus = 'draft' | 'pending_approval' | 'approved' | 'sent' | 'partial' |
 
 const STATUS_CONFIG: Record<POStatus, {
   label: string;
-  labelTh: string;
+  // Holds a translation KEY: this is a module constant so it cannot call
+  // useTranslations. Resolved at render time, which is what makes the badge
+  // follow the selected language.
+  labelKey: string;
   bgColor: string;
   textColor: string;
   icon: React.ReactNode;
@@ -171,7 +174,7 @@ const STATUS_CONFIG: Record<POStatus, {
 }> = {
   draft: {
     label: 'Draft',
-    labelTh: 'ร่าง',
+    labelKey: 'orders.status.draft',
     bgColor: 'bg-slate-100',
     textColor: 'text-slate-700',
     icon: <FileText className="h-4 w-4" />,
@@ -179,7 +182,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   pending_approval: {
     label: 'Pending Approval',
-    labelTh: 'รออนุมัติ',
+    labelKey: 'orders.status.pendingApproval',
     bgColor: 'bg-yellow-100',
     textColor: 'text-yellow-700',
     icon: <Clock className="h-4 w-4" />,
@@ -187,7 +190,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   approved: {
     label: 'Approved',
-    labelTh: 'อนุมัติแล้ว',
+    labelKey: 'orders.status.approved',
     bgColor: 'bg-green-100',
     textColor: 'text-green-700',
     icon: <CheckCircle className="h-4 w-4" />,
@@ -195,7 +198,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   sent: {
     label: 'Sent to Vendor',
-    labelTh: 'ส่งแล้ว',
+    labelKey: 'orders.status.sent',
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-700',
     icon: <Send className="h-4 w-4" />,
@@ -203,7 +206,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   partial: {
     label: 'Partial Received',
-    labelTh: 'รับบางส่วน',
+    labelKey: 'orders.status.partial',
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-700',
     icon: <Package className="h-4 w-4" />,
@@ -211,7 +214,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   received: {
     label: 'Received',
-    labelTh: 'รับครบแล้ว',
+    labelKey: 'orders.status.received',
     bgColor: 'bg-emerald-100',
     textColor: 'text-emerald-700',
     icon: <PackageCheck className="h-4 w-4" />,
@@ -219,7 +222,7 @@ const STATUS_CONFIG: Record<POStatus, {
   },
   cancelled: {
     label: 'Cancelled',
-    labelTh: 'ยกเลิก',
+    labelKey: 'orders.status.cancelled',
     bgColor: 'bg-red-100',
     textColor: 'text-red-700',
     icon: <XCircle className="h-4 w-4" />,
@@ -239,20 +242,23 @@ const PO_STATUS_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
 };
 
+// Values plus translation keys; the label is resolved at render time so the
+// dropdown follows the selected language (module scope cannot use hooks).
 const STATUS_OPTIONS = [
-  { value: 'draft', label: 'ร่าง' },
-  { value: 'pending_approval', label: 'รออนุมัติ' },
-  { value: 'approved', label: 'อนุมัติแล้ว' },
-  { value: 'sent', label: 'ส่งให้ผู้ขาย' },
-  { value: 'partial', label: 'รับบางส่วน' },
-  { value: 'received', label: 'รับครบแล้ว' },
-  { value: 'cancelled', label: 'ยกเลิก' },
+  { value: 'draft', labelKey: 'orders.status.draft' },
+  { value: 'pending_approval', labelKey: 'orders.status.pendingApproval' },
+  { value: 'approved', labelKey: 'orders.status.approved' },
+  { value: 'sent', labelKey: 'orders.status.sent' },
+  { value: 'partial', labelKey: 'orders.status.partial' },
+  { value: 'received', labelKey: 'orders.status.received' },
+  { value: 'cancelled', labelKey: 'orders.status.cancelled' },
 ];
 
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations('purchasing');
+  const locale = useLocale();
   const [data, setData] = useState<PODetail | null>(null);
   const [loading, setLoading] = useState(true);
   // 'lines' is gone: the order lines render under the order info on the
@@ -628,7 +634,7 @@ export default function PurchaseOrderDetailPage() {
   const submitReject = async () => {
     const reason = rejectReason.trim();
     if (!reason) {
-      alert('กรุณาระบุเหตุผลที่ปฏิเสธ');
+      alert(t(`orderDetail.rejectReasonRequired`));
       return;
     }
     // No confirm() — the modal already is the confirmation step.
@@ -688,7 +694,7 @@ export default function PurchaseOrderDetailPage() {
   const linesColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'รายการสินค้า',
+      caption: t(`orderDetail.itemLines`),
       minWidth: 200,
       cellRender: (cellInfo) => (
         <div className="flex items-center gap-2">
@@ -704,7 +710,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'สั่งซื้อ',
+      caption: t(`orderDetail.ordered`),
       width: 110,
       cellRender: (cellInfo) => (
         <span className="font-medium">
@@ -719,7 +725,7 @@ export default function PurchaseOrderDetailPage() {
     // back and forth.
     {
       dataField: 'receivedQty',
-      caption: 'รับแล้ว',
+      caption: t(`orderDetail.received`),
       width: 100,
       cellRender: (cellInfo) => (
         <span className="text-green-600 font-medium">
@@ -729,7 +735,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'pendingQty',
-      caption: 'ค้างส่ง',
+      caption: t(`orderDetail.pending`),
       width: 100,
       cellRender: (cellInfo) => (
         <span className={cellInfo.data.pendingQty > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}>
@@ -739,13 +745,13 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'unitPrice',
-      caption: 'ราคา/หน่วย',
+      caption: t(`orderDetail.unitPrice`),
       width: 120,
       cellRender: (cellInfo) => formatCurrency(cellInfo.data.unitPrice),
     },
     {
       dataField: 'lineTotal',
-      caption: 'รวม',
+      caption: t(`orderDetail.lineTotal`),
       width: 130,
       cellRender: (cellInfo) => (
         <span className="font-semibold text-blue-600">
@@ -755,7 +761,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'receivedQty',
-      caption: 'รับแล้ว',
+      caption: t(`orderDetail.received`),
       width: 140,
       cellRender: (cellInfo) => {
         const received = cellInfo.data.receivedQty || 0;
@@ -784,7 +790,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'receivingStatus',
-      caption: 'สถานะ',
+      caption: t(`orderDetail.status`),
       width: 120,
       cellRender: (cellInfo) => {
         const status = cellInfo.data.receivingStatus;
@@ -820,7 +826,7 @@ export default function PurchaseOrderDetailPage() {
   const receivingColumns: DxDataGridColumn[] = [
     {
       dataField: 'itemCode',
-      caption: 'รายการ',
+      caption: t(`orderDetail.item`),
       minWidth: 180,
       cellRender: (cellInfo) => (
         <div>
@@ -831,7 +837,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'สั่งซื้อ',
+      caption: t(`orderDetail.ordered`),
       width: 100,
       // formatNumber, not toLocaleString: the latter is SSR-unsafe and
       // locale-dependent, and the project bans it.
@@ -839,7 +845,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'receivedQty',
-      caption: 'รับแล้ว',
+      caption: t(`orderDetail.received`),
       width: 100,
       cellRender: (cellInfo) => (
         <span className="text-green-600 font-medium">
@@ -849,7 +855,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'pendingQty',
-      caption: 'ค้างส่ง',
+      caption: t(`orderDetail.pending`),
       width: 100,
       cellRender: (cellInfo) => (
         <span className={cellInfo.data.pendingQty > 0 ? 'text-orange-600 font-medium' : ''}>
@@ -874,7 +880,7 @@ export default function PurchaseOrderDetailPage() {
             type="success"
             stylingMode="contained"
             disabled={!canReceive}
-            hint={canReceive ? undefined : 'ต้องอนุมัติใบสั่งซื้อก่อนจึงจะรับสินค้าได้'}
+            hint={canReceive ? undefined : t(`orderDetail.mustApproveFirst`)}
             onClick={() => handleReceive(cellInfo.data)}
           />
         ) : (
@@ -888,7 +894,7 @@ export default function PurchaseOrderDetailPage() {
   const lotsColumns: DxDataGridColumn[] = [
     {
       dataField: 'lotNumber',
-      caption: 'เลข Lot',
+      caption: t(`orderDetail.lotNumber`),
       cellRender: (cellInfo) => (
         <span className="font-medium text-blue-600 cursor-pointer hover:underline">
           {cellInfo.data.lotNumber}
@@ -897,7 +903,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'itemCode',
-      caption: 'รายการ',
+      caption: t(`orderDetail.item`),
       cellRender: (cellInfo) => (
         <div>
           <p className="font-medium">{cellInfo.data.itemCode}</p>
@@ -907,13 +913,13 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'quantity',
-      caption: 'จำนวน',
+      caption: t(`orderDetail.quantity`),
       width: 100,
       cellRender: (cellInfo) => formatNumber(cellInfo.data.quantity),
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t(`orderDetail.status`),
       width: 120,
       cellRender: (cellInfo) => {
         const status = cellInfo.data.status;
@@ -923,19 +929,19 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'expiryDate',
-      caption: 'วันหมดอายุ',
+      caption: t(`orderDetail.expiryDate`),
       width: 120,
       cellRender: (cellInfo) => formatDate(cellInfo.data.expiryDate),
     },
     {
       dataField: 'receivedDate',
-      caption: 'วันที่รับ',
+      caption: t(`orderDetail.receivedDate`),
       width: 120,
       cellRender: (cellInfo) => formatDate(cellInfo.data.receivedDate),
     },
     {
       dataField: 'journalEntries',
-      caption: 'รายการบัญชี',
+      caption: t(`orderDetail.journalEntry`),
       width: 150,
       cellRender: (cellInfo) => {
         const journalEntries = cellInfo.data.journalEntries || [];
@@ -964,7 +970,7 @@ export default function PurchaseOrderDetailPage() {
     },
     {
       dataField: 'apInvoices',
-      caption: 'ใบแจ้งหนี้ AP',
+      caption: t(`orderDetail.apInvoice`),
       width: 150,
       cellRender: (cellInfo) => {
         const apInvoices = cellInfo.data.apInvoices || [];
@@ -1048,7 +1054,7 @@ export default function PurchaseOrderDetailPage() {
       <POPrintDocument
         data={{
           poNumber: po.poNumber,
-          statusTh: statusConfig.labelTh,
+          statusTh: t(statusConfig.labelKey),
           vendorName: po.vendorName,
           vendorCode: po.vendorCode,
           vendorContact: po.vendorContact,
@@ -1085,7 +1091,7 @@ export default function PurchaseOrderDetailPage() {
         {/* Header */}
         <PageHeader
           title={`${t('orders.detail.title')}: ${po.poNumber}`}
-          description={`${t('orders.detail.vendor')}: ${po.vendorName} • ${t('orders.detail.status')}: ${statusConfig.labelTh}`}
+          description={`${t('orders.detail.vendor')}: ${po.vendorName} • ${t('orders.detail.status')}: ${t(statusConfig.labelKey)}`}
           backButton={
             <DxButton
               icon="back"
@@ -1129,18 +1135,18 @@ export default function PurchaseOrderDetailPage() {
               )}
               {po.status === 'draft' && canSubmit && (
                 <DxButton
-                  text={isTransitioning ? 'กำลังส่ง...' : 'ส่งอนุมัติ (Submit)'}
+                  text={isTransitioning ? t(`orderDetail.submitting`) : t(`orderDetail.submitForApproval`)}
                   icon="upload"
                   type="default"
                   stylingMode="contained"
                   disabled={isTransitioning || lines.length === 0}
-                  onClick={() => transitionStatus('pending_approval', `ต้องการส่ง PO ${po.poNumber} เพื่อขออนุมัติ?`)}
+                  onClick={() => transitionStatus('pending_approval', t(`orderDetail.confirmSubmit`, { po: po.poNumber }))}
                   data-testid="po-submit-btn"
                 />
               )}
               {po.status === 'pending_approval' && canApprove && (
                 <DxButton
-                  text={isTransitioning ? 'กำลังอนุมัติ...' : 'อนุมัติ (Approve)'}
+                  text={isTransitioning ? t(`orderDetail.approving`) : t(`orderDetail.approve`)}
                   icon="check"
                   type="success"
                   stylingMode="contained"
@@ -1148,7 +1154,7 @@ export default function PurchaseOrderDetailPage() {
                   // of Metaherb. The PO only becomes 'approved' once BOTH sides
                   // approve (handled server-side); until then it stays pending.
                   disabled={isTransitioning}
-                  onClick={() => transitionStatus('approved', `ยืนยันอนุมัติ PO ${po.poNumber}?`)}
+                  onClick={() => transitionStatus('approved', t(`orderDetail.confirmApprove`, { po: po.poNumber }))}
                   data-testid="po-approve-btn"
                 />
               )}
@@ -1156,7 +1162,7 @@ export default function PurchaseOrderDetailPage() {
                   owner can reject anytime; either side rejecting → PO rejected. */}
               {po.status === 'pending_approval' && canApprove && po.metaherbApproval != null && (
                 <DxButton
-                  text={isTransitioning ? 'กำลังปฏิเสธ...' : 'ปฏิเสธ (Reject)'}
+                  text={isTransitioning ? t(`orderDetail.rejecting`) : t(`orderDetail.reject`)}
                   icon="close"
                   type="danger"
                   stylingMode="contained"
@@ -1167,12 +1173,12 @@ export default function PurchaseOrderDetailPage() {
               )}
               {po.status === 'approved' && (
                 <DxButton
-                  text={isTransitioning ? 'กำลังส่ง...' : 'ส่งให้ผู้ขาย'}
+                  text={isTransitioning ? t(`orderDetail.submitting`) : t(`orderDetail.sendToVendor`)}
                   icon="email"
                   type="success"
                   stylingMode="contained"
                   disabled={isTransitioning}
-                  onClick={() => transitionStatus('sent', `ยืนยันส่ง PO ${po.poNumber} ให้ผู้ขาย?`)}
+                  onClick={() => transitionStatus('sent', t(`orderDetail.confirmSend`, { po: po.poNumber }))}
                   data-testid="po-send-btn"
                 />
               )}
@@ -1189,20 +1195,20 @@ export default function PurchaseOrderDetailPage() {
               <div className="text-sm">
                 <p className="font-semibold text-emerald-800">{t(`orderDetail.sentToVendor`)}</p>
                 <p className="text-gray-600 mt-0.5">
-                  ช่องทาง:{' '}
+                  {t(`orderDetail.channel`)}:{' '}
                   <span className="font-medium">
-                    {po.sentVia === 'email' ? 'อีเมล' : po.sentVia === 'fax' ? 'แฟกซ์' : po.sentVia === 'portal' ? 'ระบบออนไลน์' : po.sentVia || 'ระบุด้วยตนเอง'}
+                    {po.sentVia === 'email' ? t(`orderDetail.channelEmail`) : po.sentVia === 'fax' ? t(`orderDetail.channelFax`) : po.sentVia === 'portal' ? t(`orderDetail.sentViaOnline`) : po.sentVia || t(`orderDetail.sentViaManual`)}
                   </span>
                   {po.sentToEmail && (
                     <> → <span className="font-medium">{po.sentToEmail}</span></>
                   )}
                   {po.sentAt && (
-                    <> · เมื่อ {new Date(po.sentAt).toLocaleString('th-TH')}</>
+                    <> · {t(`orderDetail.sentAtWhen`, { when: new Date(po.sentAt).toLocaleString(locale === 'th' ? 'th-TH' : 'en-US') })}</>
                   )}
                 </p>
                 {po.sentVia === 'email' && !po.sentToEmail && (
                   <p className="text-amber-600 mt-1 text-xs">
-                    ⚠️ ผู้ขายยังไม่มีอีเมลในระบบ — โปรดเพิ่มอีเมลผู้ขายเพื่อการส่งที่สมบูรณ์
+                    {t(`orderDetail.vendorNoEmail`)}
                   </p>
                 )}
               </div>
@@ -1235,7 +1241,7 @@ export default function PurchaseOrderDetailPage() {
               <div className="text-sm">
                 <p className="font-semibold text-gray-800">{t(`orderDetail.dualApproval`)}</p>
                 <p className="text-gray-600 mt-0.5">
-                  อนุมัติคู่ขนาน — ต้องอนุมัติครบทั้งสองฝ่าย PO จึงจะอนุมัติ ฝ่ายใดปฏิเสธ PO จะถูกปฏิเสธ
+                  {t(`orderDetail.dualApprovalHint`)}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
                   <span>
@@ -1250,14 +1256,14 @@ export default function PurchaseOrderDetailPage() {
                       )}
                     >
                       {po.metaherbApproval === 'approved'
-                        ? 'อนุมัติแล้ว'
+                        ? t(`orderDetail.approvedShort`)
                         : po.metaherbApproval === 'rejected'
-                          ? 'ปฏิเสธ'
-                          : 'รออนุมัติ'}
+                          ? t(`orderDetail.rejectedShort`)
+                          : t(`orderDetail.pendingApprovalShort`)}
                     </b>
                   </span>
                   <span>
-                    โรงงาน (เรา):{' '}
+                    {t(`orderDetail.factoryUs`)}:{' '}
                     <b
                       className={cn(
                         po.erpOwnerApproval === 'approved'
@@ -1268,10 +1274,10 @@ export default function PurchaseOrderDetailPage() {
                       )}
                     >
                       {po.erpOwnerApproval === 'approved'
-                        ? 'อนุมัติแล้ว'
+                        ? t(`orderDetail.approvedShort`)
                         : po.erpOwnerApproval === 'rejected'
-                          ? 'ปฏิเสธ'
-                          : 'รออนุมัติ'}
+                          ? t(`orderDetail.rejectedShort`)
+                          : t(`orderDetail.pendingApprovalShort`)}
                     </b>
                   </span>
                 </div>
@@ -1285,7 +1291,7 @@ export default function PurchaseOrderDetailPage() {
           <Card className="!p-4">
             <div className="flex items-center justify-center gap-2 py-2 text-red-600">
               <XCircle className="h-5 w-5" />
-              <span className="font-semibold">PO ถูกยกเลิก (Cancelled)</span>
+              <span className="font-semibold">{t(`orderDetail.poCancelled`)}</span>
             </div>
           </Card>
         ) : (
@@ -1294,11 +1300,11 @@ export default function PurchaseOrderDetailPage() {
             // 'partial' (received some) sits on the 'sent' step until fully received
             current={po.status === 'partial' ? 'sent' : po.status}
             steps={[
-              { key: 'draft', label: 'ร่าง' },
-              { key: 'pending_approval', label: 'รออนุมัติ' },
-              { key: 'approved', label: 'อนุมัติ' },
-              { key: 'sent', label: 'ส่งผู้ขาย' },
-              { key: 'received', label: 'รับของ' },
+              { key: 'draft', label: t(`orderDetail.stepDraft`) },
+              { key: 'pending_approval', label: t(`orderDetail.stepPendingApproval`) },
+              { key: 'approved', label: t(`orderDetail.stepApproved`) },
+              { key: 'sent', label: t(`orderDetail.stepSent`) },
+              { key: 'received', label: t(`orderDetail.stepReceived`) },
             ]}
           />
         )}
@@ -1313,7 +1319,7 @@ export default function PurchaseOrderDetailPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <p className="text-xs text-gray-500">
-                    {vatDisplayMode === 'split' ? 'ยอดรวมสุทธิ (รวม VAT)' : 'ยอดรวม (รวม VAT)'}
+                    {vatDisplayMode === 'split' ? t(`orderDetail.netTotalWithVat`) : t(`orderDetail.totalWithVat`)}
                   </p>
                   <button
                     type="button"
@@ -1321,7 +1327,7 @@ export default function PurchaseOrderDetailPage() {
                     className="text-[10px] text-gray-500 hover:text-blue-600 underline decoration-dotted"
                     title={t(`orderDetail.toggleVat`)}
                   >
-                    {vatDisplayMode === 'split' ? 'รวม VAT' : 'แยก VAT'}
+                    {vatDisplayMode === 'split' ? t(`orderDetail.includeVat`) : t(`orderDetail.splitVat`)}
                   </button>
                 </div>
                 <p className="text-lg font-bold text-blue-600" data-testid="po-card-grand-total">
@@ -1329,7 +1335,7 @@ export default function PurchaseOrderDetailPage() {
                 </p>
                 {vatDisplayMode === 'split' && (
                   <p className="text-[11px] text-gray-500 leading-tight">
-                    ก่อน VAT <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{formatCurrency(subtotal)}</span>
+                    {t.rich(`orderDetail.beforeVatWith`, { amount: formatCurrency(subtotal), b: (c) => <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{c}</span> })}
                     {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
                   </p>
                 )}
@@ -1400,9 +1406,9 @@ export default function PurchaseOrderDetailPage() {
                 // The separate "รายการสินค้า" tab is gone: the lines render
                 // under the order info instead, so reading an order no longer
                 // means switching tabs to see what was actually ordered.
-                { id: 'overview', label: 'ข้อมูลคำสั่งซื้อ', icon: FileText },
-                { id: 'receiving', label: 'รับสินค้า', icon: Truck },
-                { id: 'lots', label: `Lot ที่รับ (${formatNumber(receivedLots.length)})`, icon: FileCheck },
+                { id: 'overview', label: t(`orderDetail.tabOverview`), icon: FileText },
+                { id: 'receiving', label: t(`orderDetail.tabReceiving`), icon: Truck },
+                { id: 'lots', label: t(`orderDetail.tabLots`, { count: formatNumber(receivedLots.length) }), icon: FileCheck },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1438,7 +1444,7 @@ export default function PurchaseOrderDetailPage() {
                         disabled={isSavingPO}
                       />
                       <DxButton
-                        text={isSavingPO ? 'กำลังบันทึก...' : 'บันทึก'}
+                        text={isSavingPO ? t(`orderDetail.saving`) : t(`orderDetail.save`)}
                         icon="save"
                         type="success"
                         onClick={savePOChanges}
@@ -1462,7 +1468,7 @@ export default function PurchaseOrderDetailPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-400" />
-                        ข้อมูล Purchase Order
+                        {t(`orderDetail.poInfo`)}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1476,7 +1482,7 @@ export default function PurchaseOrderDetailPage() {
                                   (o) =>
                                     o.value === po.status ||
                                     (PO_STATUS_TRANSITIONS[po.status] ?? []).includes(o.value),
-                                )}
+                                ).map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                                 value={editPOForm.status}
                                 onValueChange={(v) => setEditPOForm({ ...editPOForm, status: v })}
                               />
@@ -1517,13 +1523,13 @@ export default function PurchaseOrderDetailPage() {
                                 !PAYMENT_TERMS_OPTIONS.some((o) => o.value === editPOForm.paymentTerms)
                                   ? [
                                       ...PAYMENT_TERMS_OPTIONS,
-                                      { value: editPOForm.paymentTerms, label: `${editPOForm.paymentTerms} (ค่าเดิม — ควรเปลี่ยนเป็นมาตรฐาน)` },
+                                      { value: editPOForm.paymentTerms, label: t(`orderDetail.currentValueHint`, { value: editPOForm.paymentTerms }) },
                                     ]
                                   : PAYMENT_TERMS_OPTIONS
                               }
                               value={editPOForm.paymentTerms}
                               onValueChange={(v) => setEditPOForm({ ...editPOForm, paymentTerms: v })}
-                              placeholder="-- เลือก --"
+                              placeholder={t(`orderDetail.selectPlaceholder`)}
                             />
                           </div>
                           <div>
@@ -1551,7 +1557,7 @@ export default function PurchaseOrderDetailPage() {
                           </div>
                           <div>
                             <dt className="text-gray-500">{t(`orderDetail.status`)}</dt>
-                            <dd><Badge variant={statusConfig.badgeVariant}>{statusConfig.labelTh}</Badge></dd>
+                            <dd><Badge variant={statusConfig.badgeVariant}>{t(statusConfig.labelKey)}</Badge></dd>
                           </div>
                           <div>
                             <dt className="text-gray-500">{t(`orderDetail.orderDate`)}</dt>
@@ -1584,7 +1590,7 @@ export default function PurchaseOrderDetailPage() {
                           )}
                           <div>
                             <dt className="text-gray-500">{t(`orderDetail.lineCount`)}</dt>
-                            <dd className="font-medium">{summary.lineCount} รายการ</dd>
+                            <dd className="font-medium">{t(`orderDetail.linesCount`, { count: summary.lineCount })}</dd>
                           </div>
                           <div>
                             <dt className="text-gray-500">{t(`orderDetail.paymentTermsShort`)}</dt>
@@ -1604,7 +1610,7 @@ export default function PurchaseOrderDetailPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-gray-400" />
-                        ข้อมูลผู้ขาย
+                        {t(`orderDetail.vendorInfo`)}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1619,19 +1625,19 @@ export default function PurchaseOrderDetailPage() {
                         </div>
                         <div>
                           <dt className="text-gray-500 flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" /> ผู้ติดต่อ
+                            <User className="h-3.5 w-3.5" /> {t(`orderDetail.contact`)}
                           </dt>
                           <dd className="font-medium">{po.vendorContact || '-'}</dd>
                         </div>
                         <div>
                           <dt className="text-gray-500 flex items-center gap-1">
-                            <Phone className="h-3.5 w-3.5" /> โทรศัพท์
+                            <Phone className="h-3.5 w-3.5" /> {t(`orderDetail.phone`)}
                           </dt>
                           <dd className="font-medium">{po.vendorPhone || '-'}</dd>
                         </div>
                         <div className="col-span-2">
                           <dt className="text-gray-500 flex items-center gap-1">
-                            <Mail className="h-3.5 w-3.5" /> อีเมล
+                            <Mail className="h-3.5 w-3.5" /> {t(`orderDetail.email`)}
                           </dt>
                           <dd className="font-medium">{po.vendorEmail || '-'}</dd>
                         </div>
@@ -1661,7 +1667,7 @@ export default function PurchaseOrderDetailPage() {
                     <div className="min-w-0">
                       <p className="text-xs text-gray-500">{t(`orderDetail.approvedBy`)}</p>
                       <p className="font-medium text-gray-900" data-testid="po-approved-by-name">
-                        {po.approvedByName || 'ยังไม่อนุมัติ'}
+                        {po.approvedByName || t(`orderDetail.notApprovedYet`)}
                       </p>
                       {po.approvedAt && (
                         <p className="text-xs text-gray-400">{t(`orderDetail.approvedAt`,{when:formatDateTime(po.approvedAt)})}</p>
@@ -1685,7 +1691,7 @@ export default function PurchaseOrderDetailPage() {
             {activeTab === 'overview' && (
               <div className="space-y-4 pt-6 mt-6 border-t border-gray-200" data-testid="po-lines-section">
                 <h3 className="text-sm font-bold text-gray-900">
-                  รายการสินค้า ({formatNumber(lines.length)})
+                  {t(`orderDetail.itemLinesCount`, { count: formatNumber(lines.length) })}
                 </h3>
                 {isEditable && (
                   <div className="flex justify-end">
@@ -1703,7 +1709,7 @@ export default function PurchaseOrderDetailPage() {
                   columns={linesColumns}
                   showBorders
                   height={450}
-                  noDataText="ไม่มีรายการสินค้า"
+                  noDataText={t(`orderDetail.noItemLines`)}
                 />
 
                 {/* Summary Block — toggles with vatDisplayMode */}
@@ -1718,14 +1724,14 @@ export default function PurchaseOrderDetailPage() {
                             onClick={() => setVatDisplayMode('split')}
                             className={`px-2.5 py-1 text-[11px] ${vatDisplayMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                           >
-                            แยก VAT
+                            {t(`orderDetail.splitVat`)}
                           </button>
                           <button
                             type="button"
                             onClick={() => setVatDisplayMode('inclusive')}
                             className={`px-2.5 py-1 text-[11px] border-l border-gray-300 ${vatDisplayMode === 'inclusive' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
                           >
-                            รวม VAT
+                            {t(`orderDetail.includeVat`)}
                           </button>
                         </div>
                       </div>
@@ -1739,7 +1745,7 @@ export default function PurchaseOrderDetailPage() {
                           </div>
                           <div className="flex justify-between items-center px-4 py-2.5 bg-white border-b">
                             <span className="text-sm text-gray-600">
-                              ภาษีมูลค่าเพิ่ม (VAT {(VAT_RATE * 100).toFixed(0)}%)
+                              {t(`orderDetail.vatLabel`, { rate: (VAT_RATE * 100).toFixed(0) })}
                             </span>
                             <span className="font-medium text-gray-900" data-testid="po-vat">
                               {formatCurrency(vatAmount)}
@@ -1749,7 +1755,7 @@ export default function PurchaseOrderDetailPage() {
                       )}
                       <div className="flex justify-between items-center px-4 py-3 bg-blue-50">
                         <span className="text-sm font-semibold text-blue-900">
-                          {vatDisplayMode === 'split' ? 'ยอดสุทธิ (Grand Total)' : 'ยอดรวม (รวม VAT)'}
+                          {vatDisplayMode === 'split' ? t(`orderDetail.grandTotal`) : t(`orderDetail.totalWithVat`)}
                         </span>
                         <span className="text-lg font-bold text-blue-700" data-testid="po-grand-total">
                           {formatCurrency(grandTotal)}
@@ -1767,7 +1773,7 @@ export default function PurchaseOrderDetailPage() {
                   <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <AlertCircle className="h-5 w-5 text-yellow-600" />
                     <span className="text-yellow-800">
-                      คงเหลือรอรับ <strong>{formatNumber(summary.totalPending)}</strong> หน่วย
+                      {t.rich(`orderDetail.pendingUnitsRich`, { qty: formatNumber(summary.totalPending), b: (c) => <strong>{c}</strong> })}
                     </span>
                   </div>
                 )}
@@ -1788,7 +1794,7 @@ export default function PurchaseOrderDetailPage() {
                   columns={receivingColumns}
                   showBorders
                   height={450}
-                  noDataText="ไม่มีรายการรอรับ"
+                  noDataText={t(`orderDetail.noPendingLines`)}
                 />
               </div>
             )}
@@ -1800,7 +1806,7 @@ export default function PurchaseOrderDetailPage() {
                 columns={lotsColumns}
                 showBorders
                 height={450}
-                noDataText="ยังไม่มี Lot ที่รับเข้า"
+                noDataText={t(`orderDetail.noLotsReceived`)}
                 onRowClick={(e) => router.push(`/inventory/lots/${e.data.id}`)}
               />
             )}
@@ -1811,7 +1817,7 @@ export default function PurchaseOrderDetailPage() {
         <DxPopup
           visible={showLineModal}
           onHiding={() => setShowLineModal(false)}
-          title={editingLine ? 'แก้ไขรายการสินค้า' : 'เพิ่มรายการสินค้า'}
+          title={editingLine ? t(`orderDetail.editLine`) : t(`orderDetail.addLineTitle`)}
           width={600}
           height="auto"
           showCloseButton
@@ -1819,7 +1825,7 @@ export default function PurchaseOrderDetailPage() {
           <div className="p-4 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                สินค้า <span className="text-red-500">*</span>
+                {t(`orderDetail.product`)} <span className="text-red-500">*</span>
               </label>
               <DxSelectBox
                 items={items.map((item) => ({
@@ -1839,7 +1845,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  จำนวน <span className="text-red-500">*</span>
+                  {t(`orderDetail.quantity`)} <span className="text-red-500">*</span>
                 </label>
                 <DxNumberBox
                   value={lineForm.quantity}
@@ -1855,7 +1861,7 @@ export default function PurchaseOrderDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ราคาต่อหน่วย <span className="text-red-500">*</span>
+                {t(`orderDetail.unitPriceLabel`)} <span className="text-red-500">*</span>
               </label>
               <DxNumberBox
                 value={lineForm.unitPrice}
@@ -1876,7 +1882,7 @@ export default function PurchaseOrderDetailPage() {
             {lineForm.quantity > 0 && lineForm.unitPrice > 0 && (
               <div className="p-3 bg-blue-50 rounded-lg">
                 <span className="text-sm text-blue-700">
-                  ยอดรวม: <strong>{formatCurrency(lineForm.quantity * lineForm.unitPrice)}</strong>
+                  {t.rich(`orderDetail.lineTotalRich`, { amount: formatCurrency(lineForm.quantity * lineForm.unitPrice), b: (c) => <strong>{c}</strong> })}
                 </span>
               </div>
             )}
@@ -1890,7 +1896,7 @@ export default function PurchaseOrderDetailPage() {
                 width="50%"
               />
               <DxButton
-                text={isSavingLine ? 'กำลังบันทึก...' : 'บันทึก'}
+                text={isSavingLine ? t(`orderDetail.saving`) : t(`orderDetail.save`)}
                 icon="save"
                 type="success"
                 onClick={saveLine}
@@ -1943,7 +1949,7 @@ export default function PurchaseOrderDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      คลังสินค้า <span className="text-red-500">*</span>
+                      {t(`orderDetail.warehouse`)} <span className="text-red-500">*</span>
                     </label>
                     <DxSelectBox
                       items={warehouses.map((wh) => ({ value: wh.id.toString(), label: `${wh.code} - ${wh.name}` }))}
@@ -1954,7 +1960,7 @@ export default function PurchaseOrderDetailPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      จำนวนที่รับ <span className="text-red-500">*</span>
+                      {t(`orderDetail.receivedQty`)} <span className="text-red-500">*</span>
                     </label>
                     <DxNumberBox
                       value={receiveForm.quantity}
@@ -1980,7 +1986,7 @@ export default function PurchaseOrderDetailPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        วันผลิต (Mfg Date) <span className="text-red-500">*</span>
+                        {t(`orderDetail.mfgDateLabel`)} <span className="text-red-500">*</span>
                       </label>
                       <DxDateBox
                         // Pass undefined (not '') when empty — DevExtreme treats an
@@ -1994,7 +2000,7 @@ export default function PurchaseOrderDetailPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        วันหมดอายุ (Exp Date) <span className="text-red-500">*</span>
+                        {t(`orderDetail.expDateLabel`)} <span className="text-red-500">*</span>
                       </label>
                       <DxDateBox
                         value={receiveForm.expiryDate || undefined}
@@ -2007,7 +2013,7 @@ export default function PurchaseOrderDetailPage() {
                 </div>
 
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg mt-2">
-                  <p className="text-sm font-semibold text-gray-800 mb-2">Lot ในระบบ (Auto-generate)</p>
+                  <p className="text-sm font-semibold text-gray-800 mb-2">{t(`orderDetail.systemLotAuto`)}</p>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       System Lot Number
@@ -2024,7 +2030,7 @@ export default function PurchaseOrderDetailPage() {
                 {(!receiveForm.vendorLotNumber || !receiveForm.manufacturingDate || !receiveForm.expiryDate) && (
                   <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                    กรุณากรอกให้ครบ: Vendor Lot No., วันผลิต, วันหมดอายุ
+                    {t(`orderDetail.fillAllRequired`)}
                   </div>
                 )}
 
@@ -2038,7 +2044,7 @@ export default function PurchaseOrderDetailPage() {
                     width="50%"
                   />
                   <DxButton
-                    text={isSubmitting ? 'กำลังบันทึก...' : 'ยืนยันรับสินค้า'}
+                    text={isSubmitting ? t(`orderDetail.saving`) : t(`orderDetail.confirmReceive`)}
                     icon="check"
                     type="success"
                     onClick={submitReceive}
@@ -2062,7 +2068,7 @@ export default function PurchaseOrderDetailPage() {
         >
           <div className="p-4">
             <p className="text-sm text-gray-600 mb-4">
-              คุณต้องการลบใบสั่งซื้อ <strong>{po.poNumber}</strong> ใช่หรือไม่? การลบจะไม่สามารถย้อนกลับได้
+              {t.rich(`orderDetail.confirmDeleteRich`, { po: po.poNumber, b: (c) => <strong>{c}</strong> })}
             </p>
             <div className="flex gap-2 justify-end mt-6">
               <DxButton
@@ -2071,7 +2077,7 @@ export default function PurchaseOrderDetailPage() {
                 onClick={() => setShowDeleteModal(false)}
               />
               <DxButton
-                text={deletingPO ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                text={deletingPO ? t(`orderDetail.deleting`) : t(`orderDetail.confirmDelete`)}
                 type="danger"
                 stylingMode="contained"
                 icon="trash"
@@ -2094,10 +2100,10 @@ export default function PurchaseOrderDetailPage() {
         >
           <div className="p-4">
             <p className="text-sm text-gray-600 mb-3">
-              ปฏิเสธใบสั่งซื้อ <strong>{po.poNumber}</strong> — ใบสั่งซื้อจะถูกปฏิเสธ และเหตุผลจะถูกส่งไปยัง Metaherb
+              {t.rich(`orderDetail.rejectBodyRich`, { po: po.poNumber, b: (c) => <strong>{c}</strong> })}
             </p>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              เหตุผลที่ปฏิเสธ <span className="text-red-500">*</span>
+              {t(`orderDetail.rejectReason`)} <span className="text-red-500">*</span>
             </label>
             <DxTextArea
               value={rejectReason}
@@ -2113,7 +2119,7 @@ export default function PurchaseOrderDetailPage() {
                 onClick={() => setShowRejectModal(false)}
               />
               <DxButton
-                text={isTransitioning ? 'กำลังปฏิเสธ...' : 'ยืนยันปฏิเสธ'}
+                text={isTransitioning ? t(`orderDetail.rejecting`) : t(`orderDetail.confirmReject`)}
                 type="danger"
                 stylingMode="contained"
                 icon="close"
@@ -2131,16 +2137,16 @@ export default function PurchaseOrderDetailPage() {
           entityId={po.id}
           visible={showAuditLog}
           onClose={() => setShowAuditLog(false)}
-          title={`ประวัติการเปลี่ยนแปลง: ${po.poNumber}`}
+          title={t(`orderDetail.changeHistoryTitle`, { po: po.poNumber })}
           fieldLabels={{
-            vendorId: 'ผู้ขาย',
-            status: 'สถานะ',
-            orderDate: 'วันที่สั่งซื้อ',
-            expectedDate: 'วันที่คาดว่าจะได้รับ',
-            paymentTerms: 'เงื่อนไขการชำระ',
-            shippingAddress: 'ที่อยู่จัดส่ง',
-            notes: 'หมายเหตุ',
-            totalAmount: 'ยอดรวม',
+            vendorId: t(`orderDetail.vendor`),
+            status: t(`orderDetail.status`),
+            orderDate: t(`orderDetail.orderDate`),
+            expectedDate: t(`orderDetail.expectedDate`),
+            paymentTerms: t(`orderDetail.paymentTermsShort`),
+            shippingAddress: t(`orderDetail.shippingAddress`),
+            notes: t(`orderDetail.notes`),
+            totalAmount: t(`orderDetail.totalLabel`),
           }}
         />
       </div>
