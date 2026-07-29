@@ -1524,5 +1524,34 @@
       "pageInfo": "หน้า {page} จาก {totalPages} ({total} เหตุการณ์)",
       "pageSize": "ต่อหน้า"
     }
+  },
+  "stabilitySchedule": {
+    "yesDev": "ใช่ (DEV)",
+    "yes": "ใช่",
+    "no": "ไม่",
+    "recordResult": "บันทึกผลทดสอบ",
+    "timePoint": "จุดเวลา:",
+    "schedule": "กำหนดการ:",
+    "qcTestCode": "รหัสการทดสอบคุณภาพ *",
+    "qcTestCodePlaceholder": "กรอกรหัสการทดสอบคุณภาพ...",
+    "oosFound": "พบ OOS (ผลนอกข้อกำหนด)",
+    "notes": "หมายเหตุ",
+    "notesPlaceholder": "เพิ่มหมายเหตุการทดสอบ...",
+    "columns": {
+      "timepoint": "จุดเวลา",
+      "sampleNumber": "เลขตัวอย่าง",
+      "schedule": "กำหนดการ",
+      "actualDate": "วันที่จริง",
+      "status": "สถานะ",
+      "sampledBy": "ผู้เก็บตัวอย่าง",
+      "notes": "หมายเหตุ",
+      "actions": "การดำเนินการ"
+    },
+    "status": {
+      "pending": "รอดำเนินการ",
+      "sampled": "เก็บตัวอย่างแล้ว",
+      "tested": "ทดสอบแล้ว",
+      "skipped": "ข้าม"
+    }
   }
 }

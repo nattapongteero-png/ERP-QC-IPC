@@ -30,7 +30,9 @@
     "remove": "Remove",
     "select": "Select",
     "selectAll": "Select All",
-    "cannotUndo": "This action cannot be undone"
+    "cannotUndo": "This action cannot be undone",
+    "preview": "Preview",
+    "changeHistory": "Change history"
   },
   "status": {
     "active": "Active",
@@ -126,5 +128,12 @@
     "dateRange": "Date range",
     "from": "From date",
     "to": "To date"
+  },
+  "attachments": {
+    "empty": "No attachments yet",
+    "emptyHint": "Click upload to add a file",
+    "detailPlaceholder": "Add a description...",
+    "categoryPlaceholder": "Select a category",
+    "title": "Attachments"
   }
 }

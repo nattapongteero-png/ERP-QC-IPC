@@ -1524,5 +1524,34 @@
       "pageInfo": "Page {page} of {totalPages} ({total} events)",
       "pageSize": "Page size"
     }
+  },
+  "stabilitySchedule": {
+    "yesDev": "Yes (DEV)",
+    "yes": "Yes",
+    "no": "No",
+    "recordResult": "Record test result",
+    "timePoint": "Time point:",
+    "schedule": "Schedule:",
+    "qcTestCode": "QC test code *",
+    "qcTestCodePlaceholder": "Enter the QC test code...",
+    "oosFound": "OOS found (out of specification)",
+    "notes": "Notes",
+    "notesPlaceholder": "Add test notes...",
+    "columns": {
+      "timepoint": "Time point",
+      "sampleNumber": "Sample no.",
+      "schedule": "Scheduled",
+      "actualDate": "Actual date",
+      "status": "Status",
+      "sampledBy": "Sampled by",
+      "notes": "Notes",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "sampled": "Sampled",
+      "tested": "Tested",
+      "skipped": "Skipped"
+    }
   }
 }

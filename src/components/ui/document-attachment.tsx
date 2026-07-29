@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -133,7 +134,10 @@ const categoryLabels: Record<string, string> = {
 export function DocumentAttachment({
   moduleName,
   entityId,
-  title = 'เอกสารแนบ',
+  // Defaults to the translated "เอกสารแนบ" / "Attachments" below — a literal
+  // default here cannot be translated, and this component is used on bilingual
+  // screens.
+  title,
   readOnly = false,
   maxFiles = 20,
   maxFileSize = MAX_FILE_SIZE,
@@ -142,6 +146,8 @@ export function DocumentAttachment({
   showPreview = true,
   className,
 }: DocumentAttachmentProps) {
+  const tc = useTranslations('common');
+  const headingTitle = title ?? tc('attachments.title');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -382,7 +388,7 @@ export function DocumentAttachment({
       <div className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <Paperclip className="h-5 w-5 text-gray-500" />
-          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <h3 className="font-semibold text-gray-900">{headingTitle}</h3>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
             {attachments.length}
           </span>
@@ -399,7 +405,7 @@ export function DocumentAttachment({
               className="hidden"
             />
             <DxButton
-              text="อัปโหลด"
+              text={tc(`actions.upload`)}
               icon="upload"
               type="default"
               stylingMode="outlined"
@@ -439,9 +445,9 @@ export function DocumentAttachment({
         ) : attachments.length === 0 ? (
           <div className="py-8 text-center text-gray-500">
             <Paperclip className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2">ยังไม่มีไฟล์แนบ</p>
+            <p className="mt-2">{tc(`attachments.empty`)}</p>
             {!readOnly && (
-              <p className="mt-1 text-xs">คลิกอัปโหลดเพื่อเพิ่มไฟล์</p>
+              <p className="mt-1 text-xs">{tc(`attachments.emptyHint`)}</p>
             )}
           </div>
         ) : (
@@ -490,7 +496,7 @@ export function DocumentAttachment({
                       <button
                         onClick={() => handlePreview(attachment)}
                         className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
-                        title="ดูตัวอย่าง"
+                        title={tc(`actions.preview`)}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -498,7 +504,7 @@ export function DocumentAttachment({
                     <button
                       onClick={() => handleDownload(attachment)}
                       className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600"
-                      title="ดาวน์โหลด"
+                      title={tc(`actions.download`)}
                     >
                       <Download className="h-4 w-4" />
                     </button>
@@ -508,7 +514,7 @@ export function DocumentAttachment({
                         setShowAuditLog(true);
                       }}
                       className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-purple-600"
-                      title="ประวัติการเปลี่ยนแปลง"
+                      title={tc(`actions.changeHistory`)}
                     >
                       <History className="h-4 w-4" />
                     </button>
@@ -517,14 +523,14 @@ export function DocumentAttachment({
                         <button
                           onClick={() => handleEdit(attachment)}
                           className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
-                          title="แก้ไข"
+                          title={tc(`actions.edit`)}
                         >
                           <FileText className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(attachment)}
                           className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-red-600"
-                          title="ลบ"
+                          title={tc(`actions.delete`)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -585,7 +591,7 @@ export function DocumentAttachment({
             <DxTextBox
               value={editDescription}
               onValueChange={setEditDescription}
-              placeholder="เพิ่มรายละเอียด..."
+              placeholder={tc(`attachments.detailPlaceholder`)}
             />
           </div>
 
@@ -599,20 +605,20 @@ export function DocumentAttachment({
               dataSource={categoryOptions}
               displayExpr="name"
               valueExpr="id"
-              placeholder="เลือกหมวดหมู่"
+              placeholder={tc(`attachments.categoryPlaceholder`)}
               showClearButton
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <DxButton
-              text="ยกเลิก"
+              text={tc(`actions.cancel`)}
               type="normal"
               stylingMode="outlined"
               onClick={() => setEditingAttachment(null)}
             />
             <DxButton
-              text="บันทึก"
+              text={tc(`actions.save`)}
               type="success"
               onClick={handleSaveEdit}
             />
