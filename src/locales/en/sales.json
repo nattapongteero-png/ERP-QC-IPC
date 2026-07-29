@@ -83,7 +83,7 @@
     "alerts": {
       "overdueTitle": "{count} orders are overdue",
       "overdueMessage": "Please review and take immediate action",
-      "unmatchedTitle": "{count} orders have unmatched items",
+      "unmatchedTitle": "{count, plural, one {# order has} other {# orders have}} unmatched items",
       "unmatchedMessage": "Please match items before confirming orders",
       "urgentTitle": "{count} urgent orders",
       "urgentMessage": "Action needed urgently",
