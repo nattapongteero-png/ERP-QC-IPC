@@ -33,6 +33,7 @@ import { saveAs } from 'file-saver';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsivePageHeader, StatCard, MobileListView } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
+import { formatMoney, formatNumber } from '@/lib/utils/number-format';
 import { cn } from '@/lib/utils/cn';
 import {
   FileText,
@@ -72,10 +73,24 @@ async function fetchCostSummary(params: {
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
-  return new Intl.NumberFormat('th-TH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  }).format(value);
+  // formatMoney, not Intl.NumberFormat — the project rule is that every displayed
+  // figure goes through the shared helper (see numfmt:check). Fixed at 2 decimals:
+  // the old maximumFractionDigits:4 rendered "1,013,600.5000", 14 characters wide,
+  // which is what pushed 7-digit values past the column and left the user reading
+  // "3,000,000…" on a cost report.
+  return formatMoney(value, 2);
+}
+
+/**
+ * Unit costs can be genuinely sub-satang (PK-0001 is 0.0192 per capsule), where
+ * rounding to 2 decimals would show a misleading "0.02". Those columns keep up to
+ * 4 decimals; the money columns do not need them.
+ */
+function formatUnitCost(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '-';
+  return n !== 0 && Math.abs(n) < 1 ? formatNumber(n, 4) : formatMoney(n, 2);
 }
 
 function formatCurrencyShort(value: number | null | undefined): string {
@@ -472,16 +487,20 @@ export default function CostSummaryReportPage() {
                 dataField="currentWAC"
                 caption={t('reports.costSummary.grid.columns.wac')}
                 dataType="number"
-                width={120}
+                width={130}
+                minWidth={130}
                 cellRender={({ data }) => (
-                  <span className="font-mono">{formatCurrency(data.currentWAC)}</span>
+                  <span className="font-mono">{formatUnitCost(data.currentWAC)}</span>
                 )}
               />
               <Column
                 dataField="onHandValue"
                 caption={t('reports.costSummary.grid.columns.value')}
                 dataType="number"
-                width={130}
+                // 130px truncated 7-digit values to "3,000,000…" — unreadable on
+                // a cost report. minWidth stops columnAutoWidth shrinking it back.
+                width={150}
+                minWidth={150}
                 cellRender={({ data }) => (
                   <span className="font-mono font-bold">{formatCurrency(data.onHandValue)}</span>
                 )}
@@ -493,7 +512,7 @@ export default function CostSummaryReportPage() {
                 width={110}
                 cellRender={({ data }) => (
                   <span className="font-mono text-gray-500">
-                    {formatCurrency(data.standardCost)}
+                    {formatUnitCost(data.standardCost)}
                   </span>
                 )}
               />
@@ -503,14 +522,15 @@ export default function CostSummaryReportPage() {
                 dataType="number"
                 width={120}
                 cellRender={({ data }) => (
-                  <span className="font-mono">{formatCurrency(data.lastPurchaseCost)}</span>
+                  <span className="font-mono">{formatUnitCost(data.lastPurchaseCost)}</span>
                 )}
               />
               <Column
                 dataField="fullCost"
                 caption={t('reports.costSummary.grid.columns.fullCost')}
                 dataType="number"
-                width={120}
+                width={140}
+                minWidth={140}
                 cellRender={({ data }) => (
                   <span className="font-mono text-violet-600">{formatCurrency(data.fullCost)}</span>
                 )}
