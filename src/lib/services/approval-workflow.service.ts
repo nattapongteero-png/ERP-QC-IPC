@@ -95,6 +95,35 @@ function getTables() {
   };
 }
 
+/**
+ * Full name of an HR employee, or undefined when there is no such record.
+ *
+ * hr_employees has NO `nameTh` column — it stores firstName / lastName.
+ * Selecting a non-existent column made Drizzle throw "Cannot convert undefined
+ * or null to object" while preparing the query, which is what returned 500 from
+ * the approvals dashboard.
+ *
+ * The two columns are joined in JS rather than with SQL CONCAT_WS because this
+ * service runs on MySQL in production and SQLite under test, and SQLite has no
+ * CONCAT_WS.
+ */
+async function getEmployeeName(
+  db: any,
+  tables: ReturnType<typeof getTables>,
+  employeeId: number,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({
+      firstName: tables.employees.firstName,
+      lastName: tables.employees.lastName,
+    })
+    .from(tables.employees)
+    .where(eq(tables.employees.id, employeeId));
+  if (!row) return undefined;
+  const name = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
+  return name || undefined;
+}
+
 // ============================================
 // Approval Flow CRUD (T010)
 // ============================================
@@ -1192,29 +1221,13 @@ export async function getApprovalRequestById(
     // object" while preparing the query. That is what made
     // GET /api/accounting/approvals/dashboard return 500 and the approvals
     // screen show an error toast with two empty tables.
-    // The two name columns are selected and joined in JS rather than with SQL
-    // CONCAT_WS: this service runs on MySQL in production and SQLite under test,
-    // and SQLite has no CONCAT_WS — building the string here works on both.
-    const employeeName = async (employeeId: number): Promise<string | undefined> => {
-      const [row] = await db
-        .select({
-          firstName: tables.employees.firstName,
-          lastName: tables.employees.lastName,
-        })
-        .from(tables.employees)
-        .where(eq(tables.employees.id, employeeId));
-      if (!row) return undefined;
-      const name = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
-      return name || undefined;
-    };
-
     const enhancedSteps: ApprovalRequestStepDetail[] = [];
     for (const step of steps) {
-      const assigneeName = await employeeName(step.assignedTo);
+      const assigneeName = await getEmployeeName(db, tables, step.assignedTo);
 
       let delegatedFromName: string | undefined;
       if (step.delegatedFrom) {
-        delegatedFromName = await employeeName(step.delegatedFrom);
+        delegatedFromName = await getEmployeeName(db, tables, step.delegatedFrom);
       }
 
       enhancedSteps.push({
@@ -1501,9 +1514,18 @@ export async function getApprovalDashboard(
         recentActions.push({
           id: step.id,
           documentType: request.documentType as DocumentType,
-          documentNumber: `${request.documentType.toUpperCase()}-${request.documentId}`,
+          // Just the id. This used to be `PURCHASE_REQUISITION-89`, which
+          // repeats the document type shown in the very next column and is long
+          // enough that the grid clipped it to "PURCHASE_REQUISITIO…" — the
+          // number, the only part that identifies the document, was the part
+          // that got cut off.
+          documentNumber: `#${request.documentId}`,
           action: step.status === 'approved' ? 'approve' : 'reject',
-          actionBy: String(step.assignedTo),
+          // The approver's name, not their row id. String(step.assignedTo) put
+          // a bare "1" under "โดย", which tells the reader nothing about who
+          // approved. employeeName() falls back to the id when the employee
+          // record is missing, so the column is never empty.
+          actionBy: (await getEmployeeName(db, tables, step.assignedTo)) ?? String(step.assignedTo),
           actionDate: step.actionDate || '',
           comments: step.comments,
         });
