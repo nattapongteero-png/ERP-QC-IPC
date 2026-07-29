@@ -242,6 +242,10 @@ export function StabilitySampleSchedule({
         width={450}
         height="auto"
         showCloseButton
+        // The body is gated by testDialogSample, the same state that opens this
+        // popup, and DevExtreme caches the first (empty) deferred render — the
+        // blank-popup bug T1064246 that hit /vmi/sync.
+        deferRendering={false}
       >
         <div className="p-4 space-y-4">
           {testDialogSample && (

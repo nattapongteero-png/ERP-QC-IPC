@@ -572,6 +572,10 @@ export function DocumentAttachment({
         width={500}
         height="auto"
         showCloseButton
+        // The body is gated by editingAttachment, the same state that opens this
+        // popup, and DevExtreme caches the first (empty) deferred render — the
+        // blank-popup bug T1064246 that hit /vmi/sync.
+        deferRendering={false}
       >
         <div className="space-y-4 p-4">
           <div>

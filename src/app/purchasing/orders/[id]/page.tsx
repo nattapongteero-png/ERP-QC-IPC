@@ -1909,6 +1909,10 @@ export default function PurchaseOrderDetailPage() {
           width={700}
           height="auto"
           showCloseButton
+          // The body is gated by selectedLine, set in the same click that opens
+          // this popup, and DevExtreme caches the first (empty) deferred
+          // render — the blank-popup bug T1064246 that hit /vmi/sync.
+          deferRendering={false}
         >
           <div className="p-4">
             {selectedLine && (

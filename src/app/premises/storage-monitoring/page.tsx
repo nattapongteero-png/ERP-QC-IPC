@@ -566,6 +566,10 @@ export default function StorageMonitoringPage() {
           width={460}
           height="auto"
           showCloseButton
+          // The body is gated by ackDialog, the same state that opens this
+          // popup, and DevExtreme caches the first (empty) deferred render —
+          // the blank-popup bug T1064246 that hit /vmi/sync.
+          deferRendering={false}
         >
           <div className="space-y-3 p-2">
             <div className="bg-amber-50 border border-amber-200 p-2 rounded text-sm">

@@ -2359,6 +2359,11 @@ export default function QcSampleDetailPage() {
         height="auto"
         showCloseButton
         fullScreenOnMobile
+        // The body is gated by signRole, the same state that opens this popup,
+        // and DevExtreme caches the first (empty) deferred render — the
+        // blank-popup bug T1064246 that hit /vmi/sync. An e-signature dialog
+        // that opens blank would block QC sign-off entirely.
+        deferRendering={false}
       >
         <div className="p-4 space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
