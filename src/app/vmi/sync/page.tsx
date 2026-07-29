@@ -1251,10 +1251,24 @@ export default function VmiSyncPage() {
           onHiding={() => setViewingItemsOf(null)}
           title={t('sync.history.syncedItemsTitle')}
           width={560}
-        >
-          {viewingItemsOf && (() => {
+          // contentRender, not children. The body is built from state set in the
+          // same click that sets visible=true, which is the case DevExtreme's
+          // deferred rendering caches as empty (T1064246) — the popup opened
+          // showing only its title while the button said "ดู 10 รายการ".
+          // DxPopupProps documents contentRender as the fix for exactly this.
+          contentRender={() => {
+            if (!viewingItemsOf) return null;
             const detail = parseSyncedItems(viewingItemsOf.syncedItems);
-            if (!detail) return null;
+            // The row only renders a button when there ARE items, so reaching
+            // here with nothing parseable means the payload is malformed rather
+            // than absent — say so instead of showing an empty box.
+            if (!detail) {
+              return (
+                <div className="p-4 text-sm text-gray-500">
+                  {t('sync.history.syncedItemsUnavailable')}
+                </div>
+              );
+            }
             return (
               <div className="p-4 space-y-3">
                 <div className="text-sm text-gray-600">
@@ -1301,8 +1315,8 @@ export default function VmiSyncPage() {
                 </div>
               </div>
             );
-          })()}
-        </DxPopup>
+          }}
+        />
       </div>
     </MainLayout>
   );

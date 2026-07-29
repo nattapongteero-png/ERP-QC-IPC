@@ -230,7 +230,8 @@
       "syncedItemsSummary": "Synced {count} {type} item(s) at {time}",
       "syncedItemsTruncated": "Showing the first {shown} of {total} items",
       "itemCode": "Item Code",
-      "itemName": "Item Name"
+      "itemName": "Item Name",
+      "syncedItemsUnavailable": "Could not read the synced item list (malformed data)"
     },
     "masterDetail": {
       "syncInfo": "Sync Info",

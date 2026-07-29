@@ -230,7 +230,8 @@
       "syncedItemsSummary": "ซิงค์{type} จำนวน {count} รายการ เมื่อ {time}",
       "syncedItemsTruncated": "แสดง {shown} จาก {total} รายการแรกเท่านั้น",
       "itemCode": "รหัสสินค้า",
-      "itemName": "ชื่อสินค้า"
+      "itemName": "ชื่อสินค้า",
+      "syncedItemsUnavailable": "ไม่สามารถอ่านรายการที่ซิงค์ได้ (ข้อมูลไม่ถูกต้อง)"
     },
     "masterDetail": {
       "syncInfo": "ข้อมูลการซิงค์",
