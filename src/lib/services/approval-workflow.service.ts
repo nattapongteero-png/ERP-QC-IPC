@@ -1184,26 +1184,42 @@ export async function getApprovalRequestById(
       .where(eq(tables.requestSteps.requestId, id))
       .orderBy(asc(tables.requestSteps.stepOrder));
 
-    // Enhance steps with assignee names
+    // Enhance steps with assignee names.
+    //
+    // hr_employees has NO `nameTh` column — it stores firstName/lastName. The
+    // old `select({ name: tables.employees.nameTh })` therefore selected
+    // `undefined`, and Drizzle throws "Cannot convert undefined or null to
+    // object" while preparing the query. That is what made
+    // GET /api/accounting/approvals/dashboard return 500 and the approvals
+    // screen show an error toast with two empty tables.
+    // The two name columns are selected and joined in JS rather than with SQL
+    // CONCAT_WS: this service runs on MySQL in production and SQLite under test,
+    // and SQLite has no CONCAT_WS — building the string here works on both.
+    const employeeName = async (employeeId: number): Promise<string | undefined> => {
+      const [row] = await db
+        .select({
+          firstName: tables.employees.firstName,
+          lastName: tables.employees.lastName,
+        })
+        .from(tables.employees)
+        .where(eq(tables.employees.id, employeeId));
+      if (!row) return undefined;
+      const name = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
+      return name || undefined;
+    };
+
     const enhancedSteps: ApprovalRequestStepDetail[] = [];
     for (const step of steps) {
-      const [assignee] = await db
-        .select({ name: tables.employees.nameTh })
-        .from(tables.employees)
-        .where(eq(tables.employees.id, step.assignedTo));
+      const assigneeName = await employeeName(step.assignedTo);
 
       let delegatedFromName: string | undefined;
       if (step.delegatedFrom) {
-        const [delegator] = await db
-          .select({ name: tables.employees.nameTh })
-          .from(tables.employees)
-          .where(eq(tables.employees.id, step.delegatedFrom));
-        delegatedFromName = delegator?.name;
+        delegatedFromName = await employeeName(step.delegatedFrom);
       }
 
       enhancedSteps.push({
         ...step,
-        assignedToName: assignee?.name,
+        assignedToName: assigneeName,
         delegatedFromName,
       } as ApprovalRequestStepDetail);
     }
