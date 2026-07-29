@@ -191,9 +191,15 @@ export default function ApprovalDashboardPage() {
   const renderRecentAction = (cellData: any) => {
     const action = cellData.value as string;
     const colorClass = statusColors[action as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+    // Was action.toUpperCase(), which printed the raw English "APPROVE" in Thai
+    // mode and got clipped to "APPROV…". approvals.actions.approve/reject
+    // already exist; anything unexpected falls back to the raw value rather
+    // than showing an empty badge.
+    const key = `approvals.actions.${action}`;
+    const label = t(key) === key ? action : t(key);
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-        {action.toUpperCase()}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${colorClass}`}>
+        {label}
       </span>
     );
   };
@@ -314,17 +320,40 @@ export default function ApprovalDashboardPage() {
               </Item>
             </Toolbar>
 
-            <Column dataField="documentType" caption={t('approvals.columns.type')} width={150} />
-            <Column dataField="documentId" caption={t('approvals.columns.documentId')} width={80} />
+            {/* dataField must match what the API returns. It sends
+                documentNumber / actionBy / actionDate, but these columns asked
+                for documentId / actionByName / actionAt — three fields that do
+                not exist in the payload, so the columns rendered blank while
+                the data was there all along. */}
+            <Column
+              dataField="documentType"
+              caption={t('approvals.columns.type')}
+              width={180}
+              minWidth={180}
+              // documentTypeLabel already exists and is used by the pending
+              // grid; this column was printing the raw "purchase_requisition".
+              cellRender={({ data }) => (
+                <span className="whitespace-nowrap">
+                  {documentTypeLabel(data.documentType)}
+                </span>
+              )}
+            />
+            <Column
+              dataField="documentNumber"
+              caption={t('approvals.columns.documentId')}
+              width={200}
+              minWidth={200}
+            />
             <Column
               dataField="action"
               caption={t('approvals.columns.action')}
-              width={100}
+              width={110}
+              minWidth={110}
               cellRender={renderRecentAction}
             />
-            <Column dataField="actionByName" caption={t('approvals.columns.actionBy')} width={150} />
+            <Column dataField="actionBy" caption={t('approvals.columns.actionBy')} width={150} />
             <Column
-              dataField="actionAt"
+              dataField="actionDate"
               caption={t('approvals.columns.actionAt')}
               width={180}
               dataType="datetime"
