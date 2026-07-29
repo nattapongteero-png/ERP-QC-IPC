@@ -197,6 +197,11 @@ export function SidebarLanguageToggle({
   // Edge (no flag emoji, which break on Windows). Clicking a side selects it.
   return (
     <div className="flex flex-col gap-1.5">
+      {/* Deliberately NOT translated, and must stay that way. This is the
+          caption of the language switcher itself: a user stranded in the wrong
+          language has to be able to find the control that gets them out, so it
+          shows both languages at once. Translating it would hide the escape
+          hatch from exactly the person who needs it. */}
       <span className="text-[11px] font-medium text-slate-400 px-0.5">ภาษา / Language</span>
       <div
         role="group"

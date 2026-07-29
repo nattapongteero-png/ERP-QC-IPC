@@ -89,6 +89,10 @@ const I18N_EXEMPT = [
   /PrintDocument\.tsx$/,           // ใบกำกับภาษี / ใบเสร็จ / ใบส่งของ
   /wht-certificate-dialog\.tsx$/,  // หนังสือรับรองการหักภาษี ณ ที่จ่าย
   /reports\/(vat|wht)\/page\.tsx$/,// ชื่อรายงานภาษีตามกฎหมาย
+  // The switcher's own caption reads "ภาษา / Language" in both languages on
+  // purpose: someone stuck in the wrong language must still recognise the
+  // control that gets them out. Translating it would hide the escape hatch.
+  /shared\/language-switcher\.tsx$/,
 ];
 
 const thaiOffenders = [];
