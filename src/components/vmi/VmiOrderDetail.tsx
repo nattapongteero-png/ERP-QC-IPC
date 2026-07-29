@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DxDataGrid, type DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -238,6 +239,8 @@ async function cancelOrder(
 // ============================================
 
 export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrderDetailProps) {
+  const t = useTranslations('vmi');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [matchingLine, setMatchingLine] = useState<VmiOrderLine | null>(null);
   const [showShipDialog, setShowShipDialog] = useState(false);
@@ -261,7 +264,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
   // Refuse to write an audit trail we cannot attribute. Buttons are also
   // disabled while the session loads, so this is a backstop, not the UX.
   const requireUserId = (): number => {
-    if (!userId) throw new Error('ไม่พบข้อมูลผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่');
+    if (!userId) throw new Error(t(`orderDetail.noUser`));
     return userId;
   };
 
@@ -318,13 +321,13 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
 
   const lineColumns: DxDataGridColumn[] = [
     { dataField: 'lineNumber', caption: '#', width: 50, alignment: 'center' },
-    { dataField: 'portalItemCode', caption: 'รหัสพอร์ทัล', width: 120 },
-    { dataField: 'portalItemName', caption: 'ชื่อรายการพอร์ทัล', width: 200 },
-    { dataField: 'tppCode', caption: 'รหัส TPP', width: 100 },
-    { dataField: 'ttmtCode', caption: 'รหัส TTMT', width: 100 },
+    { dataField: 'portalItemCode', caption: t(`orderDetail.columns.portalCode`), width: 120 },
+    { dataField: 'portalItemName', caption: t(`orderDetail.columns.portalItemName`), width: 200 },
+    { dataField: 'tppCode', caption: t(`orderDetail.columns.tppCode`), width: 100 },
+    { dataField: 'ttmtCode', caption: t(`orderDetail.columns.ttmtCode`), width: 100 },
     {
       dataField: 'matchedItemCode',
-      caption: 'รายการที่จับคู่',
+      caption: t(`orderDetail.columns.matchedItem`),
       width: 180,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const line = cellInfo.data as VmiOrderLine;
@@ -332,7 +335,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           return (
             <span className="flex items-center gap-1 text-orange-600">
               <AlertTriangle className="h-4 w-4" />
-              ยังไม่จับคู่
+              {t(`orderDetail.unmatched`)}
             </span>
           );
         }
@@ -342,10 +345,10 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           return (
             <span
               className="flex items-center gap-1 text-amber-600"
-              title="พบสินค้าที่ตรงกันหลายรายการ กรุณาเลือกรายการที่ถูกต้อง"
+              title={t(`orderDetail.multipleMatchTitle`)}
             >
               <AlertTriangle className="h-4 w-4" />
-              ตรงหลายรายการ — ต้องเลือก
+              {t(`orderDetail.multipleMatch`)}
             </span>
           );
         }
@@ -359,24 +362,24 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     },
     {
       dataField: 'matchMethod',
-      caption: 'วิธีจับคู่',
+      caption: t(`orderDetail.columns.matchMethod`),
       width: 90,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
         const methodLabels: Record<string, string> = {
           tpp: 'TPP',
           ttmt: 'TTMT',
-          code: 'รหัส',
-          manual: 'ด้วยตนเอง',
+          code: t(`orderDetail.matchByCode`),
+          manual: t(`orderDetail.matchByManual`),
         };
         return methodLabels[cellInfo.value as string] || cellInfo.value;
       },
     },
-    { dataField: 'quantity', caption: 'จำนวน', width: 70, alignment: 'right' },
-    { dataField: 'unit', caption: 'หน่วย', width: 90 },
+    { dataField: 'quantity', caption: t(`orderDetail.columns.quantity`), width: 70, alignment: 'right' },
+    { dataField: 'unit', caption: t(`orderDetail.columns.unit`), width: 90 },
     {
       dataField: 'unitPrice',
-      caption: 'ราคา',
+      caption: t(`orderDetail.columns.price`),
       width: 80,
       alignment: 'right',
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -386,7 +389,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     },
     {
       dataField: 'lineTotal',
-      caption: 'รวม',
+      caption: t(`orderDetail.columns.total`),
       width: 100,
       alignment: 'right',
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
@@ -395,8 +398,13 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       },
     },
     {
-      caption: 'การดำเนินการ',
-      width: 100,
+      caption: t(`orderDetail.columns.actions`),
+      // 100px could not hold the caption plus a text button, so the last
+      // column rendered clipped as "จับ...". Pinned right so the action
+      // stays reachable instead of falling off the horizontal scroll.
+      width: 150,
+      fixed: true,
+      fixedPosition: 'right',
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         const line = cellInfo.data as VmiOrderLine;
         if (order?.status !== 'pending') return null;
@@ -405,7 +413,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         if (!line.matchedItemId || line.needsReview) {
           return (
             <DxButton
-              text={line.needsReview ? 'เลือกรายการ' : 'จับคู่'}
+              text={line.needsReview ? t(`orderDetail.selectItem`) : t(`orderDetail.match`)}
               type="default"
               stylingMode="text"
               onClick={() => setMatchingLine(line)}
@@ -414,7 +422,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         }
         return (
           <DxButton
-            text="จับคู่ใหม่"
+            text={t(`orderDetail.rematch`)}
             type="normal"
             stylingMode="text"
             onClick={() => setMatchingLine(line)}
@@ -428,7 +436,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     return (
       <Card>
         <CardContent className="p-8 text-center text-gray-500">
-          กำลังโหลดรายละเอียดคำสั่งซื้อ...
+          {t(`orderDetail.loading`)}
         </CardContent>
       </Card>
     );
@@ -438,7 +446,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     return (
       <Card>
         <CardContent className="p-8 text-center text-red-600">
-          {error instanceof Error ? error.message : 'โหลดคำสั่งซื้อไม่สำเร็จ'}
+          {error instanceof Error ? error.message : t(`orderDetail.loadFailed`)}
         </CardContent>
       </Card>
     );
@@ -454,9 +462,9 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl">คำสั่งซื้อ {order.portalOrderId}</CardTitle>
+              <CardTitle className="text-xl">{t(`orderDetail.orderTitle`, { id: order.portalOrderId })}</CardTitle>
               <p className="text-sm text-gray-500 mt-1">
-                จาก {order.portalName} - {new Date(order.orderDate).toLocaleDateString()}
+                {t(`orderDetail.fromPortal`, { portal: order.portalName ?? '-', date: new Date(order.orderDate).toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US') })}
               </p>
             </div>
             <div className="flex gap-2 items-center">
@@ -478,34 +486,34 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             <div className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">ลูกค้า</p>
-                <p className="font-medium">{order.customerName || 'ไม่ทราบ'}</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.customer`)}</p>
+                <p className="font-medium">{order.customerName || t(`orderDetail.unknown`)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">รายการ</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.items`)}</p>
                 <p className="font-medium">
-                  จับคู่แล้ว {order.matchedItems}/{order.totalItems}
+                  {t(`orderDetail.matchedCount`, { matched: order.matchedItems, total: order.totalItems })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">วันที่ขอจัดส่ง</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.requiredDate`)}</p>
                 <p className="font-medium">
                   {order.requestedDeliveryDate
                     ? new Date(order.requestedDeliveryDate).toLocaleDateString()
-                    : 'ไม่ระบุ'}
+                    : t(`orderDetail.notSpecified`)}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500">ความสำคัญ</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.priority`)}</p>
                 <p className={cn('font-medium', {
                   'text-red-600': order.priority === 'urgent',
                   'text-orange-600': order.priority === 'high',
@@ -520,11 +528,11 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.confirmedAt && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
               <p>
-                <strong>ยืนยันเมื่อ:</strong> {new Date(order.confirmedAt).toLocaleString()}
-                {order.confirmedByName && ` โดย ${order.confirmedByName}`}
+                <strong>{t(`orderDetail.confirmedAt`)}</strong> {new Date(order.confirmedAt).toLocaleString()}
+                {order.confirmedByName && t(`orderDetail.byWhom`, { name: order.confirmedByName })}
               </p>
               {order.salesOrderNumber && (
-                <p><strong>ใบสั่งขาย:</strong> {order.salesOrderNumber}</p>
+                <p><strong>{t(`orderDetail.salesOrder`)}</strong> {order.salesOrderNumber}</p>
               )}
             </div>
           )}
@@ -532,14 +540,14 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           {order.shippedAt && (
             <div className="mt-4 p-3 bg-green-50 rounded-lg text-sm">
               <p>
-                <strong>จัดส่งเมื่อ:</strong> {new Date(order.shippedAt).toLocaleString()}
-                {order.shippedByName && ` โดย ${order.shippedByName}`}
+                <strong>{t(`orderDetail.shippedAt`)}</strong> {new Date(order.shippedAt).toLocaleString()}
+                {order.shippedByName && t(`orderDetail.byWhom`, { name: order.shippedByName })}
               </p>
               {order.trackingNumber && (
-                <p><strong>เลขติดตามพัสดุ:</strong> {order.trackingNumber}</p>
+                <p><strong>{t(`orderDetail.trackingNumber`)}</strong> {order.trackingNumber}</p>
               )}
               {order.carrier && (
-                <p><strong>ผู้จัดส่ง:</strong> {order.carrier}</p>
+                <p><strong>{t(`orderDetail.carrier`)}</strong> {order.carrier}</p>
               )}
             </div>
           )}
@@ -548,7 +556,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
           <div className="mt-4 flex gap-2">
             {canConfirm && (
               <DxButton
-                text={confirmMutation.isPending ? 'กำลังยืนยัน...' : 'ยืนยันคำสั่งซื้อ'}
+                text={confirmMutation.isPending ? t(`orderDetail.confirming`) : t(`orderDetail.confirmOrder`)}
                 type="success"
                 icon="check"
                 onClick={() => confirmMutation.mutate()}
@@ -567,7 +575,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                     label). Icon + Thai text together. */}
                 <span className="flex items-center gap-2">
                   <Truck className="h-4 w-4" />
-                  จัดส่ง
+                  {t(`orderDetail.ship`)}
                 </span>
               </DxButton>
             )}
@@ -577,7 +585,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
                 with unmatched lines, since cancelling ends the order. */}
             {['pending', 'confirmed'].includes(order.status) && (
               <DxButton
-                text={rejectMutation.isPending ? 'กำลังยกเลิก...' : 'ยกเลิกคำสั่งซื้อ'}
+                text={rejectMutation.isPending ? t(`orderDetail.cancelling`) : t(`orderDetail.cancelOrder`)}
                 type="danger"
                 icon="close"
                 onClick={() => setShowRejectDialog(true)}
@@ -591,7 +599,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               category alongside the operator's free text. */}
           {order.status === 'cancelled' && order.rejectionReason && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800" data-testid="vmi-rejection-reason">
-              <strong>เหตุผลที่ยกเลิก:</strong>{' '}
+              <strong>{t(`orderDetail.cancelReasonLabel`)}</strong>{' '}
               {order.cancelReasonCode
                 ? `[${VMI_CANCEL_REASON_LABELS[order.cancelReasonCode] ?? order.cancelReasonCode}] `
                 : ''}
@@ -604,8 +612,8 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
               <div className="text-sm text-yellow-800">
-                <strong>มี {order.unmatchedItems} รายการที่ยังไม่จับคู่</strong>
-                <p>กรุณาจับคู่ทุกรายการก่อนยืนยันคำสั่งซื้อ</p>
+                <strong>{t(`orderDetail.unmatchedWarn`, { count: order.unmatchedItems })}</strong>
+                <p>{t(`orderDetail.unmatchedWarnHint`)}</p>
               </div>
             </div>
           )}
@@ -615,7 +623,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       {/* Order Lines */}
       <Card elevation="raised">
         <CardHeader>
-          <CardTitle>รายการในคำสั่งซื้อ</CardTitle>
+          <CardTitle>{t(`orderDetail.orderLines`)}</CardTitle>
         </CardHeader>
         <CardContent>
           <DxDataGrid
@@ -624,7 +632,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             keyExpr="id"
             height={300}
             sorting
-            noDataText="ไม่มีรายการในคำสั่งซื้อ"
+            noDataText={t(`orderDetail.noLines`)}
           />
         </CardContent>
       </Card>
@@ -638,49 +646,49 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             matchMutation.mutate({ lineId: matchingLine.id, itemId: item.id });
           }
         }}
-        title={matchingLine ? `จับคู่รายการ: ${matchingLine.portalItemName || matchingLine.portalItemCode}` : 'เลือกรายการ'}
+        title={matchingLine ? t(`orderDetail.matchTitle`, { name: matchingLine.portalItemName || matchingLine.portalItemCode }) : t(`orderDetail.selectItem`)}
       />
 
       {/* Ship Dialog */}
       <DxPopup
         visible={showShipDialog}
         onHiding={() => setShowShipDialog(false)}
-        title="จัดส่งคำสั่งซื้อ"
+        title={t(`orderDetail.shipTitle`)}
         width={400}
       >
         <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              เลขติดตามพัสดุ
+              {t(`orderDetail.trackingLabel`)}
             </label>
             <input
               type="text"
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
-              placeholder="กรอกเลขติดตามพัสดุ"
+              placeholder={t(`orderDetail.trackingPlaceholder`)}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ผู้จัดส่ง
+              {t(`orderDetail.carrierLabel`)}
             </label>
             <input
               type="text"
               value={carrier}
               onChange={(e) => setCarrier(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
-              placeholder="เช่น Kerry Express, Flash"
+              placeholder={t(`orderDetail.carrierPlaceholder`)}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <DxButton
-              text="ยกเลิก"
+              text={t(`orderDetail.cancel`)}
               type="normal"
               onClick={() => setShowShipDialog(false)}
             />
             <DxButton
-              text={shipMutation.isPending ? 'กำลังจัดส่ง...' : 'ยืนยันการจัดส่ง'}
+              text={shipMutation.isPending ? t(`orderDetail.shipping`) : t(`orderDetail.confirmShip`)}
               type="success"
               onClick={() => shipMutation.mutate()}
               disabled={shipMutation.isPending || !userId}
@@ -695,7 +703,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
       <DxPopup
         visible={showRejectDialog}
         onHiding={() => setShowRejectDialog(false)}
-        title="ยกเลิกคำสั่งซื้อ"
+        title={t(`orderDetail.cancelTitle`)}
         width={440}
       >
         <div className="p-4 space-y-4">
@@ -704,7 +712,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               className="block text-sm font-medium text-gray-700 mb-1"
               htmlFor="vmi-cancel-reason-code"
             >
-              ประเภทเหตุผล <span className="text-red-500">*</span>
+              {t(`orderDetail.reasonType`)} <span className="text-red-500">*</span>
             </label>
             <select
               id="vmi-cancel-reason-code"
@@ -725,7 +733,7 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               className="block text-sm font-medium text-gray-700 mb-1"
               htmlFor="vmi-reject-reason"
             >
-              รายละเอียดเหตุผล <span className="text-red-500">*</span>
+              {t(`orderDetail.reasonDetail`)} <span className="text-red-500">*</span>
             </label>
             <textarea
               id="vmi-reject-reason"
@@ -734,33 +742,33 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
               className="w-full px-3 py-2 border rounded-md"
               rows={3}
               maxLength={500}
-              placeholder="เช่น สั่งกระทันหันเกินกำลังผลิต / สินค้าไม่พอ"
+              placeholder={t(`orderDetail.reasonPlaceholder`)}
               data-testid="vmi-reject-reason"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {rejectReason.trim().length}/500 ตัวอักษร — เหตุผลนี้จะถูกส่งไปแสดงที่ VMI Portal
+              {t(`orderDetail.reasonCounter`, { n: rejectReason.trim().length })}
             </p>
           </div>
           {/* A confirmed order already produced a sales order; cancelling the VMI
               side does not void it automatically. */}
           {order.status === 'confirmed' && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-              คำสั่งซื้อนี้ยืนยันแล้วและมีใบสั่งขายผูกอยู่ — กรุณาตรวจสอบและจัดการใบสั่งขายแยกต่างหากหลังยกเลิก
+              {t(`orderDetail.hasSalesOrderWarn`)}
             </div>
           )}
           {rejectMutation.isError && (
             <p className="text-sm text-red-600" data-testid="vmi-cancel-error">
-              {(rejectMutation.error as Error)?.message || 'ยกเลิกคำสั่งซื้อไม่สำเร็จ'}
+              {(rejectMutation.error as Error)?.message || t(`orderDetail.cancelFailed`)}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
             <DxButton
-              text="ปิด"
+              text={t(`orderDetail.close`)}
               type="normal"
               onClick={() => setShowRejectDialog(false)}
             />
             <DxButton
-              text={rejectMutation.isPending ? 'กำลังยกเลิก...' : 'ยืนยันการยกเลิก'}
+              text={rejectMutation.isPending ? t(`orderDetail.cancelling`) : t(`orderDetail.confirmCancel`)}
               type="danger"
               onClick={() => rejectMutation.mutate()}
               disabled={rejectMutation.isPending || !userId || !rejectReason.trim()}
