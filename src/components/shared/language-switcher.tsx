@@ -146,7 +146,10 @@ export function CompactLanguageSwitcher({
     <button
       type="button"
       onClick={handleToggle}
-      className={`flex items-center justify-center px-3 py-2 hover:bg-gray-100 rounded transition-colors ${className || ''}`}
+      // min-h/min-w 44px: this is the ONLY language switcher on mobile (the
+      // sidebar one is behind the ☰ menu), and it measured 52x32 — under the
+      // 44px minimum tap target, so it was easy to miss on a phone.
+      className={`flex items-center justify-center min-h-[44px] min-w-[44px] px-3 py-2 hover:bg-gray-100 rounded transition-colors ${className || ''}`}
       title={`Switch to ${currentLocale === 'th' ? 'English' : 'ไทย'}`}
       data-testid="compact-language-switcher"
     >

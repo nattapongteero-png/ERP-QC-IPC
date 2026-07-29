@@ -127,7 +127,11 @@ export function StatCard({
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className={`text-xs font-medium uppercase tracking-wide truncate ${toneStyle.label}`}>{label}</p>
+          {/* `truncate` forced one line, so on a 390px screen (two cards per
+              row) labels were cut to "TOTAL O..." / "คำสั่งซื้อทั้..." — the
+              label needs 82px but only gets 64px. Allow two lines and clamp,
+              so the label reads in full instead of being chopped. */}
+          <p className={`text-xs font-medium uppercase tracking-wide line-clamp-2 ${toneStyle.label}`}>{label}</p>
           {isLoading ? (
             <div className="h-8 w-16 bg-black/5 rounded animate-pulse mt-1" />
           ) : (
