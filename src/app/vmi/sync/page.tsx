@@ -255,6 +255,10 @@ function formatDuration(startedAt: string, completedAt?: string | null): string 
 
 export default function VmiSyncPage() {
   const t = useTranslations('vmi');
+  // Generic labels live in the shared namespace. `t` is scoped to 'vmi', so
+  // t('common.close') resolves to vmi.common.close — which does not exist and
+  // rendered the raw key "VMI.COMMON.CLOSE" on the button.
+  const tc = useTranslations('common');
   const locale = useLocale();
   const queryClient = useQueryClient();
   const { isMobile } = useMobile();
@@ -1311,7 +1315,7 @@ export default function VmiSyncPage() {
                   </table>
                 </div>
                 <div className="flex justify-end pt-1">
-                  <DxButton text={t('common.close')} onClick={() => setViewingItemsOf(null)} />
+                  <DxButton text={tc('actions.close')} onClick={() => setViewingItemsOf(null)} />
                 </div>
               </div>
             );
