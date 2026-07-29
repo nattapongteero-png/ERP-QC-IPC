@@ -183,26 +183,35 @@ const STATUS_TAB_KEYS: Array<{ key: string; translationKey: string; icon: typeof
 // Helper Functions
 // ============================================================================
 
-const formatDate = (dateStr: string) => {
+// These take the active locale rather than hardcoding 'th-TH'. With th-TH fixed,
+// switching the app to English still rendered Buddhist-era Thai dates
+// ("24 ก.ค. 2569") on every row — the same mistake /vmi/sync had already solved
+// by passing locale into its formatDateTime.
+const dateLocale = (locale: string) => (locale === 'th' ? 'th-TH' : 'en-US');
+
+const formatDate = (dateStr: string, locale: string) => {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('th-TH', {
+  return new Date(dateStr).toLocaleDateString(dateLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 };
 
-const formatDateShort = (dateStr: string) => {
+const formatDateShort = (dateStr: string, locale: string) => {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('th-TH', {
+  return new Date(dateStr).toLocaleDateString(dateLocale(locale), {
     day: 'numeric',
     month: 'short',
   });
 };
 
-const formatCurrency = (amount: number | null | undefined) => {
+// The currency stays THB in both languages — this system bills in baht, and the
+// amount is a fact about the order, not a UI string. Only the grouping/numeral
+// formatting follows the locale.
+const formatCurrency = (amount: number | null | undefined, locale: string) => {
   const safeAmount = Number(amount) || 0;
-  return new Intl.NumberFormat('th-TH', {
+  return new Intl.NumberFormat(dateLocale(locale), {
     style: 'currency',
     currency: 'THB',
     minimumFractionDigits: 0,
@@ -629,7 +638,7 @@ export default function VmiOrdersPage() {
 
   const renderDateCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
-    return <span className="text-sm">{formatDate(data.data.orderDate)}</span>;
+    return <span className="text-sm">{formatDate(data.data.orderDate, locale)}</span>;
   }, []);
 
   const renderDeliveryDateCell = useCallback((data: { data?: VmiOrder }) => {
@@ -646,7 +655,7 @@ export default function VmiOrdersPage() {
     return (
       <div className="flex items-baseline gap-1.5 whitespace-nowrap">
         <span className={cn('text-sm', overdue && 'text-red-600 font-medium')}>
-          {formatDate(order.requestedDeliveryDate)}
+          {formatDate(order.requestedDeliveryDate, locale)}
         </span>
         {daysUntil !== null && (
           <span
@@ -673,7 +682,7 @@ export default function VmiOrdersPage() {
   const renderAmountCell = useCallback((data: { data?: VmiOrder }) => {
     if (!data.data) return null;
     return (
-      <span className="font-semibold text-green-600">{formatCurrency(data.data.totalAmount)}</span>
+      <span className="font-semibold text-green-600">{formatCurrency(data.data.totalAmount, locale)}</span>
     );
   }, []);
 
@@ -853,7 +862,7 @@ export default function VmiOrdersPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-green-600">
-                    {formatCurrency(order.totalAmount)}
+                    {formatCurrency(order.totalAmount, locale)}
                   </p>
                   {statusConfig && (
                     <div
@@ -900,14 +909,14 @@ export default function VmiOrdersPage() {
               <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t flex-wrap gap-2">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>{formatDateShort(order.orderDate)}</span>
+                  <span>{formatDateShort(order.orderDate, locale)}</span>
                 </div>
                 {order.requestedDeliveryDate && (
                   <div
                     className={`flex items-center gap-1 ${overdue ? 'text-red-600 font-medium' : ''}`}
                   >
                     <ArrowRight className="h-3.5 w-3.5" />
-                    <span>{formatDateShort(order.requestedDeliveryDate)}</span>
+                    <span>{formatDateShort(order.requestedDeliveryDate, locale)}</span>
                     {daysUntil !== null && (
                       <span
                         className={cn(
@@ -1232,6 +1241,7 @@ export default function VmiOrdersPage() {
           orders={filteredOrders}
           onOpen={handleOrderClick}
           t={t}
+          locale={locale}
         />
       ) : (
         <DxDataGrid
@@ -1425,7 +1435,7 @@ export default function VmiOrdersPage() {
                       </p>
                     </div>
                     <p className="text-sm truncate">{order.customerName || order.portalName}</p>
-                    <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
+                    <p className="text-xs text-gray-400">{formatDate(order.createdAt, locale)}</p>
                   </button>
                 );
               })}
@@ -1534,7 +1544,7 @@ export default function VmiOrdersPage() {
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
                 <p className="text-sm text-gray-600">{t('vmiOrders.analytics.totalValue')}</p>
                 <p className="text-2xl sm:text-3xl font-bold text-green-600 break-all">
-                  {formatCurrency(stats.totalValue)}
+                  {formatCurrency(stats.totalValue, locale)}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1824,10 +1834,15 @@ function VmiOrderCardList({
   orders,
   onOpen,
   t,
+  // Passed in like `t` is: this component renders dates and amounts, and calling
+  // useLocale() here would work but keeps the two halves of the same page free
+  // to drift apart. One source, handed down.
+  locale,
 }: {
   orders: VmiOrder[];
   onOpen: (id: number) => void;
   t: (key: string, values?: Record<string, string | number | Date>) => string;
+  locale: string;
 }) {
   return (
     <div className="p-3 sm:p-4 space-y-3 bg-gray-50/30">
@@ -1897,7 +1912,7 @@ function VmiOrderCardList({
                   </span>
                   {order.totalAmount != null && (
                     <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold">
-                      {formatCurrency(order.totalAmount)}
+                      {formatCurrency(order.totalAmount, locale)}
                     </span>
                   )}
                 </div>
@@ -1905,12 +1920,12 @@ function VmiOrderCardList({
                 <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t flex-wrap gap-2">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>{formatDateShort(order.orderDate)}</span>
+                    <span>{formatDateShort(order.orderDate, locale)}</span>
                   </div>
                   {order.requestedDeliveryDate && (
                     <div className={cn('flex items-center gap-1', overdue && 'text-red-600 font-medium')}>
                       <ArrowRight className="h-3.5 w-3.5" />
-                      <span>{formatDateShort(order.requestedDeliveryDate)}</span>
+                      <span>{formatDateShort(order.requestedDeliveryDate, locale)}</span>
                       {daysUntil !== null && (
                         <span
                           className={cn(

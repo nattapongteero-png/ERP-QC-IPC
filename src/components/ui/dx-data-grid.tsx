@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from 'next-intl';
 import DataGrid, {
   Column,
   Paging,
@@ -272,6 +273,10 @@ export function DxDataGrid<T = Record<string, unknown>>({
   elementAttr,
   groupPanel = false,
 }: DxDataGridProps<T>) {
+  // The pager's infoText was the literal "หน้า {0} จาก {1} ({2} รายการ)", so
+  // EVERY grid in the app showed Thai pagination even in English. This is the
+  // shared wrapper, so translating it here fixes all of them at once.
+  const tCommon = useTranslations('common');
   // Detect device type for responsive behavior
   const { isMobile, isTablet } = useMobile();
 
@@ -351,7 +356,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
             allowedPageSizes={allowedPageSizes}
             showInfo
             showNavigationButtons
-            infoText="หน้า {0} จาก {1} ({2} รายการ)"
+            infoText={tCommon(`pagination.gridInfo`)}
           />
         </>
       )}

@@ -97,7 +97,8 @@
     "itemsPerPage": "Items per page",
     "page": "Page {current} of {total}",
     "first": "First",
-    "last": "Last"
+    "last": "Last",
+    "gridInfo": "Page {0} of {1} ({2} items)"
   },
   "datetime": {
     "today": "Today",
