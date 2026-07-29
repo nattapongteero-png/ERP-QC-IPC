@@ -869,7 +869,7 @@ export default function PurchaseOrderDetailPage() {
         const canReceive = status !== 'draft' && status !== 'pending_approval' && status !== 'cancelled';
         return cellInfo.data.pendingQty > 0 ? (
           <DxButton
-            text="รับสินค้า"
+            text={t(`orderDetail.receive`)}
             icon="check"
             type="success"
             stylingMode="contained"
@@ -878,7 +878,7 @@ export default function PurchaseOrderDetailPage() {
             onClick={() => handleReceive(cellInfo.data)}
           />
         ) : (
-          <Badge variant="success">ครบแล้ว</Badge>
+          <Badge variant="success">{t(`orderDetail.complete`)}</Badge>
         );
       },
     },
@@ -1017,9 +1017,9 @@ export default function PurchaseOrderDetailPage() {
       <>
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-gray-500 mb-4">ไม่พบข้อมูล Purchase Order</p>
+          <p className="text-gray-500 mb-4">{t(`orderDetail.notFound`)}</p>
           <DxButton
-            text="กลับไปหน้ารายการ"
+            text={t(`orderDetail.backToList`)}
             icon="back"
             type="normal"
             stylingMode="outlined"
@@ -1100,18 +1100,18 @@ export default function PurchaseOrderDetailPage() {
                 icon="refresh"
                 type="normal"
                 stylingMode="outlined"
-                hint="รีเฟรช"
+                hint={t(`orderDetail.refresh`)}
                 onClick={() => fetchPODetail()}
               />
               <DxButton
                 icon="clock"
                 type="normal"
                 stylingMode="outlined"
-                hint="ประวัติการเปลี่ยนแปลง"
+                hint={t(`orderDetail.changeHistory`)}
                 onClick={() => setShowAuditLog(true)}
               />
               <DxButton
-                text="พิมพ์"
+                text={t(`orderDetail.print`)}
                 icon="print"
                 type="normal"
                 stylingMode="outlined"
@@ -1119,7 +1119,7 @@ export default function PurchaseOrderDetailPage() {
               />
               {po.status === 'draft' && (
                 <DxButton
-                  text="ลบใบ PO"
+                  text={t(`orderDetail.deletePo`)}
                   icon="trash"
                   type="danger"
                   stylingMode="outlined"
@@ -1187,7 +1187,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
               <div className="text-sm">
-                <p className="font-semibold text-emerald-800">ส่งให้ผู้ขายเรียบร้อยแล้ว</p>
+                <p className="font-semibold text-emerald-800">{t(`orderDetail.sentToVendor`)}</p>
                 <p className="text-gray-600 mt-0.5">
                   ช่องทาง:{' '}
                   <span className="font-medium">
@@ -1233,7 +1233,7 @@ export default function PurchaseOrderDetailPage() {
                 <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
               )}
               <div className="text-sm">
-                <p className="font-semibold text-gray-800">การอนุมัติ 2 ฝ่าย (Metaherb)</p>
+                <p className="font-semibold text-gray-800">{t(`orderDetail.dualApproval`)}</p>
                 <p className="text-gray-600 mt-0.5">
                   อนุมัติคู่ขนาน — ต้องอนุมัติครบทั้งสองฝ่าย PO จึงจะอนุมัติ ฝ่ายใดปฏิเสธ PO จะถูกปฏิเสธ
                 </p>
@@ -1290,7 +1290,7 @@ export default function PurchaseOrderDetailPage() {
           </Card>
         ) : (
           <StatusStepper
-            title="สถานะการดำเนินงาน"
+            title={t(`orderDetail.workflowStatus`)}
             // 'partial' (received some) sits on the 'sent' step until fully received
             current={po.status === 'partial' ? 'sent' : po.status}
             steps={[
@@ -1319,7 +1319,7 @@ export default function PurchaseOrderDetailPage() {
                     type="button"
                     onClick={() => setVatDisplayMode((m) => (m === 'split' ? 'inclusive' : 'split'))}
                     className="text-[10px] text-gray-500 hover:text-blue-600 underline decoration-dotted"
-                    title="สลับโหมดแสดง VAT"
+                    title={t(`orderDetail.toggleVat`)}
                   >
                     {vatDisplayMode === 'split' ? 'รวม VAT' : 'แยก VAT'}
                   </button>
@@ -1342,7 +1342,7 @@ export default function PurchaseOrderDetailPage() {
                 <Package className="h-5 w-5 text-gray-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">สั่งซื้อ</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.ordered`)}</p>
                 <p className="text-lg font-bold">{formatNumber(summary.totalOrdered || 0)}</p>
               </div>
             </div>
@@ -1353,7 +1353,7 @@ export default function PurchaseOrderDetailPage() {
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">รับแล้ว</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.received`)}</p>
                 <p className="text-lg font-bold text-green-600">{formatNumber(summary.totalReceived || 0)}</p>
               </div>
             </div>
@@ -1364,7 +1364,7 @@ export default function PurchaseOrderDetailPage() {
                 <Clock className="h-5 w-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">คงเหลือ</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.remaining`)}</p>
                 <p className="text-lg font-bold text-orange-600">{formatNumber(summary.totalPending || 0)}</p>
               </div>
             </div>
@@ -1375,7 +1375,7 @@ export default function PurchaseOrderDetailPage() {
                 <Truck className="h-5 w-5 text-emerald-600" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500">ความคืบหน้า</p>
+                <p className="text-xs text-gray-500">{t(`orderDetail.progress`)}</p>
                 <p className="text-lg font-bold">{summary.receivingProgress || 0}%</p>
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                   <div
@@ -1430,7 +1430,7 @@ export default function PurchaseOrderDetailPage() {
                   {isEditingPO ? (
                     <>
                       <DxButton
-                        text="ยกเลิก"
+                        text={t(`orderDetail.cancel`)}
                         icon="close"
                         type="normal"
                         stylingMode="outlined"
@@ -1447,7 +1447,7 @@ export default function PurchaseOrderDetailPage() {
                     </>
                   ) : isEditable ? (
                     <DxButton
-                      text="แก้ไขข้อมูล"
+                      text={t(`orderDetail.edit`)}
                       icon="edit"
                       type="normal"
                       stylingMode="text"
@@ -1470,7 +1470,7 @@ export default function PurchaseOrderDetailPage() {
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.status`)}</label>
                               <DxSelectBox
                                 items={STATUS_OPTIONS.filter(
                                   (o) =>
@@ -1482,7 +1482,7 @@ export default function PurchaseOrderDetailPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ขาย</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.vendor`)}</label>
                               <DxSelectBox
                                 items={vendors.map((v) => ({ value: v.id, label: `${v.code} - ${v.name}` }))}
                                 value={editPOForm.vendorId}
@@ -1491,14 +1491,14 @@ export default function PurchaseOrderDetailPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่สั่งซื้อ</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.orderDate`)}</label>
                               <DxDateBox
                                 value={editPOForm.orderDate}
                                 onValueChange={(v) => setEditPOForm({ ...editPOForm, orderDate: v || '' })}
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่คาดว่าจะได้รับ</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.expectedDate`)}</label>
                               <DxDateBox
                                 value={editPOForm.expectedDate}
                                 onValueChange={(v) => setEditPOForm({ ...editPOForm, expectedDate: v || '' })}
@@ -1506,7 +1506,7 @@ export default function PurchaseOrderDetailPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">เงื่อนไขการชำระเงิน</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.paymentTerms`)}</label>
                             <DxSelectBox
                               // Standard options (shared with the create form). If this PO
                               // carries a legacy free-text value not in the list, surface it as
@@ -1527,7 +1527,7 @@ export default function PurchaseOrderDetailPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่จัดส่ง</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.shippingAddress`)}</label>
                             <DxTextArea
                               value={editPOForm.shippingAddress}
                               onValueChange={(v) => setEditPOForm({ ...editPOForm, shippingAddress: v })}
@@ -1535,7 +1535,7 @@ export default function PurchaseOrderDetailPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.notes`)}</label>
                             <DxTextArea
                               value={editPOForm.notes}
                               onValueChange={(v) => setEditPOForm({ ...editPOForm, notes: v })}
@@ -1546,25 +1546,25 @@ export default function PurchaseOrderDetailPage() {
                       ) : (
                         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                           <div>
-                            <dt className="text-gray-500">เลขที่ PO</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.poNumber`)}</dt>
                             <dd className="font-semibold">{po.poNumber}</dd>
                           </div>
                           <div>
-                            <dt className="text-gray-500">สถานะ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.status`)}</dt>
                             <dd><Badge variant={statusConfig.badgeVariant}>{statusConfig.labelTh}</Badge></dd>
                           </div>
                           <div>
-                            <dt className="text-gray-500">วันที่สั่งซื้อ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.orderDate`)}</dt>
                             <dd className="font-medium">{formatDate(po.orderDate)}</dd>
                           </div>
                           <div>
-                            <dt className="text-gray-500">วันที่คาดว่าจะได้รับ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.expectedDate`)}</dt>
                             <dd className="font-medium">{formatDate(po.expectedDate)}</dd>
                           </div>
                           {vatDisplayMode === 'split' ? (
                             <>
                               <div>
-                                <dt className="text-gray-500">ยอดก่อน VAT (Subtotal)</dt>
+                                <dt className="text-gray-500">{t(`orderDetail.subtotalBeforeVat`)}</dt>
                                 <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
                               </div>
                               <div>
@@ -1572,26 +1572,26 @@ export default function PurchaseOrderDetailPage() {
                                 <dd className="font-medium text-gray-900">{formatCurrency(vatAmount)}</dd>
                               </div>
                               <div>
-                                <dt className="text-gray-500">ยอดรวมสุทธิ (รวม VAT)</dt>
+                                <dt className="text-gray-500">{t(`orderDetail.netTotalWithVat`)}</dt>
                                 <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
                               </div>
                             </>
                           ) : (
                             <div>
-                              <dt className="text-gray-500">ยอดรวม (รวม VAT)</dt>
+                              <dt className="text-gray-500">{t(`orderDetail.totalWithVat`)}</dt>
                               <dd className="font-bold text-blue-600">{formatCurrency(grandTotal)}</dd>
                             </div>
                           )}
                           <div>
-                            <dt className="text-gray-500">จำนวนรายการ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.lineCount`)}</dt>
                             <dd className="font-medium">{summary.lineCount} รายการ</dd>
                           </div>
                           <div>
-                            <dt className="text-gray-500">เงื่อนไขการชำระ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.paymentTermsShort`)}</dt>
                             <dd className="font-medium">{po.paymentTerms || '-'}</dd>
                           </div>
                           <div className="col-span-2">
-                            <dt className="text-gray-500">หมายเหตุ</dt>
+                            <dt className="text-gray-500">{t(`orderDetail.notes`)}</dt>
                             <dd className="font-medium whitespace-pre-wrap">{po.notes || '-'}</dd>
                           </div>
                         </dl>
@@ -1610,11 +1610,11 @@ export default function PurchaseOrderDetailPage() {
                     <CardContent>
                       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                         <div>
-                          <dt className="text-gray-500">รหัสผู้ขาย</dt>
+                          <dt className="text-gray-500">{t(`orderDetail.vendorCode`)}</dt>
                           <dd className="font-semibold">{po.vendorCode || '-'}</dd>
                         </div>
                         <div>
-                          <dt className="text-gray-500">ชื่อผู้ขาย</dt>
+                          <dt className="text-gray-500">{t(`orderDetail.vendorName`)}</dt>
                           <dd className="font-medium">{po.vendorName || '-'}</dd>
                         </div>
                         <div>
@@ -1647,11 +1647,11 @@ export default function PurchaseOrderDetailPage() {
                       <User className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500">ผู้จัดทำ</p>
+                      <p className="text-xs text-gray-500">{t(`orderDetail.preparedBy`)}</p>
                       <p className="font-medium text-gray-900" data-testid="po-created-by-name">
                         {po.createdByName || '-'}
                       </p>
-                      <p className="text-xs text-gray-400">สร้างเมื่อ {formatDateTime(po.createdAt)}</p>
+                      <p className="text-xs text-gray-400">{t(`orderDetail.createdAt`,{when:formatDateTime(po.createdAt)})}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
@@ -1659,12 +1659,12 @@ export default function PurchaseOrderDetailPage() {
                       <CheckCircle className={cn('h-4 w-4', po.approvedByName ? 'text-green-600' : 'text-gray-400')} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500">ผู้อนุมัติ</p>
+                      <p className="text-xs text-gray-500">{t(`orderDetail.approvedBy`)}</p>
                       <p className="font-medium text-gray-900" data-testid="po-approved-by-name">
                         {po.approvedByName || 'ยังไม่อนุมัติ'}
                       </p>
                       {po.approvedAt && (
-                        <p className="text-xs text-gray-400">อนุมัติเมื่อ {formatDateTime(po.approvedAt)}</p>
+                        <p className="text-xs text-gray-400">{t(`orderDetail.approvedAt`,{when:formatDateTime(po.approvedAt)})}</p>
                       )}
                     </div>
                   </div>
@@ -1672,8 +1672,8 @@ export default function PurchaseOrderDetailPage() {
 
                 {/* Audit Info */}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-500 pt-3">
-                  <span>สร้างเมื่อ: {formatDateTime(po.createdAt)}</span>
-                  <span>แก้ไขล่าสุด: {formatDateTime(po.updatedAt)}</span>
+                  <span>{t(`orderDetail.createdAtLabel`,{when:formatDateTime(po.createdAt)})}</span>
+                  <span>{t(`orderDetail.updatedAtLabel`,{when:formatDateTime(po.updatedAt)})}</span>
                 </div>
               </div>
             )}
@@ -1690,7 +1690,7 @@ export default function PurchaseOrderDetailPage() {
                 {isEditable && (
                   <div className="flex justify-end">
                     <DxButton
-                      text="เพิ่มรายการ"
+                      text={t(`orderDetail.addLine`)}
                       icon="plus"
                       type="success"
                       onClick={() => openLineModal()}
@@ -1711,7 +1711,7 @@ export default function PurchaseOrderDetailPage() {
                   <div className="flex justify-end" data-testid="po-summary-block">
                     <div className="w-full md:w-96 border rounded-lg overflow-hidden">
                       <div className="flex justify-between items-center px-4 py-1.5 bg-gray-100 border-b">
-                        <span className="text-[11px] text-gray-500">โหมดแสดง</span>
+                        <span className="text-[11px] text-gray-500">{t(`orderDetail.displayMode`)}</span>
                         <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white">
                           <button
                             type="button"
@@ -1732,7 +1732,7 @@ export default function PurchaseOrderDetailPage() {
                       {vatDisplayMode === 'split' && (
                         <>
                           <div className="flex justify-between items-center px-4 py-2.5 bg-gray-50 border-b">
-                            <span className="text-sm text-gray-600">ยอดรวม (Subtotal)</span>
+                            <span className="text-sm text-gray-600">{t(`orderDetail.subtotal`)}</span>
                             <span className="font-medium text-gray-900" data-testid="po-subtotal">
                               {formatCurrency(subtotal)}
                             </span>
@@ -1779,7 +1779,7 @@ export default function PurchaseOrderDetailPage() {
                 <DocumentAttachment
                   moduleName="purchase_order"
                   entityId={po.id}
-                  title="เอกสารแนบ (ใบส่งของ / ใบแจ้งหนี้ / COA)"
+                  title={t(`orderDetail.attachments`)}
                   categories={['quotation', 'invoice', 'delivery_note', 'coa', 'purchase_contract', 'certificate', 'other']}
                 />
                 <DxDataGrid
@@ -1833,7 +1833,7 @@ export default function PurchaseOrderDetailPage() {
                   setLineForm(prev => ({ ...prev, itemId: v, unit: item?.unitName || prev.unit }));
                 }}
                 searchEnabled
-                placeholder="เลือกสินค้า"
+                placeholder={t(`orderDetail.selectItem`)}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1849,7 +1849,7 @@ export default function PurchaseOrderDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">หน่วย</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.unit`)}</label>
                 <DxTextBox value={lineForm.unit} disabled />
               </div>
             </div>
@@ -1866,7 +1866,7 @@ export default function PurchaseOrderDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.notes`)}</label>
               <DxTextArea
                 value={lineForm.notes}
                 onValueChange={(v) => setLineForm(prev => ({ ...prev, notes: v }))}
@@ -1882,7 +1882,7 @@ export default function PurchaseOrderDetailPage() {
             )}
             <div className="flex gap-3 pt-4 border-t">
               <DxButton
-                text="ยกเลิก"
+                text={t(`orderDetail.cancel`)}
                 type="normal"
                 stylingMode="outlined"
                 onClick={() => setShowLineModal(false)}
@@ -1905,7 +1905,7 @@ export default function PurchaseOrderDetailPage() {
         <DxPopup
           visible={showReceiveModal && !!selectedLine}
           onHiding={() => setShowReceiveModal(false)}
-          title="รับสินค้าเข้าคลัง"
+          title={t(`orderDetail.receiveToWarehouse`)}
           width={700}
           height="auto"
           showCloseButton
@@ -1927,15 +1927,15 @@ export default function PurchaseOrderDetailPage() {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 bg-blue-50 rounded-lg text-center">
-                    <p className="text-xs text-blue-600 mb-1">สั่งซื้อ</p>
+                    <p className="text-xs text-blue-600 mb-1">{t(`orderDetail.ordered`)}</p>
                     <p className="text-lg font-bold text-blue-700">{selectedLine.quantity}</p>
                   </div>
                   <div className="p-3 bg-green-50 rounded-lg text-center">
-                    <p className="text-xs text-green-600 mb-1">รับแล้ว</p>
+                    <p className="text-xs text-green-600 mb-1">{t(`orderDetail.received`)}</p>
                     <p className="text-lg font-bold text-green-700">{selectedLine.receivedQty || 0}</p>
                   </div>
                   <div className="p-3 bg-orange-50 rounded-lg text-center">
-                    <p className="text-xs text-orange-600 mb-1">คงเหลือ</p>
+                    <p className="text-xs text-orange-600 mb-1">{t(`orderDetail.remaining`)}</p>
                     <p className="text-lg font-bold text-orange-700">{selectedLine.pendingQty}</p>
                   </div>
                 </div>
@@ -1949,7 +1949,7 @@ export default function PurchaseOrderDetailPage() {
                       items={warehouses.map((wh) => ({ value: wh.id.toString(), label: `${wh.code} - ${wh.name}` }))}
                       value={receiveForm.warehouseId}
                       onValueChange={(v) => setReceiveForm({ ...receiveForm, warehouseId: v })}
-                      placeholder="เลือกคลังสินค้า"
+                      placeholder={t(`orderDetail.selectWarehouse`)}
                     />
                   </div>
                   <div>
@@ -1966,7 +1966,7 @@ export default function PurchaseOrderDetailPage() {
                 </div>
 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mt-2">
-                  <p className="text-sm font-semibold text-blue-800 mb-2">ข้อมูล Lot จาก Supplier</p>
+                  <p className="text-sm font-semibold text-blue-800 mb-2">{t(`orderDetail.supplierLotInfo`)}</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1975,7 +1975,7 @@ export default function PurchaseOrderDetailPage() {
                       <DxTextBox
                         value={receiveForm.vendorLotNumber}
                         onValueChange={(v) => setReceiveForm({ ...receiveForm, vendorLotNumber: v })}
-                        placeholder="เลข Lot/Batch จาก Supplier"
+                        placeholder={t(`orderDetail.supplierLot`)}
                       />
                     </div>
                     <div>
@@ -1989,7 +1989,7 @@ export default function PurchaseOrderDetailPage() {
                         value={receiveForm.manufacturingDate || undefined}
                         onValueChange={(v) => setReceiveForm({ ...receiveForm, manufacturingDate: v || '' })}
                         max={new Date()}
-                        placeholder="ระบุวันผลิต"
+                        placeholder={t(`orderDetail.mfgDate`)}
                       />
                     </div>
                     <div>
@@ -2000,7 +2000,7 @@ export default function PurchaseOrderDetailPage() {
                         value={receiveForm.expiryDate || undefined}
                         onValueChange={(v) => setReceiveForm({ ...receiveForm, expiryDate: v || '' })}
                         min={receiveForm.manufacturingDate ? new Date(receiveForm.manufacturingDate) : new Date()}
-                        placeholder="ระบุวันหมดอายุ"
+                        placeholder={t(`orderDetail.expDate`)}
                       />
                     </div>
                   </div>
@@ -2017,7 +2017,7 @@ export default function PurchaseOrderDetailPage() {
                       onValueChange={(v) => setReceiveForm({ ...receiveForm, lotNumber: v })}
                       readOnly
                     />
-                    <p className="text-xs text-gray-500 mt-1">ระบบสร้างอัตโนมัติ: [ItemCode]-[YYMMDD]-[Running]</p>
+                    <p className="text-xs text-gray-500 mt-1">{t(`orderDetail.autoLotPattern`)}</p>
                   </div>
                 </div>
 
@@ -2030,7 +2030,7 @@ export default function PurchaseOrderDetailPage() {
 
                 <div className="flex gap-3 pt-4 border-t">
                   <DxButton
-                    text="ยกเลิก"
+                    text={t(`orderDetail.cancel`)}
                     type="normal"
                     stylingMode="outlined"
                     onClick={() => setShowReceiveModal(false)}
@@ -2055,7 +2055,7 @@ export default function PurchaseOrderDetailPage() {
         <DxPopup
           visible={showDeleteModal}
           onHiding={() => setShowDeleteModal(false)}
-          title="ลบใบสั่งซื้อ (Delete PO)"
+          title={t(`orderDetail.deletePoFull`)}
           width={400}
           height={220}
           showCloseButton={true}
@@ -2066,7 +2066,7 @@ export default function PurchaseOrderDetailPage() {
             </p>
             <div className="flex gap-2 justify-end mt-6">
               <DxButton
-                text="ปิด"
+                text={t(`orderDetail.close`)}
                 type="normal"
                 onClick={() => setShowDeleteModal(false)}
               />
@@ -2087,7 +2087,7 @@ export default function PurchaseOrderDetailPage() {
         <DxPopup
           visible={showRejectModal}
           onHiding={() => setShowRejectModal(false)}
-          title="ปฏิเสธใบสั่งซื้อ (Reject PO)"
+          title={t(`orderDetail.rejectPo`)}
           width={460}
           height={300}
           showCloseButton={true}
@@ -2102,13 +2102,13 @@ export default function PurchaseOrderDetailPage() {
             <DxTextArea
               value={rejectReason}
               onValueChanged={(e) => setRejectReason(e.value ?? '')}
-              placeholder="ระบุเหตุผล เช่น ราคาสูงเกินไป / ของไม่ตรงสเปก"
+              placeholder={t(`orderDetail.rejectReasonPlaceholder`)}
               height={90}
               inputAttr={{ 'data-testid': 'po-reject-reason-input' }}
             />
             <div className="flex gap-2 justify-end mt-6">
               <DxButton
-                text="ยกเลิก"
+                text={t(`orderDetail.cancel`)}
                 type="normal"
                 onClick={() => setShowRejectModal(false)}
               />
