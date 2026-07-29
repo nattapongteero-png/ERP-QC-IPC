@@ -1951,5 +1951,28 @@
       "title": "PQR",
       "desc": "Annual Product Quality Review"
     }
+  },
+  "recallReconciliation": {
+    "completed": "Completed",
+    "adjust": "Adjust",
+    "effectiveness": "Recall effectiveness",
+    "returned": "Returned",
+    "destroyed": "Destroyed",
+    "accounted": "Accounted for",
+    "unaccounted": "Unaccounted for",
+    "distributed": "Distributed",
+    "distributedLabel": "Distributed:",
+    "lotNumber": "Lot number",
+    "status": "Status",
+    "verifiedBy": "Verified by",
+    "actions": "Actions",
+    "returnedQty": "Quantity returned",
+    "destroyedQty": "Quantity destroyed",
+    "accountedQty": "Quantity accounted for (other)",
+    "notes": "Notes",
+    "notesPlaceholder": "Add reconciliation notes...",
+    "dialogTitle": "Reconcile lot",
+    "summary": "{done} of {total} units reconciled",
+    "accountedHint": "e.g. already consumed, expired, or disposed of by other means"
   }
 }

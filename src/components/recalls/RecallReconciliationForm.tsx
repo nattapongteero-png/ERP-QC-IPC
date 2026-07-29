@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DxDataGrid, DxColumn, DxPaging, DxSummary, DxTotalItem } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -49,6 +50,8 @@ export function RecallReconciliationForm({
   affectedLots: _affectedLots,
   canEdit = true,
 }: RecallReconciliationFormProps) {
+  const t = useTranslations('gmp');
+  const tc = useTranslations('common');
   const queryClient = useQueryClient();
   const [editingLot, setEditingLot] = useState<RecallReconciliation | null>(null);
   const [formData, setFormData] = useState<RecallReconciliationCreate>({
@@ -129,7 +132,7 @@ export function RecallReconciliationForm({
       return (
         <div className="flex items-center gap-1 text-green-600">
           <CheckCircle className="h-4 w-4" />
-          <span>เสร็จสมบูรณ์</span>
+          <span>{t(`recallReconciliation.completed`)}</span>
         </div>
       );
     } else if (percentage >= 80) {
@@ -153,7 +156,7 @@ export function RecallReconciliationForm({
     if (!canEdit) return null;
     return (
       <DxButton
-        text="ปรับปรุง"
+        text={t(`recallReconciliation.adjust`)}
         stylingMode="text"
         onClick={() => handleEdit(cellData.data)}
       />
@@ -166,10 +169,12 @@ export function RecallReconciliationForm({
       <div className="bg-muted/50 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold">ประสิทธิผลการเรียกคืน</h3>
+            <h3 className="font-semibold">{t(`recallReconciliation.effectiveness`)}</h3>
             <p className="text-sm text-muted-foreground">
-              กระทบยอดแล้ว {totals.returned + totals.destroyed + totals.accounted} จาก{' '}
-              {totals.distributed} หน่วย
+              {t('recallReconciliation.summary', {
+                done: totals.returned + totals.destroyed + totals.accounted,
+                total: totals.distributed,
+              })}
             </p>
           </div>
           <div
@@ -188,19 +193,19 @@ export function RecallReconciliationForm({
         <div className="grid grid-cols-4 gap-4 mt-4">
           <div className="text-center">
             <div className="text-lg font-semibold">{totals.returned}</div>
-            <div className="text-xs text-muted-foreground">ส่งคืน</div>
+            <div className="text-xs text-muted-foreground">{t(`recallReconciliation.returned`)}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold">{totals.destroyed}</div>
-            <div className="text-xs text-muted-foreground">ทำลาย</div>
+            <div className="text-xs text-muted-foreground">{t(`recallReconciliation.destroyed`)}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold">{totals.accounted}</div>
-            <div className="text-xs text-muted-foreground">ชี้แจงได้</div>
+            <div className="text-xs text-muted-foreground">{t(`recallReconciliation.accounted`)}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold text-red-600">{totals.unaccounted}</div>
-            <div className="text-xs text-muted-foreground">ชี้แจงไม่ได้</div>
+            <div className="text-xs text-muted-foreground">{t(`recallReconciliation.unaccounted`)}</div>
           </div>
         </div>
       </div>
@@ -214,38 +219,38 @@ export function RecallReconciliationForm({
       >
         <DxPaging defaultPageSize={10} />
 
-        <DxColumn dataField="lotNumber" caption="เลขที่ล็อต" width={120} />
+        <DxColumn dataField="lotNumber" caption={t(`recallReconciliation.lotNumber`)} width={120} />
         <DxColumn
           dataField="distributedQty"
-          caption="กระจายสินค้า"
+          caption={t(`recallReconciliation.distributed`)}
           width={100}
           dataType="number"
           format="#,##0"
         />
         <DxColumn
           dataField="returnedQty"
-          caption="ส่งคืน"
+          caption={t(`recallReconciliation.returned`)}
           width={90}
           dataType="number"
           format="#,##0"
         />
         <DxColumn
           dataField="destroyedQty"
-          caption="ทำลาย"
+          caption={t(`recallReconciliation.destroyed`)}
           width={90}
           dataType="number"
           format="#,##0"
         />
         <DxColumn
           dataField="accountedQty"
-          caption="ชี้แจงได้"
+          caption={t(`recallReconciliation.accounted`)}
           width={90}
           dataType="number"
           format="#,##0"
         />
         <DxColumn
           dataField="unaccountedQty"
-          caption="ชี้แจงไม่ได้"
+          caption={t(`recallReconciliation.unaccounted`)}
           width={100}
           dataType="number"
           format="#,##0"
@@ -256,16 +261,16 @@ export function RecallReconciliationForm({
           )}
         />
         <DxColumn
-          caption="สถานะ"
+          caption={t(`recallReconciliation.status`)}
           width={100}
           cellRender={renderStatusCell}
           allowFiltering={false}
           allowSorting={false}
         />
-        <DxColumn dataField="verifiedByName" caption="ตรวจสอบโดย" width={120} />
+        <DxColumn dataField="verifiedByName" caption={t(`recallReconciliation.verifiedBy`)} width={120} />
         {canEdit && (
           <DxColumn
-            caption="การดำเนินการ"
+            caption={t(`recallReconciliation.actions`)}
             width={80}
             cellRender={renderActionsCell}
             allowFiltering={false}
@@ -286,7 +291,7 @@ export function RecallReconciliationForm({
       <DxPopup
         visible={!!editingLot}
         onHiding={() => setEditingLot(null)}
-        title={`กระทบยอดล็อต: ${editingLot?.lotNumber || ''}`}
+        title={`${t(`recallReconciliation.dialogTitle`)}: ${editingLot?.lotNumber || ''}`}
         width={450}
         height="auto"
         showCloseButton
@@ -299,14 +304,14 @@ export function RecallReconciliationForm({
           {editingLot && (
             <div className="p-3 bg-muted rounded-lg text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <div>กระจายสินค้า:</div>
+                <div>{t(`recallReconciliation.distributedLabel`)}</div>
                 <div className="font-semibold">{editingLot.distributedQty}</div>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">จำนวนที่ส่งคืน</label>
+            <label className="text-sm font-medium">{t(`recallReconciliation.returnedQty`)}</label>
             <DxNumberBox
               value={formData.returnedQty || 0}
               onValueChanged={(e) =>
@@ -318,7 +323,7 @@ export function RecallReconciliationForm({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">จำนวนที่ทำลาย</label>
+            <label className="text-sm font-medium">{t(`recallReconciliation.destroyedQty`)}</label>
             <DxNumberBox
               value={formData.destroyedQty || 0}
               onValueChanged={(e) =>
@@ -330,7 +335,7 @@ export function RecallReconciliationForm({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">จำนวนที่ชี้แจงได้ (อื่นๆ)</label>
+            <label className="text-sm font-medium">{t(`recallReconciliation.accountedQty`)}</label>
             <DxNumberBox
               value={formData.accountedQty || 0}
               onValueChanged={(e) =>
@@ -340,18 +345,18 @@ export function RecallReconciliationForm({
               format="#,##0"
             />
             <p className="text-xs text-muted-foreground">
-              เช่น สินค้าถูกใช้ไปแล้ว หมดอายุ หรือถูกกำจัดด้วยวิธีอื่น
+              {t('recallReconciliation.accountedHint')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">หมายเหตุ</label>
+            <label className="text-sm font-medium">{t(`recallReconciliation.notes`)}</label>
             <DxTextArea
               value={formData.reconciliationNotes || ''}
               onValueChange={(value) =>
                 setFormData({ ...formData, reconciliationNotes: value || '' })
               }
-              placeholder="เพิ่มหมายเหตุการกระทบยอด..."
+              placeholder={t(`recallReconciliation.notesPlaceholder`)}
               height={80}
             />
           </div>
@@ -364,12 +369,12 @@ export function RecallReconciliationForm({
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <DxButton
-              text="ยกเลิก"
+              text={tc(`actions.cancel`)}
               onClick={() => setEditingLot(null)}
               stylingMode="outlined"
             />
             <DxButton
-              text="บันทึก"
+              text={tc(`actions.save`)}
               onClick={handleSave}
               type="default"
               disabled={recordMutation.isPending}

@@ -1951,5 +1951,28 @@
       "title": "PQR",
       "desc": "การทบทวนคุณภาพผลิตภัณฑ์ประจำปี (Product Quality Review)"
     }
+  },
+  "recallReconciliation": {
+    "completed": "เสร็จสมบูรณ์",
+    "adjust": "ปรับปรุง",
+    "effectiveness": "ประสิทธิผลการเรียกคืน",
+    "returned": "ส่งคืน",
+    "destroyed": "ทำลาย",
+    "accounted": "ชี้แจงได้",
+    "unaccounted": "ชี้แจงไม่ได้",
+    "distributed": "กระจายสินค้า",
+    "distributedLabel": "กระจายสินค้า:",
+    "lotNumber": "เลขที่ล็อต",
+    "status": "สถานะ",
+    "verifiedBy": "ตรวจสอบโดย",
+    "actions": "การดำเนินการ",
+    "returnedQty": "จำนวนที่ส่งคืน",
+    "destroyedQty": "จำนวนที่ทำลาย",
+    "accountedQty": "จำนวนที่ชี้แจงได้ (อื่นๆ)",
+    "notes": "หมายเหตุ",
+    "notesPlaceholder": "เพิ่มหมายเหตุการกระทบยอด...",
+    "dialogTitle": "กระทบยอดล็อต",
+    "summary": "กระทบยอดแล้ว {done} จาก {total} หน่วย",
+    "accountedHint": "เช่น สินค้าถูกใช้ไปแล้ว หมดอายุ หรือถูกกำจัดด้วยวิธีอื่น"
   }
 }
