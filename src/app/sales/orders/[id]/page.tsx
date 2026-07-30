@@ -694,7 +694,9 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'actions',
       caption: '',
-      width: 130,
+      // Wide enough for the full button label in both languages — "Select & Ship"
+      // (EN) is longer than "เลือก & ส่ง" (TH); 130px clipped it to "เลือก & ...".
+      width: 180,
       cellRender: (cellInfo) => (
         cellInfo.data.pendingQty > 0 && cellInfo.data.canFulfill ? (
           <DxButton
