@@ -133,7 +133,9 @@
     "metaherbSso": "Metaherb SSO",
     "approvalWorkflows": "Approval Workflows",
     "matchingTolerances": "Matching Tolerances",
-    "workflowTest": "Workflow Test"
+    "workflowTest": "Workflow Test",
+    "vmiPortals": "VMI Portals",
+    "confidentiality": "Confidentiality"
   },
   "workflow": {
     "runner": "Workflow Runner"

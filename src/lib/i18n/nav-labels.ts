@@ -39,6 +39,8 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'HR': 'modules.hr',
   'Template': 'modules.template',
   'Template Items': 'template.items',
+  'VMI Portals': 'settings.vmiPortals',
+  'Confidentiality': 'settings.confidentiality',
   'Issues': 'modules.issues',
   'Reports': 'modules.reports',
   'Users': 'modules.users',

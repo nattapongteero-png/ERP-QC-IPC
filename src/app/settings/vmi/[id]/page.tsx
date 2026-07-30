@@ -33,16 +33,21 @@ import type { VmiPortalTestResult } from '@/types/vmi';
 // Types
 // ============================================
 
-// This form holds an API-key field in password mode, which makes Chrome's
-// password manager treat the whole form as a login and autofill the
-// neighbouring inputs — the Portal URL was showing a saved e-mail address
-// while Portal Name and Vendor ID came up blank, and saving would have
-// written that rubbish over a working portal config.
-const AUTOFILL_OFF = {
+// Suppresses Chrome's password-manager autofill. This form holds an API-key
+// field in password mode, so Chrome treats the whole form as a login and fills
+// the neighbouring inputs — the Portal URL showed a saved e-mail address, and
+// saving would have written that over a working portal config.
+//
+// Returns a FRESH object per call, and is NOT `as const`. My first attempt
+// shared one frozen object across all four fields, which made Portal Name /
+// Vendor ID / URL render EMPTY even though the API returned all three: the
+// DevExtreme editor writes its own attributes into the inputAttr object it is
+// handed, so one shared frozen instance cannot work.
+const autofillOff = () => ({
   autoComplete: 'off',
   'data-lpignore': 'true',
   'data-form-type': 'other',
-} as const;
+});
 
 interface VmiPortalConfigSummary {
   id: number;
@@ -463,7 +468,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'e.g., Siriraj VMI Portal',
-                    inputAttr: AUTOFILL_OFF,
+                    inputAttr: autofillOff(),
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.nameRequired') },
@@ -476,7 +481,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'Your vendor ID in this portal',
-                    inputAttr: AUTOFILL_OFF,
+                    inputAttr: autofillOff(),
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.vendorIdRequired') },
@@ -489,7 +494,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   isRequired
                   editorOptions={{
                     placeholder: 'https://vmi-portal.example.com',
-                    inputAttr: AUTOFILL_OFF,
+                    inputAttr: autofillOff(),
                   }}
                   validationRules={[
                     { type: 'required', message: t('vmiPortalEdit.validation.urlRequired') },
@@ -508,7 +513,7 @@ export default function VmiPortalEditPage({ params }: PageProps) {
                   editorOptions={{
                     mode: 'password',
                     placeholder: isNewMode ? 'Enter API key' : '••••••••••••••••',
-                    inputAttr: { ...AUTOFILL_OFF, autoComplete: 'new-password' },
+                    inputAttr: { ...autofillOff(), autoComplete: 'new-password' },
                   }}
                   validationRules={
                     isNewMode

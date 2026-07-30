@@ -133,7 +133,9 @@
     "metaherbSso": "ตั้งค่า Metaherb SSO",
     "approvalWorkflows": "Workflow อนุมัติ",
     "matchingTolerances": "เกณฑ์จับคู่",
-    "workflowTest": "ทดสอบ Workflow"
+    "workflowTest": "ทดสอบ Workflow",
+    "vmiPortals": "VMI Portal",
+    "confidentiality": "การรักษาความลับ"
   },
   "workflow": {
     "runner": "เรียกใช้เวิร์กโฟลว์"

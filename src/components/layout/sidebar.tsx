@@ -318,6 +318,11 @@ const navigation: NavItem[] = [
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
       { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play, roles: ['admin'] },
+      // /settings/vmi and /settings/confidentiality both return 200 but had no
+      // menu path at all — the VMI portal editor was reachable only by typing
+      // the URL, which is how its autofill bug went unnoticed.
+      { name: 'VMI Portals', href: '/settings/vmi', icon: Share2, roles: ['admin', 'manager'] },
+      { name: 'Confidentiality', href: '/settings/confidentiality', icon: ShieldCheck, roles: ['admin'] },
       // Moved in from the top level on request. The sidebar renders only one
       // level of children, so Template and Admin cannot keep their own
       // submenus here — their pages become direct entries instead, which is
