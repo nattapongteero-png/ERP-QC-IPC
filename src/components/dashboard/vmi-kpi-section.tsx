@@ -1,6 +1,7 @@
 // src/components/dashboard/vmi-kpi-section.tsx
 'use client';
 
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -49,14 +50,16 @@ export function VMIKpiSection({ data }: VMIKpiSectionProps) {
     <div className="space-y-4">
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          label={t('vmiItems.label')}
-          value={data.vmiItems}
-          subtitle={t('vmiItems.subtitle')}
-          icon={<Package className="h-6 w-6" />}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-        />
+        <Link href="/vmi" data-testid="vmi-kpi-items" className="block rounded-xl">
+          <KPICard
+            label={t('vmiItems.label')}
+            value={data.vmiItems}
+            subtitle={t('vmiItems.subtitle')}
+            icon={<Package className="h-6 w-6" />}
+            iconBgColor="bg-blue-100"
+            iconColor="text-blue-600"
+          />
+        </Link>
         <KPICard
           label={t('belowReorder.label')}
           value={data.stockBelowReorder}
@@ -65,14 +68,16 @@ export function VMIKpiSection({ data }: VMIKpiSectionProps) {
           iconBgColor={data.stockBelowReorder > 0 ? 'bg-red-100' : 'bg-green-100'}
           iconColor={data.stockBelowReorder > 0 ? 'text-red-600' : 'text-green-600'}
         />
-        <KPICard
-          label={t('pendingAsns.label')}
-          value={data.pendingAsns}
-          subtitle={t('pendingAsns.subtitle')}
-          icon={<Truck className="h-6 w-6" />}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-        />
+        <Link href="/sales/vmi-orders" data-testid="vmi-kpi-asns" className="block rounded-xl">
+          <KPICard
+            label={t('pendingAsns.label')}
+            value={data.pendingAsns}
+            subtitle={t('pendingAsns.subtitle')}
+            icon={<Truck className="h-6 w-6" />}
+            iconBgColor="bg-orange-100"
+            iconColor="text-orange-600"
+          />
+        </Link>
         <KPICard
           label={t('outstandingValue.label')}
           value={formatCurrency(data.outstandingOrderValue)}

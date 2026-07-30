@@ -1,6 +1,7 @@
 // src/components/dashboard/purchase-kpi-section.tsx
 'use client';
 
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -37,14 +38,16 @@ export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
     <div className="space-y-4">
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          label={t('pendingPOs.label')}
-          value={data.pendingPOs}
-          subtitle={t('pendingPOs.subtitle')}
-          icon={<ShoppingCart className="h-6 w-6" />}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-        />
+        <Link href="/purchasing/orders?status=draft" data-testid="purchase-kpi-pending" className="block rounded-xl">
+          <KPICard
+            label={t('pendingPOs.label')}
+            value={data.pendingPOs}
+            subtitle={t('pendingPOs.subtitle')}
+            icon={<ShoppingCart className="h-6 w-6" />}
+            iconBgColor="bg-orange-100"
+            iconColor="text-orange-600"
+          />
+        </Link>
         <KPICard
           label={t('poValueMtd.label')}
           value={formatCurrency(data.poValueMtd)}
@@ -53,14 +56,16 @@ export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
         />
-        <KPICard
-          label={t('activeVendors.label')}
-          value={data.activeVendors}
-          subtitle={t('activeVendors.subtitle')}
-          icon={<Building2 className="h-6 w-6" />}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-        />
+        <Link href="/purchasing/vendors" data-testid="purchase-kpi-vendors" className="block rounded-xl">
+          <KPICard
+            label={t('activeVendors.label')}
+            value={data.activeVendors}
+            subtitle={t('activeVendors.subtitle')}
+            icon={<Building2 className="h-6 w-6" />}
+            iconBgColor="bg-blue-100"
+            iconColor="text-blue-600"
+          />
+        </Link>
         <KPICard
           label={t('avlCoverage.label')}
           value={`${data.avlCoverage}%`}
@@ -79,13 +84,15 @@ export function PurchaseKpiSection({ data }: PurchaseKpiSectionProps) {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={t('approvedPOs.label')}
-          value={data.approvedPOs}
-          icon={<CheckCircle className="h-5 w-5" />}
-          variant="success"
-          size="md"
-        />
+        <Link href="/purchasing/orders?status=approved" data-testid="purchase-kpi-approved" className="block rounded-xl">
+          <StatCard
+            label={t('approvedPOs.label')}
+            value={data.approvedPOs}
+            icon={<CheckCircle className="h-5 w-5" />}
+            variant="success"
+            size="md"
+          />
+        </Link>
         {/* Null until POs record an actual delivery date. Renders "—" in a
             neutral card rather than the old hardcoded green "95%", which was
             indistinguishable from a real measurement. */}

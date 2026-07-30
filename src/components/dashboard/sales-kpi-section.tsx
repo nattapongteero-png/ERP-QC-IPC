@@ -1,6 +1,7 @@
 // src/components/dashboard/sales-kpi-section.tsx
 'use client';
 
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { KPICard } from '@/components/ui/kpi-card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -42,14 +43,16 @@ export function SalesKpiSection({ data }: SalesKpiSectionProps) {
     <div className="space-y-4">
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          label={t('pendingOrders.label')}
-          value={data.pendingSOs}
-          subtitle={t('pendingOrders.subtitle')}
-          icon={<ShoppingBag className="h-6 w-6" />}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-        />
+        <Link href="/sales/orders?status=draft" data-testid="sales-kpi-pending" className="block rounded-xl">
+          <KPICard
+            label={t('pendingOrders.label')}
+            value={data.pendingSOs}
+            subtitle={t('pendingOrders.subtitle')}
+            icon={<ShoppingBag className="h-6 w-6" />}
+            iconBgColor="bg-orange-100"
+            iconColor="text-orange-600"
+          />
+        </Link>
         <KPICard
           label={t('salesValueMtd.label')}
           value={formatCurrency(data.soValueMtd)}
@@ -58,14 +61,16 @@ export function SalesKpiSection({ data }: SalesKpiSectionProps) {
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
         />
-        <KPICard
-          label={t('ordersFulfilled.label')}
-          value={data.ordersFulfilledMtd}
-          subtitle={t('ordersFulfilled.subtitle')}
-          icon={<CheckCircle className="h-6 w-6" />}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-        />
+        <Link href="/sales/orders?status=delivered" data-testid="sales-kpi-fulfilled" className="block rounded-xl">
+          <KPICard
+            label={t('ordersFulfilled.label')}
+            value={data.ordersFulfilledMtd}
+            subtitle={t('ordersFulfilled.subtitle')}
+            icon={<CheckCircle className="h-6 w-6" />}
+            iconBgColor="bg-blue-100"
+            iconColor="text-blue-600"
+          />
+        </Link>
         <KPICard
           label={t('fulfillmentRate.label')}
           value={`${data.fulfillmentRate}%`}
