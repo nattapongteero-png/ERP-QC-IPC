@@ -22,7 +22,11 @@ const PER_WORKER_GB = 0.6;
 const freeGB = os.freemem() / 1024 ** 3;
 const byRam = Math.max(1, Math.floor(freeGB / PER_WORKER_GB));
 const byCpu = Math.max(1, os.cpus().length - 2); // leave 2 cores for OS/Docker
-const WORKERS = Math.min(byCpu, byRam, 6);
+// Ceiling raised 6 -> 12: this machine is a 16-core / 24 GB box, not the 16 GB
+// one the original cap assumed. `byRam` still throttles down under memory
+// pressure (each fork ~0.6 GB), so this only lets a well-resourced machine use
+// the cores it actually has — a low-RAM machine still lands well under 12.
+const WORKERS = Math.min(byCpu, byRam, 12);
 
 export default defineConfig({
   test: {
