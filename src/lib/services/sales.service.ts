@@ -24,7 +24,7 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { getLotsForPicking, reserveLots, issueMaterial } from './inventory.service';
-import { getNow, getTodayStr } from '../db/date-utils';
+import { getNow, getTodayStr, toDbDate } from '../db/date-utils';
 import { createSOShipmentJournalEntry, createARInvoiceFromSOShipment, calculateVAT } from './accounting.service';
 import { calculateCOGS, updateSOLineWithCOGS } from './unit-cost.service';
 import { getInvoicePaymentTermsDays } from './settings.service';
@@ -177,7 +177,11 @@ export async function createSalesOrder(
             customerContact: customer.contact,
             customerAddress: customer.address,
             // Stamp today so วันที่สั่ง is never blank (see SQLite branch above).
-            orderDate: getTodayStr(),
+            // toDbDate, NOT the bare string: sales_orders.order_date is a MySQL
+            // datetime, and the driver calls .toISOString() on whatever it is
+            // handed — a "YYYY-MM-DD" string has no such method, so converting a
+            // quotation died with "a.toISOString is not a function".
+            orderDate: toDbDate(getTodayStr()),
             status: 'draft',
             totalAmount,
             currency: 'THB',

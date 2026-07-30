@@ -1212,7 +1212,10 @@ export async function updateItemLastPurchase(
       .update(tables.items)
       .set({
         lastPurchaseCost: unitCost,
-        lastPurchaseDate: getTodayStr(),
+        // items.last_purchase_date is a MySQL datetime, so the bare
+        // "YYYY-MM-DD" string would make the driver call .toISOString() on it
+        // and throw. (recalculateWAC already wraps its own transactionDate.)
+        lastPurchaseDate: toDbDate(getTodayStr()),
         lastPurchasePoId: poId,
         updatedAt: getNow(),
       })
