@@ -154,19 +154,49 @@ export default function DeliveriesPage() {
     { dataField: 'deliveryNumber', caption: t(`deliveries.columns.deliveryNumber`), width: 150 },
     { dataField: 'deliveryDate', caption: t(`deliveries.columns.deliveryDate`), width: 110 },
     { dataField: 'soNumber', caption: t(`deliveries.columns.soNumber`), width: 150 },
-    { dataField: 'customerName', caption: t(`deliveries.columns.customer`), minWidth: 180 },
+    {
+      dataField: 'customerName',
+      caption: t(`deliveries.columns.customer`),
+      minWidth: 180,
+      // A customer name is variable-length text: wrap a long company name onto a
+      // second line instead of clipping it to "…", and keep the full value in a
+      // hover title. (UX best practice: show variable text in full / on hover.)
+      cellRender: (c) => (
+        <div className="whitespace-normal break-words" title={String(c.data.customerName ?? '')}>
+          {String(c.data.customerName ?? '')}
+        </div>
+      ),
+    },
     {
       dataField: 'itemCode',
       caption: t(`deliveries.columns.item`),
       minWidth: 200,
       cellRender: (c) => (
-        <div>
+        <div className="whitespace-normal break-words">
           <p className="font-medium">{String(c.data.itemCode ?? '')}</p>
-          <p className="text-sm text-gray-500">{String(c.data.itemName ?? '')}</p>
+          <p className="text-sm text-gray-500" title={String(c.data.itemName ?? '')}>
+            {String(c.data.itemName ?? '')}
+          </p>
         </div>
       ),
     },
-    { dataField: 'lotNumber', caption: t(`deliveries.columns.lotNumber`), width: 150 },
+    {
+      dataField: 'lotNumber',
+      caption: t(`deliveries.columns.lotNumber`),
+      // Lot numbers run ~24 chars ("RM-0001-LOT-20260727-555"); 150px clipped
+      // them to "RM-0001-LOT-20…". A little wider plus wrapping at word/hyphen
+      // boundaries (never mid-token) shows the whole number, with the value in a
+      // hover title as a fallback.
+      width: 175,
+      cellRender: (c) => (
+        <span
+          className="font-mono text-sm whitespace-normal break-words"
+          title={String(c.data.lotNumber)}
+        >
+          {String(c.data.lotNumber)}
+        </span>
+      ),
+    },
     {
       dataField: 'expiryDate',
       caption: t(`deliveries.columns.expiryDate`),

@@ -8,7 +8,7 @@
  * Persists language preference using cookies and localStorage.
  */
 
-import { useCallback, useMemo } from 'react';
+import { Fragment, useCallback, useMemo } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import SelectBox from 'devextreme-react/select-box';
@@ -191,54 +191,50 @@ export function SidebarLanguageToggle({
     [currentLocale, onLanguageChange, router],
   );
 
-  // Segmented control (design A): both languages shown side-by-side, the active
-  // one filled emerald. A "ภาษา / Language" caption sits above. Pure text
-  // (TH/EN) + CSS only — renders identically across Chrome / Firefox / Safari /
-  // Edge (no flag emoji, which break on Windows). Clicking a side selects it.
+  // Design 02 (Linear "plain text, no container"): the switcher sits below the
+  // nav and is used only a few times a year, so it stays the quietest thing on
+  // the sidebar — no box, no fill, no TH/EN badges. The two language NAMES ARE
+  // the control, and they double as the escape hatch: a user stranded in the
+  // wrong language always sees both "ไทย" and "English" and can click their way
+  // out. The active one is simply brighter and a touch heavier; the version
+  // rides the same row on the right (wrapping under if space runs out). Pure
+  // text + CSS renders identically across browsers (no flag emoji — those break
+  // on Windows).
   return (
-    <div className="flex flex-col gap-1.5">
-      {/* Deliberately NOT translated, and must stay that way. This is the
-          caption of the language switcher itself: a user stranded in the wrong
-          language has to be able to find the control that gets them out, so it
-          shows both languages at once. Translating it would hide the escape
-          hatch from exactly the person who needs it. */}
-      <span className="text-[11px] font-medium text-slate-400 px-0.5">ภาษา / Language</span>
+    <div className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 ${className || ''}`}>
       <div
         role="group"
         aria-label="Language"
         data-testid="sidebar-language-toggle"
-        className={`grid grid-cols-2 gap-1 p-1 rounded-lg bg-slate-800/60 border border-emerald-500/20 ${className || ''}`}
+        className="flex items-center gap-2.5"
       >
-        {locales.map((loc) => {
+        {locales.map((loc, i) => {
           const active = loc === currentLocale;
           return (
-            <button
-              key={loc}
-              type="button"
-              onClick={() => void selectLocale(loc)}
-              aria-pressed={active}
-              data-testid={`sidebar-language-${loc}`}
-              className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                active
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span
-                className={`inline-flex items-center justify-center min-w-[1.6rem] px-1 py-0.5 rounded text-[10px] font-bold leading-none ${
-                  active ? 'bg-white/25 text-white' : 'bg-slate-600 text-slate-100'
+            <Fragment key={loc}>
+              {i > 0 && <span aria-hidden="true" className="h-3 w-px bg-white/10" />}
+              <button
+                type="button"
+                onClick={() => void selectLocale(loc)}
+                aria-pressed={active}
+                data-testid={`sidebar-language-${loc}`}
+                // min-h 44px keeps the tap target within reach on mobile even
+                // though the text itself is small and quiet.
+                className={`flex min-h-[44px] items-center px-1 text-sm transition-colors ${
+                  active
+                    ? 'font-medium text-slate-50'
+                    : 'font-normal text-slate-500 hover:text-slate-300'
                 }`}
               >
-                {localeBadges[loc]}
-              </span>
-              <span className="truncate">{localeNames[loc]}</span>
-            </button>
+                {localeNames[loc]}
+              </button>
+            </Fragment>
           );
         })}
       </div>
       {appVersion && (
         <p
-          className="text-center text-[10px] font-medium text-slate-400/80 tracking-wide"
+          className="shrink-0 text-[10px] font-medium tabular-nums tracking-wide text-slate-400/80"
           data-testid="sidebar-app-version"
         >
           v{appVersion}{buildDate ? ` · ${buildDate}` : ''}

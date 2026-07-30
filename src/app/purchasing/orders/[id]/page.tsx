@@ -1596,6 +1596,13 @@ export default function PurchaseOrderDetailPage() {
                             <dt className="text-gray-500">{t(`orderDetail.paymentTermsShort`)}</dt>
                             <dd className="font-medium">{po.paymentTerms || '-'}</dd>
                           </div>
+                          {/* Ship-to address: the edit form has this field, but the
+                              read-only view skipped it, so a saved address vanished
+                              the moment the user left edit mode. Show it here too. */}
+                          <div className="col-span-2">
+                            <dt className="text-gray-500">{t(`orderDetail.shippingAddress`)}</dt>
+                            <dd className="font-medium whitespace-pre-wrap">{po.shippingAddress || '-'}</dd>
+                          </div>
                           <div className="col-span-2">
                             <dt className="text-gray-500">{t(`orderDetail.notes`)}</dt>
                             <dd className="font-medium whitespace-pre-wrap">{po.notes || '-'}</dd>
