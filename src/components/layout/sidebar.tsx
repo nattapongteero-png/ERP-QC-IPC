@@ -296,16 +296,6 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    name: 'Template',
-    href: '/template',
-    icon: LayoutGrid,
-    roles: ['admin'], // Admin-family only (dev reference module — not for end users)
-    children: [
-      { name: 'Dashboard', href: '/template', icon: LayoutDashboard },
-      { name: 'Items', href: '/template/items', icon: Package },
-    ],
-  },
-  {
     name: 'Issues',
     href: '/issues',
     icon: Bug,
@@ -317,16 +307,6 @@ const navigation: NavItem[] = [
     ],
   },
   { name: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager', 'hr'] },
-  { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
-  {
-    name: 'Admin',
-    href: '/admin',
-    icon: Shield,
-    roles: ['admin'],
-    children: [
-      { name: 'Confidential Groups', href: '/admin/confidential-groups', icon: ShieldCheck },
-    ],
-  },
   {
     name: 'Settings',
     href: '/settings',
@@ -338,6 +318,14 @@ const navigation: NavItem[] = [
       { name: 'Approval Workflows', href: '/settings/approval-workflows', icon: ClipboardCheck },
       { name: 'Matching Tolerances', href: '/settings/matching-tolerances', icon: Target },
       { name: 'Workflow Test', href: '/settings/workflow-test', icon: Play, roles: ['admin'] },
+      // Moved in from the top level on request. The sidebar renders only one
+      // level of children, so Template and Admin cannot keep their own
+      // submenus here — their pages become direct entries instead, which is
+      // what keeps them reachable.
+      { name: 'Users', href: '/users', icon: Users, roles: ['admin', 'manager'] },
+      { name: 'Confidential Groups', href: '/admin/confidential-groups', icon: ShieldCheck, roles: ['admin'] },
+      { name: 'Template', href: '/template', icon: LayoutGrid, roles: ['admin'] },
+      { name: 'Template Items', href: '/template/items', icon: Package, roles: ['admin'] },
     ],
   },
 ];
