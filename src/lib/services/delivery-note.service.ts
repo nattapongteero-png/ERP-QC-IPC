@@ -14,7 +14,7 @@
 
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
-import { toQueryDate } from '../db/date-utils';
+import { toQueryDate, formatDateFromDb } from '../db/date-utils';
 
 export interface DeliveryNoteRow {
   id: number;
@@ -129,8 +129,14 @@ export async function listDeliveryNotes(
 
   const normalised = rows.map((r) => ({
     ...r,
-    deliveryDate: r.deliveryDate ? String(r.deliveryDate).slice(0, 10) : null,
-    expiryDate: r.expiryDate ? String(r.expiryDate).slice(0, 10) : null,
+    // formatDateFromDb, NOT String(...).slice(0, 10). MySQL hands back a Date
+    // object, and String(Date) is "Tue Jul 28 2026 00:00:00 GMT+0700" — the
+    // first ten characters of that are "Tue Jul 28", which is exactly what the
+    // register was displaying, in English, even in Thai. SQLite returns a
+    // "YYYY-MM-DD" string where the slice happened to work, which is why this
+    // survived the tests.
+    deliveryDate: r.deliveryDate ? formatDateFromDb(r.deliveryDate) : null,
+    expiryDate: r.expiryDate ? formatDateFromDb(r.expiryDate) : null,
     quantity: Number(r.quantity) || 0,
   }));
 

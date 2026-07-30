@@ -4,7 +4,7 @@
  */
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import { executeDbOperation, getTableRef } from '../db/db-helper';
-import { getTodayStr } from '../db/date-utils';
+import { getTodayStr, formatDateFromDb } from '../db/date-utils';
 import type { IncomingDashboardCounts } from '@/types/goods-receipt';
 
 function getTables() {
@@ -247,7 +247,7 @@ export async function getQuarantineAging(): Promise<{
         ageDays,
         grnNumber: l.sourceGrnLineId ? grnByLine[Number(l.sourceGrnLineId)] ?? null : null,
         warehouseName: l.warehouseName ?? '',
-        receivedDate: l.receivedDate ? String(l.receivedDate).slice(0, 10) : '',
+        receivedDate: l.receivedDate ? formatDateFromDb(l.receivedDate) : '',
       };
     });
 

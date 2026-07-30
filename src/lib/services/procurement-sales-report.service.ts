@@ -16,7 +16,7 @@
 
 import { and, gte, lte, sql, eq, inArray } from 'drizzle-orm';
 import { getTableRef, executeDbOperation } from '../db/db-helper';
-import { toQueryDate } from '../db/date-utils';
+import { toQueryDate, formatDateFromDb } from '../db/date-utils';
 
 // ============================================
 // Types
@@ -227,8 +227,8 @@ export async function getPurchaseReport(
 
   const normalised = rows.map((r) => ({
     ...r,
-    orderDate: r.orderDate ? String(r.orderDate).slice(0, 10) : null,
-    expectedDate: r.expectedDate ? String(r.expectedDate).slice(0, 10) : null,
+    orderDate: r.orderDate ? formatDateFromDb(r.orderDate) : null,
+    expectedDate: r.expectedDate ? formatDateFromDb(r.expectedDate) : null,
     totalAmount: Number(r.totalAmount) || 0,
   }));
 
@@ -276,9 +276,9 @@ export async function getSalesReport(
 
   const normalised = rows.map((r) => ({
     ...r,
-    orderDate: r.orderDate ? String(r.orderDate).slice(0, 10) : null,
-    requiredDate: r.requiredDate ? String(r.requiredDate).slice(0, 10) : null,
-    shippedDate: r.shippedDate ? String(r.shippedDate).slice(0, 10) : null,
+    orderDate: r.orderDate ? formatDateFromDb(r.orderDate) : null,
+    requiredDate: r.requiredDate ? formatDateFromDb(r.requiredDate) : null,
+    shippedDate: r.shippedDate ? formatDateFromDb(r.shippedDate) : null,
     totalAmount: Number(r.totalAmount) || 0,
   }));
 

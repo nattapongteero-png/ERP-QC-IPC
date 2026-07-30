@@ -167,7 +167,10 @@ export default function DeliveriesPage() {
     {
       dataField: 'expiryDate',
       caption: 'วันหมดอายุ',
-      width: 130,
+      // 130px had to hold "2026-04-04 (หมดอายุ)" on one line, so the date was
+      // clipped to "Tue Apr 04 (..." — the very thing this column exists to
+      // make unmissable. Wider, and the badge wraps under the date.
+      width: 165,
       // An expired lot must be impossible to miss: colour the date itself
       // rather than hoping someone cross-checks it against today.
       cellRender: (c) => {
