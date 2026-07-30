@@ -33,7 +33,9 @@
     "cannotUndo": "This action cannot be undone",
     "preview": "Preview",
     "changeHistory": "Change history",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "saving": "Saving...",
+    "clearFilters": "Clear filters"
   },
   "status": {
     "active": "Active",
@@ -141,5 +143,9 @@
   "grid": {
     "noData": "No data",
     "groupPanelEmpty": "Drag a column here to group by it"
+  },
+  "messages": {
+    "noResultsTitle": "No matching records",
+    "noResultsDescription": "Try adjusting the search text, date range, or status tab and search again"
   }
 }

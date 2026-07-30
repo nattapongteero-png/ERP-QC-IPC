@@ -336,5 +336,8 @@
     "cancel": "ยกเลิก",
     "portalNotSynced": "ระบบภายในอัปเดตแล้ว แต่ VMI Portal ไม่รับ",
     "portalNotSyncedHint": "สถานะสองฝั่งไม่ตรงกัน กรุณาแจ้งผู้ดูแลระบบ ({error})"
+  },
+  "common": {
+    "close": "ปิด"
   }
 }

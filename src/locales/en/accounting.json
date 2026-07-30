@@ -750,7 +750,8 @@
       "outstandingLabel": "Outstanding",
       "paidInFull": "Paid in full",
       "taxInvoiceLabel": "Tax Invoice",
-      "summaryTotalCount": "Total {count} items {amount} THB"
+      "summaryTotalCount": "Total {count} items {amount} THB",
+      "title": "AR Invoices"
     },
     "receiptsPage": {
       "recordReceipt": "Record Receipt",

@@ -33,7 +33,9 @@
     "cannotUndo": "การดำเนินการนี้ไม่สามารถย้อนกลับได้",
     "preview": "ดูตัวอย่าง",
     "changeHistory": "ประวัติการเปลี่ยนแปลง",
-    "searchPlaceholder": "ค้นหา..."
+    "searchPlaceholder": "ค้นหา...",
+    "saving": "กำลังบันทึก...",
+    "clearFilters": "ล้างตัวกรอง"
   },
   "status": {
     "active": "ใช้งาน",
@@ -141,5 +143,9 @@
   "grid": {
     "noData": "ไม่มีข้อมูล",
     "groupPanelEmpty": "ลากคอลัมน์มาวางที่นี่เพื่อจัดกลุ่ม"
+  },
+  "messages": {
+    "noResultsTitle": "ไม่พบรายการที่ตรงกับเงื่อนไข",
+    "noResultsDescription": "ลองปรับคำค้นหา ช่วงวันที่ หรือแท็บสถานะ แล้วค้นหาอีกครั้ง"
   }
 }

@@ -336,5 +336,8 @@
     "cancel": "Cancel",
     "portalNotSynced": "Updated locally, but the VMI Portal refused",
     "portalNotSyncedHint": "The two systems now disagree — please tell an administrator ({error})"
+  },
+  "common": {
+    "close": "Close"
   }
 }

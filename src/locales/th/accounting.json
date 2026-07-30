@@ -750,7 +750,8 @@
       "outstandingLabel": "ค้าง",
       "paidInFull": "ชำระครบ",
       "taxInvoiceLabel": "ใบกำกับภาษี",
-      "summaryTotalCount": "รวม {count} รายการ {amount} บาท"
+      "summaryTotalCount": "รวม {count} รายการ {amount} บาท",
+      "title": "ใบแจ้งหนี้ลูกหนี้"
     },
     "receiptsPage": {
       "recordReceipt": "บันทึกใบเสร็จรับเงิน",
