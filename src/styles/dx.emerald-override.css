@@ -253,10 +253,17 @@ a:hover {
   text-overflow: clip !important;
 }
 
-/* Keep wrapped cells (wordWrapEnabled, set globally in devextreme-provider)
- * reading cleanly by breaking very long unbroken tokens (lot numbers, codes)
- * instead of overflowing. */
-.dx-datagrid .dx-data-row > td {
+/* Show the WHOLE value in every grid cell — app-wide, guaranteed.
+ * DevExtreme data cells (and the inline pills/spans inside them) default to
+ * `white-space: nowrap` + `text-overflow: ellipsis`, which clipped lot numbers,
+ * dates, long names into a stray "…" on page after page — and the grid's own
+ * `wordWrapEnabled` did NOT override it reliably. Forcing wrap here is the sure
+ * fix: the cell grows to fit and the complete value shows, wrapping long
+ * unbroken tokens instead of demanding width, so no horizontal scrollbar. */
+.dx-datagrid .dx-data-row > td,
+.dx-datagrid .dx-data-row > td span {
+  white-space: normal !important;
   word-break: break-word;
   overflow-wrap: anywhere;
+  text-overflow: clip !important;
 }
