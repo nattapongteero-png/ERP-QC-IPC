@@ -134,28 +134,41 @@ function KPICardsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <KPICard
-        label={t('kpi.openIssues')}
-        value={metrics.openIssues}
-        icon={<AlertCircle className="w-5 h-5" />}
-        trend={metrics.openIssues > 0 ? 'up' : 'neutral'}
-        subtitle={t('kpi.issuesRequiringAttention')}
-      />
-      <KPICard
-        label={t('kpi.criticalIssues')}
-        value={criticalCount}
-        icon={<AlertTriangle className="w-5 h-5" />}
-        trend={criticalCount > 0 ? 'up' : 'neutral'}
-        trendValue={criticalCount > 0 ? t('kpi.actionRequired') : t('kpi.allClear')}
-        className={criticalCount > 0 ? 'border-red-200 bg-red-50' : ''}
-      />
-      <KPICard
-        label={t('kpi.resolvedThisWeek')}
-        value={metrics.issuesResolvedThisWeek}
-        icon={<CheckCircle className="w-5 h-5" />}
-        trend="up"
-        subtitle={t('kpi.issuesClosedThisWeek')}
-      />
+      {/* These four were bare cards with no link, so clicking a number did
+          nothing. "Open" spans four statuses (draft/submitted/triaged/
+          in_progress) and ?status= takes a single value, so that card opens the
+          unfiltered list rather than a filter that would show a smaller number
+          than the card claims. */}
+      <Link href="/issues/list" data-testid="issues-kpi-open" className="block rounded-xl">
+        <KPICard
+          label={t('kpi.openIssues')}
+          value={metrics.openIssues}
+          icon={<AlertCircle className="w-5 h-5" />}
+          trend={metrics.openIssues > 0 ? 'up' : 'neutral'}
+          subtitle={t('kpi.issuesRequiringAttention')}
+        />
+      </Link>
+      <Link href="/issues/list?severity=critical" data-testid="issues-kpi-critical" className="block rounded-xl">
+        <KPICard
+          label={t('kpi.criticalIssues')}
+          value={criticalCount}
+          icon={<AlertTriangle className="w-5 h-5" />}
+          trend={criticalCount > 0 ? 'up' : 'neutral'}
+          trendValue={criticalCount > 0 ? t('kpi.actionRequired') : t('kpi.allClear')}
+          className={criticalCount > 0 ? 'border-red-200 bg-red-50' : ''}
+        />
+      </Link>
+      <Link href="/issues/list?status=resolved" data-testid="issues-kpi-resolved" className="block rounded-xl">
+        <KPICard
+          label={t('kpi.resolvedThisWeek')}
+          value={metrics.issuesResolvedThisWeek}
+          icon={<CheckCircle className="w-5 h-5" />}
+          trend="up"
+          subtitle={t('kpi.issuesClosedThisWeek')}
+        />
+      </Link>
+      {/* Average time is a derived figure, not a set of rows — there is nothing
+          to drill into, so this one stays unlinked on purpose. */}
       <KPICard
         label={t('kpi.avgResolutionTime')}
         value={`${avgResolutionDays} ${t('kpi.days')}`}
@@ -175,17 +188,25 @@ function ChartsSection({ metrics }: { metrics: IssueDashboardMetrics }) {
   const t = useTranslations('issues');
   const locale = useLocale();
   // Transform data for pie charts
-  const statusData = metrics.issuesByStatus.map((item) => ({
-    status: item.status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    count: item.count,
-    color: STATUS_COLORS[item.status] || '#6B7280',
-  }));
+  // Zero-count slices carry no information but their labels still render, so
+  // with 3 draft issues the pie drew 7 empty slices whose labels
+  // ("Submitted: 0 (0%)", "Triaged: 0 (0%)" ...) stacked on each other and
+  // spilled outside the chart. The legend below still lists every status.
+  const statusData = metrics.issuesByStatus
+    .filter((item) => item.count > 0)
+    .map((item) => ({
+      status: item.status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      count: item.count,
+      color: STATUS_COLORS[item.status] || '#6B7280',
+    }));
 
-  const severityData = metrics.issuesBySeverity.map((item) => ({
-    severity: item.severity.replace(/\b\w/g, (c) => c.toUpperCase()),
-    count: item.count,
-    color: SEVERITY_COLORS[item.severity] || '#6B7280',
-  }));
+  const severityData = metrics.issuesBySeverity
+    .filter((item) => item.count > 0)
+    .map((item) => ({
+      severity: item.severity.replace(/\b\w/g, (c) => c.toUpperCase()),
+      count: item.count,
+      color: SEVERITY_COLORS[item.severity] || '#6B7280',
+    }));
 
   const categoryData = metrics.issuesByCategory.map((item) => ({
     category: item.categoryName || t('recent.uncategorized'),
