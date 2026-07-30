@@ -679,7 +679,8 @@
       "importing": "กำลังนำเข้า...",
       "clickToPick": "คลิกเพื่อเลือกไฟล์ (.xlsx)",
       "requiredFields": "ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย",
-      "resultLabel": "ผลการนำเข้า:"
+      "resultLabel": "ผลการนำเข้า:",
+      "andMore": "...และอีก {count} รายการ"
     },
     "vendorLotFormatError": "รูปแบบเลข Lot ผู้ขายไม่ตรงข้อกำหนด (ต้องตรงกับ: {pattern})"
   },

@@ -77,7 +77,17 @@ const recentUi = [
 ].filter((f) => (f.startsWith('src/app/') || f.startsWith('src/components/')) && f.endsWith('.tsx'));
 // Match in JS rather than shell — escaping a Thai character class through
 // execSync silently produced no matches even though the pattern was correct.
-const THAI_IN_UI = /(?:text=|hint=|placeholder=|title=|label=)["'][฀-๿]|>[฀-๿][^<]{2,}</;
+// U+0E3F ฿ is the BAHT SIGN. It lives in the Thai Unicode block but it is a
+// currency symbol, not Thai copy — "฿1,234" is the same in both languages, and
+// 26 files render amounts exactly this way. Excluding it from the first
+// character stops `>฿{formatMoney(x)}<` being reported as untranslated text.
+// The JSX-text branch requires a Thai LETTER, with ฿ (U+0E3F, BAHT SIGN)
+// excluded — note it sits INSIDE [ก-๛], so a plain range cannot express this.
+// "฿{formatMoney(x)}" is a currency amount, identical in both languages, and 26
+// files render money exactly that way; reporting it as untranslated copy is
+// noise. Real Thai after a ฿ ("฿1,234 รวมทั้งสิ้น") is still caught, because the
+// scan looks ahead within the text node rather than only at the first character.
+const THAI_IN_UI = /(?:text=|hint=|placeholder=|title=|label=)["'][฀-๿]|>[^<]{0,20}?[ก-฾เ-๛]/;
 
 // Statutory documents are EXEMPT. A Thai tax invoice must print the wording the
 // Revenue Code prescribes — "ใบกำกับภาษี", "ต้นฉบับ", "สำนักงานใหญ่",
@@ -110,6 +120,12 @@ for (const f of [...new Set(recentUi)].filter((f) => !I18N_EXEMPT.some((re) => r
     .split('\n')
     .map((line, i) => [i + 1, line])
     .filter(([, line]) => !/^\s*(\/\/|\*)/.test(line)) // skip comments
+    // Per-line opt-out for Thai that is DATA, not UI copy — an Excel template
+    // header or sheet name the import parser matches on, for instance, where
+    // translating the string would break every spreadsheet already in use.
+    // Deliberately per line rather than per file, so the rest of the file keeps
+    // being scanned and each exemption has to be justified where it sits.
+    .filter(([, line]) => !/i18n-exempt/.test(line))
     .filter(([, line]) => THAI_IN_UI.test(line));
   // Report path:line so the offender is directly openable.
   if (hits.length) thaiOffenders.push(`${f}:${hits.map(([n]) => n).slice(0, 4).join(',')}`);

@@ -679,7 +679,8 @@
       "importing": "Importing...",
       "clickToPick": "Click to choose a file (.xlsx)",
       "requiredFields": "Required: Lot No., Item Code, Warehouse, Quantity, Unit",
-      "resultLabel": "Import result:"
+      "resultLabel": "Import result:",
+      "andMore": "...and {count} more"
     },
     "vendorLotFormatError": "Vendor lot number does not match the required format (must match: {pattern})"
   },

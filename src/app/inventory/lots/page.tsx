@@ -430,7 +430,7 @@ export default function LotsPage() {
       const arrayBuffer = await file.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
       const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ' && n !== 'ตัวเลือก (Lookup)') || workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find(n => n !== 'คำแนะนำ' && n !== 'ตัวเลือก (Lookup)') || workbook.SheetNames[0]; // i18n-exempt: Excel sheet names are the file format the import matches on
       const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(workbook.Sheets[sheetName]);
 
       if (jsonData.length === 0) {
@@ -507,7 +507,7 @@ export default function LotsPage() {
 
       log.push(`✅ นำเข้า ${success}/${jsonData.length} Lot สำเร็จ (สถานะ: Quarantine)`);
       if (errors.length > 0) log.push(...errors.slice(0, 5).map(e => `❌ ${e}`));
-      if (errors.length > 5) log.push(`...และอีก ${errors.length - 5} รายการ`);
+        if (errors.length > 5) log.push(t(`lots.import.andMore`, { count: errors.length - 5 }));
       setImportLog(log);
       setImportingLots(false);
       if (success > 0) fetchLots();
