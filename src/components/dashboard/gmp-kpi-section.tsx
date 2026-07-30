@@ -31,8 +31,10 @@ export function GMPKpiSection({ data }: GMPKpiSectionProps) {
         {/* Outstanding GMP work, not a "compliance score". The score this
             replaced was 100 - (issues * 5): an invented weight, tied to no GMP
             chapter, that read a perfect 100% on an empty database. */}
-        <Link href="/issues/list" data-testid="gmp-kpi-issues" className="block rounded-xl">
-          <KPICard
+        {/* Deliberately NOT a link: this number is the SUM of the other four
+            cards (deviations + CAPAs + findings + training gaps), so no single
+            page can show a matching count. */}
+        <KPICard
             label={t('openIssues.label')}
             value={data.openIssues}
             subtitle={t('openIssues.subtitle')}
@@ -40,8 +42,7 @@ export function GMPKpiSection({ data }: GMPKpiSectionProps) {
             iconBgColor={hasOpenIssues ? 'bg-yellow-100' : 'bg-green-100'}
             iconColor={hasOpenIssues ? 'text-yellow-600' : 'text-green-600'}
           />
-        </Link>
-        <Link href="/quality/deviations?status=open" data-testid="gmp-kpi-deviations" className="block rounded-xl">
+        <Link href="/quality/deviations?status=active" data-testid="gmp-kpi-deviations" className="block rounded-xl">
           <KPICard
             label={t('openDeviations.label')}
             value={data.openDeviations}
