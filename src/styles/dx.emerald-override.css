@@ -239,3 +239,15 @@ a:hover {
 .dx-treeview-item.dx-state-selected > .dx-treeview-item-content {
   color: #059669 !important;
 }
+
+/* DataGrid action-column stray "…" fix
+ * A narrow fixed-width column (e.g. width={60}) that holds a single icon Button
+ * has only ~28px of content space left after DevExtreme's 16px+16px cell
+ * padding, but the button renders ~36px wide. The button overflows the content
+ * box and, because grid cells carry `text-overflow: ellipsis`, the browser
+ * paints a stray "…" right next to it — looks like a menu but does nothing.
+ * A data cell whose content is a button never needs an ellipsis, so switch it
+ * off for those cells (keep overflow:hidden so nothing bleeds past the cell). */
+.dx-datagrid .dx-data-row > td:has(.dx-button) {
+  text-overflow: clip !important;
+}
