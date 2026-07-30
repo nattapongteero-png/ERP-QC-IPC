@@ -829,5 +829,41 @@
         "rowNum": "#"
       }
     }
+  },
+  "quotations": {
+    "title": "Quotations",
+    "subtitle": "All quotations with status and sales-order conversion",
+    "create": "New Quotation",
+    "noData": "No quotations yet",
+    "view": "View",
+    "columns": {
+      "number": "Number",
+      "customer": "Customer",
+      "date": "Date",
+      "validUntil": "Valid Until",
+      "total": "Total",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "amountBaht": "฿{amount}",
+    "stats": {
+      "count": "Total Quotations",
+      "value": "Total Value (THB)",
+      "converted": "Converted to Orders"
+    },
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Number / customer",
+      "status": "Status"
+    },
+    "status": {
+      "all": "All statuses",
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "expired": "Expired",
+      "converted": "Converted"
+    }
   }
 }

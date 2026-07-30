@@ -829,5 +829,41 @@
         "rowNum": "#"
       }
     }
+  },
+  "quotations": {
+    "title": "ใบเสนอราคา",
+    "subtitle": "รายการใบเสนอราคาทั้งหมด พร้อมสถานะและการแปลงเป็นใบสั่งขาย",
+    "create": "สร้างใบเสนอราคา",
+    "noData": "ยังไม่มีใบเสนอราคา",
+    "view": "ดู",
+    "columns": {
+      "number": "เลขที่",
+      "customer": "ลูกค้า",
+      "date": "วันที่",
+      "validUntil": "ใช้ได้ถึง",
+      "total": "ยอดรวม",
+      "status": "สถานะ",
+      "actions": "การดำเนินการ"
+    },
+    "amountBaht": "{amount} บาท",
+    "stats": {
+      "count": "จำนวนทั้งหมด",
+      "value": "มูลค่ารวม (บาท)",
+      "converted": "แปลงเป็นใบสั่งขายแล้ว"
+    },
+    "filters": {
+      "search": "ค้นหา",
+      "searchPlaceholder": "เลขที่ / ลูกค้า",
+      "status": "สถานะ"
+    },
+    "status": {
+      "all": "ทุกสถานะ",
+      "draft": "ร่าง",
+      "sent": "ส่งแล้ว",
+      "accepted": "ตอบรับ",
+      "rejected": "ปฏิเสธ",
+      "expired": "หมดอายุ",
+      "converted": "แปลงแล้ว"
+    }
   }
 }

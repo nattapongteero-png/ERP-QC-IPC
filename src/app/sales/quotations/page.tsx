@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -35,23 +36,22 @@ function formatDateCompact(value: string | Date | null | undefined): string {
   if (!y || !m || !d) return String(value);
   return `${d}/${m}/${y}`;
 }
-
-// Thai labels + badge tones for every quotation status. Kept in one map so the
-// grid cell and the filter dropdown never drift apart.
-const STATUS_META: Record<QuotationStatus, { label: string; variant: BadgeProps['variant'] }> = {
-  draft: { label: 'ร่าง', variant: 'default' },
-  sent: { label: 'ส่งแล้ว', variant: 'info' },
-  accepted: { label: 'ตอบรับ', variant: 'success' },
-  rejected: { label: 'ปฏิเสธ', variant: 'danger' },
-  expired: { label: 'หมดอายุ', variant: 'warning' },
-  converted: { label: 'แปลงแล้ว', variant: 'primary' },
+// Translation KEYS + badge tones per status. Keys, not Thai text: module
+// scope cannot call useTranslations, and the page must follow the language.
+const STATUS_META: Record<QuotationStatus, { labelKey: string; variant: BadgeProps['variant'] }> = {
+  draft: { labelKey: 'quotations.status.draft', variant: 'default' },
+  sent: { labelKey: 'quotations.status.sent', variant: 'info' },
+  accepted: { labelKey: 'quotations.status.accepted', variant: 'success' },
+  rejected: { labelKey: 'quotations.status.rejected', variant: 'danger' },
+  expired: { labelKey: 'quotations.status.expired', variant: 'warning' },
+  converted: { labelKey: 'quotations.status.converted', variant: 'primary' },
 };
 
-const STATUS_FILTER_OPTIONS = [
-  { value: '', label: 'ทุกสถานะ' },
+const STATUS_FILTER_KEYS = [
+  { value: '', labelKey: 'quotations.status.all' },
   ...(Object.keys(STATUS_META) as QuotationStatus[]).map((s) => ({
     value: s,
-    label: STATUS_META[s].label,
+    labelKey: STATUS_META[s].labelKey,
   })),
 ];
 
@@ -59,6 +59,14 @@ interface QuotationRow extends Quotation, Record<string, unknown> {}
 
 export default function QuotationsPage() {
   const router = useRouter();
+  const t = useTranslations('sales');
+  const tCommon = useTranslations('common');
+  // Resolve the status labels here — STATUS_FILTER_KEYS holds keys because it
+  // lives at module scope where hooks are unavailable.
+  const statusFilterOptions = useMemo(
+    () => STATUS_FILTER_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) })),
+    [t],
+  );
   const [rows, setRows] = useState<Quotation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -101,10 +109,10 @@ export default function QuotationsPage() {
 
   const columns: DxDataGridColumn[] = [
     { dataField: 'rowNo', caption: '#', width: 56, alignment: 'center', allowSorting: false },
-    { dataField: 'quotationNumber', caption: 'เลขที่', width: 150 },
+    { dataField: 'quotationNumber', caption: t(`quotations.columns.number`), width: 150 },
     {
       dataField: 'customerName',
-      caption: 'ลูกค้า',
+      caption: t(`quotations.columns.customer`),
       minWidth: 180,
       // Let the full customer name wrap instead of clipping to "…"; keep the
       // full text on hover via title.
@@ -116,7 +124,7 @@ export default function QuotationsPage() {
     },
     {
       dataField: 'quotationDate',
-      caption: 'วันที่',
+      caption: t(`quotations.columns.date`),
       width: 110,
       cellRender: (c) => (
         <span className="whitespace-nowrap tabular-nums">{formatDateCompact(c.data.quotationDate as string)}</span>
@@ -124,7 +132,7 @@ export default function QuotationsPage() {
     },
     {
       dataField: 'validUntil',
-      caption: 'ใช้ได้ถึง',
+      caption: t(`quotations.columns.validUntil`),
       width: 110,
       cellRender: (c) => (
         <span className="whitespace-nowrap tabular-nums">{formatDateCompact(c.data.validUntil as string)}</span>
@@ -132,39 +140,41 @@ export default function QuotationsPage() {
     },
     {
       dataField: 'totalAmount',
-      caption: 'ยอดรวม',
+      caption: t(`quotations.columns.total`),
       width: 140,
       alignment: 'right',
       cellRender: (c) => (
         <span className="tabular-nums font-medium">
-          {formatNumber(Number(c.data.totalAmount))} บาท
+          {t(`quotations.amountBaht`, { amount: formatNumber(Number(c.data.totalAmount)) })}
         </span>
       ),
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t(`quotations.columns.status`),
       width: 120,
       cellRender: (c) => {
         const meta = STATUS_META[c.data.status as QuotationStatus] ?? {
-          label: String(c.data.status),
+          labelKey: `quotations.status.${c.data.status}`,
           variant: 'default' as const,
         };
         return (
           <Badge variant={meta.variant} className="whitespace-nowrap">
-            {meta.label}
+            {t(meta.labelKey)}
           </Badge>
         );
       },
     },
     {
       dataField: 'actions',
-      caption: '',
-      width: 90,
+      caption: t(`quotations.columns.actions`),
+      width: 110,
+      fixed: true,
+      fixedPosition: 'right',
       cellRender: (c) => (
         <DxButton
           icon="find"
-          text="ดู"
+          text={t(`quotations.view`)}
           stylingMode="text"
           onClick={(e: { event?: { stopPropagation: () => void } }) => {
             e.event?.stopPropagation();
@@ -180,17 +190,17 @@ export default function QuotationsPage() {
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="ใบเสนอราคา"
-          subtitle="รายการใบเสนอราคาทั้งหมด พร้อมสถานะและการแปลงเป็นใบสั่งขาย"
+          title={t(`quotations.title`)}
+          subtitle={t(`quotations.subtitle`)}
           icon={FileText}
           iconBgColor="bg-amber-100"
           iconColor="text-amber-600"
           actions={
             <div className="flex items-center gap-2 flex-wrap">
-              <DxButton icon="refresh" text="รีเฟรช" stylingMode="outlined" onClick={fetchData} />
+              <DxButton icon="refresh" text={tCommon(`actions.refresh`)} stylingMode="outlined" onClick={fetchData} />
               <DxButton
                 icon="plus"
-                text="สร้างใบเสนอราคา"
+                text={t(`quotations.create`)}
                 type="success"
                 onClick={() => router.push('/sales/quotations/new')}
                 elementAttr={{ 'data-testid': 'btn-new-quotation' }}
@@ -201,21 +211,21 @@ export default function QuotationsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           <StatCard
-            label="จำนวนทั้งหมด"
+            label={t(`quotations.stats.count`)}
             value={formatNumber(stats.total)}
             icon={FileText}
             tone="blue"
             isLoading={isLoading}
           />
           <StatCard
-            label="มูลค่ารวม (บาท)"
+            label={t(`quotations.stats.value`)}
             value={formatNumber(stats.totalValue)}
             icon={DollarSign}
             tone="emerald"
             isLoading={isLoading}
           />
           <StatCard
-            label="แปลงเป็นใบสั่งขายแล้ว"
+            label={t(`quotations.stats.converted`)}
             value={formatNumber(stats.converted)}
             icon={ArrowRightLeft}
             tone="violet"
@@ -226,11 +236,11 @@ export default function QuotationsPage() {
         <Card>
           <CardContent className="flex flex-wrap items-end gap-3 p-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">ค้นหา</label>
+              <label className="text-xs font-medium text-gray-500">{t(`quotations.filters.search`)}</label>
               <DxTextBox
                 value={search}
                 onValueChange={setSearch}
-                placeholder="เลขที่ / ลูกค้า"
+                placeholder={t(`quotations.filters.searchPlaceholder`)}
                 mode="search"
                 labelMode="hidden"
                 showClearButton
@@ -239,11 +249,11 @@ export default function QuotationsPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">สถานะ</label>
+              <label className="text-xs font-medium text-gray-500">{t(`quotations.filters.status`)}</label>
               <DxSelectBox
                 value={statusFilter}
                 onValueChange={setStatusFilter}
-                items={STATUS_FILTER_OPTIONS}
+                items={statusFilterOptions}
                 labelMode="hidden"
                 width={180}
               />
@@ -264,7 +274,7 @@ export default function QuotationsPage() {
               onRowClick={(e: { data?: QuotationRow }) => {
                 if (e.data?.id) router.push(`/sales/quotations/${e.data.id}`);
               }}
-              noDataText="ยังไม่มีใบเสนอราคา"
+              noDataText={t(`quotations.noData`)}
               elementAttr={{ 'data-testid': 'quotations-grid' }}
             />
           </CardContent>

@@ -763,9 +763,13 @@ export default function NewQuotationPage() {
                   <span className="text-gray-500">จำนวนรายการ</span>
                   <span className="font-medium text-gray-900">{formatNumber(lines.length)} รายการ</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ลูกค้า</span>
-                  <span className="font-medium text-gray-900 truncate max-w-[150px]">
+                {/* `truncate max-w-[150px]` forced the name onto one 150px line,
+                    so "บริษัท ออมสินร่ำรวยเงินทอง จำกัด" was cut to
+                    "บริษัท ออมสินร่ำรวยเงิน..." with empty space still below it.
+                    Let it wrap and right-align instead of clipping. */}
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500 shrink-0">ลูกค้า</span>
+                  <span className="font-medium text-gray-900 text-right break-words min-w-0">
                     {form.customerName || '-'}
                   </span>
                 </div>
