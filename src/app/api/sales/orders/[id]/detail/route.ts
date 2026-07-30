@@ -23,6 +23,7 @@ export async function GET(
           .select({
             id: salesOrders.id,
             soNumber: salesOrders.soNumber,
+            customerId: salesOrders.customerId,
             customerName: salesOrders.customerName,
             customerContact: salesOrders.customerContact,
             customerAddress: salesOrders.customerAddress,

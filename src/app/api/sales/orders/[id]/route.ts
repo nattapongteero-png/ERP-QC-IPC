@@ -116,3 +116,159 @@ export async function PATCH(
     ['sales:write'],
   );
 }
+
+/**
+ * Full update of a DRAFT sales order — header fields AND line items.
+ *
+ * PUT /api/sales/orders/[id]
+ *
+ * A draft has not reserved stock, shipped, or posted to the GL, so its entire
+ * contents (customer, dates, payment terms, and the line items) can be safely
+ * rewritten. Once it leaves draft (confirmed/shipped/…) this is refused: those
+ * states carry stock and accounting effects and must change through their own
+ * flows, never a blanket overwrite. The narrow PATCH above stays the only way
+ * to touch a non-draft order (shipping fields / status move).
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return withAuth(
+    request,
+    async (session) => {
+      try {
+        const { id } = await params;
+        const soId = Number(id);
+        if (!Number.isInteger(soId) || soId <= 0) {
+          return errorResponse('รหัสใบขายไม่ถูกต้อง');
+        }
+
+        const soTable = getTableRef('salesOrders');
+        const soLinesTable = getTableRef('salesOrderLines');
+
+        const [existing] = await executeDbOperation(async (db) =>
+          db.select().from(soTable).where(eq(soTable.id, soId)).limit(1),
+        );
+        if (!existing) return notFoundResponse('ไม่พบใบขายนี้');
+
+        // Only drafts are freely editable. Anything further along has stock/GL
+        // effects and must not be rewritten wholesale.
+        if (existing.status !== 'draft') {
+          return errorResponse('แก้ไขได้เฉพาะใบสั่งขายสถานะ "ร่าง" เท่านั้น');
+        }
+
+        const body = await request.json();
+        const {
+          customerId,
+          customerName,
+          customerContact,
+          customerAddress,
+          requiredDate,
+          paymentTerms,
+          notes,
+          shippingCost,
+          carrier,
+          trackingNumber,
+          lines,
+        } = body;
+
+        if (!customerName) return errorResponse('กรุณาระบุลูกค้า');
+        if (!lines || !Array.isArray(lines) || lines.length === 0) {
+          return errorResponse('ต้องมีรายการสินค้าอย่างน้อย 1 รายการ');
+        }
+
+        // Freight posts to the GL — reject a bad value rather than coerce it.
+        const rawFreight = shippingCost;
+        const freight =
+          rawFreight === null || rawFreight === undefined || rawFreight === ''
+            ? 0
+            : typeof rawFreight === 'string'
+              ? Number(rawFreight)
+              : rawFreight;
+        if (typeof freight !== 'number' || !Number.isFinite(freight) || freight < 0) {
+          return errorResponse('ค่าขนส่งต้องเป็นตัวเลขและไม่ติดลบ');
+        }
+
+        // Prefer the master-data id; fall back to an exact name match so the AR
+        // invoice keeps a real buyer (มาตรา 86/4) instead of the id=0 sentinel.
+        let resolvedCustomerId: number | null =
+          Number.isInteger(customerId) && customerId > 0 ? Number(customerId) : null;
+        if (resolvedCustomerId === null) {
+          const customersTable = getTableRef('customers');
+          const [match] = await executeDbOperation(async (db) =>
+            db
+              .select({ id: (customersTable as { id: unknown }).id })
+              .from(customersTable)
+              .where(eq((customersTable as { name: unknown }).name as never, customerName))
+              .limit(1),
+          );
+          resolvedCustomerId = match?.id ?? null;
+        }
+
+        const totalAmount = lines.reduce(
+          (sum: number, line: { quantity: number; unitPrice: number }) =>
+            sum + line.quantity * line.unitPrice,
+          0,
+        );
+        const parsedRequiredDate = requiredDate ? dbDate(new Date(requiredDate)) : null;
+
+        await executeDbOperation(async (db) =>
+          db
+            .update(soTable)
+            .set({
+              customerId: resolvedCustomerId,
+              customerName,
+              customerContact: customerContact ?? null,
+              customerAddress: customerAddress ?? null,
+              requiredDate: parsedRequiredDate,
+              totalAmount,
+              paymentTerms: paymentTerms ?? null,
+              notes: notes ?? null,
+              shippingCost: freight,
+              carrier: carrier || null,
+              trackingNumber: trackingNumber || null,
+              updatedAt: dbDate(),
+            })
+            .where(eq(soTable.id, soId)),
+        );
+
+        // Replace the lines wholesale: a draft's lines have no shipped quantity
+        // or downstream reference, so delete-then-insert is safe and keeps the
+        // set exactly what the form submitted.
+        await executeDbOperation(async (db) =>
+          db.delete(soLinesTable).where(eq(soLinesTable.soId, soId)),
+        );
+        for (const line of lines) {
+          await executeDbOperation(async (db) =>
+            db.insert(soLinesTable).values({
+              soId,
+              itemId: line.itemId,
+              lotId: line.lotId ?? null,
+              quantity: line.quantity,
+              shippedQuantity: 0,
+              unit: line.unit,
+              unitPrice: line.unitPrice,
+              totalPrice: line.quantity * line.unitPrice,
+              notes: line.notes ?? null,
+            }),
+          );
+        }
+
+        await createAuditLog({
+          userId: session.userId,
+          action: 'UPDATE',
+          tableName: 'sales_orders',
+          recordId: soId,
+          oldValue: { customerName: existing.customerName, totalAmount: existing.totalAmount },
+          newValue: { customerName, totalAmount, linesCount: lines.length },
+          ipAddress: getClientIP(request),
+        });
+
+        return successResponse({ id: soId }, 'บันทึกการแก้ไขใบสั่งขายแล้ว');
+      } catch (error) {
+        return serverErrorResponse(error);
+      }
+    },
+    ['sales:write'],
+  );
+}
