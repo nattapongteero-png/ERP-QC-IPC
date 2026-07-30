@@ -68,13 +68,6 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(value);
 }
 
-function formatCurrencyShort(value: number | null | undefined): string {
-  const n = Number(value) || 0;
-  if (n >= 1_000_000) return `฿${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `฿${(n / 1_000).toFixed(0)}K`;
-  return `฿${n.toFixed(0)}`;
-}
-
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-';
   return new Date(value).toLocaleDateString('th-TH', {
@@ -252,7 +245,7 @@ export default function LandedCostsPage() {
         />
         <StatCard
           label={t('landedCosts.stats.totalValue')}
-          value={formatCurrencyShort(stats.totalValue)}
+          value={`฿${formatCurrency(stats.totalValue)}`}
           icon={DollarSign}
           iconColor="text-cyan-500"
           accentColor="border-cyan-500"
