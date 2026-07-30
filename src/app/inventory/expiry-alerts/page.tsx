@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -92,7 +93,15 @@ export default function ExpiryAlertsPage() {
   const [report, setReport] = useState<ExpiryReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiErrorState | null>(null);
-  const [daysThreshold, setDaysThreshold] = useState('90');
+  // Seed the window from ?days= so the dashboard card "expiring within 30 days"
+  // lands on that same 30-day window. It linked here with no param and this page
+  // defaults to 90, so the card said 1 lot and the page listed everything due in
+  // three months — the two never agreed.
+  const searchParams = useSearchParams();
+  const [daysThreshold, setDaysThreshold] = useState(() => {
+    const d = searchParams.get('days') || '';
+    return ['30', '60', '90', '180'].includes(d) ? d : '90';
+  });
 
   const fetchExpiryAlerts = async () => {
     setIsLoading(true);

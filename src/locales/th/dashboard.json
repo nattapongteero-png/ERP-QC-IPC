@@ -79,7 +79,9 @@
     "finishedGoods": "สินค้าสำเร็จรูป",
     "quarantine": "กักกัน",
     "rejected": "ถูกปฏิเสธ",
-    "coldStorage": "ห้องเย็น"
+    "coldStorage": "ห้องเย็น",
+    "qc": "คลังตัวอย่าง QC",
+    "retainSample": "คลังเก็บตัวอย่างสำรอง"
   },
   "moduleKpis": {
     "title": "ตัวชี้วัดแยกตามโมดูล",

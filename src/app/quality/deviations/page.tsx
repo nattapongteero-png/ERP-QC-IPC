@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -213,7 +213,14 @@ export default function DeviationsPage() {
   const { isMobile } = useMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusTab>('');
+  // Seed from ?status= so the dashboard KPI "8 open deviations" lands filtered
+  // rather than on the full list.
+  const searchParams = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<StatusTab>(() => {
+    const s = (searchParams.get('status') || '').toLowerCase() as StatusTab;
+    const allowed = ['active', 'open', 'investigating', 'resolved', 'closed'];
+    return allowed.includes(s) ? s : '';
+  });
   const [severityFilter, setSeverityFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
 

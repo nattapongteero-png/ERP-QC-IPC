@@ -79,7 +79,7 @@ const ITEM_TYPE_LABELS: Record<string, string> = {
   consumable: 'วัสดุสิ้นเปลือง',
 };
 
-type QuickFilter = '' | 'near_expiry' | 'expired' | 'raw_material' | 'finished_goods';
+type QuickFilter = '' | 'near_expiry' | 'expired' | 'raw_material' | 'finished_goods' | 'valued_fg' | 'valued_rm';
 
 interface LotFormData {
   lotNumber: string;
@@ -129,7 +129,7 @@ interface TraceData {
   forward?: TraceLot[];
 }
 
-type StatusType = '' | 'quarantine' | 'released' | 'rejected' | 'blocked';
+type StatusType = '' | 'quarantine' | 'released' | 'under_test' | 'expired' | 'rejected' | 'blocked';
 
 const STATUS_CONFIG: Record<StatusType, {
   translationKey: string;
@@ -169,6 +169,22 @@ const STATUS_CONFIG: Record<StatusType, {
   rejected: {
     translationKey: 'rejected',
     bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    activeBg: 'bg-red-600',
+    activeText: 'text-white',
+    icon: <XCircle className="h-4 w-4" />,
+  },
+  under_test: {
+    translationKey: 'underTest',
+    bgColor: 'bg-sky-100',
+    textColor: 'text-sky-700',
+    activeBg: 'bg-sky-600',
+    activeText: 'text-white',
+    icon: <Clock className="h-4 w-4" />,
+  },
+  expired: {
+    translationKey: 'expired',
+    bgColor: 'bg-red-100',
     textColor: 'text-red-700',
     activeBg: 'bg-red-600',
     activeText: 'text-white',
@@ -228,7 +244,10 @@ const formatCurrency = (value: number) => {
 
 // Statuses that can pre-select the tab via ?status= in the URL (e.g. the
 // dashboard "Lots in Quarantine" card → /inventory/lots?status=quarantine).
-const LOT_STATUS_VALUES: StatusType[] = ['', 'quarantine', 'released', 'rejected', 'blocked'];
+// Must cover every status the DB actually holds. 'under_test' and 'expired'
+// were missing, so the dashboard's status links for those two were rejected as
+// unknown and silently dropped — the page landed on the unfiltered list.
+const LOT_STATUS_VALUES: StatusType[] = ['', 'quarantine', 'released', 'under_test', 'expired', 'rejected', 'blocked'];
 
 export default function LotsPage() {
   const router = useRouter();
@@ -248,7 +267,21 @@ export default function LotsPage() {
     return LOT_STATUS_VALUES.includes(s) ? s : '';
   })();
   const [statusFilter, setStatusFilter] = useState<StatusType>(initialStatus);
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>('');
+  // Seed the quick filter from the URL too. The dashboard's stock-value cards
+  // link here with ?type=finished_goods / ?type=raw_material / ?expiring=30,
+  // but only ?search and ?status were ever read — so clicking a card landed on
+  // the unfiltered list and the numbers did not match the card you came from.
+  const initialQuickFilter = (() => {
+    const type = (searchParams.get('type') || '').toLowerCase();
+    if (type === 'finished_goods' || type === 'finished_good') return 'valued_fg';
+    if (type === 'raw_material') return 'valued_rm';
+    // ?expiring=<days> — the cards only ever use 30, which is exactly the
+    // near_expiry window, so anything else falls back to no filter rather than
+    // silently showing a different range than the caller asked for.
+    if (searchParams.get('expiring') === '30') return 'near_expiry';
+    return '';
+  })();
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(initialQuickFilter);
   const [warehouseFilter, setWarehouseFilter] = useState<number | ''>('');
   const [expiryFrom, setExpiryFrom] = useState('');
   const [expiryTo, setExpiryTo] = useState('');
@@ -682,6 +715,18 @@ export default function LotsPage() {
       result = result.filter((lot) => lot.itemType === 'raw_material');
     } else if (quickFilter === 'finished_goods') {
       result = result.filter((lot) => lot.itemType === 'finished_good' || lot.itemType === 'finished_goods');
+    } else if (quickFilter === 'valued_fg' || quickFilter === 'valued_rm') {
+      // Mirrors the dashboard stock-value cards EXACTLY: only stock an owner
+      // would value — quarantine/under_test/released and quantity remaining.
+      // Without this the card said 58 lots while this page listed 86, because
+      // it also counted rejected, blocked and fully-consumed lots.
+      const wantFg = quickFilter === 'valued_fg';
+      result = result.filter((lot) => {
+        const isFg = lot.itemType === 'finished_good' || lot.itemType === 'finished_goods';
+        if (wantFg ? !isFg : lot.itemType !== 'raw_material') return false;
+        const st = (lot.status || '').toLowerCase();
+        return ['quarantine', 'under_test', 'released'].includes(st) && Number(lot.quantity) > 0;
+      });
     }
 
     // Sort by latest received date first (lots without a date go to the end).
@@ -915,6 +960,8 @@ export default function LotsPage() {
     released: stats.releasedCount,
     rejected: stats.rejectedCount,
     blocked: lots.filter(l => l.status === 'blocked').length,
+    under_test: lots.filter(l => l.status === 'under_test').length,
+    expired: lots.filter(l => l.status === 'expired').length,
   }), [lots, stats]);
 
   // Define columns for DevExtreme DataGrid

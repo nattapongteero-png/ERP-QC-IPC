@@ -664,7 +664,8 @@
       "expired": "หมดอายุ",
       "released": "ปล่อย",
       "rejected": "ถูกปฏิเสธ",
-      "blocked": "ล็อค"
+      "blocked": "ล็อค",
+      "underTest": "รอตรวจ"
     }
   },
   "warehouses": {

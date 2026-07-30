@@ -48,6 +48,10 @@ const warehouseTypeConfig: Record<string, {
   quarantine: { translationKey: 'quarantine', icon: ShieldAlert, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
   rejected: { translationKey: 'rejected', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
   cold_storage: { translationKey: 'coldStorage', icon: Snowflake, color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
+  // UAT holds these two as well; without an entry the fallback used the raw
+  // type as the translation key and the card printed 'dashboard.warehouseTypes.qc'.
+  qc: { translationKey: 'qc', icon: ShieldAlert, color: 'text-violet-600', bgColor: 'bg-violet-100' },
+  retain_sample: { translationKey: 'retainSample', icon: Boxes, color: 'text-amber-600', bgColor: 'bg-amber-100' },
 };
 
 const getWarehouseTypeConfig = (type: string) => {
@@ -174,7 +178,7 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/production/work-orders"
+                href="/production/work-orders?status=in_progress"
                 data-testid="kpi-link-active-work-orders"
                 className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
@@ -191,7 +195,7 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/quality/deviations"
+                href="/quality/deviations?status=open"
                 data-testid="kpi-link-open-deviations"
                 className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
@@ -210,7 +214,7 @@ export default function DashboardPage() {
               </Link>
 
               <Link
-                href="/inventory/expiry-alerts"
+                href="/inventory/expiry-alerts?days=30"
                 data-testid="kpi-link-expiring-soon"
                 className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >

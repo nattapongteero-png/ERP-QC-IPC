@@ -664,7 +664,8 @@
       "expired": "Expired",
       "released": "Released",
       "rejected": "Rejected",
-      "blocked": "Blocked"
+      "blocked": "Blocked",
+      "underTest": "Under Test"
     }
   },
   "warehouses": {

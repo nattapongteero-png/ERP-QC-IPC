@@ -79,7 +79,9 @@
     "finishedGoods": "Finished Goods",
     "quarantine": "Quarantine",
     "rejected": "Rejected",
-    "coldStorage": "Cold Storage"
+    "coldStorage": "Cold Storage",
+    "qc": "QC Sample Store",
+    "retainSample": "Retain Sample Store"
   },
   "moduleKpis": {
     "title": "Module KPIs",

@@ -10,7 +10,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { toLocalDateStr } from '@/lib/utils/date-format';
 import { formatNumber } from '@/lib/utils/number-format';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useMobile } from '@/hooks/use-mobile';
@@ -229,7 +229,13 @@ export default function WorkOrdersPage() {
   const t = useTranslations('production');
   const tCommon = useTranslations('common');
   const { isMobile } = useMobile();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  // Seed from ?status= so the dashboard KPI "13 in progress" lands on exactly
+  // those 13. The card linked here with no filter, so it listed every work
+  // order and the count on screen never matched the card that was clicked.
+  const searchParams = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    () => searchParams.get('status') || undefined,
+  );
   // Production plan calendar (แผนการผลิต) collapsible section — list item 47.
   const [planOpen, setPlanOpen] = useState(false);
   const queryClient = useQueryClient();
