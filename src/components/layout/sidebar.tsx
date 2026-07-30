@@ -126,6 +126,7 @@ const navigation: NavItem[] = [
     icon: Factory,
     roles: ['admin', 'manager', 'production', 'qc'],
     children: [
+      { name: 'Dashboard', href: '/production', icon: LayoutDashboard },
       { name: 'BOM/Recipes', href: '/production/bom', icon: FileText },
       { name: 'Work Orders', href: '/production/work-orders', icon: ClipboardList },
       { name: 'Batch Records', href: '/production/batch-records', icon: FileText },
@@ -174,6 +175,7 @@ const navigation: NavItem[] = [
     icon: Shield,
     roles: ['admin', 'manager', 'qc', 'qa', 'production'],
     children: [
+      { name: 'Dashboard', href: '/gmp', icon: LayoutDashboard },
       { name: 'Documents', href: '/gmp/documents', icon: FileSearch },
       { name: 'SOP Assistant', href: '/gmp/documents/assistant', icon: Sparkles },
       { name: 'Changes', href: '/gmp/changes', icon: History },
@@ -192,6 +194,7 @@ const navigation: NavItem[] = [
     icon: ShoppingCart,
     roles: ['admin', 'manager', 'purchasing', 'warehouse'],
     children: [
+      { name: 'Dashboard', href: '/purchasing', icon: LayoutDashboard },
       { name: 'Requisitions', href: '/purchasing/requisitions', icon: ClipboardList },
       { name: 'Purchase Orders', href: '/purchasing/orders', icon: Receipt },
       { name: 'Vendors', href: '/purchasing/vendors', icon: Building2 },
@@ -205,6 +208,7 @@ const navigation: NavItem[] = [
     icon: Truck,
     roles: ['admin', 'manager', 'sales', 'warehouse'],
     children: [
+      { name: 'Dashboard', href: '/sales', icon: LayoutDashboard },
       { name: 'Quotations', href: '/sales/quotations', icon: FileText },
       { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingBag },
       { name: 'Delivery Notes', href: '/sales/deliveries', icon: Truck },
@@ -273,6 +277,11 @@ const navigation: NavItem[] = [
     icon: UserCog,
     roles: ['admin', 'manager', 'hr', 'hr_admin', 'hr_staff'],
     children: [
+      // A parent with children renders as a collapse toggle, so its own href is
+      // never navigable — /hr existed and returned 200 but nothing in the menu
+      // could reach it. Same fix the other modules already use (accounting,
+      // cost, vmi, issues, template all expose their root this way).
+      { name: 'Dashboard', href: '/hr', icon: LayoutDashboard },
       { name: 'Organization', href: '/hr/org', icon: Network },
       { name: 'Employees', href: '/hr/employees', icon: Users },
       { name: 'Positions', href: '/hr/positions', icon: ClipboardList },
