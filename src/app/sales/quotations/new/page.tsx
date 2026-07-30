@@ -11,6 +11,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
@@ -71,19 +72,48 @@ const formatDateForApi = (value: unknown): string | null => {
 // value is the readable Thai label because the quotation detail page renders
 // paymentTerms verbatim; mirrors the sales-order paymentOptions.
 const PAYMENT_TERMS_OPTIONS = [
-  'เงินสด (Cash)',
-  'ชำระเมื่อส่งมอบ (COD)',
-  'ชำระภายใน 7 วัน',
-  'ชำระภายใน 15 วัน',
-  'ชำระภายใน 30 วัน',
-  'ชำระภายใน 45 วัน',
-  'ชำระภายใน 60 วัน',
-  'ชำระภายใน 90 วัน',
+  'quotationNew.terms.cash',
+  'quotationNew.terms.cod',
+  'quotationNew.terms.net7',
+  'quotationNew.terms.net15',
+  'quotationNew.terms.net30',
+  'quotationNew.terms.net45',
+  'quotationNew.terms.net60',
+  'quotationNew.terms.net90',
 ] as const;
+
+// The Thai label is the CANONICAL STORED value: the quotation detail page prints
+// paymentTerms verbatim and existing rows already contain these exact strings,
+// so switching the stored value to a key would break every saved quotation.
+// Only the dropdown DISPLAY is translated.
+const TH_PAYMENT_TERM_VALUES: Record<(typeof PAYMENT_TERMS_OPTIONS)[number], string> = {
+  'quotationNew.terms.cash': 'เงินสด (Cash)',
+  'quotationNew.terms.cod': 'ชำระเมื่อส่งมอบ (COD)',
+  'quotationNew.terms.net7': 'ชำระภายใน 7 วัน',
+  'quotationNew.terms.net15': 'ชำระภายใน 15 วัน',
+  'quotationNew.terms.net30': 'ชำระภายใน 30 วัน',
+  'quotationNew.terms.net45': 'ชำระภายใน 45 วัน',
+  'quotationNew.terms.net60': 'ชำระภายใน 60 วัน',
+  'quotationNew.terms.net90': 'ชำระภายใน 90 วัน',
+};
+const thPaymentTerms = (k: (typeof PAYMENT_TERMS_OPTIONS)[number]) => TH_PAYMENT_TERM_VALUES[k];
 
 export default function NewQuotationPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('sales');
+  const tCommon = useTranslations('common');
+  // The STORED value stays the Thai label, because the quotation detail page
+  // renders paymentTerms verbatim and existing rows already hold Thai text.
+  // Only the displayed text follows the language.
+  const paymentTermOptions = useMemo(
+    () =>
+      PAYMENT_TERMS_OPTIONS.map((key) => ({
+        value: thPaymentTerms(key),
+        label: t(key),
+      })),
+    [t],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -151,13 +181,13 @@ export default function NewQuotationPage() {
         itemCode: item.code,
         description: item.nameTh || item.nameEn || item.code,
         quantity: 1,
-        unit: item.primaryUnit || 'หน่วย',
+        unit: item.primaryUnit || t(`quotationNew.unit`),
         unitPrice: item.sellingPrice || 0,
         notes: '',
       },
     ]);
     setKeyCounter((n) => n + 1);
-  }, [keyCounter]);
+  }, [keyCounter, t]);
 
   const handleAddBlankLine = useCallback(() => {
     setLines((prev) => [
@@ -166,13 +196,13 @@ export default function NewQuotationPage() {
         key: keyCounter,
         description: '',
         quantity: 1,
-        unit: 'หน่วย',
+      unit: t(`quotationNew.unit`),
         unitPrice: 0,
         notes: '',
       },
     ]);
     setKeyCounter((n) => n + 1);
-  }, [keyCounter]);
+  }, [keyCounter, t]);
 
   const updateLine = useCallback((key: number, patch: Partial<QuotationFormLine>) => {
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -184,15 +214,15 @@ export default function NewQuotationPage() {
 
   const handleSave = async () => {
     if (!form.customerName.trim()) {
-      toast.error('กรุณากรอกชื่อลูกค้า');
+      toast.error(t(`quotationNew.errNoCustomer`));
       return;
     }
     if (lines.length === 0) {
-      toast.error('กรุณาเพิ่มรายการอย่างน้อยหนึ่งรายการ');
+      toast.error(t(`quotationNew.errNoLines`));
       return;
     }
     if (lines.some((l) => !l.description.trim())) {
-      toast.error('กรุณากรอกรายละเอียดให้ครบทุกรายการ');
+      toast.error(t(`quotationNew.errIncomplete`));
       return;
     }
 
@@ -223,14 +253,14 @@ export default function NewQuotationPage() {
       });
       const json = await res.json();
       if (json.success) {
-        toast.success('สร้างใบเสนอราคาสำเร็จ', json.data?.quotationNumber);
+        toast.success(t(`quotationNew.createOk`), json.data?.quotationNumber);
         router.push(`/sales/quotations/${json.data.id}`);
       } else {
-        toast.error(json.error || 'ไม่สามารถสร้างใบเสนอราคาได้');
+        toast.error(json.error || t(`quotationNew.createFail`));
       }
     } catch (e) {
       console.error('Failed to create quotation:', e);
-      toast.error('ไม่สามารถสร้างใบเสนอราคาได้');
+      toast.error(t(`quotationNew.createFail`));
     } finally {
       setIsSaving(false);
     }
@@ -256,12 +286,12 @@ export default function NewQuotationPage() {
           defaultValue={cell.data.description}
           onValueChanged={(e) => updateLine(cell.data.key, { description: e.value || '' })}
           valueChangeEvent="change blur"
-          placeholder="รายละเอียด"
+                        placeholder={t(`quotationNew.detailPlaceholder`)}
           stylingMode="outlined"
         />
       </div>
     </div>
-  ), [updateLine]);
+  ), [updateLine, t]);
 
   const renderQuantityCell = useCallback((cell: { data: QuotationFormLine }) => (
     <NumberBox
@@ -319,22 +349,22 @@ export default function NewQuotationPage() {
       defaultValue={cell.data.notes || ''}
       onValueChanged={(e) => updateLine(cell.data.key, { notes: e.value || '' })}
       valueChangeEvent="change blur"
-      placeholder="หมายเหตุ"
+                        placeholder={t(`quotationNew.notePlaceholder`)}
       stylingMode="outlined"
     />
-  ), [updateLine]);
+  ), [updateLine, t]);
 
   const renderActionsCell = useCallback((cell: { data: QuotationFormLine }) => (
     <button
       type="button"
       onClick={() => removeLine(cell.data.key)}
       className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-      title="ลบรายการ"
+                    title={t(`quotationNew.deleteLine`)}
       data-testid={`btn-remove-line-${cell.data.key}`}
     >
       <Trash2 className="h-4 w-4" />
     </button>
-  ), [removeLine]);
+  ), [removeLine, t]);
 
   return (
     <MainLayout>
@@ -343,7 +373,7 @@ export default function NewQuotationPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Button
-              text="กลับ"
+            text={t(`quotationNew.back`)}
               icon="back"
               stylingMode="text"
               onClick={() => router.back()}
@@ -356,15 +386,15 @@ export default function NewQuotationPage() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900" data-testid="qt-form-title" data-build="qt-form-fix-20260727">
-                  สร้างใบเสนอราคา
+                {t(`quotationNew.title`)}
                 </h1>
-                <p className="text-sm text-gray-500">เสนอราคาสินค้า/บริการให้ลูกค้า</p>
+                <p className="text-sm text-gray-500">{t(`quotationNew.subtitle`)}</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              text="ยกเลิก"
+              text={tCommon(`actions.cancel`)}
               icon="close"
               stylingMode="outlined"
               onClick={() => router.back()}
@@ -372,7 +402,7 @@ export default function NewQuotationPage() {
               elementAttr={{ 'data-testid': 'qt-cancel-btn' }}
             />
             <Button
-              text={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={isSaving ? tCommon(`actions.saving`) : tCommon(`actions.save`)}
               icon="save"
               type="success"
               onClick={handleSave}
@@ -389,7 +419,7 @@ export default function NewQuotationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Building2 className="h-5 w-5 text-purple-500" />
-                  ข้อมูลลูกค้า
+                  {t(`quotationNew.customerInfo`)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -437,7 +467,7 @@ export default function NewQuotationPage() {
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <Button
-                          text="เปลี่ยน"
+                        text={t(`quotationNew.change`)}
                           type="normal"
                           stylingMode="outlined"
                           onClick={() => setIsCustomerDialogOpen(true)}
@@ -448,7 +478,7 @@ export default function NewQuotationPage() {
                           type="danger"
                           stylingMode="text"
                           onClick={handleClearCustomer}
-                          hint="ล้างลูกค้า"
+                        hint={t(`quotationNew.clearCustomer`)}
                           elementAttr={{ 'data-testid': 'qt-clear-customer-btn' }}
                         />
                       </div>
@@ -462,36 +492,36 @@ export default function NewQuotationPage() {
                     className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-colors text-gray-500 hover:text-emerald-600"
                   >
                     <Search className="h-5 w-5" />
-                    <span>เลือกลูกค้าจากรายชื่อ</span>
+                      <span>{t(`quotationNew.pickFromList`)}</span>
                   </button>
                 )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ชื่อลูกค้า <span className="text-red-500">*</span>
+                      {t(`quotationNew.customerName`)} <span className="text-red-500">*</span>
                   </label>
                   <TextBox
                     value={form.customerName}
                     onValueChanged={(e) => setForm((p) => ({ ...p, customerName: e.value || '' }))}
-                    placeholder="ชื่อลูกค้า / บริษัท"
+                      placeholder={t(`quotationNew.customerNamePlaceholder`)}
                     elementAttr={{ 'data-testid': 'qt-customer-name-input' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ติดต่อ</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t(`quotationNew.contact`)}</label>
                   <TextBox
                     value={form.customerContact}
                     onValueChanged={(e) => setForm((p) => ({ ...p, customerContact: e.value || '' }))}
-                    placeholder="ชื่อผู้ติดต่อ / เบอร์โทร"
+                      placeholder={t(`quotationNew.contactPlaceholder`)}
                     elementAttr={{ 'data-testid': 'qt-customer-contact-input' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t(`quotationNew.address`)}</label>
                   <TextArea
                     value={form.customerAddress}
                     onValueChanged={(e) => setForm((p) => ({ ...p, customerAddress: e.value || '' }))}
-                    placeholder="ที่อยู่ลูกค้า"
+                      placeholder={t(`quotationNew.addressPlaceholder`)}
                     height={70}
                     elementAttr={{ 'data-testid': 'qt-customer-address-input' }}
                   />
@@ -507,10 +537,10 @@ export default function NewQuotationPage() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Package className="h-5 w-5 text-indigo-500" />
-                    รายการสินค้า/บริการ
+                  {t(`quotationNew.lines`)}
                     {lines.length > 0 && (
                       <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
-                        {lines.length} รายการ
+                    {t(`quotationNew.lineCount`, { count: lines.length })}
                       </span>
                     )}
                   </CardTitle>
@@ -519,7 +549,7 @@ export default function NewQuotationPage() {
                       from the item catalogue anyway (list item 5). The blank
                       line stays available from the empty state below. */}
                   <Button
-                    text="เลือกจากคลัง"
+                    text={t(`quotationNew.pickFromStock`)}
                     icon="search"
                     type="default"
                     onClick={() => setIsItemDialogOpen(true)}
@@ -583,35 +613,35 @@ export default function NewQuotationPage() {
                           width, so the table's total always equals the card. */}
                       <Column
                         dataField="description"
-                        caption="รายละเอียด"
+                    caption={t(`quotationNew.columns.detail`)}
                         minWidth={150}
                         cellRender={renderDescriptionCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="quantity"
-                        caption="จำนวน"
+                    caption={t(`quotationNew.columns.quantity`)}
                         width={70}
                         cellRender={renderQuantityCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unit"
-                        caption="หน่วย"
+                    caption={t(`quotationNew.columns.unit`)}
                         width={70}
                         cellRender={renderUnitCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="unitPrice"
-                        caption="ราคา/หน่วย"
+                    caption={t(`quotationNew.columns.unitPrice`)}
                         width={95}
                         cellRender={renderUnitPriceCell}
                         allowSorting={false}
                       />
                       <Column
                         dataField="amount"
-                        caption="จำนวนเงิน"
+                    caption={t(`quotationNew.columns.amount`)}
                         width={90}
                         alignment="right"
                         cellRender={renderAmountCell}
@@ -619,7 +649,7 @@ export default function NewQuotationPage() {
                       />
                       <Column
                         dataField="notes"
-                        caption="หมายเหตุ"
+                    caption={t(`quotationNew.columns.note`)}
                         width={100}
                         cellRender={renderNotesCell}
                         allowSorting={false}
@@ -635,12 +665,12 @@ export default function NewQuotationPage() {
                     <div className="p-4 border-t bg-gray-50">
                       <div className="flex justify-end">
                         <div className="w-full max-w-xs flex justify-between items-center">
-                          <span className="text-sm text-gray-500">ยอดรวมทั้งสิ้น</span>
+                    <span className="text-sm text-gray-500">{t(`quotationNew.grandTotal`)}</span>
                           <span
                             className="text-2xl font-bold text-green-600 tabular-nums"
                             data-testid="qt-total-amount"
                           >
-                            {formatNumber(totalAmount)} บาท
+                      {t(`quotationNew.amountBaht`, { amount: formatNumber(totalAmount) })}
                           </span>
                         </div>
                       </div>
@@ -651,19 +681,19 @@ export default function NewQuotationPage() {
                     <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Package className="h-8 w-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 font-medium">ยังไม่มีรายการ</p>
+                  <p className="text-gray-500 font-medium">{t(`quotationNew.noLines`)}</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      เลือกสินค้าจากคลังหรือเพิ่มรายการอิสระ
+                    {t(`quotationNew.noLinesHint`)}
                     </p>
                     <div className="flex items-center justify-center gap-2 mt-4">
                       <Button
-                        text="เพิ่มรายการอิสระ"
+                      text={t(`quotationNew.addFreeLine`)}
                         icon="plus"
                         stylingMode="outlined"
                         onClick={handleAddBlankLine}
                       />
                       <Button
-                        text="เลือกจากคลัง"
+                      text={t(`quotationNew.pickFromStock`)}
                         icon="search"
                         type="default"
                         stylingMode="outlined"
@@ -679,14 +709,14 @@ export default function NewQuotationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileText className="h-5 w-5 text-gray-500" />
-                  หมายเหตุ
+                  {t(`quotationNew.notes`)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <TextArea
                   value={form.notes}
                   onValueChanged={(e) => setForm((p) => ({ ...p, notes: e.value || '' }))}
-                  placeholder="หมายเหตุเพิ่มเติม"
+                  placeholder={t(`quotationNew.notesPlaceholder`)}
                   height={90}
                   elementAttr={{ 'data-testid': 'qt-notes-input' }}
                 />
@@ -700,12 +730,12 @@ export default function NewQuotationPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Calendar className="h-5 w-5 text-blue-500" />
-                  รายละเอียดใบเสนอราคา
+                  {t(`quotationNew.details`)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t(`quotationNew.date`)}</label>
                   <DateBox
                     value={form.quotationDate || undefined}
                     onValueChanged={(e) =>
@@ -713,14 +743,14 @@ export default function NewQuotationPage() {
                     }
                     type="date"
                     displayFormat="d MMMM yyyy"
-                    placeholder="เลือกวันที่"
+                    placeholder={t(`quotationNew.pickDate`)}
                     showClearButton
                     useMaskBehavior
                     elementAttr={{ 'data-testid': 'qt-date-input' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ใช้ได้ถึง</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t(`quotationNew.validUntil`)}</label>
                   <DateBox
                     value={form.validUntil || undefined}
                     onValueChanged={(e) =>
@@ -728,7 +758,7 @@ export default function NewQuotationPage() {
                     }
                     type="date"
                     displayFormat="d MMMM yyyy"
-                    placeholder="เลือกวันที่"
+                    placeholder={t(`quotationNew.pickDate`)}
                     showClearButton
                     useMaskBehavior
                     elementAttr={{ 'data-testid': 'qt-valid-until-input' }}
@@ -737,15 +767,17 @@ export default function NewQuotationPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <CreditCard className="h-4 w-4 inline mr-1" />
-                    เงื่อนไขการชำระเงิน
+                    {t(`quotationNew.paymentTerms`)}
                   </label>
                   {/* Dropdown, pick-from-list only (no acceptCustomValue) — the
                       free-text box became a fixed choice list (list item 6). */}
                   <SelectBox
-                    dataSource={PAYMENT_TERMS_OPTIONS as unknown as string[]}
+                    dataSource={paymentTermOptions}
+                    valueExpr="value"
+                    displayExpr="label"
                     value={form.paymentTerms || null}
                     onValueChanged={(e) => setForm((p) => ({ ...p, paymentTerms: e.value || '' }))}
-                    placeholder="เลือกเงื่อนไขการชำระเงิน"
+                    placeholder={t(`quotationNew.paymentTermsPlaceholder`)}
                     showClearButton
                     searchEnabled
                     elementAttr={{ 'data-testid': 'qt-payment-terms-input' }}
@@ -756,27 +788,27 @@ export default function NewQuotationPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">สรุป</CardTitle>
+                <CardTitle className="text-base">{t(`quotationNew.summary`)}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">จำนวนรายการ</span>
-                  <span className="font-medium text-gray-900">{formatNumber(lines.length)} รายการ</span>
+                  <span className="text-gray-500">{t(`quotationNew.itemCount`)}</span>
+                  <span className="font-medium text-gray-900">{t(`quotationNew.lineCount`, { count: formatNumber(lines.length) })}</span>
                 </div>
                 {/* `truncate max-w-[150px]` forced the name onto one 150px line,
                     so "บริษัท ออมสินร่ำรวยเงินทอง จำกัด" was cut to
                     "บริษัท ออมสินร่ำรวยเงิน..." with empty space still below it.
                     Let it wrap and right-align instead of clipping. */}
                 <div className="flex justify-between gap-3">
-                  <span className="text-gray-500 shrink-0">ลูกค้า</span>
+                  <span className="text-gray-500 shrink-0">{t(`quotationNew.customer`)}</span>
                   <span className="font-medium text-gray-900 text-right break-words min-w-0">
                     {form.customerName || '-'}
                   </span>
                 </div>
                 <div className="pt-3 border-t flex justify-between items-center">
-                  <span className="text-gray-700 font-medium">ยอดรวม</span>
+                  <span className="text-gray-700 font-medium">{t(`quotationNew.total`)}</span>
                   <span className="text-xl font-bold text-green-600 tabular-nums">
-                    {formatNumber(totalAmount)} บาท
+                    {t(`quotationNew.amountBaht`, { amount: formatNumber(totalAmount) })}
                   </span>
                 </div>
               </CardContent>
@@ -789,7 +821,7 @@ export default function NewQuotationPage() {
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleSelectItem}
-        title="เลือกสินค้า"
+        title={t(`quotationNew.pickItemTitle`)}
         showPrice="selling"
         allowCreate
         excludeIds={lines.map((l) => l.itemId).filter((id): id is number => !!id)}
@@ -799,7 +831,7 @@ export default function NewQuotationPage() {
         open={isCustomerDialogOpen}
         onOpenChange={setIsCustomerDialogOpen}
         onSelect={handleSelectCustomer}
-        title="เลือกลูกค้า"
+        title={t(`quotationNew.pickCustomerTitle`)}
         allowCreate
       />
     </MainLayout>
