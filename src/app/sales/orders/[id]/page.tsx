@@ -736,7 +736,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'lotNumber',
       caption: t('orders.detail.columns.lot'),
-      width: 120,
+      width: 200,
       cellRender: (cellInfo) => (
         <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded">{cellInfo.data.lotNumber}</span>
       ),
@@ -752,7 +752,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
     {
       dataField: 'deliveryDate',
       caption: t('orders.detail.columns.deliveryDate'),
-      width: 110,
+      width: 130,
       cellRender: (cellInfo) => (
         <span>{formatDate(cellInfo.data.deliveryDate)}</span>
       ),

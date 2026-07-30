@@ -252,3 +252,11 @@ a:hover {
 .dx-datagrid .dx-data-row > td:has(button) {
   text-overflow: clip !important;
 }
+
+/* Keep wrapped cells (wordWrapEnabled, set globally in devextreme-provider)
+ * reading cleanly by breaking very long unbroken tokens (lot numbers, codes)
+ * instead of overflowing. */
+.dx-datagrid .dx-data-row > td {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
