@@ -70,15 +70,6 @@ function getAgingDays(receivedDate: string | null): number | null {
   return Math.floor((Date.now() - received.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// Item type labels
-const ITEM_TYPE_LABELS: Record<string, string> = {
-  raw_material: 'วัตถุดิบ',
-  finished_good: 'สินค้าสำเร็จรูป',
-  finished_goods: 'สินค้าสำเร็จรูป',
-  packaging: 'บรรจุภัณฑ์',
-  consumable: 'วัสดุสิ้นเปลือง',
-};
-
 type QuickFilter = '' | 'near_expiry' | 'expired' | 'raw_material' | 'finished_goods' | 'valued_fg' | 'valued_rm';
 
 interface LotFormData {
@@ -595,7 +586,7 @@ export default function LotsPage() {
       try {
         const re = new RegExp(vendorLotRegex);
         if (!re.test(formData.vendorLotNumber.trim())) {
-          errors.vendorLotNumber = `รูปแบบเลข Lot ผู้ขายไม่ตรงข้อกำหนด (ต้องตรงกับ: ${vendorLotRegex})`;
+          errors.vendorLotNumber = t(`lots.vendorLotFormatError`, { pattern: vendorLotRegex });
         }
       } catch { /* malformed stored regex — skip */ }
     }
@@ -1205,7 +1196,7 @@ export default function LotsPage() {
           )}
           <DxButton
             icon="find"
-            hint="ดู Traceability"
+            hint={t(`lots.viewTraceability`)}
             type="default"
             stylingMode="text"
             onClick={(e) => {
@@ -1240,9 +1231,9 @@ export default function LotsPage() {
               <button
                 onClick={() => {
                   fetchLots().then(() => {
-                    toast.success('รีเฟรชข้อมูลสำเร็จ');
+                    toast.success(t(`lots.refreshSuccess`));
                   }).catch(() => {
-                    toast.error('เกิดข้อผิดพลาดในการรีเฟรชข้อมูล');
+                    toast.error(t(`lots.refreshError`));
                   });
                 }}
                 disabled={isLoading}
@@ -1251,7 +1242,7 @@ export default function LotsPage() {
               >
                 <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
                 <span className="hidden sm:inline">
-                  {isLoading ? 'กำลังโหลด...' : t('common.refresh')}
+                  {isLoading ? t(`lots.loading`) : t('common.refresh')}
                 </span>
               </button>
               <button
@@ -2045,26 +2036,26 @@ export default function LotsPage() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">นำเข้า Inventory Lots</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t(`lots.import.title`)}</h2>
               <button onClick={() => setShowImportDialog(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="h-5 w-5 text-gray-500" /></button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                <strong>หมายเหตุ:</strong> Lot ที่นำเข้าจะอยู่สถานะ <strong>Quarantine</strong> อัตโนมัติ และสร้าง Transaction (Receive) ให้ทุกรายการ
+                <strong>{t(`lots.import.noteLabel`)}</strong> {t(`lots.import.noteBody`)}
               </div>
               <div>
-                <span className="block text-sm font-medium text-gray-700 mb-2">เลือกไฟล์ Excel</span>
+                <span className="block text-sm font-medium text-gray-700 mb-2">{t(`lots.import.pickFile`)}</span>
                 <label
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer ${importingLots ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <input type="file" accept=".xlsx,.xls" onChange={handleImportLots} className="sr-only" />
-                  <Upload className="h-5 w-5" />{importingLots ? 'กำลังนำเข้า...' : 'คลิกเพื่อเลือกไฟล์ (.xlsx)'}
+                  <Upload className="h-5 w-5" />{importingLots ? t(`lots.import.importing`) : t(`lots.import.clickToPick`)}
                 </label>
-                <p className="mt-2 text-xs text-gray-500">ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย</p>
+                <p className="mt-2 text-xs text-gray-500">{t(`lots.import.requiredFields`)}</p>
               </div>
               {importLog.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-3 border">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ผลการนำเข้า:</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t(`lots.import.resultLabel`)}</label>
                   <div className="text-xs font-mono space-y-0.5 max-h-40 overflow-y-auto">
                     {importLog.map((line, i) => <div key={i} className={line.includes('❌') ? 'text-red-600' : 'text-gray-700'}>{line}</div>)}
                   </div>

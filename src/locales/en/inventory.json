@@ -666,7 +666,22 @@
       "rejected": "Rejected",
       "blocked": "Blocked",
       "underTest": "Under Test"
-    }
+    },
+    "viewTraceability": "View traceability",
+    "refreshSuccess": "Data refreshed",
+    "refreshError": "Could not refresh the data",
+    "loading": "Loading...",
+    "import": {
+      "title": "Import Inventory Lots",
+      "noteLabel": "Note:",
+      "noteBody": "Imported lots are placed in Quarantine automatically, and a Receive transaction is created for each one",
+      "pickFile": "Choose an Excel file",
+      "importing": "Importing...",
+      "clickToPick": "Click to choose a file (.xlsx)",
+      "requiredFields": "Required: Lot No., Item Code, Warehouse, Quantity, Unit",
+      "resultLabel": "Import result:"
+    },
+    "vendorLotFormatError": "Vendor lot number does not match the required format (must match: {pattern})"
   },
   "warehouses": {
     "title": "Warehouses",

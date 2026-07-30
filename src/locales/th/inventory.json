@@ -666,7 +666,22 @@
       "rejected": "ถูกปฏิเสธ",
       "blocked": "ล็อค",
       "underTest": "รอตรวจ"
-    }
+    },
+    "viewTraceability": "ดู Traceability",
+    "refreshSuccess": "รีเฟรชข้อมูลสำเร็จ",
+    "refreshError": "เกิดข้อผิดพลาดในการรีเฟรชข้อมูล",
+    "loading": "กำลังโหลด...",
+    "import": {
+      "title": "นำเข้า Inventory Lots",
+      "noteLabel": "หมายเหตุ:",
+      "noteBody": "Lot ที่นำเข้าจะอยู่สถานะ Quarantine อัตโนมัติ และสร้าง Transaction (Receive) ให้ทุกรายการ",
+      "pickFile": "เลือกไฟล์ Excel",
+      "importing": "กำลังนำเข้า...",
+      "clickToPick": "คลิกเพื่อเลือกไฟล์ (.xlsx)",
+      "requiredFields": "ฟิลด์บังคับ: เลข Lot, รหัสสินค้า, คลังสินค้า, จำนวน, หน่วย",
+      "resultLabel": "ผลการนำเข้า:"
+    },
+    "vendorLotFormatError": "รูปแบบเลข Lot ผู้ขายไม่ตรงข้อกำหนด (ต้องตรงกับ: {pattern})"
   },
   "warehouses": {
     "title": "คลังสินค้า",
