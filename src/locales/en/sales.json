@@ -494,7 +494,9 @@
       },
       "validation": {
         "selectCustomer": "Please select a customer",
-        "addItem": "Please add at least 1 item"
+        "addItem": "Please add at least 1 item",
+        "selectRequiredDate": "Please select the required delivery date",
+        "selectPaymentTerms": "Please select the payment terms"
       },
       "toast": {
         "deleteSuccess": "Item deleted successfully",

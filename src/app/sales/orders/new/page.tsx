@@ -253,6 +253,14 @@ export default function NewSalesOrderPage() {
       notify(t('orders.new.validation.addItem'), 'warning', 3000);
       return;
     }
+    if (!form.requiredDate) {
+      notify(t('orders.new.validation.selectRequiredDate'), 'warning', 3000);
+      return;
+    }
+    if (!form.paymentTerms) {
+      notify(t('orders.new.validation.selectPaymentTerms'), 'warning', 3000);
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -631,6 +639,7 @@ export default function NewSalesOrderPage() {
                         dataField="quantity"
                         caption={t('orders.new.columns.quantity')}
                         width={120}
+                        alignment="center"
                         cellRender={renderQuantityCell}
                         allowSorting={false}
                       />
@@ -638,6 +647,7 @@ export default function NewSalesOrderPage() {
                         dataField="unitPrice"
                         caption={t('orders.new.columns.unitPrice')}
                         width={140}
+                        alignment="center"
                         cellRender={renderUnitPriceCell}
                         allowSorting={false}
                       />
@@ -815,7 +825,7 @@ export default function NewSalesOrderPage() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('orders.new.requiredDate')}
+                    {t('orders.new.requiredDate')} <span className="text-red-500">*</span>
                   </label>
                   <DateBox
                     value={form.requiredDate}
@@ -830,7 +840,7 @@ export default function NewSalesOrderPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <CreditCard className="h-4 w-4 inline mr-1" />
-                    {t('orders.new.paymentTerms')}
+                    {t('orders.new.paymentTerms')} <span className="text-red-500">*</span>
                   </label>
                   <SelectBox
                     dataSource={paymentTermsOptions}
