@@ -248,6 +248,7 @@ a:hover {
  * paints a stray "…" right next to it — looks like a menu but does nothing.
  * A data cell whose content is a button never needs an ellipsis, so switch it
  * off for those cells (keep overflow:hidden so nothing bleeds past the cell). */
-.dx-datagrid .dx-data-row > td:has(.dx-button) {
+.dx-datagrid .dx-data-row > td:has(.dx-button),
+.dx-datagrid .dx-data-row > td:has(button) {
   text-overflow: clip !important;
 }
