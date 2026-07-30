@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
@@ -63,13 +64,15 @@ function daysUntil(date: string | null): number | null {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  shipped: 'จัดส่งแล้ว',
-  delivered: 'ส่งมอบแล้ว',
-  returned: 'ตีกลับ',
+  shipped: 'deliveries.status.shipped',
+  delivered: 'deliveries.status.delivered',
+  returned: 'deliveries.status.returned',
 };
 
 export default function DeliveriesPage() {
   const router = useRouter();
+  const t = useTranslations('sales');
+  const tCommon = useTranslations('common');
   const [data, setData] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
@@ -124,17 +127,17 @@ export default function DeliveriesPage() {
     if (!data) return;
     const rows = data.rows.map((r, i) => ({
       '#': i + 1,
-      'เลขที่ใบส่งของ': r.deliveryNumber,
-      'วันที่ส่ง': r.deliveryDate ?? '',
-      'เลขที่ใบขาย': r.soNumber ?? '',
-      'ลูกค้า': r.customerName ?? '',
-      'รหัสสินค้า': r.itemCode ?? '',
-      'ชื่อสินค้า': r.itemName ?? '',
-      'เลข Lot': r.lotNumber,
-      'วันหมดอายุ': r.expiryDate ?? '',
-      'จำนวน': r.quantity,
-      'หน่วย': r.unit,
-      'สถานะ': STATUS_LABEL[r.status] ?? r.status,
+      [t(`deliveries.columns.deliveryNumber`)]: r.deliveryNumber,
+      [t(`deliveries.columns.deliveryDate`)]: r.deliveryDate ?? '',
+      [t(`deliveries.columns.soNumber`)]: r.soNumber ?? '',
+      [t(`deliveries.columns.customer`)]: r.customerName ?? '',
+      [t(`deliveries.columns.itemCode`)]: r.itemCode ?? '',
+      [t(`deliveries.columns.itemName`)]: r.itemName ?? '',
+      [t(`deliveries.columns.lotNumber`)]: r.lotNumber,
+      [t(`deliveries.columns.expiryDate`)]: r.expiryDate ?? '',
+      [t(`deliveries.columns.quantity`)]: r.quantity,
+      [t(`deliveries.columns.unit`)]: r.unit,
+      [t(`deliveries.columns.status`)]: t(STATUS_LABEL[r.status] ?? r.status),
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -143,18 +146,18 @@ export default function DeliveriesPage() {
       { wch: 14 }, { wch: 30 }, { wch: 18 }, { wch: 12 }, { wch: 10 },
       { wch: 8 }, { wch: 12 },
     ];
-    XLSX.utils.book_append_sheet(wb, ws, 'ทะเบียนใบส่งของ');
+    XLSX.utils.book_append_sheet(wb, ws, t(`deliveries.sheetName`));
     XLSX.writeFile(wb, `delivery-notes-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const columns: DxDataGridColumn[] = [
-    { dataField: 'deliveryNumber', caption: 'เลขที่ใบส่งของ', width: 150 },
-    { dataField: 'deliveryDate', caption: 'วันที่ส่ง', width: 110 },
-    { dataField: 'soNumber', caption: 'เลขที่ใบขาย', width: 150 },
-    { dataField: 'customerName', caption: 'ลูกค้า', minWidth: 180 },
+    { dataField: 'deliveryNumber', caption: t(`deliveries.columns.deliveryNumber`), width: 150 },
+    { dataField: 'deliveryDate', caption: t(`deliveries.columns.deliveryDate`), width: 110 },
+    { dataField: 'soNumber', caption: t(`deliveries.columns.soNumber`), width: 150 },
+    { dataField: 'customerName', caption: t(`deliveries.columns.customer`), minWidth: 180 },
     {
       dataField: 'itemCode',
-      caption: 'สินค้า',
+      caption: t(`deliveries.columns.item`),
       minWidth: 200,
       cellRender: (c) => (
         <div>
@@ -163,10 +166,10 @@ export default function DeliveriesPage() {
         </div>
       ),
     },
-    { dataField: 'lotNumber', caption: 'เลข Lot', width: 150 },
+    { dataField: 'lotNumber', caption: t(`deliveries.columns.lotNumber`), width: 150 },
     {
       dataField: 'expiryDate',
-      caption: 'วันหมดอายุ',
+      caption: t(`deliveries.columns.expiryDate`),
       // 130px had to hold "2026-04-04 (หมดอายุ)" on one line, so the date was
       // clipped to "Tue Apr 04 (..." — the very thing this column exists to
       // make unmissable. Wider, and the badge wraps under the date.
@@ -184,14 +187,14 @@ export default function DeliveriesPage() {
         return (
           <span className={`px-2 py-0.5 rounded ${tone}`}>
             {exp}
-            {days !== null && days < 0 && ' (หมดอายุ)'}
+            {days !== null && days < 0 && ` (${t(`deliveries.expired`)})`}
           </span>
         );
       },
     },
     {
       dataField: 'quantity',
-      caption: 'จำนวน',
+      caption: t(`deliveries.columns.quantity`),
       width: 110,
       cellRender: (c) => (
         <span className="tabular-nums">
@@ -201,7 +204,7 @@ export default function DeliveriesPage() {
     },
     {
       dataField: 'status',
-      caption: 'สถานะ',
+      caption: t(`deliveries.columns.status`),
       width: 120,
       cellRender: (c) => {
         const s = String(c.data.status);
@@ -219,7 +222,7 @@ export default function DeliveriesPage() {
       cellRender: (c) => (
         <DxButton
           icon="print"
-          text="พิมพ์"
+            text={t(`deliveries.print`)}
           stylingMode="text"
           // stopPropagation: the row click opens the sales order, and printing
           // must not drag the user off the register.
@@ -239,17 +242,17 @@ export default function DeliveriesPage() {
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
         <ResponsivePageHeader
-          title="ทะเบียนใบส่งของ"
-          subtitle="รายการจัดส่งทั้งหมด พร้อมเลข Lot และวันหมดอายุ"
+          title={t(`deliveries.title`)}
+          subtitle={t(`deliveries.subtitle`)}
           icon={Truck}
           iconBgColor="bg-cyan-100"
           iconColor="text-cyan-600"
           actions={
             <div className="flex items-center gap-2 flex-wrap">
-              <DxButton icon="refresh" text="รีเฟรช" stylingMode="outlined" onClick={fetchData} />
+              <DxButton icon="refresh" text={tCommon(`actions.refresh`)} stylingMode="outlined" onClick={fetchData} />
               <DxButton
                 icon="xlsxfile"
-                text="ส่งออก Excel"
+                text={t(`deliveries.exportExcel`)}
                 stylingMode="outlined"
                 onClick={handleExport}
                 disabled={!data || data.rows.length === 0}
@@ -262,7 +265,7 @@ export default function DeliveriesPage() {
         <Card>
           <CardContent className="flex flex-wrap items-end gap-3 p-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">ตั้งแต่วันที่</label>
+                <label className="text-xs font-medium text-gray-500">{t(`deliveries.dateFrom`)}</label>
               <DxDateBox
                 value={dateFrom || undefined}
                 onValueChange={(v: unknown) => setDateFrom(v ? String(v).slice(0, 10) : '')}
@@ -271,7 +274,7 @@ export default function DeliveriesPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">ถึงวันที่</label>
+                <label className="text-xs font-medium text-gray-500">{t(`deliveries.dateTo`)}</label>
               <DxDateBox
                 value={dateTo || undefined}
                 onValueChange={(v: unknown) => setDateTo(v ? String(v).slice(0, 10) : '')}
@@ -281,7 +284,7 @@ export default function DeliveriesPage() {
             </div>
             {(dateFrom || dateTo) && (
               <DxButton
-                text="ล้างตัวกรอง"
+                  text={t(`deliveries.clearFilter`)}
                 stylingMode="text"
                 onClick={() => { setDateFrom(''); setDateTo(''); }}
               />
@@ -291,28 +294,28 @@ export default function DeliveriesPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            label="ใบส่งของ"
+            label={t(`deliveries.stats.notes`)}
             value={formatNumber(s?.documents ?? 0)}
             icon={FileText}
             tone="blue"
             isLoading={isLoading}
           />
           <StatCard
-            label="รายการจัดส่ง"
+            label={t(`deliveries.stats.lines`)}
             value={formatNumber(s?.lines ?? 0)}
             icon={Truck}
             tone="emerald"
             isLoading={isLoading}
           />
           <StatCard
-            label="ใบขายที่ส่งแล้ว"
+            label={t(`deliveries.stats.orders`)}
             value={formatNumber(s?.orders ?? 0)}
             icon={ShoppingBag}
             tone="violet"
             isLoading={isLoading}
           />
           <StatCard
-            label="ใกล้หมดอายุ (30 วัน)"
+            label={t(`deliveries.stats.expiringSoon`)}
             value={formatNumber(s?.expiringSoonLines ?? 0)}
             icon={Clock}
             tone="amber"
@@ -329,8 +332,8 @@ export default function DeliveriesPage() {
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              <b>พบการจัดส่งจากล็อตที่หมดอายุแล้ว {formatNumber(s.expiredLines)} รายการ</b>
-              {' '}— ตรวจสอบทันที (ดูวันหมดอายุสีแดงในตาราง)
+              <b>{t(`deliveries.expiredWarn`, { count: formatNumber(s.expiredLines) })}</b>
+              {' '}{t(`deliveries.expiredWarnHint`)}
             </span>
           </div>
         )}
@@ -349,7 +352,7 @@ export default function DeliveriesPage() {
                 // full picture (and the fulfilment actions) are.
                 if (e.data?.soId) router.push(`/sales/orders/${e.data.soId}`);
               }}
-              noDataText="ไม่มีรายการจัดส่งในช่วงเวลาที่เลือก"
+          noDataText={t(`deliveries.noData`)}
             />
           </CardContent>
         </Card>

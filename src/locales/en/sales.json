@@ -929,5 +929,44 @@
       "net60": "Net 60 days",
       "net90": "Net 90 days"
     }
+  },
+  "deliveries": {
+    "title": "Delivery Register",
+    "subtitle": "All shipments with lot numbers and expiry dates",
+    "exportExcel": "Export Excel",
+    "sheetName": "Delivery Register",
+    "print": "Print",
+    "clearFilter": "Clear filters",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "noData": "No shipments in the selected period",
+    "expired": "expired",
+    "columns": {
+      "deliveryNumber": "Delivery No.",
+      "deliveryDate": "Ship Date",
+      "soNumber": "Sales Order",
+      "customer": "Customer",
+      "item": "Item",
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "lotNumber": "Lot No.",
+      "expiryDate": "Expiry Date",
+      "quantity": "Qty",
+      "unit": "Unit",
+      "status": "Status"
+    },
+    "stats": {
+      "notes": "Delivery Notes",
+      "lines": "Shipment Lines",
+      "orders": "Orders Shipped",
+      "expiringSoon": "Expiring Soon (30 d)"
+    },
+    "expiredWarn": "{count} shipment line(s) came from expired lots",
+    "expiredWarnHint": "— check immediately (see the red expiry dates below)",
+    "status": {
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "returned": "Returned"
+    }
   }
 }
