@@ -1,5 +1,9 @@
 # Stage 1: Dependencies
-FROM oven/bun:1-alpine AS deps
+# Pin bun to the 1.2 line. The floating `oven/bun:1-alpine` tag moved to 1.3.14,
+# which fails with "error: Fail extracting tarball" on xlsx/jspdf/next and breaks
+# the build. bun 1.2.23 installs all 907 packages cleanly (bun.lock is v1, which
+# needs bun >= 1.2, so 1.1 can't read it either).
+FROM oven/bun:1.2-alpine AS deps
 # Install build tools for native modules (better-sqlite3 requires Python, make, g++)
 RUN apk add --no-cache libc6-compat python3 make g++ linux-headers
 WORKDIR /app
@@ -11,7 +15,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 # Stage 2: Builder
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1.2-alpine AS builder
 WORKDIR /app
 
 # Install libc6-compat for native module compatibility and Node.js for Next.js build
