@@ -210,7 +210,9 @@ export default function DeliveriesPage() {
         const s = String(c.data.status);
         return (
           <Badge variant={s === 'returned' ? 'danger' : 'success'} className="whitespace-nowrap">
-            {STATUS_LABEL[s] ?? s}
+            {/* STATUS_LABEL holds translation KEYS, so it must go through t()
+                — without it the badge printed the raw "deliveries.status.shipped". */}
+            {STATUS_LABEL[s] ? t(STATUS_LABEL[s]) : s}
           </Badge>
         );
       },
