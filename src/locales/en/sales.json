@@ -442,6 +442,7 @@
     "new": {
       "title": "Create New Sales Order",
       "description": "Enter customer and item information",
+      "loadingEdit": "Loading order for editing...",
       "customerSection": "Customer Information",
       "customerRequired": "Customer",
       "selectCustomerPlaceholder": "Click to search and select customer...",
@@ -501,7 +502,11 @@
       "toast": {
         "deleteSuccess": "Item deleted successfully",
         "createSuccess": "Sales order created successfully",
-        "createError": "Failed to create sales order"
+        "createError": "Failed to create sales order",
+        "updateSuccess": "Sales order updated successfully",
+        "updateError": "Failed to update sales order",
+        "loadError": "Failed to load sales order",
+        "editableDraftOnly": "Only draft sales orders can be edited"
       },
       "dialog": {
         "searchCustomer": "Search Customer",

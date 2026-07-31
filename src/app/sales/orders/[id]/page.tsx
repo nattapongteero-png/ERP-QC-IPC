@@ -1420,6 +1420,17 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
                 </button>
                 {so.status === 'draft' && (
                   <DxButton
+                    text={t('orders.actions.editOrder')}
+                    icon="edit"
+                    type="normal"
+                    stylingMode="text"
+                    onClick={() => router.push(`/sales/orders/new?edit=${so.id}`)}
+                    className="text-white hover:bg-white/20"
+                    elementAttr={{ 'data-testid': 'so-edit-btn' }}
+                  />
+                )}
+                {so.status === 'draft' && (
+                  <DxButton
                     text={t('orders.detail.actions.confirmOrder')}
                     icon="check"
                     type="success"

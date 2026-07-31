@@ -252,3 +252,13 @@ a:hover {
 .dx-datagrid .dx-data-row > td:has(button) {
   text-overflow: clip !important;
 }
+
+/* Sales-order line grid only: the unit-price cell shows a "set a selling price"
+ * hint under its input, so that cell is taller than the quantity cell. DevExtreme
+ * middle-aligns cells, which floated the quantity and price NumberBoxes to
+ * different heights ("ช่องไม่อยู่ระดับเดียวกัน"). Top-align THIS grid's data cells
+ * so both inputs start on the same line; the hint just hangs below. Scoped to the
+ * grid's data-testid so no other grid is affected. */
+[data-testid='so-lines-grid'] .dx-data-row > td {
+  vertical-align: top;
+}

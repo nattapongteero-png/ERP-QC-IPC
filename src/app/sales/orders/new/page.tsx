@@ -3,7 +3,7 @@
 // Sales Order Create Page
 // Following template design pattern with DevExtreme components
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -101,6 +101,10 @@ export default function NewSalesOrderPage() {
   const router = useRouter();
   const t = useTranslations('sales');
   const [isSaving, setIsSaving] = useState(false);
+  // Edit mode: when the page is opened as /sales/orders/new?edit=<id> it loads
+  // that DRAFT order and saving PUTs to it instead of creating a new one.
+  const [editId, setEditId] = useState<number | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   // Memoized options with translations
   const statusOptions = useMemo(() => STATUS_KEYS.map(key => ({
@@ -133,6 +137,83 @@ export default function NewSalesOrderPage() {
   });
 
   const [lines, setLines] = useState<SOLine[]>([]);
+
+  // ============================================================================
+  // Edit mode — load an existing DRAFT order into the form
+  // ============================================================================
+  // Read the id from window.location rather than useSearchParams so this client
+  // page doesn't need a Suspense boundary just to check one query param.
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('edit');
+    const id = raw ? Number(raw) : NaN;
+    if (!Number.isInteger(id) || id <= 0) return;
+    setEditId(id);
+    setIsLoadingEdit(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/sales/orders/${id}/detail`);
+        const json = await res.json();
+        if (!json.success || !json.data?.salesOrder) {
+          notify(t('orders.new.toast.loadError'), 'error', 5000);
+          return;
+        }
+        const so = json.data.salesOrder;
+        const loaded = (json.data.lines || []) as Array<{
+          itemId: number; itemCode: string; itemName: string;
+          itemUnit: string; quantity: number; unitPrice: number;
+        }>;
+        // A non-draft order cannot be rewritten (stock/GL already moved). Warn
+        // and let the server's PUT reject it rather than pretend it's editable.
+        if (so.status !== 'draft') {
+          notify(t('orders.new.toast.editableDraftOnly'), 'warning', 6000);
+        }
+        setForm({
+          customerName: so.customerName || '',
+          customerContact: so.customerContact || '',
+          customerAddress: so.customerAddress || '',
+          requiredDate: so.requiredDate ? new Date(so.requiredDate) : null,
+          paymentTerms: so.paymentTerms || '',
+          notes: so.notes || '',
+          status: so.status || 'draft',
+          shippingCost: so.shippingCost != null ? Number(so.shippingCost) : 0,
+          carrier: so.carrier || '',
+          trackingNumber: so.trackingNumber || '',
+        });
+        setLines(
+          loaded.map((l, i) => ({
+            id: i + 1,
+            itemId: l.itemId,
+            itemCode: l.itemCode,
+            itemName: l.itemName,
+            unit: l.itemUnit || 'unit',
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            lineTotal: l.quantity * l.unitPrice,
+            notes: '',
+          })),
+        );
+        setLineIdCounter(loaded.length + 1);
+        // Pull the full customer so the customer card shows code/type, not blanks.
+        if (so.customerId) {
+          try {
+            const cRes = await fetch(`/api/customers/${so.customerId}`);
+            const cJson = await cRes.json();
+            if (cJson.success && cJson.data?.customer) {
+              setSelectedCustomer(cJson.data.customer as Customer);
+            }
+          } catch {
+            /* card still shows name/address from the form even without this */
+          }
+        }
+      } catch {
+        notify(t('orders.new.toast.loadError'), 'error', 5000);
+      } finally {
+        setIsLoadingEdit(false);
+      }
+    })();
+    // Run once on mount; the id is read straight from the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ============================================================================
   // Computed Values
@@ -264,45 +345,58 @@ export default function NewSalesOrderPage() {
 
     setIsSaving(true);
     try {
-      const res = await fetch('/api/sales/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Send the master-data link, not just the name. Without it the AR
-          // invoice cannot identify the buyer and its tax invoice ends up with
-          // no ผู้ซื้อ / เลขประจำตัวผู้เสียภาษี.
-          customerId: selectedCustomer?.id,
-          customerName: form.customerName,
-          customerContact: form.customerContact,
-          customerAddress: form.customerAddress,
-          requiredDate: formatDateForApi(form.requiredDate),
-          paymentTerms: form.paymentTerms,
-          notes: form.notes,
-          status: form.status,
-          shippingCost: form.shippingCost,
-          carrier: form.carrier,
-          trackingNumber: form.trackingNumber,
-          lines: lines.map(line => ({
-            itemId: line.itemId,
-            quantity: line.quantity,
-            unit: line.unit,
-            unitPrice: line.unitPrice,
-            notes: line.notes,
-          })),
-        }),
-      });
+      // Same payload either way; only the verb and target differ. PUT rewrites
+      // the existing draft; POST creates a new order.
+      const res = await fetch(
+        editId ? `/api/sales/orders/${editId}` : '/api/sales/orders',
+        {
+          method: editId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // Send the master-data link, not just the name. Without it the AR
+            // invoice cannot identify the buyer and its tax invoice ends up with
+            // no ผู้ซื้อ / เลขประจำตัวผู้เสียภาษี.
+            customerId: selectedCustomer?.id,
+            customerName: form.customerName,
+            customerContact: form.customerContact,
+            customerAddress: form.customerAddress,
+            requiredDate: formatDateForApi(form.requiredDate),
+            paymentTerms: form.paymentTerms,
+            notes: form.notes,
+            status: form.status,
+            shippingCost: form.shippingCost,
+            carrier: form.carrier,
+            trackingNumber: form.trackingNumber,
+            lines: lines.map(line => ({
+              itemId: line.itemId,
+              quantity: line.quantity,
+              unit: line.unit,
+              unitPrice: line.unitPrice,
+              notes: line.notes,
+            })),
+          }),
+        },
+      );
 
       const result = await res.json();
 
       if (result.success) {
-        notify(t('orders.new.toast.createSuccess'), 'success', 3000);
-        router.push(`/sales/orders/${result.data.id}`);
+        notify(
+          t(editId ? 'orders.new.toast.updateSuccess' : 'orders.new.toast.createSuccess'),
+          'success',
+          3000,
+        );
+        router.push(`/sales/orders/${editId ?? result.data.id}`);
       } else {
-        notify(result.error || t('orders.new.toast.createError'), 'error', 5000);
+        notify(
+          result.error || t(editId ? 'orders.new.toast.updateError' : 'orders.new.toast.createError'),
+          'error',
+          5000,
+        );
       }
     } catch (error) {
-      console.error('Failed to create sales order:', error);
-      notify(t('orders.new.toast.createError'), 'error', 5000);
+      console.error('Failed to save sales order:', error);
+      notify(t(editId ? 'orders.new.toast.updateError' : 'orders.new.toast.createError'), 'error', 5000);
     } finally {
       setIsSaving(false);
     }
@@ -420,8 +514,8 @@ export default function NewSalesOrderPage() {
                 <ShoppingCart className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900" data-testid="so-form-title">{t('orders.new.title')}</h1>
-                <p className="text-sm text-gray-500">{t('orders.new.description')}</p>
+                <h1 className="text-xl font-semibold text-gray-900" data-testid="so-form-title">{editId ? t('orders.actions.editOrder') : t('orders.new.title')}</h1>
+                <p className="text-sm text-gray-500">{isLoadingEdit ? t('orders.new.loadingEdit') : t('orders.new.description')}</p>
               </div>
             </div>
           </div>

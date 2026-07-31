@@ -442,6 +442,7 @@
     "new": {
       "title": "สร้างใบสั่งขายใหม่",
       "description": "กรอกข้อมูลลูกค้าและรายการสินค้า",
+      "loadingEdit": "กำลังโหลดข้อมูลเพื่อแก้ไข...",
       "customerSection": "ข้อมูลลูกค้า",
       "customerRequired": "ลูกค้า",
       "selectCustomerPlaceholder": "คลิกเพื่อค้นหาและเลือกลูกค้า...",
@@ -501,7 +502,11 @@
       "toast": {
         "deleteSuccess": "ลบรายการสำเร็จ",
         "createSuccess": "สร้างใบสั่งขายสำเร็จ",
-        "createError": "ไม่สามารถสร้างใบสั่งขายได้"
+        "createError": "ไม่สามารถสร้างใบสั่งขายได้",
+        "updateSuccess": "แก้ไขใบสั่งขายสำเร็จ",
+        "updateError": "ไม่สามารถแก้ไขใบสั่งขายได้",
+        "loadError": "ไม่สามารถโหลดข้อมูลใบสั่งขายได้",
+        "editableDraftOnly": "แก้ไขได้เฉพาะใบสั่งขายสถานะ \"ร่าง\" เท่านั้น"
       },
       "dialog": {
         "searchCustomer": "ค้นหาลูกค้า",
