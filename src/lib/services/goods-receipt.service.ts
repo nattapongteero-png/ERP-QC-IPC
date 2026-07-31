@@ -406,6 +406,12 @@ export interface ListGrnsFilter {
   dateTo?: string;
   page?: number;
   pageSize?: number;
+  // Register gate: hide PO GRNs that were auto-created at PO approval but whose
+  // lines are all still 'created' (nothing actually received yet). Only PO GRNs
+  // with ≥1 line advanced past 'created' (= received via the PO-receive
+  // checklist) appear. WO GRNs are always shown — a WO GRN exists only once the
+  // work order is closed, which is itself the receipt.
+  receivedOnly?: boolean;
 }
 
 /**
@@ -535,6 +541,16 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
       };
     });
 
+    // Register gate: hide PO GRNs with nothing received yet (all lines still
+    // 'created'). A GRN line advances past 'created' only when the warehouse
+    // receives it via the PO-receive checklist, so advanced>0 means "received +
+    // checklist passed". WO GRNs are always kept.
+    if (filter.receivedOnly) {
+      items = items.filter((it: { id: number; sourceType: string }) =>
+        it.sourceType === 'wo' || (advancedCounts[Number(it.id)] ?? 0) > 0,
+      );
+    }
+
     // Optional client-side filter by derived workflow status (KPI card / pill
     // bar drill-down). Done in-memory because workflowStatus is computed, not a
     // column — the dataset per page is small (≤200 rows).
@@ -544,7 +560,7 @@ export async function listGrns(filter: ListGrnsFilter = {}): Promise<{
 
     return {
       items,
-      total: filter.workflowStatus ? items.length : total,
+      total: filter.workflowStatus || filter.receivedOnly ? items.length : total,
       page,
       pageSize,
     };

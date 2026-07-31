@@ -106,7 +106,11 @@ export default function GoodsReceiptListPage() {
   const { data, refetch } = useQuery<{ items: GrnListItem[]; total: number }>({
     queryKey: ['grn-list', workflowFilter, sourceFilter, dateFrom, dateTo],
     queryFn: async () => {
-      const qs = new URLSearchParams({ pageSize: '100' });
+      // receivedOnly: the register lists goods actually received — hide PO GRNs
+      // auto-created at PO approval whose lines are all still 'created' (nothing
+      // received yet). Items appear once the warehouse receives them via the
+      // PO-receive checklist.
+      const qs = new URLSearchParams({ pageSize: '100', receivedOnly: 'true' });
       if (workflowFilter !== 'all') qs.set('workflowStatus', workflowFilter);
       if (sourceFilter !== 'all') qs.set('sourceType', sourceFilter);
       if (dateFrom) qs.set('dateFrom', dateFrom);

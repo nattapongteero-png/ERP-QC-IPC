@@ -32,6 +32,8 @@ export async function GET(request: NextRequest) {
     dateTo: sp.get('dateTo') ?? undefined,
     page: sp.get('page') ? Number(sp.get('page')) : undefined,
     pageSize: sp.get('pageSize') ? Number(sp.get('pageSize')) : undefined,
+    // Register gate — the caller opts in; other consumers keep the full list.
+    receivedOnly: sp.get('receivedOnly') === 'true' ? true : undefined,
   });
   return NextResponse.json(result);
 }

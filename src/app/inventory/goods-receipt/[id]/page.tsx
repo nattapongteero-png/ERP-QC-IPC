@@ -488,6 +488,15 @@ export default function GrnDetailPage() {
           fixedPosition="right"
           cellRender={(c) => {
             const line = c.data as GoodsReceiptLine;
+            // A line is awaiting QC's checklist when it is freshly created (WO
+            // finished goods / legacy PO) OR when a PO line was received into
+            // quarantine via the PO-receive checklist ('checklist_done' with no
+            // QC signature yet). A 'checklist_done' line that already has a
+            // receiver signature is a QC-signed-but-blocked line, not a fresh
+            // one — it must NOT offer "sign checklist" again.
+            const awaitingQcChecklist =
+              line.status === 'created' ||
+              (line.status === 'checklist_done' && line.receiverSignatureId == null);
             return (
               // Let button labels wrap to two lines instead of being clipped —
               // "Release to Stock" / "ลงนาม Checklist" no longer get cut off
@@ -510,7 +519,7 @@ export default function GrnDetailPage() {
                   </Button>
                 )}
                 {/* QC records the incoming checklist (warehouse cannot) */}
-                {line.status === 'created' && canChecklist && (
+                {awaitingQcChecklist && canChecklist && (
                   <Button
                     text={t('actions.signChecklist')}
                     type="default"
@@ -532,7 +541,7 @@ export default function GrnDetailPage() {
                   />
                 )}
                 {/* Warehouse view of a line still awaiting QC checklist */}
-                {line.status === 'created' && !canChecklist && (
+                {awaitingQcChecklist && !canChecklist && (
                   <span className="text-xs text-amber-600">{t(`awaitingQcChecklist`)}</span>
                 )}
                 {/* Warehouse releases a QC-approved line into stock */}

@@ -68,6 +68,7 @@ interface PendingTaskRow {
   ageDays: number;
   vendorName: string | null;
   sourceType: string;
+  receiverSignatureId: number | null;
 }
 
 const STATUS_OPTIONS = [
@@ -183,8 +184,25 @@ export default function QcEntryListPage() {
       }
       const data = await res.json();
       const items = (data?.items || []) as PendingTaskRow[];
-      // Only lines still awaiting checklist sign (no sample registered yet).
-      setPendingTasks(items.filter((i) => i.lineStatus === 'created'));
+      // Lines awaiting QC's checklist sign (no sample registered yet), gated so
+      // PO items only appear AFTER the warehouse received them via the PO-receive
+      // checklist:
+      //  - WO finished goods → 'created' (WO close is the receipt; no PO step)
+      //  - PO raw materials  → 'checklist_done' with NO receiver signature yet
+      //                         (received into quarantine + passed the receive
+      //                         checklist, QC not started). Still-'created' PO
+      //                         lines (auto-created at PO approval, not yet
+      //                         received) are hidden until the warehouse receives
+      //                         them; a 'checklist_done' line that already has a
+      //                         receiver signature is a QC-signed-but-blocked
+      //                         line, not a fresh one — excluded too.
+      setPendingTasks(
+        items.filter((i) =>
+          i.sourceType === 'wo'
+            ? i.lineStatus === 'created'
+            : i.lineStatus === 'checklist_done' && i.receiverSignatureId == null,
+        ),
+      );
     } catch {
       setPendingTasks([]);
     }

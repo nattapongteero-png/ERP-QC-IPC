@@ -141,10 +141,17 @@ export async function signChecklist(
       throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'Line not found');
     const line = lineRows[0];
 
-    if (line.status !== 'created')
+    // QC signs its checklist here for two entry points:
+    //  - 'created'        → WO finished goods (no separate warehouse-receive step;
+    //                       closing the WO is the receipt), and legacy PO GRNs.
+    //  - 'checklist_done' → PO raw materials the warehouse already received via
+    //                       the PO-receive checklist (into quarantine). QC's
+    //                       checklist is the NEXT step on those.
+    // Both advance to 'qc_pending' below.
+    if (line.status !== 'created' && line.status !== 'checklist_done')
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.INVALID_TRANSITION,
-        `Line must be in 'created' status (current: ${line.status})`,
+        `Line must be in 'created' or 'checklist_done' status (current: ${line.status})`,
       );
 
     // QC-first flow: the warehouse count (actualQuantity) is captured later at

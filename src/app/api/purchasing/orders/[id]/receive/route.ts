@@ -32,6 +32,20 @@ export async function POST(
         return errorResponse('Quantity must be greater than 0');
       }
 
+      // Server-side gate for the warehouse/purchasing receive checklist. The
+      // client already disables the accept button until every item passes, but
+      // this route is the accept path — a delivery that fails any checklist item
+      // must go through /reject-receipt (→ Deviation), never be received. Enforce
+      // it here too so nothing reaches quarantine + the GRN/QC queue unchecked.
+      if (Array.isArray(checklist) && checklist.length > 0) {
+        const failed = checklist.filter((c: { passed?: boolean }) => c?.passed !== true);
+        if (failed.length > 0) {
+          return errorResponse(
+            'Checklist ตรวจรับไม่ผ่านทุกข้อ — ถ้ามีข้อไม่ผ่านให้กดปฏิเสธ (reject) ไม่ใช่รับเข้า',
+          );
+        }
+      }
+
       const purchaseOrders = getTableRef('purchaseOrders');
       const purchaseOrderLines = getTableRef('purchaseOrderLines');
       const inventoryLots = getTableRef('inventoryLots');
@@ -193,14 +207,47 @@ export async function POST(
         });
       }
 
-      // Ensure the PO appears on the GRN/QC flow. This legacy receive path
-      // creates a quarantine lot directly; auto-create the GRN too (idempotent)
-      // so the lines surface in QC Entry's "รอลงทะเบียน" panel. Best-effort.
+      // Ensure the PO appears on the GRN/QC flow. This receive path creates a
+      // quarantine lot directly; auto-create the GRN too (idempotent), then
+      // advance THIS item's GRN line from 'created' (auto-created at PO approval,
+      // = not yet received) to 'checklist_done' (= warehouse received it and the
+      // receive checklist passed). That status is the gate: the GRN register and
+      // QC "รอลงทะเบียน" queue only surface received+passed lines, and QC signs
+      // its own checklist from there. Best-effort — never fail the receipt.
       try {
         const { autoCreateGrnForSource } = await import('@/lib/services/goods-receipt.service');
         await autoCreateGrnForSource({ sourceType: 'po', poId, userId: session.userId });
+
+        const goodsReceipts = getTableRef('goodsReceipts');
+        const goodsReceiptLines = getTableRef('goodsReceiptLines');
+        await executeDbOperation(async (db) => {
+          const grnRows = await db
+            .select({ id: goodsReceipts.id })
+            .from(goodsReceipts)
+            .where(eq(goodsReceipts.poId, poId))
+            .limit(1);
+          if (grnRows.length === 0) return;
+          const grnId = Number(grnRows[0].id);
+          // Advance the first still-'created' line for this item. A GRN line
+          // represents the whole PO line; one accepted receipt with a passing
+          // checklist marks it received. (Partial receipts keep the same line.)
+          const lineRows = await db
+            .select({ id: goodsReceiptLines.id })
+            .from(goodsReceiptLines)
+            .where(and(
+              eq(goodsReceiptLines.grnId, grnId),
+              eq(goodsReceiptLines.itemId, line.itemId),
+              eq(goodsReceiptLines.status, 'created'),
+            ))
+            .limit(1);
+          if (lineRows.length === 0) return;
+          await db
+            .update(goodsReceiptLines)
+            .set({ status: 'checklist_done', updatedAt: dbDate() })
+            .where(eq(goodsReceiptLines.id, Number(lineRows[0].id)));
+        });
       } catch (err) {
-        console.warn('PO-receive auto-GRN failed (non-fatal):', err);
+        console.warn('PO-receive auto-GRN / line-advance failed (non-fatal):', err);
       }
 
       await createAuditLog({
