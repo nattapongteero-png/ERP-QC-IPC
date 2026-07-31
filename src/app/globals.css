@@ -52,7 +52,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  /* Include Sarabun so the `font-sans` utility renders Thai in Sarabun (Geist has
+     no Thai glyphs). Latin/numbers still resolve to Geist first. */
+  --font-sans: var(--font-geist-sans), var(--font-sarabun), 'Leelawadee UI', Tahoma, sans-serif;
   --font-mono: var(--font-geist-mono);
 
   /* Primary Colors (Emerald) - WCAG AA Compliant */
@@ -188,7 +190,14 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Reference the real font variables directly, NOT var(--font-sans): the
+     `@theme inline` block above does not emit --font-sans as a runtime CSS
+     variable, so `var(--font-sans)` was empty and — with no fallback inside the
+     var() — the whole declaration was dropped, leaving body on the Tailwind
+     preflight default (Segoe UI → Thai fell back to Tahoma). Geist handles
+     Latin/numbers; Sarabun handles Thai (verified on UAT: Thai renders Sarabun,
+     Latin renders Geist). */
+  font-family: var(--font-geist-sans), var(--font-sarabun), 'Leelawadee UI', Tahoma, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
