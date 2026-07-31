@@ -562,14 +562,15 @@ export default function PurchaseOrderDetailPage() {
       warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
     });
     setReceiptRejectReason('');
-    // Pull the current raw-material receive checklist from Master Data.
+    // Pull the current raw-material receive checklist from Master Data. The
+    // /current route self-seeds default v1, so this always returns items even
+    // on a fresh database (the admin list route returns [] until seeded).
     try {
-      const cRes = await fetch('/api/master-data/receipt-checklist-templates?category=raw_material');
+      const cRes = await fetch('/api/master-data/receipt-checklist-templates/current?category=raw_material');
       const cJson = await cRes.json();
-      const list: Array<{ isCurrent?: boolean; items?: Array<{ id: number; label: string; isMandatory: boolean }> }> =
-        Array.isArray(cJson.data) ? cJson.data : [];
-      const current = list.find((tpl) => tpl.isCurrent) ?? list[0];
-      setReceiptChecklist(current?.items ?? []);
+      const items: Array<{ id: number; label: string; isMandatory: boolean }> =
+        Array.isArray(cJson?.items) ? cJson.items : [];
+      setReceiptChecklist(items);
     } catch {
       setReceiptChecklist([]);
     }
