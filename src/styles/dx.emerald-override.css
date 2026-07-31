@@ -260,5 +260,9 @@ a:hover {
  * so both inputs start on the same line; the hint just hangs below. Scoped to the
  * grid's data-testid so no other grid is affected. */
 [data-testid='so-lines-grid'] .dx-data-row > td {
-  vertical-align: top;
+  /* !important: DevExtreme's own `.dx-data-row td { vertical-align: middle }`
+   * has equal specificity and would otherwise win, floating the two inputs to
+   * different heights. Verified on UAT that this lands both NumberBoxes on the
+   * same top edge. */
+  vertical-align: top !important;
 }
