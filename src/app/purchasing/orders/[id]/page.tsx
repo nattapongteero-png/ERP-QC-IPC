@@ -319,6 +319,10 @@ export default function PurchaseOrderDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Reason captured when the warehouse REFUSES a delivery at the receive step.
   const [receiptRejectReason, setReceiptRejectReason] = useState('');
+  // Receive checklist pulled from Master Data (receipt-checklist-templates). Every
+  // item must be ticked before the goods can be accepted; a fail routes to reject.
+  const [receiptChecklist, setReceiptChecklist] = useState<Array<{ id: number; label: string; isMandatory: boolean }>>([]);
+  const [checklistPass, setChecklistPass] = useState<Record<number, boolean>>({});
 
   // Reference data
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
@@ -558,6 +562,18 @@ export default function PurchaseOrderDetailPage() {
       warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
     });
     setReceiptRejectReason('');
+    // Pull the current raw-material receive checklist from Master Data.
+    try {
+      const cRes = await fetch('/api/master-data/receipt-checklist-templates?category=raw_material');
+      const cJson = await cRes.json();
+      const list: Array<{ isCurrent?: boolean; items?: Array<{ id: number; label: string; isMandatory: boolean }> }> =
+        Array.isArray(cJson.data) ? cJson.data : [];
+      const current = list.find((tpl) => tpl.isCurrent) ?? list[0];
+      setReceiptChecklist(current?.items ?? []);
+    } catch {
+      setReceiptChecklist([]);
+    }
+    setChecklistPass({});
     setShowReceiveModal(true);
   };
 
@@ -577,6 +593,7 @@ export default function PurchaseOrderDetailPage() {
           quantity: receiveForm.quantity,
           expiryDate: receiveForm.expiryDate,
           warehouseId: parseInt(receiveForm.warehouseId),
+          checklist: receiptChecklist.map((it) => ({ label: it.label, passed: !!checklistPass[it.id] })),
         }),
       });
       const result = await response.json();
@@ -611,7 +628,11 @@ export default function PurchaseOrderDetailPage() {
       const response = await fetch(`/api/purchasing/orders/${params.id}/reject-receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineId: selectedLine.id, reason: receiptRejectReason.trim() }),
+        body: JSON.stringify({
+          lineId: selectedLine.id,
+          reason: receiptRejectReason.trim(),
+          checklist: receiptChecklist.map((it) => ({ label: it.label, passed: !!checklistPass[it.id] })),
+        }),
       });
       const result = await response.json();
       if (result.success) {
@@ -2073,6 +2094,28 @@ export default function PurchaseOrderDetailPage() {
                   </div>
                 )}
 
+                {/* Receive checklist (from Master Data) — every item must pass to accept */}
+                {receiptChecklist.length > 0 && (
+                  <div className="pt-3 border-t space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">{t(`orderDetail.checklistTitle`)}</p>
+                    {receiptChecklist.map((it) => (
+                      <label key={it.id} className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 accent-green-600"
+                          checked={!!checklistPass[it.id]}
+                          onChange={(e) => setChecklistPass((p) => ({ ...p, [it.id]: e.target.checked }))}
+                          data-testid={`po-checklist-${it.id}`}
+                        />
+                        <span>{it.label}{it.isMandatory && <span className="text-red-500"> *</span>}</span>
+                      </label>
+                    ))}
+                    {!receiptChecklist.every((it) => checklistPass[it.id]) && (
+                      <p className="text-[11px] text-amber-600">{t(`orderDetail.checklistIncomplete`)}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Refuse this delivery — records a Deviation, creates no lot */}
                 <div className="pt-3 border-t space-y-2">
                   <label className="block text-xs font-medium text-gray-600">{t(`orderDetail.rejectReasonLabel`)}</label>
@@ -2108,7 +2151,7 @@ export default function PurchaseOrderDetailPage() {
                     icon="check"
                     type="success"
                     onClick={submitReceive}
-                    disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId || !receiveForm.vendorLotNumber || !receiveForm.manufacturingDate}
+                    disabled={isSubmitting || !receiveForm.quantity || !receiveForm.expiryDate || !receiveForm.warehouseId || !receiveForm.vendorLotNumber || !receiveForm.manufacturingDate || !receiptChecklist.every((it) => checklistPass[it.id])}
                     width="50%"
                   />
                 </div>

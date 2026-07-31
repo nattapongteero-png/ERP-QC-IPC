@@ -634,6 +634,8 @@
     "rejectReasonPlaceholder": "e.g. damaged packaging · quantity mismatch · missing docs/CoA · expired goods",
     "rejectSuccess": "Delivery rejected and Deviation recorded",
     "rejectError": "Could not reject the delivery",
+    "checklistTitle": "Receiving checklist (all items must pass to accept)",
+    "checklistIncomplete": "Tick every item to accept — if any fails, reject instead",
     "confirmDeleteBody": "Delete purchase order {po}? This cannot be undone.",
     "deleting": "Deleting...",
     "confirmDelete": "Confirm Delete",

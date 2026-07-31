@@ -25,11 +25,24 @@ export async function POST(
       if (!Number.isInteger(poId) || poId <= 0) return errorResponse('รหัสใบสั่งซื้อไม่ถูกต้อง');
 
       const body = await request.json();
-      const { lineId, reason } = body as { lineId?: number; reason?: string };
+      const { lineId, reason, checklist } = body as {
+        lineId?: number;
+        reason?: string;
+        checklist?: Array<{ label: string; passed: boolean }>;
+      };
       if (!lineId) return errorResponse('Line ID is required');
       if (!reason || !String(reason).trim()) {
         return errorResponse('กรุณาระบุเหตุผลการปฏิเสธ');
       }
+
+      // Fold any failed checklist items into the deviation so QA sees WHAT failed,
+      // not just the free-text reason.
+      const failedItems = Array.isArray(checklist)
+        ? checklist.filter((c) => c && c.passed === false).map((c) => c.label)
+        : [];
+      const fullDescription = failedItems.length
+        ? `${String(reason).trim()}\n\nChecklist ที่ไม่ผ่าน: ${failedItems.join(' · ')}`
+        : String(reason).trim();
 
       const result = await executeDbOperation(async (db) => {
         const poTable = getTableRef('purchaseOrders');
@@ -59,7 +72,7 @@ export async function POST(
           sourceId: Number(lineId),
           severity: 'major',
           title: `ปฏิเสธการรับของ (Rejected receipt): PO ${po.poNumber} — ${line.itemCode ?? ''}`,
-          description: String(reason).trim(),
+          description: fullDescription,
           reportedBy: session.userId,
           reportedAt: now,
           status: 'open',

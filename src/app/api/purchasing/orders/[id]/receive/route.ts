@@ -14,7 +14,7 @@ export async function POST(
       const { id } = await params;
       const poId = parseInt(id);
       const body = await request.json();
-      const { lineId, lotNumber, vendorLotNumber, manufacturingDate, quantity, expiryDate, warehouseId } = body;
+      const { lineId, lotNumber, vendorLotNumber, manufacturingDate, quantity, expiryDate, warehouseId, checklist } = body;
 
       if (!lineId || !lotNumber || !quantity || !expiryDate || !warehouseId) {
         return errorResponse('Line ID, lot number, quantity, expiry date, and warehouse are required');
@@ -208,7 +208,7 @@ export async function POST(
         action: 'CREATE',
         tableName: 'inventory_lots',
         recordId: Number(lotId),
-        newValue: { lotNumber, itemId: line.itemId, quantity: receiveQuantity, poNumber: po.poNumber },
+        newValue: { lotNumber, itemId: line.itemId, quantity: receiveQuantity, poNumber: po.poNumber, receiveChecklist: checklist ?? null },
         ipAddress: getClientIP(request),
       });
 
