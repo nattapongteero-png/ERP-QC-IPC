@@ -54,7 +54,7 @@ export function DateRangeFilter({
         labelMode="hidden"
         showClearButton
         max={to || undefined}
-        width={150}
+        width={190}
         data-testid={testId ? `${testId}-from` : 'date-range-from'}
       />
       <span className="text-gray-400">–</span>
@@ -65,7 +65,7 @@ export function DateRangeFilter({
         labelMode="hidden"
         showClearButton
         min={from || undefined}
-        width={150}
+        width={190}
         data-testid={testId ? `${testId}-to` : 'date-range-to'}
       />
       {hasValue && (
