@@ -317,6 +317,8 @@ export default function PurchaseOrderDetailPage() {
     warehouseId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Reason captured when the warehouse REFUSES a delivery at the receive step.
+  const [receiptRejectReason, setReceiptRejectReason] = useState('');
 
   // Reference data
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
@@ -555,6 +557,7 @@ export default function PurchaseOrderDetailPage() {
       expiryDate: '',
       warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
     });
+    setReceiptRejectReason('');
     setShowReceiveModal(true);
   };
 
@@ -594,6 +597,35 @@ export default function PurchaseOrderDetailPage() {
       }
     } catch (error) {
       console.error('Failed to receive:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Refuse the delivery: creates NO lot and does not change received qty — it
+  // records the reason as a QA Deviation (server side) so the refusal is traceable.
+  const rejectReceive = async () => {
+    if (!selectedLine || !receiptRejectReason.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/purchasing/orders/${params.id}/reject-receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineId: selectedLine.id, reason: receiptRejectReason.trim() }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setShowReceiveModal(false);
+        setSelectedLine(null);
+        setReceiptRejectReason('');
+        alert(`${t('orderDetail.rejectSuccess')} (${result.data?.deviationNumber ?? ''})`);
+        fetchPODetail();
+      } else {
+        alert(result.error || t('orderDetail.rejectError'));
+      }
+    } catch (error) {
+      console.error('Failed to reject receipt:', error);
+      alert(t('orderDetail.rejectError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -2040,6 +2072,27 @@ export default function PurchaseOrderDetailPage() {
                     {t(`orderDetail.fillAllRequired`)}
                   </div>
                 )}
+
+                {/* Refuse this delivery — records a Deviation, creates no lot */}
+                <div className="pt-3 border-t space-y-2">
+                  <label className="block text-xs font-medium text-gray-600">{t(`orderDetail.rejectReasonLabel`)}</label>
+                  <DxTextArea
+                    value={receiptRejectReason}
+                    onValueChange={(v) => setReceiptRejectReason(v || '')}
+                    placeholder={t(`orderDetail.rejectReasonPlaceholder`)}
+                    height={56}
+                  />
+                  <DxButton
+                    text={t(`orderDetail.rejectReceipt`)}
+                    icon="clear"
+                    type="danger"
+                    stylingMode="outlined"
+                    onClick={rejectReceive}
+                    disabled={isSubmitting || !receiptRejectReason.trim()}
+                    width="100%"
+                    elementAttr={{ 'data-testid': 'po-reject-receipt-btn' }}
+                  />
+                </div>
 
                 <div className="flex gap-3 pt-4 border-t">
                   <DxButton
