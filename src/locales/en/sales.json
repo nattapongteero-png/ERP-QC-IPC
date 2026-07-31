@@ -876,6 +876,8 @@
   "quotationNew": {
     "title": "New Quotation",
     "subtitle": "Quote products or services to a customer",
+    "editTitle": "Edit Quotation",
+    "loadingEdit": "Loading quotation for editing...",
     "customerInfo": "Customer",
     "change": "Change",
     "clearCustomer": "Clear customer",
@@ -926,6 +928,10 @@
     "errIncomplete": "Please complete every line",
     "createOk": "Quotation created",
     "createFail": "Could not create the quotation",
+    "updateOk": "Quotation updated",
+    "updateFail": "Could not update the quotation",
+    "loadError": "Could not load the quotation",
+    "editDraftOnly": "Only draft quotations can be edited",
     "terms": {
       "cash": "Cash",
       "cod": "Cash on delivery (COD)",

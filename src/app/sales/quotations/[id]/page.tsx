@@ -19,6 +19,7 @@ import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { Button } from 'devextreme-react/button';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from 'next-intl';
 import { formatNumber } from '@/lib/utils/number-format';
 import {
   FileText,
@@ -49,6 +50,7 @@ export default function QuotationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const toast = useToast();
+  const t = useTranslations('sales');
   const id = String(params?.id ?? '');
 
   const [quotation, setQuotation] = useState<QuotationWithLines | null>(null);
@@ -226,6 +228,15 @@ export default function QuotationDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {quotation.status === 'draft' && (
+              <Button
+                text={t(`quotationNew.editTitle`)}
+                icon="edit"
+                stylingMode="outlined"
+                onClick={() => router.push(`/sales/quotations/new?edit=${quotation.id}`)}
+                elementAttr={{ 'data-testid': 'qt-edit-btn' }}
+              />
+            )}
             <Button
               text="พิมพ์"
               icon="print"

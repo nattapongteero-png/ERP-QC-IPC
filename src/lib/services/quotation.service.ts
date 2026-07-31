@@ -223,6 +223,60 @@ export async function deleteQuotation(id: number): Promise<void> {
 }
 
 /**
+ * Full edit of a DRAFT quotation: rewrite the header and REPLACE all lines
+ * (delete + re-insert) so quantities/prices/items can change, mirroring the
+ * sales-order draft edit. The route guards that the quotation is still a draft
+ * before calling this. `quotationDate` is only touched when the caller sends
+ * one, so the original issue date is preserved on edit.
+ */
+export async function replaceQuotation(id: number, data: QuotationCreate): Promise<void> {
+  return executeDbOperation(async (db) => {
+    const { quotations, lines } = getTables();
+    const now = getNow();
+    const total = data.lines.reduce(
+      (sum, l) => sum + lineTotal(l.quantity, l.unitPrice),
+      0,
+    );
+
+    await db
+      .update(quotations)
+      .set({
+        customerId: data.customerId ?? null,
+        customerName: data.customerName,
+        customerContact: data.customerContact ?? null,
+        customerAddress: data.customerAddress ?? null,
+        ...(data.quotationDate
+          ? { quotationDate: toDbDate(data.quotationDate) }
+          : {}),
+        validUntil: data.validUntil ? toDbDate(data.validUntil) : null,
+        totalAmount: total,
+        paymentTerms: data.paymentTerms ?? null,
+        notes: data.notes ?? null,
+        updatedAt: now,
+      })
+      .where(eq(quotations.id, id));
+
+    // Replace the whole line set — simplest correct way to let a line be added,
+    // removed, or edited in one save.
+    await db.delete(lines).where(eq(lines.quotationId, id));
+    for (const line of data.lines) {
+      await db.insert(lines).values({
+        quotationId: id,
+        itemId: line.itemId ?? null,
+        itemCode: line.itemCode ?? null,
+        description: line.description,
+        quantity: line.quantity,
+        unit: line.unit,
+        unitPrice: line.unitPrice,
+        totalPrice: lineTotal(line.quantity, line.unitPrice),
+        notes: line.notes ?? null,
+        createdAt: now,
+      });
+    }
+  });
+}
+
+/**
  * Convert an accepted quotation into a sales order (list item 1d). Only lines
  * that reference a real inventory item become SO lines — free-text lines have no
  * itemId to allocate stock against. Marks the quotation converted and links the

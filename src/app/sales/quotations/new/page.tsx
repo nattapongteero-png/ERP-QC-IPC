@@ -9,7 +9,7 @@
  * formatNumber so thousands separators are always present.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -119,6 +119,10 @@ export default function NewQuotationPage() {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [keyCounter, setKeyCounter] = useState(1);
+  // Edit mode: /sales/quotations/new?edit=<id> loads that DRAFT quotation and
+  // saving PUTs to it instead of creating a new one.
+  const [editId, setEditId] = useState<number | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     customerId: null,
@@ -132,6 +136,75 @@ export default function NewQuotationPage() {
   });
 
   const [lines, setLines] = useState<QuotationFormLine[]>([]);
+
+  // Edit mode — load an existing DRAFT quotation into this form. Read the id
+  // from window.location so the client page needs no Suspense boundary.
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('edit');
+    const id = raw ? Number(raw) : NaN;
+    if (!Number.isInteger(id) || id <= 0) return;
+    setEditId(id);
+    setIsLoadingEdit(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/sales/quotations/${id}`);
+        const json = await res.json();
+        if (!json.success || !json.data) {
+          toast.error(t(`quotationNew.loadError`));
+          return;
+        }
+        const q = json.data;
+        if (q.status !== 'draft') {
+          toast.error(t(`quotationNew.editDraftOnly`));
+        }
+        setForm({
+          customerId: q.customerId ?? null,
+          customerName: q.customerName || '',
+          customerContact: q.customerContact || '',
+          customerAddress: q.customerAddress || '',
+          quotationDate: (q.quotationDate || '').slice(0, 10),
+          validUntil: (q.validUntil || '').slice(0, 10),
+          paymentTerms: q.paymentTerms || '',
+          notes: q.notes || '',
+        });
+        const loaded = (q.lines || []) as Array<{
+          itemId?: number | null; itemCode?: string | null; description: string;
+          quantity: number; unit: string; unitPrice: number; notes?: string | null;
+        }>;
+        setLines(
+          loaded.map((l, i) => ({
+            key: i + 1,
+            itemId: l.itemId ?? undefined,
+            itemCode: l.itemCode ?? undefined,
+            description: l.description,
+            quantity: l.quantity,
+            unit: l.unit,
+            unitPrice: l.unitPrice,
+            notes: l.notes ?? undefined,
+          })),
+        );
+        setKeyCounter(loaded.length + 1);
+        // Pull the full customer so its card shows code/type, not blanks.
+        if (q.customerId) {
+          try {
+            const cRes = await fetch(`/api/customers/${q.customerId}`);
+            const cJson = await cRes.json();
+            if (cJson.success && cJson.data?.customer) {
+              setSelectedCustomer(cJson.data.customer as Customer);
+            }
+          } catch {
+            /* card still shows name/address from the form */
+          }
+        }
+      } catch {
+        toast.error(t(`quotationNew.loadError`));
+      } finally {
+        setIsLoadingEdit(false);
+      }
+    })();
+    // Run once on mount; the id comes straight from the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalAmount = useMemo(
     () => lines.reduce((s, l) => s + (l.quantity || 0) * (l.unitPrice || 0), 0),
@@ -228,35 +301,42 @@ export default function NewQuotationPage() {
 
     setIsSaving(true);
     try {
-      const res = await fetch('/api/sales/quotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: form.customerId ?? undefined,
-          customerName: form.customerName.trim(),
-          customerContact: form.customerContact || null,
-          customerAddress: form.customerAddress || null,
-          quotationDate: form.quotationDate || null,
-          validUntil: form.validUntil || null,
-          paymentTerms: form.paymentTerms || null,
-          notes: form.notes || null,
-          lines: lines.map((l) => ({
-            itemId: l.itemId,
-            itemCode: l.itemCode,
-            description: l.description.trim(),
-            quantity: l.quantity,
-            unit: l.unit,
-            unitPrice: l.unitPrice,
-            notes: l.notes || undefined,
-          })),
-        }),
-      });
+      // Same payload either way; PUT rewrites the draft, POST creates a new one.
+      const res = await fetch(
+        editId ? `/api/sales/quotations/${editId}` : '/api/sales/quotations',
+        {
+          method: editId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: form.customerId ?? undefined,
+            customerName: form.customerName.trim(),
+            customerContact: form.customerContact || null,
+            customerAddress: form.customerAddress || null,
+            quotationDate: form.quotationDate || null,
+            validUntil: form.validUntil || null,
+            paymentTerms: form.paymentTerms || null,
+            notes: form.notes || null,
+            lines: lines.map((l) => ({
+              itemId: l.itemId,
+              itemCode: l.itemCode,
+              description: l.description.trim(),
+              quantity: l.quantity,
+              unit: l.unit,
+              unitPrice: l.unitPrice,
+              notes: l.notes || undefined,
+            })),
+          }),
+        },
+      );
       const json = await res.json();
       if (json.success) {
-        toast.success(t(`quotationNew.createOk`), json.data?.quotationNumber);
-        router.push(`/sales/quotations/${json.data.id}`);
+        toast.success(
+          t(editId ? `quotationNew.updateOk` : `quotationNew.createOk`),
+          json.data?.quotationNumber,
+        );
+        router.push(`/sales/quotations/${editId ?? json.data.id}`);
       } else {
-        toast.error(json.error || t(`quotationNew.createFail`));
+        toast.error(json.error || t(editId ? `quotationNew.updateFail` : `quotationNew.createFail`));
       }
     } catch (e) {
       console.error('Failed to create quotation:', e);
@@ -386,9 +466,9 @@ export default function NewQuotationPage() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900" data-testid="qt-form-title" data-build="qt-form-fix-20260727">
-                {t(`quotationNew.title`)}
+                {editId ? t(`quotationNew.editTitle`) : t(`quotationNew.title`)}
                 </h1>
-                <p className="text-sm text-gray-500">{t(`quotationNew.subtitle`)}</p>
+                <p className="text-sm text-gray-500">{isLoadingEdit ? t(`quotationNew.loadingEdit`) : t(`quotationNew.subtitle`)}</p>
               </div>
             </div>
           </div>
