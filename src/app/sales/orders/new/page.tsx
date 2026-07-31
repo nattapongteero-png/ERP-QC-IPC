@@ -120,8 +120,6 @@ export default function NewSalesOrderPage() {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [lineIdCounter, setLineIdCounter] = useState(1);
-  const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     customerName: '',
@@ -172,7 +170,15 @@ export default function NewSalesOrderPage() {
           customerContact: so.customerContact || '',
           customerAddress: so.customerAddress || '',
           requiredDate: so.requiredDate ? new Date(so.requiredDate) : null,
-          paymentTerms: so.paymentTerms || '',
+          // Only keep a stored term the dropdown can actually show. Legacy orders
+          // hold free-text like "เครดิต 30 วัน" that matches no option, so the
+          // SelectBox rendered blank while the value stayed set — the required-
+          // field guard then passed and let a blank-looking form save. Clearing a
+          // non-matching value makes the empty field truly empty, so save blocks
+          // until a real term is picked.
+          paymentTerms: (PAYMENT_TERMS_KEYS as readonly string[]).includes(so.paymentTerms)
+            ? so.paymentTerms
+            : '',
           notes: so.notes || '',
           status: so.status || 'draft',
           shippingCost: so.shippingCost != null ? Number(so.shippingCost) : 0,
@@ -279,18 +285,13 @@ export default function NewSalesOrderPage() {
   }, [lineIdCounter]);
 
   const handleDeleteLine = useCallback((lineId: number) => {
-    setSelectedLineId(lineId);
-    setShowDeleteConfirm(true);
-  }, []);
-
-  const confirmDeleteLine = useCallback(() => {
-    if (selectedLineId !== null) {
-      setLines(prev => prev.filter(line => line.id !== selectedLineId));
-      setShowDeleteConfirm(false);
-      setSelectedLineId(null);
-      notify(t('orders.new.toast.deleteSuccess'), 'success', 2000);
-    }
-  }, [selectedLineId, t]);
+    // Delete right away. The old flow opened a confirm card rendered at the TOP
+    // of the page — far above the line grid — so on a scrolled-down form the
+    // trash click looked dead ("กดถังขยะแล้วลบรายการไม่ได้"). The line isn't
+    // saved yet and can be re-added, so one click removes it and a toast confirms.
+    setLines(prev => prev.filter(line => line.id !== lineId));
+    notify(t('orders.new.toast.deleteSuccess'), 'success', 2000);
+  }, [t]);
 
   const handleLineQuantityChange = useCallback((lineId: number, value: number) => {
     setLines(prev => prev.map(line => {
@@ -540,37 +541,6 @@ export default function NewSalesOrderPage() {
         </div>
 
         {/* Delete Line Confirmation */}
-        {showDeleteConfirm && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-red-800">{t('orders.new.deleteConfirm.title')}</p>
-                  <p className="text-sm text-red-600">
-                    {t('orders.new.deleteConfirm.message')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    text={t('orders.new.deleteConfirm.cancel')}
-                    stylingMode="outlined"
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setSelectedLineId(null);
-                    }}
-                  />
-                  <Button
-                    text={t('orders.new.deleteConfirm.delete')}
-                    icon="trash"
-                    type="danger"
-                    onClick={confirmDeleteLine}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Main Content - 2 Column + Sidebar Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Form */}
