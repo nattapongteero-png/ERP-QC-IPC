@@ -814,35 +814,6 @@ export default function PurchaseOrderDetailPage() {
       ),
     },
     {
-      dataField: 'receivedQty',
-      caption: t(`orderDetail.received`),
-      width: 140,
-      cellRender: (cellInfo) => {
-        const received = cellInfo.data.receivedQty || 0;
-        const ordered = cellInfo.data.quantity;
-        const percentage = ordered > 0 ? (received / ordered) * 100 : 0;
-        return (
-          <div>
-            <span className={cn(
-              'font-medium',
-              received >= ordered ? 'text-green-600' : received > 0 ? 'text-orange-600' : 'text-gray-500'
-            )}>
-              {received} / {ordered}
-            </span>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-              <div
-                className={cn(
-                  'h-1.5 rounded-full transition-all',
-                  percentage >= 100 ? 'bg-green-500' : percentage > 0 ? 'bg-orange-500' : 'bg-gray-300'
-                )}
-                style={{ width: `${Math.min(percentage, 100)}%` }}
-              />
-            </div>
-          </div>
-        );
-      },
-    },
-    {
       dataField: 'receivingStatus',
       caption: t(`orderDetail.status`),
       width: 120,
