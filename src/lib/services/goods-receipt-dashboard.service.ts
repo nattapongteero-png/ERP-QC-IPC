@@ -147,8 +147,15 @@ export async function getPendingQaList(): Promise<Array<{
       // 'qc_approved'/'released_to_stock' = passed, 'rejected' = failed.
       // Released-to-stock is excluded (already in stock).
       .where(inArray(t.lines.status, ['created', 'checklist_done', 'qc_pending', 'qc_approved', 'rejected']))
-      .orderBy(desc(t.lines.id))
-      .limit(200);
+      // Order still-open items (awaiting QC action) ahead of terminal outcomes so
+      // the 'รอลงทะเบียน' queue never drops a genuinely-pending line just because
+      // newer QC-approved/rejected rows crowded the window. Recent outcomes (kept
+      // for the incoming-inspection results grid) follow, newest first.
+      .orderBy(
+        sql`CASE WHEN ${t.lines.status} IN ('created','checklist_done','qc_pending') THEN 0 ELSE 1 END`,
+        desc(t.lines.id),
+      )
+      .limit(500);
 
     return rows.map((r: any) => {
       // Map the line lifecycle to a QC outcome shown in the grid.
