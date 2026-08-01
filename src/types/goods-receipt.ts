@@ -253,8 +253,12 @@ export interface SignChecklistInput {
     isPass: boolean;
     remarks?: string | null;
   }>;
-  /** Quantity QC physically draws as a sample into the QC warehouse. */
+  /** Quantity QC draws as the ANALYSIS sample (lab-tested) into the QC warehouse. */
   sampleQuantity: number;
+  /** Optional retention (ตัวแทน Lot) sample quantity — stored in the retention room. */
+  retentionQuantity?: number;
+  /** Optional stability sample quantity — stored in the stability room. */
+  stabilityQuantity?: number;
   signature: {
     password?: string;
     pin?: string;

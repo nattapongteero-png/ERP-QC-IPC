@@ -125,6 +125,13 @@ export default function GrnDetailPage() {
   //  - sample qty: how much QC draws into the QC warehouse (set at checklist sign)
   //  - release qty: total the warehouse counts at release (remainder → RM/FG)
   const [checklistSampleQty, setChecklistSampleQty] = useState<string>('');
+  // Optional extra sample draws, each tick-to-enable with its own quantity and
+  // storage room: retention (ตัวแทน Lot) and stability. A lot may need none, some,
+  // or all three.
+  const [retentionOn, setRetentionOn] = useState(false);
+  const [retentionQty, setRetentionQty] = useState<string>('');
+  const [stabilityOn, setStabilityOn] = useState(false);
+  const [stabilityQty, setStabilityQty] = useState<string>('');
   const [releaseActualQty, setReleaseActualQty] = useState<string>('');
 
   // GRN data
@@ -244,12 +251,19 @@ export default function GrnDetailPage() {
         isPass: checklistAnswers[tmpl.id]?.isPass ?? false,
         remarks: checklistAnswers[tmpl.id]?.remarks ?? null,
       }));
+      // Optional retention / stability draws — only sent when ticked and > 0.
+      const retQty = retentionOn ? Number(retentionQty) : 0;
+      const stbQty = stabilityOn ? Number(stabilityQty) : 0;
+      if (retentionOn && !(retQty > 0)) throw new Error('กรุณากรอกจำนวนตัวอย่างตัวแทน Lot (มากกว่า 0) หรือเอาติ๊กออก');
+      if (stabilityOn && !(stbQty > 0)) throw new Error('กรุณากรอกจำนวนตัวอย่าง Stability (มากกว่า 0) หรือเอาติ๊กออก');
       const res = await fetch(`/api/inventory/goods-receipts/${grnId}/lines/${activeLineId}/checklist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
           sampleQuantity: sampleQty,
+          retentionQuantity: retQty > 0 ? retQty : undefined,
+          stabilityQuantity: stbQty > 0 ? stbQty : undefined,
           signature: { password: sigPassword || 'verify' },
         }),
       });
@@ -263,6 +277,8 @@ export default function GrnDetailPage() {
       setChecklistOpen(false);
       setChecklistAnswers({});
       setChecklistSampleQty('');
+      setRetentionOn(false); setRetentionQty('');
+      setStabilityOn(false); setStabilityQty('');
       setSigPassword('');
     },
   });
@@ -536,6 +552,8 @@ export default function GrnDetailPage() {
                       // √n+1 plan (⌈√expectedQty + 1⌉), capped at the line qty.
                       // QC can still override before signing.
                       setChecklistSampleQty(String(sqrtSamplePlan(line.expectedQuantity)));
+                      setRetentionOn(false); setRetentionQty('');
+                      setStabilityOn(false); setStabilityQty('');
                       setChecklistOpen(true);
                     }}
                   />
@@ -741,9 +759,10 @@ export default function GrnDetailPage() {
           {/* QC sample quantity — how much QC physically draws into the QC
               warehouse for testing. The warehouse counts the remaining total
               and releases it into RM/FG later. */}
+          <div className="text-sm font-semibold text-gray-700">{t('checklist.sampleSection')}</div>
           <div className="border rounded p-3 bg-amber-50 border-amber-200">
             <label className="block text-sm font-medium mb-1">
-              จำนวนที่ QC สุ่มตรวจ (เข้าคลัง QC) <span className="text-rose-600">*</span>
+              {t('checklist.sampleAnalysis')} <span className="text-rose-600">*</span>
             </label>
             <input
               type="number"
@@ -760,9 +779,7 @@ export default function GrnDetailPage() {
               placeholder={t(`sampleQtyPlaceholder`)}
               data-testid="checklist-sample-qty"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              ระบบจะหักจำนวนนี้เข้าคลังตัวอย่าง QC — ส่วนที่เหลือฝ่ายคลังจะนับและรับเข้าคลังภายหลัง
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t('checklist.sampleAnalysisHint')}</p>
             {(() => {
               const activeLine = (data?.lines ?? []).find((l) => l.id === activeLineId);
               const plan = sqrtSamplePlan(activeLine?.expectedQuantity);
@@ -782,6 +799,45 @@ export default function GrnDetailPage() {
               );
             })()}
           </div>
+          {/* Retention (ตัวแทน Lot) sample — optional, tick to enable, own room. */}
+          <div className="border rounded p-3 bg-sky-50 border-sky-200">
+            <div className="flex items-center gap-2">
+              <CheckBox value={retentionOn} onValueChanged={(e) => setRetentionOn(Boolean(e.value))} data-testid="retention-toggle" />
+              <span className="font-medium text-sm">{t('checklist.sampleRetention')}</span>
+            </div>
+            {retentionOn && (
+              <input
+                type="number" inputMode="decimal" name="checklist-retention-qty" autoComplete="off"
+                data-lpignore="true" data-form-type="other" min={0} step="any"
+                value={retentionQty}
+                onChange={(e) => setRetentionQty(e.target.value)}
+                className="mt-2 w-full rounded-[11px] border border-sky-200 bg-white px-3 py-2 text-[#0F2E22] focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/15"
+                placeholder={t('checklist.sampleQtyInput')}
+                data-testid="checklist-retention-qty"
+              />
+            )}
+            <p className="text-xs text-gray-500 mt-1">{t('checklist.sampleRetentionHint')}</p>
+          </div>
+          {/* Stability sample — optional, tick to enable, own room. */}
+          <div className="border rounded p-3 bg-violet-50 border-violet-200">
+            <div className="flex items-center gap-2">
+              <CheckBox value={stabilityOn} onValueChanged={(e) => setStabilityOn(Boolean(e.value))} data-testid="stability-toggle" />
+              <span className="font-medium text-sm">{t('checklist.sampleStability')}</span>
+            </div>
+            {stabilityOn && (
+              <input
+                type="number" inputMode="decimal" name="checklist-stability-qty" autoComplete="off"
+                data-lpignore="true" data-form-type="other" min={0} step="any"
+                value={stabilityQty}
+                onChange={(e) => setStabilityQty(e.target.value)}
+                className="mt-2 w-full rounded-[11px] border border-violet-200 bg-white px-3 py-2 text-[#0F2E22] focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/15"
+                placeholder={t('checklist.sampleQtyInput')}
+                data-testid="checklist-stability-qty"
+              />
+            )}
+            <p className="text-xs text-gray-500 mt-1">{t('checklist.sampleStabilityHint')}</p>
+          </div>
+
           {/* CoA AI scan — available for both PO and WO receipts. Scanning the
               supplier/external CoA auto-marks the CoA checklist item as passed
               (unless overall=fail) and fills its remarks with the summary. */}

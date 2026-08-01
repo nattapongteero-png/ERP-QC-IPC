@@ -89,8 +89,13 @@ export const signChecklistSchema = z.object({
       }),
     )
     .min(1),
-  // Quantity QC draws as a sample into the QC warehouse (QC-first flow).
+  // Quantity QC draws as the ANALYSIS sample into the QC warehouse (the one that
+  // gets lab-tested). QC-first flow.
   sampleQuantity: z.number().positive(),
+  // Optional additional draws, each stored in its own room. A lot may need none,
+  // some, or all three. 0 / omitted = not drawn.
+  retentionQuantity: z.number().nonnegative().optional(),
+  stabilityQuantity: z.number().nonnegative().optional(),
   signature: signatureSchema,
 });
 

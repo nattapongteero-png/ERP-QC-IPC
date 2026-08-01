@@ -15,6 +15,10 @@ type DbClient = any;
 
 /** Warehouse type that holds QC-drawn samples (the "ชั้นวาง/คลังตัวอย่าง QC"). */
 export const QC_WAREHOUSE_TYPE = 'qc';
+/** Room that holds the lot-representative retention sample (ตัวอย่างตัวแทน Lot). */
+export const RETENTION_WAREHOUSE_TYPE = 'qc_retention';
+/** Room that holds the stability sample (ตัวอย่าง Stability). */
+export const STABILITY_WAREHOUSE_TYPE = 'qc_stability';
 
 interface SeedSpec {
   code: string;
@@ -26,6 +30,18 @@ const QC_WAREHOUSE_SEED: SeedSpec = {
   code: 'WH-QC',
   name: 'คลังตัวอย่าง QC',
   type: QC_WAREHOUSE_TYPE,
+};
+
+const RETENTION_WAREHOUSE_SEED: SeedSpec = {
+  code: 'WH-RETAIN',
+  name: 'ห้องตัวอย่างตัวแทน Lot',
+  type: RETENTION_WAREHOUSE_TYPE,
+};
+
+const STABILITY_WAREHOUSE_SEED: SeedSpec = {
+  code: 'WH-STAB',
+  name: 'ห้องตัวอย่าง Stability',
+  type: STABILITY_WAREHOUSE_TYPE,
 };
 
 /**
@@ -57,9 +73,19 @@ async function getOrCreateWarehouseByType(
   return Number(getInsertId(ins));
 }
 
-/** Resolve (self-seeding) the QC sample warehouse id. */
+/** Resolve (self-seeding) the QC sample warehouse id (analysis samples). */
 export async function getOrCreateQcWarehouse(db: DbClient): Promise<number> {
   return getOrCreateWarehouseByType(db, QC_WAREHOUSE_TYPE, QC_WAREHOUSE_SEED);
+}
+
+/** Resolve (self-seeding) the retention (ตัวแทน Lot) sample room id. */
+export async function getOrCreateRetentionWarehouse(db: DbClient): Promise<number> {
+  return getOrCreateWarehouseByType(db, RETENTION_WAREHOUSE_TYPE, RETENTION_WAREHOUSE_SEED);
+}
+
+/** Resolve (self-seeding) the stability sample room id. */
+export async function getOrCreateStabilityWarehouse(db: DbClient): Promise<number> {
+  return getOrCreateWarehouseByType(db, STABILITY_WAREHOUSE_TYPE, STABILITY_WAREHOUSE_SEED);
 }
 
 /**

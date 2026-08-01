@@ -29,6 +29,8 @@ function getTables() {
     signatures: getTableRef('electronicSignatures'),
     users: getTableRef('users'),
     items: getTableRef('items'),
+    purchaseOrders: getTableRef('purchaseOrders'),
+    inventoryTransactions: getTableRef('inventoryTransactions'),
   };
 }
 
@@ -161,12 +163,18 @@ export async function signChecklist(
     if (!Number.isFinite(sampleQuantity) || sampleQuantity <= 0)
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
-        'จำนวนที่ QC สุ่มตรวจต้องมากกว่า 0',
+        'จำนวนที่ QC สุ่มตรวจ (นำมาวิเคราะห์) ต้องมากกว่า 0',
       );
-    if (line.expectedQuantity != null && sampleQuantity > Number(line.expectedQuantity))
+    // Optional extra draws — retention (ตัวแทน Lot) and stability — each stored in
+    // its own room. 0 / omitted = not drawn. All three come OUT of the received
+    // quarantine lot, so the total cannot exceed what was received.
+    const retentionQuantity = Math.max(0, Number(input.retentionQuantity) || 0);
+    const stabilityQuantity = Math.max(0, Number(input.stabilityQuantity) || 0);
+    const totalSampled = sampleQuantity + retentionQuantity + stabilityQuantity;
+    if (line.expectedQuantity != null && totalSampled > Number(line.expectedQuantity))
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.VARIANCE_NOT_JUSTIFIED,
-        'จำนวนที่สุ่มตรวจมากกว่าจำนวนที่คาดว่าจะรับ',
+        'จำนวนที่สุ่มรวม (วิเคราะห์+ตัวแทน+Stability) มากกว่าจำนวนที่รับ',
       );
 
     const grnRows = await db.select().from(t.grns).where(eq(t.grns.id, line.grnId)).limit(1);
@@ -254,39 +262,103 @@ export async function signChecklist(
     });
     const checklistId = getInsertId(chkInsert);
 
-    // Create the QC-sample lot in the QC warehouse (the "ชั้นวาง/คลังตัวอย่าง
-    // QC"). Only the sampled quantity is drawn here; the remainder goes to RM/FG
-    // when the warehouse counts and releases. Always quarantine — the sample is
-    // awaiting lab results regardless of the checklist pass/fail.
+    // Draw QC samples into their storage rooms. Up to three distinct draws, each
+    // stored separately: ANALYSIS (lab-tested, คลัง QC), RETENTION (ตัวแทน Lot),
+    // and STABILITY. Every draw comes OUT of the received quarantine lot, so we
+    // DEDUCT the drawn quantity from that source lot instead of minting new stock
+    // on top of it — that keeps the on-hand total honest (no double count).
     const itemRow = await db.select().from(t.items).where(eq(t.items.id, line.itemId)).limit(1);
     const lotNumber =
       line.vendorLotNumber ??
       line.batchNumber ??
       `${grn.grnNumber}-L${line.lineNumber}`;
 
-    const { getOrCreateQcWarehouse } = await import('./warehouse-resolver.service');
+    const {
+      getOrCreateQcWarehouse,
+      getOrCreateRetentionWarehouse,
+      getOrCreateStabilityWarehouse,
+    } = await import('./warehouse-resolver.service');
     const qcWarehouseId = await getOrCreateQcWarehouse(db);
 
-    const qcLotInsert = await db.insert(t.inventoryLots).values({
-      itemId: Number(line.itemId),
-      lotNumber: `${lotNumber}-QC`,
-      batchNumber: line.batchNumber ?? null,
-      warehouseId: qcWarehouseId,
-      quantity: sampleQuantity,
-      reservedQuantity: 0,
-      unit: String(line.unit),
-      status: 'quarantine',
-      manufacturingDate: line.manufacturingDate ?? null,
-      expiryDate: line.expiryDate ?? null,
-      receivedDate: line.manufacturingDate ?? toDbDate(new Date()),
-      vendorId: grn.vendorId ?? null,
-      vendorLotNumber: line.vendorLotNumber ?? null,
-      sourceGrnLineId: lineId,
-      createdAt: getNow(),
-      updatedAt: getNow(),
-    });
-    const qcLotId = getInsertId(qcLotInsert);
-    // The remainder lot (RM/FG) is created later at release.
+    // Deduct the total drawn quantity from the source quarantine lot(s). For a PO
+    // receipt (Flow A) the warehouse already created a full quarantine lot keyed
+    // by poNumber; draw the samples out of it (FIFO across partial receipts). For
+    // WO / legacy lines there is no such lot (the remainder is created at release)
+    // so we skip the deduction — nothing to draw from yet.
+    let remainingToDeduct = totalSampled;
+    try {
+      let poNumber: string | null = null;
+      if (grn.poId != null) {
+        const poRows = await db
+          .select({ poNumber: t.purchaseOrders.poNumber })
+          .from(t.purchaseOrders)
+          .where(eq(t.purchaseOrders.id, Number(grn.poId)))
+          .limit(1);
+        poNumber = poRows[0]?.poNumber ?? null;
+      }
+      if (poNumber) {
+        const srcLots = await db
+          .select({ id: t.inventoryLots.id, quantity: t.inventoryLots.quantity })
+          .from(t.inventoryLots)
+          .where(and(
+            eq(t.inventoryLots.itemId, Number(line.itemId)),
+            eq(t.inventoryLots.poNumber, poNumber),
+            eq(t.inventoryLots.status, 'quarantine'),
+          ))
+          .orderBy(t.inventoryLots.id);
+        for (const src of srcLots) {
+          if (remainingToDeduct <= 0) break;
+          const have = Number(src.quantity) || 0;
+          if (have <= 0) continue;
+          const take = Math.min(have, remainingToDeduct);
+          await db
+            .update(t.inventoryLots)
+            .set({ quantity: have - take, updatedAt: getNow() })
+            .where(eq(t.inventoryLots.id, Number(src.id)));
+          remainingToDeduct -= take;
+        }
+      }
+    } catch (err) {
+      console.warn('[goods-receipt] sample deduction from source lot failed (non-fatal)', err);
+    }
+
+    // Helper — mint one sample lot in a destination room.
+    const makeSampleLot = async (warehouseId: number, qty: number, suffix: string) => {
+      const ins = await db.insert(t.inventoryLots).values({
+        itemId: Number(line.itemId),
+        lotNumber: `${lotNumber}-${suffix}`,
+        batchNumber: line.batchNumber ?? null,
+        warehouseId,
+        quantity: qty,
+        reservedQuantity: 0,
+        unit: String(line.unit),
+        status: 'quarantine',
+        manufacturingDate: line.manufacturingDate ?? null,
+        expiryDate: line.expiryDate ?? null,
+        receivedDate: line.manufacturingDate ?? toDbDate(new Date()),
+        vendorId: grn.vendorId ?? null,
+        vendorLotNumber: line.vendorLotNumber ?? null,
+        sourceGrnLineId: lineId,
+        createdAt: getNow(),
+        updatedAt: getNow(),
+      });
+      return getInsertId(ins);
+    };
+
+    // ANALYSIS sample — the lab-tested one (existing behaviour).
+    const qcLotId = await makeSampleLot(qcWarehouseId, sampleQuantity, 'QC');
+    // RETENTION (ตัวแทน Lot) — stored in the retention room, only if drawn.
+    if (retentionQuantity > 0) {
+      const retentionWhId = await getOrCreateRetentionWarehouse(db);
+      await makeSampleLot(retentionWhId, retentionQuantity, 'RET');
+    }
+    // STABILITY — stored in the stability room, only if drawn. Kept as a plain
+    // lot for now; linking it to a stability study happens later in that module.
+    if (stabilityQuantity > 0) {
+      const stabilityWhId = await getOrCreateStabilityWarehouse(db);
+      await makeSampleLot(stabilityWhId, stabilityQuantity, 'STB');
+    }
+    // The RM/FG remainder lot is created later at release.
     const inventoryLotId: number | null = null;
     const actualQty = sampleQuantity;
 
