@@ -19,6 +19,7 @@ interface ProductionEquipment {
   name: string;
   nameTh: string;
   equipmentType: string;
+  lineCategory?: string; // 'in_line' | 'off_line' (null legacy => in_line)
   capacity?: string;
   roomId?: number;
   roomName?: string;
@@ -102,6 +103,16 @@ export default function ProductionEquipmentPage() {
     );
   };
 
+  // In-line vs off-line badge. Legacy rows have null → treated as in-line.
+  const renderLineCategoryBadge = (value?: string) => {
+    const offLine = value === 'off_line';
+    return (
+      <span className={`dx-cell-tag inline-flex px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${offLine ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'}`}>
+        {offLine ? 'นอกไลน์ผลิต' : 'ในไลน์ผลิต'}
+      </span>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
@@ -150,6 +161,7 @@ export default function ProductionEquipmentPage() {
           <DxColumn dataField="name" caption="ชื่อ (EN)" minWidth={150} />
           <DxColumn dataField="nameTh" caption="ชื่อ (TH)" minWidth={150} />
           <DxColumn dataField="equipmentType" caption="ประเภท" minWidth={160} cellRender={(cell) => renderTypeBadge(cell.value)} />
+          <DxColumn dataField="lineCategory" caption="การใช้งาน" minWidth={140} cellRender={(cell) => renderLineCategoryBadge(cell.value)} />
           <DxColumn dataField="capacity" caption="ความจุ" minWidth={140} cellRender={(cell) => (
             <span className="whitespace-nowrap">{cell.value || '-'}</span>
           )} />

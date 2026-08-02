@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       const equipmentType = searchParams.get('equipmentType') || undefined;
       const roomId = searchParams.get('roomId');
       const isActive = searchParams.get('isActive');
+      const lineCategory = searchParams.get('lineCategory') || undefined;
 
       // Fetch single item by ID
       if (id) {
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
         equipmentType,
         roomId: roomId ? Number(roomId) : undefined,
         isActive: isActive !== null ? isActive === 'true' : true,
+        lineCategory,
       });
 
       // Flatten the nested structure for frontend
@@ -86,6 +88,8 @@ export async function POST(request: NextRequest) {
       if (existing) {
         const updated = await updateProductionEquipment(existing.id as number, {
           name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+          lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
+          inspectionIntervalDays: data.inspectionIntervalDays ?? null, inspectionChecklist: data.inspectionChecklist ?? null,
           capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
           calibrationCertNumber: data.calibrationCertNumber ?? null,
           calibrationDate: data.calibrationDate || null,
@@ -96,6 +100,8 @@ export async function POST(request: NextRequest) {
 
       const equipment = await createProductionEquipment({
         code: data.code, name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
+        lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
+        inspectionIntervalDays: data.inspectionIntervalDays ?? null, inspectionChecklist: data.inspectionChecklist ?? null,
         capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
         calibrationCertNumber: data.calibrationCertNumber ?? null,
         calibrationDate: data.calibrationDate || null,
@@ -130,6 +136,9 @@ export async function PUT(request: NextRequest) {
         name: data.name,
         nameTh: data.nameTh,
         equipmentType: data.equipmentType,
+        lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
+        inspectionIntervalDays: data.inspectionIntervalDays ?? null,
+        inspectionChecklist: data.inspectionChecklist ?? null,
         capacity: data.capacity,
         roomId: data.roomId,
         description: data.description,

@@ -42,13 +42,13 @@ const cards = [
     descKey: 'hub.environmentalInspection.desc',
   },
   {
-    href: '/premises/scale-verification',
+    href: '/premises/equipment-inspection',
     icon: Scale,
     iconBg: 'bg-cyan-100',
     iconColor: 'text-cyan-600',
-    titleKey: 'hub.scaleVerification.title',
-    titleEn: 'Scale Verification',
-    descKey: 'hub.scaleVerification.desc',
+    titleKey: 'hub.equipmentInspection.title',
+    titleEn: 'Equipment Inspection',
+    descKey: 'hub.equipmentInspection.desc',
   },
   {
     href: '/premises/sanitation',

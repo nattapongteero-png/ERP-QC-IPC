@@ -14,6 +14,10 @@
       "title": "Scale Verification",
       "desc": "Verify scales with certified standard weights before use (configure the weight registry at Master Data > Standard Weight Registry)"
     },
+    "equipmentInspection": {
+      "title": "Equipment Inspection",
+      "desc": "Inspect all equipment — in-line and off-line (e.g. HVAC) — on a schedule/checklist; scales can still be verified with standard weights"
+    },
     "sanitation": {
       "title": "Sanitation Management",
       "desc": "Record cleaning, sanitation schedules, trends, and pest control"
@@ -26,6 +30,49 @@
       "title": "Maintenance Alerts",
       "desc": "Maintenance/calibration tasks due + out-of-spec results (list and calendar views)"
     }
+  },
+  "equipmentInspection": {
+    "title": "Equipment Inspection Registry",
+    "subtitle": "Inspect all equipment (in-line + off-line) on the defined schedule and checklist",
+    "filterAll": "All",
+    "filterInLine": "In-line",
+    "filterOffLine": "Off-line",
+    "colCode": "Code",
+    "colName": "Equipment",
+    "colType": "Type",
+    "colUsage": "Usage",
+    "colInterval": "Interval",
+    "colLast": "Last inspected",
+    "colStatus": "Status",
+    "colAction": "Action",
+    "usageInLine": "In-line",
+    "usageOffLine": "Off-line",
+    "intervalDays": "Every {days} days",
+    "intervalNone": "No schedule",
+    "statusNever": "Never inspected",
+    "statusOk": "OK",
+    "statusDueSoon": "Due soon",
+    "statusOverdue": "Overdue",
+    "statusNoSchedule": "No schedule",
+    "never": "—",
+    "inspect": "Inspect",
+    "scaleHint": "Scale: verify with a standard weight",
+    "scaleVerifyLink": "Verify with weight",
+    "modalTitle": "Record equipment inspection",
+    "checklistLabel": "Checklist",
+    "noChecklist": "No checklist defined for this equipment (set it in the equipment registry) — you can still record an overall result",
+    "itemPass": "Pass",
+    "itemFail": "Fail",
+    "notesLabel": "Notes",
+    "overallResult": "Overall result",
+    "resultPass": "Pass",
+    "resultFail": "Fail",
+    "save": "Save inspection",
+    "cancel": "Cancel",
+    "saveSuccess": "Inspection recorded",
+    "saveError": "Failed to save",
+    "loading": "Loading...",
+    "empty": "No equipment"
   },
   "sanitation": {
     "common": {

@@ -76,6 +76,7 @@ function lineClearanceBadgeStyle(status: string | null): {
 interface ExecutionSummary {
   workOrderStatus?: string;
   materialWeighing: { total: number; completed: number; verified: number };
+  equipmentInspection?: { total: number; completed: number; verified: number };
   gowning?: { total: number; completed: number; verified: number };
   preProductionCleaning: { total: number; completed: number; verified: number };
   preProductionEnvironmental: { total: number; recorded: number; normal: number; hasRoomMapping?: boolean };
@@ -137,6 +138,7 @@ const phaseColors = {
 const defaultSummaryValue: ExecutionSummary = {
   workOrderStatus: 'planned',
   materialWeighing: { total: 0, completed: 0, verified: 0 },
+  equipmentInspection: { total: 0, completed: 0, verified: 0 },
   preProductionCleaning: { total: 0, completed: 0, verified: 0 },
   preProductionEnvironmental: { total: 0, recorded: 0, normal: 0 },
   productionCleaning: { total: 0, completed: 0, verified: 0 },
@@ -409,6 +411,26 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
+      // Pre-production equipment inspection — inspect the in-line equipment the BOM
+      // requires before production (replaces the old scale-verification gate).
+      id: 'equipment-inspection',
+      title: t('equipmentInspection.cardTitle'),
+      icon: <ClipboardCheck className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/equipment-inspection?phase=pre_production`,
+      phase: 'pre_production',
+      description: t('equipmentInspection.cardDescription'),
+      getStatus: (s) => {
+        const e = s.equipmentInspection ?? { total: 0, completed: 0, verified: 0 };
+        return {
+          completed: e.completed,
+          verified: e.verified,
+          total: e.total,
+          status: e.total > 0 && e.completed >= e.total ? 'completed'
+            : e.completed > 0 ? 'in_progress' : 'pending',
+        };
+      },
+    },
+    {
       id: 'gowning',
       title: t('execution.cards.gowning.title'),
       icon: <Shirt className="h-5 w-5" />,
@@ -627,6 +649,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   const alwaysShowCardIds = new Set([
     'material-requisition',
     'material-weighing',
+    'equipment-inspection',
     'gowning',
     'bulk-product-yield',
     'finished-inspection',

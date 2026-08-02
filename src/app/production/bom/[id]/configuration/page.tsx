@@ -762,10 +762,13 @@ export default function BOMConfigurationPage() {
     },
   });
 
+  // Only IN-LINE equipment can be assigned to a BOM. Off-line/support equipment
+  // (e.g. air-conditioner) is never part of a production line, so it must not be
+  // selectable here. Distinct queryKey avoids colliding with the unfiltered list.
   const { data: equipment } = useQuery<ProductionEquipment[]>({
-    queryKey: ['production-equipment'],
+    queryKey: ['production-equipment', 'in_line'],
     queryFn: async () => {
-      const res = await fetch('/api/master-data/production-equipment');
+      const res = await fetch('/api/master-data/production-equipment?lineCategory=in_line');
       const data = await res.json();
       return data.success ? data.data : [];
     },

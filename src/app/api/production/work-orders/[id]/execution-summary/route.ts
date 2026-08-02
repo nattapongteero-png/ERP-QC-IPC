@@ -16,6 +16,7 @@ import {
   getWOIPCTests,
 } from '@/lib/services/wo-execution.service';
 import { getGowningForWorkOrder } from '@/lib/services/wo-gowning.service';
+import { getWOEquipmentInspectionSummary } from '@/lib/services/wo-equipment-inspection.service';
 import { executeDbOperation, getTableRef } from '@/lib/db/db-helper';
 import { eq, inArray } from 'drizzle-orm';
 
@@ -336,10 +337,16 @@ export async function GET(
         }
       }
 
+      // Pre-production equipment inspection counts (BOM equipment inspected / total).
+      const equipmentInspection = await getWOEquipmentInspectionSummary(workOrderId, 'pre_production').catch(
+        () => ({ total: 0, completed: 0, verified: 0 }),
+      );
+
       const summary = {
         workOrderStatus: woData?.status || 'planned',
         materialRequisition,
         materialWeighing,
+        equipmentInspection,
         gowning,
         preProductionCleaning: preProductionCleaningStatus,
         preProductionEnvironmental,

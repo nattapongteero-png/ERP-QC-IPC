@@ -162,13 +162,15 @@ export const IMPORT_CONFIGS: Record<string, ImportConfig> = {
       { header: 'ชื่อ EN (Name)*', field: 'name', required: true },
       { header: 'ชื่อ TH (Name TH)*', field: 'nameTh', required: true },
       { header: 'ประเภท (Equipment Type)*', field: 'equipmentType', required: true, lookupValues: EQUIPMENT_TYPES },
+      { header: 'การใช้งาน (in_line/off_line)', field: 'lineCategory', required: false, note: 'in_line=ในไลน์ผลิต, off_line=นอกไลน์ (ค่าเริ่มต้น in_line)' },
       { header: 'ขนาด/ความจุ (Capacity)', field: 'capacity', required: false },
       { header: 'รายละเอียด (Description)', field: 'description', required: false },
     ],
-    validValues: { equipmentType: EQUIPMENT_TYPES.map(e => e.value) },
+    validValues: { equipmentType: EQUIPMENT_TYPES.map(e => e.value), lineCategory: ['in_line', 'off_line'] },
     exampleRows: [
-      { 'รหัส (Code)*': 'EQ-001', 'ชื่อ EN (Name)*': 'Digital Scale 200kg', 'ชื่อ TH (Name TH)*': 'เครื่องชั่งดิจิตอล 200kg', 'ประเภท (Equipment Type)*': 'scale', 'ขนาด/ความจุ (Capacity)': '200 kg', 'รายละเอียด (Description)': '' },
-      { 'รหัส (Code)*': 'EQ-002', 'ชื่อ EN (Name)*': 'Ribbon Mixer 500L', 'ชื่อ TH (Name TH)*': 'เครื่องผสมริบบอน 500L', 'ประเภท (Equipment Type)*': 'mixer', 'ขนาด/ความจุ (Capacity)': '500 liters', 'รายละเอียด (Description)': '' },
+      { 'รหัส (Code)*': 'EQ-001', 'ชื่อ EN (Name)*': 'Digital Scale 200kg', 'ชื่อ TH (Name TH)*': 'เครื่องชั่งดิจิตอล 200kg', 'ประเภท (Equipment Type)*': 'scale', 'การใช้งาน (in_line/off_line)': 'in_line', 'ขนาด/ความจุ (Capacity)': '200 kg', 'รายละเอียด (Description)': '' },
+      { 'รหัส (Code)*': 'EQ-002', 'ชื่อ EN (Name)*': 'Ribbon Mixer 500L', 'ชื่อ TH (Name TH)*': 'เครื่องผสมริบบอน 500L', 'ประเภท (Equipment Type)*': 'mixer', 'การใช้งาน (in_line/off_line)': 'in_line', 'ขนาด/ความจุ (Capacity)': '500 liters', 'รายละเอียด (Description)': '' },
+      { 'รหัส (Code)*': 'EQ-003', 'ชื่อ EN (Name)*': 'Air Conditioner (Prod. Room)', 'ชื่อ TH (Name TH)*': 'เครื่องปรับอากาศ (ห้องผลิต)', 'ประเภท (Equipment Type)*': 'other', 'การใช้งาน (in_line/off_line)': 'off_line', 'ขนาด/ความจุ (Capacity)': '18000 BTU', 'รายละเอียด (Description)': 'อุปกรณ์สนับสนุน นอกไลน์ผลิต' },
     ],
   },
   environmentalConditions: {

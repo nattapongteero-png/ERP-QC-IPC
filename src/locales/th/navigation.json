@@ -156,6 +156,7 @@
     "storageMonitoring": "ติดตามสภาพคลังจัดเก็บ",
     "environmentalInspection": "ตรวจสภาพแวดล้อม",
     "scaleVerification": "ตรวจเครื่องชั่ง (ลูกตุ้ม)",
+    "equipmentInspection": "ทะเบียนตรวจสอบอุปกรณ์",
     "waterQuality": "ระบบน้ำ (Water Quality)",
     "maintenanceAlerts": "แจ้งเตือนบำรุงรักษา"
   }

@@ -163,7 +163,7 @@ const navigation: NavItem[] = [
       { name: 'Premises Overview', href: '/premises', icon: Building2 },
       { name: 'Storage Monitoring', href: '/premises/storage-monitoring', icon: Thermometer },
       { name: 'Environmental Inspection', href: '/premises/environmental/inspections', icon: Thermometer },
-      { name: 'Scale Verification', href: '/premises/scale-verification', icon: Scale },
+      { name: 'Equipment Inspection', href: '/premises/equipment-inspection', icon: Scale },
       { name: 'Sanitation', href: '/premises/sanitation', icon: Sparkles },
       { name: 'Water Quality', href: '/premises/environmental/water-quality', icon: Droplets },
       { name: 'Maintenance Alerts', href: '/premises/notifications', icon: Bell },

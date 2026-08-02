@@ -25,6 +25,8 @@ interface ProductionEquipment {
   name: string;
   nameTh: string;
   equipmentType: string;
+  // 'in_line' = ใช้ในไลน์ผลิต (เลือกได้ใน BOM) · 'off_line' = นอกไลน์ผลิต / อุปกรณ์สนับสนุน (เช่น แอร์)
+  lineCategory?: string;
   capacity?: string;
   roomId?: number;
   description?: string;
@@ -33,6 +35,9 @@ interface ProductionEquipment {
   calibrationCertNumber?: string | null;
   calibrationDate?: string | null;
   calibrationExpiryDate?: string | null;
+  // Routine inspection config (mainly off-line/support equipment).
+  inspectionIntervalDays?: number | null;
+  inspectionChecklist?: string | null; // JSON string[] of check items
 }
 
 interface ProductionRoom {
@@ -45,6 +50,14 @@ interface ProductionEquipmentFormProps {
   mode: 'create' | 'edit';
   id?: number;
 }
+
+// In-line vs off-line: in-line equipment is selectable in a BOM and inspected per
+// work order; off-line (support/utility, e.g. air-conditioner) is not in any BOM and
+// is inspected on a routine schedule via the equipment-inspection registry.
+const lineCategories = [
+  { value: 'in_line', label: 'ในไลน์ผลิต (ใช้ในการผลิต · เลือกได้ใน BOM)' },
+  { value: 'off_line', label: 'นอกไลน์ผลิต (อุปกรณ์สนับสนุน เช่น แอร์)' },
+];
 
 const equipmentTypes = [
   { value: 'scale', label: 'เครื่องชั่ง' },
@@ -87,6 +100,7 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
         name: existingEquipment.name || '',
         nameTh: existingEquipment.nameTh || '',
         equipmentType: existingEquipment.equipmentType || '',
+        lineCategory: existingEquipment.lineCategory || 'in_line',
         capacity: existingEquipment.capacity || '',
         roomId: existingEquipment.roomId,
         description: existingEquipment.description || '',
@@ -94,8 +108,10 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
         calibrationCertNumber: existingEquipment.calibrationCertNumber ?? '',
         calibrationDate: existingEquipment.calibrationDate ?? '',
         calibrationExpiryDate: existingEquipment.calibrationExpiryDate ?? '',
+        inspectionIntervalDays: existingEquipment.inspectionIntervalDays ?? null,
+        inspectionChecklist: existingEquipment.inspectionChecklist ?? '',
       }
-    : { code: '', name: '', nameTh: '', equipmentType: '', capacity: '', roomId: undefined, description: '', isActive: true, calibrationCertNumber: '', calibrationDate: '', calibrationExpiryDate: '' };
+    : { code: '', name: '', nameTh: '', equipmentType: '', lineCategory: 'in_line', capacity: '', roomId: undefined, description: '', isActive: true, calibrationCertNumber: '', calibrationDate: '', calibrationExpiryDate: '', inspectionIntervalDays: null, inspectionChecklist: '' };
 
   return <ProductionEquipmentFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingEquipment={existingEquipment} />;
 }
@@ -225,6 +241,23 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
             </div>
           </div>
 
+          {/* In-line vs off-line — decides whether this equipment is selectable in
+              a BOM (in-line) or inspected only on a routine schedule (off-line). */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">การใช้งาน (ในไลน์ / นอกไลน์ผลิต) *</label>
+            <DxSelectBox
+              dataSource={lineCategories}
+              displayExpr="label"
+              valueExpr="value"
+              value={formData.lineCategory || 'in_line'}
+              onValueChanged={(e) => setFormData({ ...formData, lineCategory: e.value })}
+              placeholder="เลือกการใช้งาน"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              นอกไลน์ผลิต (เช่น แอร์) จะไม่แสดงให้เลือกใน BOM และตรวจสอบตามรอบเวลาในทะเบียนตรวจสอบอุปกรณ์
+            </p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (EN) *</label>
             <DxTextBox
@@ -318,6 +351,36 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               </div>
             </div>
           )}
+
+          {/* Routine inspection config — used by the equipment-inspection registry.
+              Especially relevant for off-line equipment (e.g. air-conditioner) that
+              is inspected on a schedule rather than per work order. */}
+          <div className="rounded-lg border border-orange-100 bg-orange-50/40 p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-orange-900">การตรวจสอบตามรอบ (ทะเบียนตรวจสอบอุปกรณ์)</h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รอบการตรวจ (วัน)</label>
+              <DxTextBox
+                value={formData.inspectionIntervalDays != null ? String(formData.inspectionIntervalDays) : ''}
+                onValueChanged={(e) => {
+                  const n = parseInt(String(e.value).replace(/\D/g, ''));
+                  setFormData({ ...formData, inspectionIntervalDays: Number.isFinite(n) && n > 0 ? n : null });
+                }}
+                placeholder="เช่น 30 = ตรวจทุก 30 วัน (เว้นว่าง = ไม่ตั้งรอบ)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รายการตรวจ (Checklist) — 1 บรรทัด = 1 รายการ</label>
+              <textarea
+                className="w-full min-h-[90px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                value={(() => { try { return (JSON.parse(formData.inspectionChecklist || '[]') as string[]).join('\n'); } catch { return formData.inspectionChecklist || ''; } })()}
+                onChange={(e) => {
+                  const items = e.target.value.split('\n').map((s) => s.trim()).filter(Boolean);
+                  setFormData({ ...formData, inspectionChecklist: items.length ? JSON.stringify(items) : '' });
+                }}
+                placeholder={'เช่น\nล้างฟิลเตอร์\nวัดอุณหภูมิลม\nตรวจน้ำรั่ว'}
+              />
+            </div>
+          </div>
 
           <div className="flex items-center gap-2 pt-2">
             <DxSwitch

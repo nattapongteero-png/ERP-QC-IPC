@@ -79,7 +79,7 @@ const ENGLISH_TO_KEY: Record<string, string> = {
   'Premises Overview': 'premises.overview',
   'Storage Monitoring': 'premises.storageMonitoring',
   'Environmental Inspection': 'premises.environmentalInspection',
-  'Scale Verification': 'premises.scaleVerification',
+  'Equipment Inspection': 'premises.equipmentInspection',
   'Water Quality': 'premises.waterQuality',
   'Maintenance Alerts': 'premises.maintenanceAlerts',
   // Note: 'Sanitation' is already mapped under the GMP submenu (gmp.sanitation)

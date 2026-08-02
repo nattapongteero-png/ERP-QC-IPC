@@ -1382,6 +1382,12 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   name: text('name').notNull(),
   nameTh: text('name_th').notNull(),
   equipmentType: text('equipment_type').notNull(), // scale, mixer, hotplate, container, tool, filler
+  // In-line vs off-line classification. 'in_line' = used in a production line
+  // (selectable in a BOM, inspected per work order). 'off_line' = support/utility
+  // equipment (e.g. air-conditioner/HVAC) — NOT in any BOM; inspected on a routine
+  // schedule via the equipment-inspection registry + maintenance registry.
+  // Nullable so schema-sync can ALTER ADD COLUMN on existing rows (null => treated as in_line).
+  lineCategory: text('line_category').default('in_line'), // 'in_line' | 'off_line'
   capacity: text('capacity'), // e.g., "200 kg", "120 liters"
   roomId: integer('room_id').references(() => sqliteProductionRooms.id), // Default room
   description: text('description'),
@@ -1397,8 +1403,29 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   calibrationCertNumber: text('calibration_cert_number'),
   calibrationDate: text('calibration_date'),
   calibrationExpiryDate: text('calibration_expiry_date'),
+  // Routine inspection config — mainly for off-line/support equipment (e.g. HVAC)
+  // inspected on a schedule via the equipment-inspection registry. Nullable.
+  inspectionIntervalDays: integer('inspection_interval_days'), // e.g. 30 = ตรวจทุก 30 วัน
+  inspectionChecklist: text('inspection_checklist'), // JSON string[] of check items
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Equipment Inspections (Feature: equipment inspection registry) — a general
+// pass/fail inspection log for ANY production_equipment (in-line or off-line),
+// separate from scale_verifications (which stays for the numeric standard-weight
+// check on scales). One row per inspection event.
+export const sqliteEquipmentInspections = sqliteTable('equipment_inspections', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteProductionEquipment.id),
+  inspectionType: text('inspection_type').notNull().default('routine'), // 'routine' | 'pre_production'
+  result: text('result').notNull(), // 'pass' | 'fail'
+  checklistResults: text('checklist_results'), // JSON: [{ item, ok, note }]
+  notes: text('notes'),
+  performedAt: text('performed_at').notNull().default('CURRENT_TIMESTAMP'),
+  performedByUserId: integer('performed_by_user_id').references(() => sqliteUsers.id),
+  nextDueDate: text('next_due_date'), // computed from equipment.inspectionIntervalDays
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
 // Environmental Conditions (Master Data) - Lookup table for environmental condition profiles
@@ -1723,6 +1750,26 @@ export const sqliteWOCleaningLogs = sqliteTable('wo_cleaning_logs', {
   verifierId: integer('verifier_id').references(() => sqliteUsers.id),
   verifiedAt: text('verified_at'),
   verifyResult: text('verify_result'), // pass, fail
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// Work Order Equipment Inspection — pre-production inspection of the equipment a
+// BOM requires for its phase (mirrors wo_cleaning_logs). One row per equipment
+// inspected for a work order phase. Operator records pass/fail per the SOP; a
+// separate user may verify.
+export const sqliteWOEquipmentInspection = sqliteTable('wo_equipment_inspection', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  workOrderId: integer('work_order_id').notNull().references(() => sqliteWorkOrders.id),
+  phase: text('phase').notNull().default('pre_production'),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteProductionEquipment.id),
+  bomEquipmentId: integer('bom_equipment_id').references(() => sqliteBOMEquipment.id),
+  result: text('result').notNull(), // 'pass' | 'fail'
+  checklistResults: text('checklist_results'), // JSON: [{ item, ok, note }]
+  operatorId: integer('operator_id').notNull().references(() => sqliteUsers.id),
+  performedAt: text('performed_at').notNull(),
+  verifierId: integer('verifier_id').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
   notes: text('notes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -5039,6 +5086,10 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   name: varchar('name', { length: 255 }).notNull(),
   nameTh: varchar('name_th', { length: 255 }).notNull(),
   equipmentType: varchar('equipment_type', { length: 50 }).notNull(), // scale, mixer, hotplate, container, tool, filler
+  // In-line vs off-line classification (see sqlite twin for full note).
+  // 'in_line' = selectable in a BOM, inspected per work order.
+  // 'off_line' = support/utility (e.g. HVAC); routine-schedule inspection only.
+  lineCategory: varchar('line_category', { length: 20 }).default('in_line'), // 'in_line' | 'off_line'
   capacity: varchar('capacity', { length: 100 }), // e.g., "200 kg", "120 liters"
   roomId: int('room_id').references(() => mysqlProductionRooms.id), // Default room
   description: mysqlText('description'),
@@ -5053,8 +5104,25 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   calibrationCertNumber: varchar('calibration_cert_number', { length: 100 }),
   calibrationDate: varchar('calibration_date', { length: 10 }),
   calibrationExpiryDate: varchar('calibration_expiry_date', { length: 10 }),
+  // Routine inspection config (see sqlite twin). Nullable.
+  inspectionIntervalDays: int('inspection_interval_days'),
+  inspectionChecklist: mysqlText('inspection_checklist'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Equipment Inspections (general inspection log for any equipment) - MySQL
+export const mysqlEquipmentInspections = mysqlTable('equipment_inspections', {
+  id: int('id').primaryKey().autoincrement(),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlProductionEquipment.id),
+  inspectionType: varchar('inspection_type', { length: 30 }).notNull().default('routine'),
+  result: varchar('result', { length: 10 }).notNull(),
+  checklistResults: mysqlText('checklist_results'),
+  notes: mysqlText('notes'),
+  performedAt: datetime('performed_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  performedByUserId: int('performed_by_user_id').references(() => mysqlUsers.id),
+  nextDueDate: varchar('next_due_date', { length: 10 }),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Environmental Conditions (Master Data) - MySQL
@@ -5342,6 +5410,23 @@ export const mysqlWOCleaningLogs = mysqlTable('wo_cleaning_logs', {
   verifierId: int('verifier_id').references(() => mysqlUsers.id),
   verifiedAt: datetime('verified_at'),
   verifyResult: varchar('verify_result', { length: 20 }), // pass, fail
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Work Order Equipment Inspection - MySQL (mirrors wo_cleaning_logs)
+export const mysqlWOEquipmentInspection = mysqlTable('wo_equipment_inspection', {
+  id: int('id').primaryKey().autoincrement(),
+  workOrderId: int('work_order_id').notNull().references(() => mysqlWorkOrders.id),
+  phase: varchar('phase', { length: 50 }).notNull().default('pre_production'),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlProductionEquipment.id),
+  bomEquipmentId: int('bom_equipment_id').references(() => mysqlBOMEquipment.id),
+  result: varchar('result', { length: 10 }).notNull(),
+  checklistResults: mysqlText('checklist_results'),
+  operatorId: int('operator_id').notNull().references(() => mysqlUsers.id),
+  performedAt: datetime('performed_at').notNull(),
+  verifierId: int('verifier_id').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
   notes: mysqlText('notes'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });

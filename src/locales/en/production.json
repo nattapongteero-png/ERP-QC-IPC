@@ -1,4 +1,23 @@
 {
+  "equipmentInspection": {
+    "cardTitle": "Pre-Production Equipment Inspection",
+    "cardDescription": "Inspect the in-line equipment the BOM requires before production starts",
+    "title": "Pre-Production Equipment Inspection",
+    "subtitle": "Inspect the equipment the BOM requires for the pre-production phase, per SOP/checklist",
+    "back": "Back",
+    "loading": "Loading...",
+    "noEquipment": "The BOM does not define any equipment for the pre-production phase",
+    "required": "Required",
+    "resultPass": "Pass",
+    "resultFail": "Fail",
+    "noChecklist": "No checklist defined for this equipment — you can still record an overall result",
+    "itemPass": "Pass",
+    "itemFail": "Fail",
+    "notesLabel": "Notes",
+    "record": "Record inspection",
+    "saveSuccess": "Equipment inspection recorded",
+    "saveError": "Failed to save"
+  },
   "page": {
     "title": "Production",
     "description": "Manage work orders, recipes, and production lines"

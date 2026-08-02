@@ -20,6 +20,7 @@ export interface RequisitionChangedPayload extends Record<string, unknown> {
  */
 export type WorkOrderSection =
   | 'cleaning'
+  | 'equipment-inspection'
   | 'material-weighing'
   | 'sop-execution'
   | 'ipc'

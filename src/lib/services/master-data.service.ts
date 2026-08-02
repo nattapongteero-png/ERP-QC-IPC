@@ -5,7 +5,7 @@
 
 import { isSqlite } from '../db';
 import { executeDbOperation, getInsertId } from '../db/db-helper';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, or, isNull } from 'drizzle-orm';
 import {
   sqliteProductionRooms,
   sqliteProductionEquipment,
@@ -125,6 +125,9 @@ export interface ProductionEquipmentFilters {
   equipmentType?: string;
   roomId?: number;
   isActive?: boolean;
+  // 'in_line' | 'off_line'. When set to 'in_line', legacy rows with a NULL
+  // line_category are included too (null is treated as in-line).
+  lineCategory?: string;
 }
 
 export async function getProductionEquipment(filters?: ProductionEquipmentFilters) {
@@ -140,6 +143,15 @@ export async function getProductionEquipment(filters?: ProductionEquipmentFilter
     }
     if (filters?.isActive !== undefined) {
       conditions.push(eq(productionEquipment.isActive, filters.isActive));
+    }
+    if (filters?.lineCategory) {
+      // Legacy rows have NULL line_category; treat them as in-line so the
+      // in-line filter (used by the BOM equipment picker) still finds them.
+      if (filters.lineCategory === 'in_line') {
+        conditions.push(or(eq(productionEquipment.lineCategory, 'in_line'), isNull(productionEquipment.lineCategory)));
+      } else {
+        conditions.push(eq(productionEquipment.lineCategory, filters.lineCategory));
+      }
     }
 
     let query = db.select({

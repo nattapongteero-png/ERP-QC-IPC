@@ -156,6 +156,7 @@
     "storageMonitoring": "Storage Monitoring",
     "environmentalInspection": "Environmental Inspection",
     "scaleVerification": "Scale Verification",
+    "equipmentInspection": "Equipment Inspection",
     "waterQuality": "Water Quality",
     "maintenanceAlerts": "Maintenance Alerts"
   }

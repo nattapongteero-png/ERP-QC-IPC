@@ -376,6 +376,47 @@ export async function scanMaintenanceSchedules(): Promise<ScanResult> {
   });
 }
 
+// Scan the equipment-inspection registry (production_equipment routine inspections,
+// used mainly for off-line/support equipment like HVAC) and raise notifications for
+// anything overdue or due within its alert window. Reuses the same inbox as the
+// accounting maintenance schedules; notifications carry entityType 'production_equipment'.
+export async function scanEquipmentInspectionsDue(): Promise<ScanResult> {
+  const { listEquipmentForInspection } = await import('./equipment-inspection.service');
+  const rows = await listEquipmentForInspection();
+  const now = new Date();
+  const todayIso = now.toISOString();
+  let created = 0;
+  let skipped = 0;
+  let scanned = 0;
+
+  for (const row of rows) {
+    // Only equipment that has an inspection interval configured is tracked here.
+    if (!row.inspectionIntervalDays) { skipped++; continue; }
+    scanned++;
+    // 'ok' / 'no_schedule' are not actionable; flag overdue, due-soon, or never-inspected.
+    if (row.dueStatus !== 'overdue' && row.dueStatus !== 'due_soon' && row.dueStatus !== 'never') {
+      skipped++;
+      continue;
+    }
+    const dueAt = row.nextDueDate || todayIso.slice(0, 10);
+    const severity = classifySeverity(dueAt, now);
+    const result = await createNotification({
+      entityType: 'production_equipment',
+      entityId: row.id,
+      scheduleId: null,
+      type: 'inspection_due',
+      title: `Equipment inspection due — ${row.code} ${row.nameTh}`,
+      body: `${row.dueStatus === 'overdue' ? 'OVERDUE' : row.dueStatus === 'never' ? 'Never inspected' : 'Due'} ${dueAt}`,
+      dueAt,
+      severity,
+    });
+    const createdTs = new Date(result.createdAt).getTime();
+    if (Math.abs(Date.now() - createdTs) < 60_000) created++; else skipped++;
+  }
+
+  return { scanned, created, skipped };
+}
+
 // ============================================
 // Calendar — items due within a date range
 // ============================================

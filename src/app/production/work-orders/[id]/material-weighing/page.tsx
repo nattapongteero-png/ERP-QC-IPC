@@ -14,7 +14,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
-import { ScaleVerificationBanner } from '@/components/scale-verification/ScaleVerificationBanner';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
@@ -953,17 +952,9 @@ export default function MaterialWeighingPage() {
             </div>
           </div>
 
-          {/* Feature 021 — Scale picker + verification gate */}
-          <ScaleVerificationBanner
-            scaleId={formData.scaleId}
-            onScaleChange={(id) => setFormData({ ...formData, scaleId: id })}
-            isWaterMaterial={
-              !!selectedMaterial &&
-              ((selectedMaterial.itemCode ?? '').toLowerCase().includes('water') ||
-                (selectedMaterial.itemName ?? '').toLowerCase().includes('water') ||
-                (selectedMaterial.itemName ?? '').includes('น้ำ'))
-            }
-          />
+          {/* Scale pre-weigh verification (ScaleVerificationBanner) removed —
+              equipment/scale checks now happen in the pre-production equipment
+              inspection card + the equipment-inspection registry, not here. */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
