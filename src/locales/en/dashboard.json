@@ -81,7 +81,9 @@
     "rejected": "Rejected",
     "coldStorage": "Cold Storage",
     "qc": "QC Sample Store",
-    "retainSample": "Retain Sample Store"
+    "retainSample": "Retain Sample Store",
+    "qcRetention": "Lot Retention Sample",
+    "qcStability": "Stability Sample"
   },
   "moduleKpis": {
     "title": "Module KPIs",

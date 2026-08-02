@@ -81,7 +81,9 @@
     "rejected": "ถูกปฏิเสธ",
     "coldStorage": "ห้องเย็น",
     "qc": "คลังตัวอย่าง QC",
-    "retainSample": "คลังเก็บตัวอย่างสำรอง"
+    "retainSample": "คลังเก็บตัวอย่างสำรอง",
+    "qcRetention": "ตัวอย่างตัวแทน Lot",
+    "qcStability": "ตัวอย่าง Stability"
   },
   "moduleKpis": {
     "title": "ตัวชี้วัดแยกตามโมดูล",

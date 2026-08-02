@@ -57,8 +57,6 @@ function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-const MAX_CHIPS_PER_DAY = 3;
-
 export function ProductionPlanCalendar({ workOrders, t, onSelect }: ProductionPlanCalendarProps) {
   const today = useMemo(() => {
     const n = new Date();
@@ -85,26 +83,70 @@ export function ProductionPlanCalendar({ workOrders, t, onSelect }: ProductionPl
       .filter((s): s is { wo: PlanCalendarWorkOrder; start: Date; end: Date } => s !== null);
   }, [workOrders]);
 
-  // Build the 6-week grid (42 cells) covering the displayed month.
-  const weeks = useMemo(() => {
+  // Build the 6-week grid. Each week yields its 7 day cells PLUS the set of work
+  // orders that run through it, each collapsed into ONE continuous bar spanning
+  // the days it covers within that week (so a multi-day WO reads as a single
+  // dragged bar, not a chip repeated on every day). Bars are packed into lanes
+  // so overlapping WOs stack instead of covering each other.
+  const weekRows = useMemo(() => {
+    const DAY = 86400000;
     const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-    // Grid starts on the Sunday on/before the 1st.
     const gridStart = new Date(firstOfMonth);
     gridStart.setDate(firstOfMonth.getDate() - firstOfMonth.getDay());
 
-    const cells: { date: Date; inMonth: boolean; wos: PlanCalendarWorkOrder[] }[] = [];
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(gridStart);
-      date.setDate(gridStart.getDate() + i);
-      const wos = spans
-        .filter((s) => date.getTime() >= s.start.getTime() && date.getTime() <= s.end.getTime())
-        .map((s) => s.wo);
-      cells.push({ date, inMonth: date.getMonth() === anchor.getMonth(), wos });
-    }
+    const rows: {
+      days: { date: Date; inMonth: boolean }[];
+      segments: {
+        wo: PlanCalendarWorkOrder;
+        startCol: number;
+        endCol: number;
+        lane: number;
+        startsHere: boolean;
+        endsHere: boolean;
+      }[];
+      laneCount: number;
+    }[] = [];
 
-    const grouped: (typeof cells)[] = [];
-    for (let i = 0; i < cells.length; i += 7) grouped.push(cells.slice(i, i + 7));
-    return grouped;
+    for (let w = 0; w < 6; w++) {
+      const weekStart = new Date(gridStart);
+      weekStart.setDate(gridStart.getDate() + w * 7);
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return { date: d, inMonth: d.getMonth() === anchor.getMonth() };
+      });
+      const weekStartMs = days[0].date.getTime();
+      const weekEndMs = days[6].date.getTime();
+
+      const segments = spans
+        .filter((s) => s.end.getTime() >= weekStartMs && s.start.getTime() <= weekEndMs)
+        .map((s) => ({
+          wo: s.wo,
+          startCol: Math.max(0, Math.round((s.start.getTime() - weekStartMs) / DAY)),
+          endCol: Math.min(6, Math.round((s.end.getTime() - weekStartMs) / DAY)),
+          startsHere: s.start.getTime() >= weekStartMs,
+          endsHere: s.end.getTime() <= weekEndMs,
+          lane: 0,
+        }))
+        // Earliest, then longest, first — stable packing so bars don't jump.
+        .sort((a, b) => a.startCol - b.startCol || (b.endCol - b.startCol) - (a.endCol - a.startCol));
+
+      // Greedy lane packing: put each bar in the first lane whose last bar ends
+      // before this one starts.
+      const laneEnds: number[] = [];
+      for (const seg of segments) {
+        let lane = laneEnds.findIndex((end) => seg.startCol > end);
+        if (lane === -1) {
+          lane = laneEnds.length;
+          laneEnds.push(seg.endCol);
+        } else {
+          laneEnds[lane] = seg.endCol;
+        }
+        seg.lane = lane;
+      }
+      rows.push({ days, segments, laneCount: laneEnds.length });
+    }
+    return rows;
   }, [anchor, spans]);
 
   const plannedThisMonth = useMemo(
@@ -189,53 +231,78 @@ export function ProductionPlanCalendar({ workOrders, t, onSelect }: ProductionPl
         ))}
       </div>
 
-      {/* Month grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {weeks.flat().map((cell, idx) => {
-          const isToday = sameDay(cell.date, today);
-          const extra = cell.wos.length - MAX_CHIPS_PER_DAY;
+      {/* Month grid — one bordered row per week. Day-number cells form the
+          background; each work order is drawn ONCE as a continuous bar spanning
+          the columns it covers (a WO that runs Mon→Thu is a single bar, not four
+          separate chips), overlaid on the same 7-column track so it lines up
+          with the day cells. Overlapping WOs stack in lanes. */}
+      <div className="flex flex-col gap-1">
+        {weekRows.map((week, wi) => {
+          const laneHeight = 22; // px per stacked bar
+          const barsTop = 30; // px reserved for the date-number row
+          const cellMinHeight = barsTop + Math.max(week.laneCount, 1) * laneHeight + 4;
           return (
-            <div
-              key={idx}
-              className={`min-h-[92px] rounded-lg border p-1.5 flex flex-col ${
-                cell.inMonth ? 'bg-white border-gray-100' : 'bg-gray-50/60 border-transparent'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span
-                  className={`inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs ${
-                    isToday
-                      ? 'bg-emerald-600 text-white font-semibold'
-                      : cell.inMonth
-                        ? 'text-gray-700'
-                        : 'text-gray-400'
-                  }`}
-                >
-                  {cell.date.getDate()}
-                </span>
+            <div key={wi} className="relative">
+              {/* Day-number cells (background track) */}
+              <div className="grid grid-cols-7 gap-1">
+                {week.days.map((d, i) => {
+                  const isToday = sameDay(d.date, today);
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-lg border p-1.5 ${
+                        d.inMonth ? 'bg-white border-gray-100' : 'bg-gray-50/60 border-transparent'
+                      }`}
+                      style={{ minHeight: cellMinHeight }}
+                    >
+                      <span
+                        className={`inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs ${
+                          isToday
+                            ? 'bg-emerald-600 text-white font-semibold'
+                            : d.inMonth
+                              ? 'text-gray-700'
+                              : 'text-gray-400'
+                        }`}
+                      >
+                        {d.date.getDate()}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex flex-col gap-1 overflow-hidden">
-                {cell.wos.slice(0, MAX_CHIPS_PER_DAY).map((wo) => {
-                  const style = STATUS_DOT[wo.status] ?? STATUS_DOT.planned;
+
+              {/* Spanning-bar overlay — same 7-column track, positioned below the
+                  date numbers. Each bar spans its column range in one piece. */}
+              <div
+                className="absolute left-0 right-0 grid grid-cols-7 gap-1 pointer-events-none"
+                style={{ top: barsTop, gridAutoRows: `${laneHeight}px` }}
+              >
+                {week.segments.map((seg) => {
+                  const style = STATUS_DOT[seg.wo.status] ?? STATUS_DOT.planned;
                   return (
                     <button
-                      key={wo.id}
+                      key={`${seg.wo.id}-${seg.startCol}`}
                       type="button"
-                      onClick={() => onSelect?.(wo.id)}
-                      title={`${wo.woNumber}${wo.productName ? ' — ' + wo.productName : ''}`}
-                      className={`text-left truncate rounded border px-1.5 py-0.5 text-[11px] leading-tight hover:opacity-80 transition ${style.chip}`}
-                      data-testid={`plan-wo-${wo.id}`}
+                      onClick={() => onSelect?.(seg.wo.id)}
+                      title={`${seg.wo.woNumber}${seg.wo.productName ? ' — ' + seg.wo.productName : ''}`}
+                      className={`pointer-events-auto self-start h-[19px] flex items-center truncate border px-1.5 text-[11px] leading-tight hover:opacity-80 transition ${style.chip} ${
+                        seg.startsHere ? 'rounded-l-md' : 'rounded-l-none border-l-0'
+                      } ${seg.endsHere ? 'rounded-r-md' : 'rounded-r-none border-r-0'}`}
+                      style={{
+                        gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`,
+                        gridRow: seg.lane + 1,
+                        marginLeft: seg.startsHere ? undefined : -4,
+                        marginRight: seg.endsHere ? undefined : -4,
+                      }}
+                      data-testid={`plan-wo-${seg.wo.id}`}
                     >
-                      <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle ${style.dot}`} />
-                      <span className="font-mono">{wo.woNumber}</span>
+                      {seg.startsHere && (
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0 ${style.dot}`} />
+                      )}
+                      <span className="font-mono truncate">{seg.wo.woNumber}</span>
                     </button>
                   );
                 })}
-                {extra > 0 && (
-                  <span className="text-[10px] text-gray-400 pl-1">
-                    {t('workOrders.plan.moreCount', { count: extra })}
-                  </span>
-                )}
               </div>
             </div>
           );

@@ -517,23 +517,6 @@ export default function WorkOrdersPage() {
     ].filter(d => d.count > 0);
   }, [stats, t]);
 
-  // Active = WO ที่ยังทำงานอยู่ (ไม่นับ completed / cancelled). Priority
-  // ค่าน้อย = สำคัญสูง (1-3 = High, 4-6 = Medium, 7+ = Low) ตาม
-  // getPriorityLevel() ที่ใช้ในส่วนอื่นของหน้านี้.
-  const priorityChartData = useMemo(() => {
-    const activeOrders = workOrders.filter(wo => wo.status !== 'completed' && wo.status !== 'cancelled');
-    return [
-      { priority: 'High (1-3)', count: activeOrders.filter(wo => wo.priority <= 3).length, color: '#ef4444' },
-      { priority: 'Medium (4-6)', count: activeOrders.filter(wo => wo.priority > 3 && wo.priority <= 6).length, color: '#f59e0b' },
-      { priority: 'Low (7+)', count: activeOrders.filter(wo => wo.priority > 6).length, color: '#10b981' },
-    ];
-  }, [workOrders]);
-
-  const priorityChartTotal = useMemo(
-    () => priorityChartData.reduce((sum, d) => sum + d.count, 0),
-    [priorityChartData],
-  );
-
   // Status tabs
   // Status filter tabs. Each tab (except "All") carries the colour of its
   // matching status badge so the filter row stays visually in sync with the
@@ -768,7 +751,7 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         {/* Status Distribution */}
         <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 min-h-0">
           <div className="flex items-center justify-between mb-4">
@@ -823,65 +806,6 @@ export default function WorkOrdersPage() {
               <div className="text-center">
                 <TrendingUp className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">{t('workOrders.charts.noData')}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Priority breakdown of ACTIVE work orders — replaces a heavy, hard-to-
-            read DevExtreme bar chart with three labelled progress bars so the
-            operator can see at a glance how the open workload splits by urgency.
-            Each row: colour-coded label + count + %-of-active bar. */}
-        <div className="bg-white rounded-[18px] border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.07)] p-5 md:col-span-2 lg:col-span-2">
-          <div className="flex items-start justify-between mb-4 gap-2">
-            <div>
-              <h3 className="text-base font-semibold text-[#064E3B] flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                {t('workOrders.charts.byPriority')}
-              </h3>
-              <p className="text-xs text-[#4B7163] mt-0.5">
-                {t('workOrders.charts.byPrioritySubtitle', { count: priorityChartTotal })}
-              </p>
-            </div>
-          </div>
-          {priorityChartTotal > 0 ? (
-            <div className="space-y-4">
-              {priorityChartData.map((d) => {
-                const pct = priorityChartTotal > 0 ? Math.round((d.count / priorityChartTotal) * 100) : 0;
-                const meta: Record<string, { label: string; hint: string; bar: string; text: string }> = {
-                  'High (1-3)': { label: t('workOrders.charts.priorityHighLabel'), hint: t('workOrders.charts.priorityHighHint'), bar: 'bg-red-500', text: 'text-red-600' },
-                  'Medium (4-6)': { label: t('workOrders.charts.priorityMediumLabel'), hint: t('workOrders.charts.priorityMediumHint'), bar: 'bg-amber-500', text: 'text-amber-600' },
-                  'Low (7+)': { label: t('workOrders.charts.priorityLowLabel'), hint: t('workOrders.charts.priorityLowHint'), bar: 'bg-emerald-500', text: 'text-emerald-600' },
-                };
-                const m = meta[d.priority] || { label: d.priority, hint: '', bar: 'bg-gray-400', text: 'text-gray-600' };
-                return (
-                  <div key={d.priority}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-block w-2.5 h-2.5 rounded-sm ${m.bar}`} />
-                        <span className="text-sm font-medium text-gray-800">{m.label}</span>
-                        <span className="text-xs text-gray-400">{m.hint}</span>
-                      </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className={`text-lg font-bold ${m.text}`}>{d.count}</span>
-                        <span className="text-xs text-gray-400">({pct}%)</span>
-                      </div>
-                    </div>
-                    <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${m.bar} transition-all duration-500`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="h-[180px] flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <CheckCircle className="w-10 h-10 mx-auto mb-2 opacity-50 text-emerald-400" />
-                <p className="text-sm">{t('workOrders.charts.noActiveOrders')}</p>
               </div>
             </div>
           )}

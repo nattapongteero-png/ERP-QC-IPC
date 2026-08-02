@@ -52,6 +52,10 @@ const warehouseTypeConfig: Record<string, {
   // type as the translation key and the card printed 'dashboard.warehouseTypes.qc'.
   qc: { translationKey: 'qc', icon: ShieldAlert, color: 'text-violet-600', bgColor: 'bg-violet-100' },
   retain_sample: { translationKey: 'retainSample', icon: Boxes, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  // QC sample rooms added by the goods-receipt 3-sample flow — without an entry
+  // the card printed the raw 'dashboard.warehouseTypes.qc_retention' key.
+  qc_retention: { translationKey: 'qcRetention', icon: Boxes, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  qc_stability: { translationKey: 'qcStability', icon: Activity, color: 'text-teal-600', bgColor: 'bg-teal-100' },
 };
 
 const getWarehouseTypeConfig = (type: string) => {
