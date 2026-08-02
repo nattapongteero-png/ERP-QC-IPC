@@ -34,6 +34,7 @@ export async function GET(
             expectedDate: purchaseOrders.expectedDate,
             status: purchaseOrders.status,
             totalAmount: purchaseOrders.totalAmount,
+            vatInclusive: purchaseOrders.vatInclusive,
             notes: purchaseOrders.notes,
             // Payment terms + delivery address were saved on create but the
             // detail query never returned them, so the edit form loaded them
