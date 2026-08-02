@@ -68,6 +68,7 @@ export const noteCreateSchema = z.object({
   reasonCode: reasonCodeSchema,
   reasonDescription: z.string().optional(),
   vatRate: z.number().min(0).max(1).optional().default(0.07),
+  vatInclusive: z.boolean().optional(),
   notes: z.string().optional(),
   lines: z.array(noteLineInputSchema).min(1, 'At least one line is required'),
 }).refine(

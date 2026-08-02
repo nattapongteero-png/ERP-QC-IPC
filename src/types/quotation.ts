@@ -39,6 +39,7 @@ export interface QuotationCreate {
   validUntil?: string | null;
   paymentTerms?: string | null;
   notes?: string | null;
+  vatInclusive?: boolean;
   lines: QuotationLineInput[];
 }
 

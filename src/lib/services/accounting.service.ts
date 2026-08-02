@@ -2900,6 +2900,8 @@ export interface CreateARInvoiceInput {
   exchangeRate?: number;
   vatRate?: number;
   vatAmountOverride?: number | null;
+  /** true = unitPrice already INCLUDES VAT (extract 7/107); default add 7%. */
+  vatInclusive?: boolean;
   lines: {
     description: string;
     itemId?: number | null;
@@ -2991,15 +2993,16 @@ export async function createARInvoice(
 
   // Calculate line amounts and totals using custom VAT rate
   const effectiveVatRate = (input.vatRate ?? 7) / 100;
+  const arInclusive = input.vatInclusive === true;
 
   const processedLines = input.lines.map((line, index) => {
-    const amount = line.quantity * line.unitPrice;
-    const lineVat = Math.round(amount * effectiveVatRate * 100) / 100;
+    const raw = line.quantity * line.unitPrice;
+    const v = calcLineVat(raw, arInclusive, effectiveVatRate);
     return {
       ...line,
       lineNumber: index + 1,
-      amount,
-      vatAmount: lineVat,
+      amount: v.base,
+      vatAmount: v.vat,
     };
   });
 

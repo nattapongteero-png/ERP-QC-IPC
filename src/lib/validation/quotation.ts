@@ -32,6 +32,7 @@ export const quotationCreateSchema = z.object({
   validUntil: z.string().optional().nullable(),
   paymentTerms: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  vatInclusive: z.boolean().optional(),
   lines: z.array(quotationLineCreateSchema).min(1, 'ต้องมีอย่างน้อย 1 รายการ'),
 });
 

@@ -386,6 +386,7 @@ export const apInvoiceCreateSchema = z.object({
   exchangeRate: z.number().positive().default(1),
   vatRate: z.number().min(0).max(100).default(7),
   vatAmountOverride: z.number().min(0).optional().nullable(),
+  vatInclusive: z.boolean().optional(),
   lines: z.array(apInvoiceLineCreateSchema).min(1, 'ต้องมีรายการอย่างน้อย 1 รายการ'),
 });
 
@@ -439,6 +440,7 @@ export const arInvoiceCreateSchema = z.object({
   exchangeRate: z.number().positive().default(1),
   vatRate: z.number().min(0).max(100).default(7),
   vatAmountOverride: z.number().min(0).optional().nullable(),
+  vatInclusive: z.boolean().optional(),
   lines: z.array(arInvoiceLineCreateSchema).min(1, 'ต้องมีรายการอย่างน้อย 1 รายการ'),
 });
 

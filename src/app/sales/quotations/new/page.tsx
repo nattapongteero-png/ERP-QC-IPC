@@ -13,6 +13,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
+import { calcLineVat } from '@/lib/utils/vat';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import TextArea from 'devextreme-react/text-area';
@@ -136,6 +137,7 @@ export default function NewQuotationPage() {
   });
 
   const [lines, setLines] = useState<QuotationFormLine[]>([]);
+  const [vatInclusive, setVatInclusive] = useState(false);
 
   // Edit mode — load an existing DRAFT quotation into this form. Read the id
   // from window.location so the client page needs no Suspense boundary.
@@ -210,6 +212,8 @@ export default function NewQuotationPage() {
     () => lines.reduce((s, l) => s + (l.quantity || 0) * (l.unitPrice || 0), 0),
     [lines],
   );
+  // VAT on the goods per the pricing mode (inclusive = extract 7/107).
+  const qtVat = useMemo(() => calcLineVat(totalAmount, vatInclusive), [totalAmount, vatInclusive]);
 
   // Grid data carries a computed amount column so the DataGrid can render it
   // without an in-grid formula (amount is display-only, never edited).
@@ -316,6 +320,7 @@ export default function NewQuotationPage() {
             validUntil: form.validUntil || null,
             paymentTerms: form.paymentTerms || null,
             notes: form.notes || null,
+            vatInclusive,
             lines: lines.map((l) => ({
               itemId: l.itemId,
               itemCode: l.itemCode,
@@ -744,14 +749,32 @@ export default function NewQuotationPage() {
                     </DataGrid>
                     <div className="p-4 border-t bg-gray-50">
                       <div className="flex justify-end">
-                        <div className="w-full max-w-xs flex justify-between items-center">
-                    <span className="text-sm text-gray-500">{t(`quotationNew.grandTotal`)}</span>
-                          <span
-                            className="text-2xl font-bold text-green-600 tabular-nums"
-                            data-testid="qt-total-amount"
-                          >
-                      {t(`quotationNew.amountBaht`, { amount: formatNumber(totalAmount) })}
-                          </span>
+                        <div className="w-full max-w-xs space-y-1">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500">{t(`quotationNew.priceBasis`)}</span>
+                            <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="qt-vat-basis-toggle">
+                              <button type="button" onClick={() => setVatInclusive(false)}
+                                className={`px-2 py-0.5 text-[11px] ${!vatInclusive ? 'bg-green-600 text-white' : 'text-gray-600'}`}
+                                data-testid="qt-vat-basis-exclusive">{t(`quotationNew.priceExclusive`)}</button>
+                              <button type="button" onClick={() => setVatInclusive(true)}
+                                className={`px-2 py-0.5 text-[11px] border-l border-gray-300 ${vatInclusive ? 'bg-green-600 text-white' : 'text-gray-600'}`}
+                                data-testid="qt-vat-basis-inclusive">{t(`quotationNew.priceInclusive`)}</button>
+                            </div>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">{t(`quotationNew.beforeVat`)}</span>
+                            <span className="font-medium tabular-nums">{formatNumber(qtVat.base)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">VAT 7%</span>
+                            <span className="font-medium tabular-nums">{formatNumber(qtVat.vat)}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-1 border-t">
+                            <span className="text-sm text-gray-500">{t(`quotationNew.grandTotal`)}</span>
+                            <span className="text-2xl font-bold text-green-600 tabular-nums" data-testid="qt-total-amount">
+                              {t(`quotationNew.amountBaht`, { amount: formatNumber(qtVat.total) })}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

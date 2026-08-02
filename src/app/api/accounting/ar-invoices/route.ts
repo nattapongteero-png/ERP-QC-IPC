@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
             description: parseResult.data.description,
             currency: parseResult.data.currency,
             exchangeRate: parseResult.data.exchangeRate,
+            vatInclusive: (parseResult.data as { vatInclusive?: boolean }).vatInclusive,
             lines: parseResult.data.lines,
           },
           session.userId

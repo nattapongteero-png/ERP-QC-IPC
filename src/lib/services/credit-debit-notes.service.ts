@@ -6,6 +6,7 @@
 import { eq, and, or, like, gte, lte, desc, asc, sql, isNull } from 'drizzle-orm';
 import { getTableRef, getInsertId, executeDbOperation } from '../db/db-helper';
 import { getNow, toDbDate, formatDateFromDb } from '../db/date-utils';
+import { computeDocVat } from '@/lib/utils/vat';
 import { submitForApproval } from './approval-workflow.service';
 import {
   createJournalEntry,
@@ -135,15 +136,17 @@ export async function createNote(
       }
     }
 
-    // Calculate totals from lines
-    let subtotal = 0;
-    for (const line of data.lines) {
-      subtotal += line.quantity * line.unitPrice;
-    }
-
-    const vatRate = 0.07; // 7% VAT
-    const vatAmount = subtotal * vatRate;
-    const totalAmount = subtotal + vatAmount;
+    // Calculate totals from lines, honouring the inclusive flag (inclusive =
+    // amounts already contain VAT, extract 7/107; exclusive = add 7%). Line-level
+    // via the shared helper so it matches PO/SO/AR/AP.
+    const noteInclusive = (data as { vatInclusive?: boolean }).vatInclusive === true;
+    const noteVat = computeDocVat(
+      data.lines.map((line) => line.quantity * line.unitPrice),
+      noteInclusive,
+    );
+    const subtotal = noteVat.subtotal;
+    const vatAmount = noteVat.vatAmount;
+    const totalAmount = noteVat.total;
 
     // Create note header
     const result = await db.insert(tables.notes).values({
@@ -157,7 +160,7 @@ export async function createNote(
       reasonCode: data.reasonCode,
       reasonDescription: data.reasonDescription || null,
       subtotal,
-      vatRate,
+      vatRate: 0.07,
       vatAmount,
       whtAmount: 0,
       totalAmount,
