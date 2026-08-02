@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { calcLineVat } from '@/lib/utils/vat';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
@@ -46,6 +47,7 @@ export default function NewCreditDebitNotePage() {
     reasonCode: '' as ReasonCode | '',
     reasonDescription: '',
     vatRate: 0.07,
+    vatInclusive: false,
     notes: '',
   });
 
@@ -108,10 +110,9 @@ export default function NewCreditDebitNotePage() {
   };
 
   const calculateTotals = () => {
-    const subtotal = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
-    const vatAmount = subtotal * formData.vatRate;
-    const totalAmount = subtotal + vatAmount;
-    return { subtotal, vatAmount, totalAmount };
+    const goods = lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+    const v = calcLineVat(goods, formData.vatInclusive, formData.vatRate);
+    return { subtotal: v.base, vatAmount: v.vat, totalAmount: v.total };
   };
 
   const handleLineUpdate = (lineId: number, field: string, value: any) => {
@@ -175,6 +176,7 @@ export default function NewCreditDebitNotePage() {
           reasonCode: formData.reasonCode,
           reasonDescription: formData.reasonDescription,
           vatRate: formData.vatRate,
+          vatInclusive: formData.vatInclusive,
           notes: formData.notes,
           lines: validLines.map((l) => ({
             description: l.description,
@@ -453,6 +455,18 @@ export default function NewCreditDebitNotePage() {
           {/* Totals Section */}
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
+              {/* Pricing basis — is the entered price before or incl VAT? */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">{t('creditDebitNotes.form.priceBasis')}:</span>
+                <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="cn-vat-basis-toggle">
+                  <button type="button" onClick={() => setFormData((f) => ({ ...f, vatInclusive: false }))}
+                    className={`px-2 py-0.5 text-[11px] ${!formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                    data-testid="cn-vat-basis-exclusive">{t('creditDebitNotes.form.priceExclusive')}</button>
+                  <button type="button" onClick={() => setFormData((f) => ({ ...f, vatInclusive: true }))}
+                    className={`px-2 py-0.5 text-[11px] border-l border-gray-300 ${formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                    data-testid="cn-vat-basis-inclusive">{t('creditDebitNotes.form.priceInclusive')}</button>
+                </div>
+              </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">{t('creditDebitNotes.form.subtotal')}:</span>
                 <span className="font-medium">

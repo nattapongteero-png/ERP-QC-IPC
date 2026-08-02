@@ -50,6 +50,7 @@ import {
   type ARInvoicePrintData,
 } from '@/components/accounting/ARInvoicePrintDocument';
 import { formatNumber, formatMoney } from '@/lib/utils/number-format';
+import { calcLineVat } from '@/lib/utils/vat';
 
 // Types
 interface ARInvoice {
@@ -120,6 +121,7 @@ interface FormData {
   description: string;
   vatRate: number;
   vatAmountOverride: number | null;
+  vatInclusive: boolean;
   lines: {
     description: string;
     glAccountId: number | null;
@@ -177,6 +179,7 @@ async function createARInvoice(data: {
   description?: string | null;
   vatRate?: number;
   vatAmountOverride?: number | null;
+  vatInclusive?: boolean;
   lines: { description: string; glAccountId: number; quantity: number; unitPrice: number }[];
 }): Promise<ARInvoice> {
   const res = await fetch('/api/accounting/ar-invoices', {
@@ -265,6 +268,7 @@ export default function ARInvoicesPage() {
     description: '',
     vatRate: 7,
     vatAmountOverride: null,
+    vatInclusive: false,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
@@ -408,6 +412,7 @@ export default function ARInvoicesPage() {
       description: '',
       vatRate: 7,
       vatAmountOverride: null,
+      vatInclusive: false,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
@@ -446,6 +451,7 @@ export default function ARInvoicesPage() {
       description: formData.description || null,
       vatRate: formData.vatRate,
       vatAmountOverride: formData.vatAmountOverride,
+      vatInclusive: formData.vatInclusive,
       lines: validLines.map((l) => ({
         description: l.description,
         glAccountId: l.glAccountId!,
@@ -612,6 +618,7 @@ export default function ARInvoicesPage() {
         description: detail.description || '',
         vatRate: editVatRate,
         vatAmountOverride: editVatOverride,
+        vatInclusive: false,
         lines: editLines,
       });
       setEditingInvoiceId(invoice.id);
@@ -700,15 +707,22 @@ export default function ARInvoicesPage() {
     }));
   }, []);
 
-  // Calculate totals
+  // Calculate totals, honouring the pricing mode (inclusive = extract 7/107,
+  // exclusive = add). `lineTotal` is the raw goods sum as entered; the base and
+  // VAT come from the shared helper.
   const lineTotal = useMemo(() => {
     return formData.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
   }, [formData.lines]);
 
+  const arDocVat = useMemo(
+    () => calcLineVat(lineTotal, formData.vatInclusive, formData.vatRate / 100),
+    [lineTotal, formData.vatRate, formData.vatInclusive],
+  );
+  const subtotalAmount = arDocVat.base;
   const vatAmount = useMemo(() => {
     if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
-    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
-  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
+    return arDocVat.vat;
+  }, [arDocVat.vat, formData.vatAmountOverride]);
 
   /** Compact Thai date (28/7/69) for the secondary line under the invoice date. */
   const formatShortDate = useCallback((value: string | Date | null | undefined): string => {
@@ -1465,11 +1479,26 @@ export default function ARInvoicesPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
+                  <td colSpan={4} className="border p-2 text-right text-sm text-gray-600">
+                    {t('creditDebitNotes.form.priceBasis')}
+                  </td>
+                  <td colSpan={2} className="border p-1 text-center">
+                    <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="ar-vat-basis-toggle">
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, vatInclusive: false }))}
+                        className={`px-2 py-0.5 text-[11px] ${!formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                        data-testid="ar-vat-basis-exclusive">{t('creditDebitNotes.form.priceExclusive')}</button>
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, vatInclusive: true }))}
+                        className={`px-2 py-0.5 text-[11px] border-l border-gray-300 ${formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                        data-testid="ar-vat-basis-inclusive">{t('creditDebitNotes.form.priceInclusive')}</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
                   <td colSpan={4} className="border p-2 text-right font-semibold">
                     {t('accountsReceivable.invoicesPage.lineItems.subtotalBeforeVat')}
                   </td>
                   <td className="border p-2 text-right font-semibold">
-                    {lineTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {subtotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="border"></td>
                 </tr>
@@ -1511,7 +1540,7 @@ export default function ARInvoicesPage() {
                     {t('accountsReceivable.invoicesPage.lineItems.grandTotal')}
                   </td>
                   <td className="border p-2 text-right font-bold text-lg">
-                    {(lineTotal + vatAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {(subtotalAmount + vatAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="border"></td>
                 </tr>

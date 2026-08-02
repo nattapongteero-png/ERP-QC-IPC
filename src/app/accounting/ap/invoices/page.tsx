@@ -36,6 +36,7 @@ import Form, {
 import { Button } from 'devextreme-react/button';
 import DropDownButton from 'devextreme-react/drop-down-button';
 import { formatMoney } from '@/lib/utils/number-format';
+import { calcLineVat } from '@/lib/utils/vat';
 import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
@@ -97,6 +98,7 @@ interface FormData {
   description: string;
   vatRate: number;
   vatAmountOverride: number | null; // null = auto-calculate, number = manual override
+  vatInclusive: boolean;
   lines: {
     description: string;
     glAccountId: number | null;
@@ -180,6 +182,7 @@ export default function APInvoicesPage() {
     description: '',
     vatRate: 7,
     vatAmountOverride: null,
+    vatInclusive: false,
     lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
   });
 
@@ -277,6 +280,7 @@ export default function APInvoicesPage() {
       description: '',
       vatRate: 7,
       vatAmountOverride: null,
+      vatInclusive: false,
       lines: [{ description: '', glAccountId: null, quantity: 1, unitPrice: 0 }],
     });
   }, []);
@@ -316,6 +320,7 @@ export default function APInvoicesPage() {
       description: formData.description || null,
       vatRate: formData.vatRate,
       vatAmountOverride: formData.vatAmountOverride,
+      vatInclusive: formData.vatInclusive,
       lines: validLines,
     };
 
@@ -371,6 +376,7 @@ export default function APInvoicesPage() {
         description: detail.description || '',
         vatRate: editVatRate,
         vatAmountOverride: editVatOverride,
+        vatInclusive: false,
         lines: editLines,
       });
       setEditingInvoiceId(invoice.id);
@@ -468,10 +474,15 @@ export default function APInvoicesPage() {
     return formData.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
   }, [formData.lines]);
 
+  const apDocVat = useMemo(
+    () => calcLineVat(lineTotal, formData.vatInclusive, formData.vatRate / 100),
+    [lineTotal, formData.vatRate, formData.vatInclusive],
+  );
+  const subtotalAmount = apDocVat.base;
   const vatAmount = useMemo(() => {
     if (formData.vatAmountOverride !== null) return formData.vatAmountOverride;
-    return Math.round(lineTotal * (formData.vatRate / 100) * 100) / 100;
-  }, [lineTotal, formData.vatRate, formData.vatAmountOverride]);
+    return apDocVat.vat;
+  }, [apDocVat.vat, formData.vatAmountOverride]);
 
   // Status badge render using AccountingStatusBadge
   /** Compact Thai date (28/7/69) for the secondary line under a date. */
@@ -1052,11 +1063,26 @@ export default function APInvoicesPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
+                  <td colSpan={4} className="border p-2 text-right text-sm text-gray-600">
+                    {t('creditDebitNotes.form.priceBasis')}
+                  </td>
+                  <td colSpan={2} className="border p-1 text-center">
+                    <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="ap-vat-basis-toggle">
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, vatInclusive: false }))}
+                        className={`px-2 py-0.5 text-[11px] ${!formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                        data-testid="ap-vat-basis-exclusive">{t('creditDebitNotes.form.priceExclusive')}</button>
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, vatInclusive: true }))}
+                        className={`px-2 py-0.5 text-[11px] border-l border-gray-300 ${formData.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                        data-testid="ap-vat-basis-inclusive">{t('creditDebitNotes.form.priceInclusive')}</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
                   <td colSpan={4} className="border p-2 text-right font-semibold">
                     {t('accountsPayable.invoicesPage.lineItems.beforeVat')}
                   </td>
                   <td className="border p-2 text-right font-semibold">
-                    {lineTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {subtotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="border"></td>
                 </tr>
@@ -1098,7 +1124,7 @@ export default function APInvoicesPage() {
                     {t('accountsPayable.invoicesPage.lineItems.netTotal')}
                   </td>
                   <td className="border p-2 text-right font-bold text-lg">
-                    {(lineTotal + vatAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {(subtotalAmount + vatAmount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="border"></td>
                 </tr>
