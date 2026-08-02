@@ -7,7 +7,7 @@
 import { executeDbOperation, getInsertId, getTableRef } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
 import { eq, and, desc } from 'drizzle-orm';
-import { getBOMEquipment } from './bom-configuration.service';
+import { getBOMEquipment, getBOMSOPSteps } from './bom-configuration.service';
 
 function getTables() {
   return {
@@ -17,6 +17,11 @@ function getTables() {
   };
 }
 
+export interface WOEquipmentInspectionSopStep {
+  name: string;         // stepNameTh || stepName
+  instructions: string; // instructionsTh || instructions — วิธีการตรวจ
+}
+
 export interface WOEquipmentInspectionItem {
   bomEquipmentId: number;
   equipmentId: number;
@@ -24,7 +29,12 @@ export interface WOEquipmentInspectionItem {
   name: string;
   nameTh: string;
   equipmentType: string;
+  // Inspection checklist items. Derived from the BOM's SOP steps that reference
+  // this equipment for the phase (each SOP step = one check item); falls back to
+  // the equipment's own inspectionChecklist when no SOP step references it.
   checklist: string[];
+  // The SOP steps (with instructions = วิธีการตรวจ) that define how to inspect.
+  sopSteps: WOEquipmentInspectionSopStep[];
   isRequired: boolean;
   sequence: number;
   // Latest inspection for this equipment on this WO+phase, if any.
@@ -50,6 +60,33 @@ export async function getWOEquipmentInspectionItems(
     bomEquipment: Record<string, unknown>;
     equipment: Record<string, unknown> | null;
   }[];
+
+  // SOP steps that define HOW to inspect each equipment for this phase — the BOM
+  // SOP steps (bom_sop_steps) whose equipmentIds reference the equipment.
+  // instructions = วิธีการตรวจ. Built into a map: equipmentId -> steps.
+  const sopRows = (await getBOMSOPSteps(bomId)) as {
+    bomStep: Record<string, unknown>;
+    template: Record<string, unknown> | null;
+  }[];
+  const sopByEquip = new Map<number, WOEquipmentInspectionSopStep[]>();
+  for (const r of sopRows) {
+    const step = r.bomStep;
+    if ((step.phase as string) !== phase) continue;
+    let ids: number[] = [];
+    try {
+      const parsed = JSON.parse((step.equipmentIds as string) || '[]');
+      if (Array.isArray(parsed)) ids = parsed.map(Number).filter((n) => Number.isFinite(n));
+    } catch { ids = []; }
+    if (!ids.length) continue;
+    const tmpl = r.template;
+    const name = (step.stepNameTh as string) || (step.stepName as string) || (tmpl?.nameTh as string) || (tmpl?.name as string) || '';
+    const instructions = (step.instructionsTh as string) || (step.instructions as string) || (tmpl?.instructionsTh as string) || (tmpl?.instructions as string) || '';
+    for (const id of ids) {
+      const arr = sopByEquip.get(id) || [];
+      arr.push({ name, instructions });
+      sopByEquip.set(id, arr);
+    }
+  }
 
   // Existing inspections for this WO+phase (latest per equipment).
   const existing = await executeDbOperation(async (db) => {
@@ -78,6 +115,12 @@ export async function getWOEquipmentInspectionItems(
         checklist = [];
       }
       const last = latestByEquip.get(eq0.id as number);
+      const sopSteps = sopByEquip.get(eq0.id as number) || [];
+      // Prefer the SOP-derived checklist (each SOP step name = one check item);
+      // fall back to the equipment's own inspectionChecklist when no SOP step
+      // references it.
+      const sopChecklist = sopSteps.map((s) => s.name).filter(Boolean);
+      const finalChecklist = sopChecklist.length ? sopChecklist : checklist;
       return {
         bomEquipmentId: bomEq.id as number,
         equipmentId: eq0.id as number,
@@ -85,7 +128,8 @@ export async function getWOEquipmentInspectionItems(
         name: eq0.name as string,
         nameTh: eq0.nameTh as string,
         equipmentType: eq0.equipmentType as string,
-        checklist,
+        checklist: finalChecklist,
+        sopSteps,
         isRequired: (bomEq.isRequired as boolean) ?? true,
         sequence: (bomEq.sequence as number) ?? 1,
         result: (last?.result as string | null) ?? null,

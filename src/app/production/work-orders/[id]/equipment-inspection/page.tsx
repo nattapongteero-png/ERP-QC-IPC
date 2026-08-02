@@ -23,6 +23,7 @@ interface InspectionItem {
   nameTh: string;
   equipmentType: string;
   checklist: string[];
+  sopSteps: { name: string; instructions: string }[];
   isRequired: boolean;
   sequence: number;
   result: string | null;
@@ -160,12 +161,19 @@ function EquipmentInspectionCard({
         <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border mb-3">{t('equipmentInspection.noChecklist')}</p>
       ) : (
         <div className="space-y-2 mb-3">
+          {item.sopSteps.length > 0 && (
+            <p className="text-xs font-medium text-cyan-700">{t('equipmentInspection.sopMethod')}</p>
+          )}
           {item.checklist.map((c, i) => {
             const failed = checkState[i] === false;
+            const instr = item.sopSteps[i]?.instructions || '';
             return (
-              <div key={i} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-gray-100">
-                <span className="text-sm text-gray-800 flex-1">{c}</span>
-                <div className="flex gap-1">
+              <div key={i} className="flex items-start justify-between gap-3 px-3 py-2 rounded-lg border border-gray-100">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-gray-800">{c}</span>
+                  {instr && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{instr}</p>}
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
                   <button
                     onClick={() => setCheckState((s) => ({ ...s, [i]: true }))}
                     className={`px-2.5 py-1 rounded text-xs font-medium ${!failed ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'}`}

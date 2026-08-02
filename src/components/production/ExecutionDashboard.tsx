@@ -395,24 +395,9 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
       }),
     },
     {
-      id: 'material-weighing',
-      title: t('execution.cards.materialWeighing.title'),
-      icon: <Scale className="h-5 w-5" />,
-      href: `/production/work-orders/${workOrderId}/material-weighing`,
-      phase: 'pre_production',
-      description: t('execution.cards.materialWeighing.description'),
-      getStatus: (s) => ({
-        completed: s.materialWeighing.completed,
-        verified: s.materialWeighing.verified,
-        total: s.materialWeighing.total,
-        status: s.materialWeighing.verified === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'verified'
-          : s.materialWeighing.completed === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'completed'
-          : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
-      }),
-    },
-    {
       // Pre-production equipment inspection — inspect the in-line equipment the BOM
-      // requires before production (replaces the old scale-verification gate).
+      // requires BEFORE weighing (replaces the old scale-verification gate). Placed
+      // ahead of material-weighing, which is locked until this is complete.
       id: 'equipment-inspection',
       title: t('equipmentInspection.cardTitle'),
       icon: <ClipboardCheck className="h-5 w-5" />,
@@ -429,6 +414,22 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
             : e.completed > 0 ? 'in_progress' : 'pending',
         };
       },
+    },
+    {
+      id: 'material-weighing',
+      title: t('execution.cards.materialWeighing.title'),
+      icon: <Scale className="h-5 w-5" />,
+      href: `/production/work-orders/${workOrderId}/material-weighing`,
+      phase: 'pre_production',
+      description: t('execution.cards.materialWeighing.description'),
+      getStatus: (s) => ({
+        completed: s.materialWeighing.completed,
+        verified: s.materialWeighing.verified,
+        total: s.materialWeighing.total,
+        status: s.materialWeighing.verified === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'verified'
+          : s.materialWeighing.completed === s.materialWeighing.total && s.materialWeighing.total > 0 ? 'completed'
+          : s.materialWeighing.completed > 0 ? 'in_progress' : 'pending',
+      }),
     },
     {
       id: 'gowning',
@@ -800,6 +801,7 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     const sectionLabel: Record<string, string> = {
       'material-requisition': 'ใบเบิกวัตถุดิบ',
       'pre-production-cleaning': 'Pre-Production Cleaning',
+      'equipment-inspection': 'ตรวจสอบอุปกรณ์ก่อนผลิต',
       'material-weighing': 'Material Weighing',
       'pre-production-environmental': 'Pre-Production Environmental',
       'production-cleaning': 'Production Cleaning',
@@ -819,10 +821,12 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
     };
 
     const intraPhasePrereqs: Record<string, string[]> = {
-      // Pre-Production
+      // Pre-Production — equipment must be inspected before weighing (replaces the
+      // old scale-verification-before-weighing gate).
       'material-requisition': [],
       'pre-production-cleaning': ['material-requisition'],
-      'material-weighing': ['material-requisition', 'pre-production-cleaning'],
+      'equipment-inspection': ['material-requisition', 'pre-production-cleaning'],
+      'material-weighing': ['material-requisition', 'pre-production-cleaning', 'equipment-inspection'],
       'sop-execution-pre_production': ['material-weighing'],
       'ipc-pre_production': ['material-weighing'], // paired with SOP
       // Production
