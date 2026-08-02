@@ -14,6 +14,7 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils/cn';
+import { calcLineVat } from '@/lib/utils/vat';
 import {
   ArrowLeft,
   Printer,
@@ -91,6 +92,7 @@ interface SODetail {
     shippedDate: string;
     status: string;
     totalAmount: number;
+    vatInclusive?: boolean | null;
     currency: string;
     paymentTerms: string;
     notes: string;
@@ -887,7 +889,15 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
   // freight line never silently disappears after confirming.
   const goodsAmount = summary.totalAmount;
   const freightAmount = Number(so.shippingCost || 0);
-  const netTotal = goodsAmount + freightAmount;
+  // VAT per the SO's pricing mode. Inclusive → goods already contain VAT (extract
+  // 7/107); exclusive → add 7%. Show the base/VAT breakdown (ม.86/4) — the SO
+  // screen used to hide VAT entirely, disagreeing with the printed tax invoice.
+  const soVatInclusive = so.vatInclusive === true;
+  const soVat = calcLineVat(goodsAmount, soVatInclusive);
+  const goodsBeforeVat = soVat.base;
+  const goodsVat = soVat.vat;
+  const goodsWithVat = soVat.total;
+  const netTotal = goodsWithVat + freightAmount;
   const statusConfig = STATUS_CONFIG[so.status] || STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
   const overdue = isOverdue(so.requiredDate, so.status);
@@ -1345,6 +1355,7 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
         paymentTerms: so.paymentTerms,
         notes: so.notes,
         shippingCost: Number(so.shippingCost || 0),
+        vatInclusive: so.vatInclusive === true,
         lines: lines.map((l) => ({
           itemCode: l.itemCode,
           itemName: l.itemName,
@@ -1495,9 +1506,15 @@ export default function SalesOrderDetailPage({ params }: { params: Promise<{ id:
               <div className="min-w-0">
                 <p className="text-xs text-gray-500">{t('orders.detail.summary.netTotal')}</p>
                 <p className="text-lg font-bold text-gray-900" data-testid="so-net-total">{formatCurrency(netTotal, so.currency)}</p>
+                {/* Base + VAT breakdown — always shown (ม.86/4). */}
+                <p className="text-[11px] text-gray-500 leading-tight" data-testid="so-vat-breakdown">
+                  {t('orders.detail.summary.beforeVat')} {formatCurrency(goodsBeforeVat, so.currency)}
+                  {' · '}VAT 7% {formatCurrency(goodsVat, so.currency)}
+                  {so.vatInclusive ? ` (${t('orders.detail.summary.vatIncluded')})` : ''}
+                </p>
                 {freightAmount > 0 && (
                   <p className="text-[11px] text-gray-400 leading-tight">
-                    {t('orders.detail.summary.goods')} {formatCurrency(goodsAmount, so.currency)}
+                    {t('orders.detail.summary.goods')} {formatCurrency(goodsWithVat, so.currency)}
                     {' + '}
                     {t('orders.detail.summary.freight')} {formatCurrency(freightAmount, so.currency)}
                   </p>

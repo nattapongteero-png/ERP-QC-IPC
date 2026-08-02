@@ -113,7 +113,10 @@ export async function checkATP(
 export async function createSalesOrder(
   customer: CustomerDetails,
   lines: Array<{ itemId: number; quantity: number; unitPrice: number; requiredDate: string }>,
-  userId: number
+  userId: number,
+  // false = line prices are BEFORE VAT (add 7% at shipment); true = prices
+  // already INCLUDE VAT (extract 7/107). Stored so the SO/AR/print all agree.
+  vatInclusive: boolean = false,
 ): Promise<{ orderId: number; atpResults: ATPResult[] }> {
   const { salesOrders, salesOrderLines, items } = getTables();
   const database = (await getDb()) as any;
@@ -163,6 +166,7 @@ export async function createSalesOrder(
             orderDate: getTodayStr(),
             status: 'draft',
             totalAmount,
+            vatInclusive,
             currency: 'THB',
             createdBy: userId,
           })
@@ -184,6 +188,7 @@ export async function createSalesOrder(
             orderDate: toDbDate(getTodayStr()),
             status: 'draft',
             totalAmount,
+            vatInclusive,
             currency: 'THB',
             createdBy: userId,
           });
@@ -591,11 +596,16 @@ export async function fulfillSalesOrderLine(
 
     // Only create journal entries if there's a price
     if (lineTotal > 0) {
-      // Calculate VAT (7%)
-      // SO unit price is VAT-exclusive — VAT is added at shipment when the
-      // tax invoice is issued, so totalAmount must be net + VAT for the
-      // sales JE to balance (Dr. AR = Cr. Sales + Cr. Output VAT).
-      const vatCalc = calculateVAT(lineTotal, false);
+      // Calculate VAT (7%) per the SO's pricing mode. Exclusive → price is net,
+      // VAT added at shipment (tax invoice). Inclusive → price already contains
+      // VAT, extract 7/107. totalAmount = net + VAT so the sales JE balances
+      // (Dr. AR = Cr. Sales + Cr. Output VAT).
+      const [soHdr] = await database
+        .select({ vatInclusive: salesOrders.vatInclusive })
+        .from(salesOrders)
+        .where(eq(salesOrders.id, input.soId))
+        .limit(1);
+      const vatCalc = calculateVAT(lineTotal, soHdr?.vatInclusive === true);
       const vatAmount = vatCalc.vatAmount;
       const netAmount = vatCalc.baseAmount;
       const grossAmount = vatCalc.totalAmount;
@@ -806,7 +816,7 @@ export async function retryAccountingForDelivery(
   const cogsResult = await calculateCOGS(delivery.itemId, quantity, unitPrice);
   await updateSOLineWithCOGS(delivery.soLineId, cogsResult);
 
-  const vatCalc = calculateVAT(lineTotal, false);
+  const vatCalc = calculateVAT(lineTotal, so.vatInclusive === true);
 
   let salesJournalEntryId: number | undefined;
   let salesJournalEntryNumber: string | undefined;

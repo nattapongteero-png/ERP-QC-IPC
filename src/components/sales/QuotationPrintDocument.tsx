@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatNumber } from '@/lib/utils/number-format';
+import { calcLineVat } from '@/lib/utils/vat';
 import type { QuotationWithLines } from '@/types/quotation';
 
 interface CompanyInfo {
@@ -51,10 +52,16 @@ export function QuotationPrintDocument({ quotation }: { quotation: QuotationWith
     };
   }, []);
 
-  const total = quotation.lines.reduce(
+  const rawGoods = quotation.lines.reduce(
     (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
     0,
   );
+  // Quotations printed without any VAT line before — a tax-registered seller's
+  // quote must still show base + VAT + total (ม.86/4). Honour the inclusive flag.
+  const qtVat = calcLineVat(rawGoods, quotation.vatInclusive === true);
+  const beforeVat = qtVat.base;
+  const vatAmount = qtVat.vat;
+  const total = qtVat.total;
 
   return (
     <div className="print-only print-doc qt-print-doc" data-testid="qt-print-document">
@@ -151,6 +158,14 @@ export function QuotationPrintDocument({ quotation }: { quotation: QuotationWith
               </tr>
             );
           })}
+          <tr>
+            <td colSpan={6} style={{ textAlign: 'right' }}>มูลค่าก่อนภาษี (บาท)</td>
+            <td className="num">{formatNumber(beforeVat)}</td>
+          </tr>
+          <tr>
+            <td colSpan={6} style={{ textAlign: 'right' }}>ภาษีมูลค่าเพิ่ม / VAT 7% (บาท)</td>
+            <td className="num">{formatNumber(vatAmount)}</td>
+          </tr>
           <tr>
             <td colSpan={6} style={{ textAlign: 'right', fontWeight: 700 }}>ยอดรวมทั้งสิ้น (บาท)</td>
             <td className="num" style={{ fontWeight: 700 }}>{formatNumber(total)}</td>

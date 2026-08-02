@@ -295,6 +295,8 @@
         "netTotal": "ยอดรวมสุทธิ",
         "goods": "ค่าสินค้า",
         "freight": "ค่าขนส่ง",
+        "beforeVat": "ก่อน VAT",
+        "vatIncluded": "รวม VAT แล้ว",
         "units": "หน่วย"
       },
       "alerts": {
@@ -527,7 +529,11 @@
       "trackingNumber": "เลขติดตามพัสดุ",
       "trackingNumberPlaceholder": "กรอกเมื่อของออกจากคลังแล้ว",
       "goodsAmount": "ค่าสินค้า",
-      "grandTotal": "ยอดรวมสุทธิ"
+      "grandTotal": "ยอดรวมสุทธิ",
+      "priceBasis": "ฐานราคา",
+      "priceExclusive": "ก่อน VAT",
+      "priceInclusive": "รวม VAT",
+      "beforeVat": "ยอดก่อน VAT"
     }
   },
   "customers": {

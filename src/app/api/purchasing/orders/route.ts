@@ -10,6 +10,7 @@ import {
   createPaginatedResponse,
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
+import { computeDocVat } from '@/lib/utils/vat';
 import { normalizePaymentTerms } from '@/lib/constants/payment-terms';
 
 // Generate PO number
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
         lines,
         shippingCost,
         otherCharges,
+        vatInclusive,
       } = body;
 
       if (!vendorId) {
@@ -131,15 +133,20 @@ export async function POST(request: NextRequest) {
 
       const poNumber = generatePONumber();
 
-      // Compute amounts server-side (don't trust client totals): goods subtotal
-      // + extra charges, then 7% VAT on the sum, then the grand total.
-      const VAT_RATE = 0.07;
-      const subtotalAmount = lines.reduce((sum: number, line: Record<string, unknown>) => {
-        return sum + ((line.quantity as number) * (line.unitPrice as number));
-      }, 0);
+      // Compute amounts server-side (don't trust client totals). Line-level VAT
+      // via the shared helper, honouring the inclusive/exclusive flag:
+      //  - inclusive (รวม VAT): line prices already contain VAT → extract 7/107
+      //  - exclusive (ก่อน VAT): add 7% on top (default)
+      // Shipping / other charges are non-taxable and added to the grand total.
+      const isInclusive = vatInclusive === true;
       const charges = (Number(shippingCost) || 0) + (Number(otherCharges) || 0);
-      const vatAmount = (subtotalAmount + charges) * VAT_RATE;
-      const totalAmount = subtotalAmount + charges + vatAmount;
+      const lineTotals = (lines as Array<Record<string, unknown>>).map(
+        (line) => (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0),
+      );
+      const doc = computeDocVat(lineTotals, isInclusive, { extraCharges: charges });
+      const subtotalAmount = doc.subtotal;
+      const vatAmount = doc.vatAmount;
+      const totalAmount = doc.total;
 
       // Create PO
       const result = await executeDbOperation(async (db) => {
@@ -154,6 +161,7 @@ export async function POST(request: NextRequest) {
           shippingCost: Number(shippingCost) || 0,
           otherCharges: Number(otherCharges) || 0,
           vatAmount,
+          vatInclusive: isInclusive,
           currency: 'THB',
           paymentTerms: normalizedPaymentTerms || null,
           shippingAddress,

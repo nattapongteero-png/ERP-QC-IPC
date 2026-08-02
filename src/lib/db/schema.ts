@@ -694,6 +694,10 @@ export const sqlitePurchaseOrders = sqliteTable('purchase_orders', {
   shippingCost: real('shipping_cost'),
   otherCharges: real('other_charges'),
   vatAmount: real('vat_amount'),
+  // true = the entered line prices already INCLUDE VAT (extract 7/107);
+  // false/null = prices are BEFORE VAT (add 7% on top). Default off = existing
+  // behaviour, so old rows (NULL) stay "ก่อน VAT".
+  vatInclusive: integer('vat_inclusive', { mode: 'boolean' }),
   currency: text('currency').notNull().default('THB'),
   paymentTerms: text('payment_terms'),
   shippingAddress: text('shipping_address'),
@@ -751,6 +755,8 @@ export const sqliteSalesOrders = sqliteTable('sales_orders', {
   requiredDate: text('required_date'),
   shippedDate: text('shipped_date'),
   totalAmount: real('total_amount'),
+  // true = line prices INCLUDE VAT (extract 7/107); false/null = before VAT (add 7%).
+  vatInclusive: integer('vat_inclusive', { mode: 'boolean' }),
   currency: text('currency').notNull().default('THB'),
   paymentTerms: text('payment_terms'),
   notes: text('notes'),
@@ -823,6 +829,7 @@ export const sqliteQuotations = sqliteTable('quotations', {
   quotationDate: text('quotation_date'),
   validUntil: text('valid_until'),
   totalAmount: real('total_amount').notNull().default(0),
+  vatInclusive: integer('vat_inclusive', { mode: 'boolean' }),
   currency: text('currency').notNull().default('THB'),
   paymentTerms: text('payment_terms'),
   notes: text('notes'),
@@ -2469,6 +2476,9 @@ export const mysqlPurchaseOrders = mysqlTable('purchase_orders', {
   shippingCost: decimal('shipping_cost', { precision: 15, scale: 2 }),
   otherCharges: decimal('other_charges', { precision: 15, scale: 2 }),
   vatAmount: decimal('vat_amount', { precision: 15, scale: 2 }),
+  // true = entered prices INCLUDE VAT (extract 7/107); false/null = prices are
+  // BEFORE VAT (add 7%). Default off = existing behaviour for old rows.
+  vatInclusive: mysqlBoolean('vat_inclusive'),
   currency: varchar('currency', { length: 10 }).notNull().default('THB'),
   paymentTerms: varchar('payment_terms', { length: 100 }),
   shippingAddress: mysqlText('shipping_address'),
@@ -2527,6 +2537,8 @@ export const mysqlSalesOrders = mysqlTable('sales_orders', {
   requiredDate: datetime('required_date'),
   shippedDate: datetime('shipped_date'),
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }),
+  // true = line prices INCLUDE VAT (extract 7/107); false/null = before VAT (add 7%).
+  vatInclusive: mysqlBoolean('vat_inclusive'),
   currency: varchar('currency', { length: 10 }).notNull().default('THB'),
   paymentTerms: varchar('payment_terms', { length: 100 }),
   notes: mysqlText('notes'),
@@ -2600,6 +2612,7 @@ export const mysqlQuotations = mysqlTable('quotations', {
   quotationDate: datetime('quotation_date'),
   validUntil: datetime('valid_until'),
   totalAmount: decimal('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  vatInclusive: mysqlBoolean('vat_inclusive'),
   currency: varchar('currency', { length: 10 }).notNull().default('THB'),
   paymentTerms: varchar('payment_terms', { length: 100 }),
   notes: mysqlText('notes'),

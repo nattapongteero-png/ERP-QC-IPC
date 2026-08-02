@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { ItemSearchDialog, Item } from '@/components/ui/item-search-dialog';
 import { cn } from '@/lib/utils/cn';
 import { toLocalDateStr } from '@/lib/utils/date-format';
+import { computeDocVat } from '@/lib/utils/vat';
 import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
 import {
   Package,
@@ -102,6 +103,9 @@ export default function NewPurchaseOrderPage() {
   const [showCharges, setShowCharges] = useState(false);
   const [shippingCost, setShippingCost] = useState<number | null>(null);
   const [otherCharges, setOtherCharges] = useState<number | null>(null);
+  // false = prices are BEFORE VAT (add 7%); true = prices already INCLUDE VAT
+  // (extract 7/107). Default false = the common B2B "ก่อน VAT" case.
+  const [vatInclusive, setVatInclusive] = useState(false);
   const PO_VAT_RATE = 0.07; // Thailand 7% — matches the PO detail page
 
   // Item selection flow
@@ -227,10 +231,13 @@ export default function NewPurchaseOrderPage() {
   };
 
   const selectedVendor = vendors.find((v) => v.id === parseInt(formData.vendorId));
-  const subtotalAmount = lines.reduce((sum, line) => sum + line.lineTotal, 0);
   const chargesAmount = (shippingCost ?? 0) + (otherCharges ?? 0);
-  const vatAmount = (subtotalAmount + chargesAmount) * PO_VAT_RATE;
-  const totalAmount = subtotalAmount + chargesAmount + vatAmount;
+  // Line-level VAT honouring the pricing mode (inclusive = extract 7/107,
+  // exclusive = add 7%). Shipping/other charges are non-taxable (added on top).
+  const poVat = computeDocVat(lines.map((l) => l.lineTotal), vatInclusive, { extraCharges: chargesAmount });
+  const subtotalAmount = poVat.subtotal;
+  const vatAmount = poVat.vatAmount;
+  const totalAmount = poVat.total;
   const totalItems = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   // Step validation
@@ -284,6 +291,7 @@ export default function NewPurchaseOrderPage() {
           otherCharges: otherCharges ?? 0,
           vatAmount,
           totalAmount,
+          vatInclusive,
           lines: lines.map((l) => ({
             itemId: l.itemId,
             quantity: l.quantity,
@@ -937,6 +945,28 @@ export default function NewPurchaseOrderPage() {
 
                   {/* Total Amount — goods subtotal, extra charges, VAT, grand total */}
                   <div className="pt-2">
+                    {/* Pricing basis — does the entered price already include VAT? */}
+                    <div className="flex justify-between items-center gap-2 mb-2">
+                      <span className="text-gray-600 text-sm">{t('orders.form.wizard.priceBasis')}</span>
+                      <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="po-vat-basis-toggle">
+                        <button
+                          type="button"
+                          onClick={() => setVatInclusive(false)}
+                          className={`px-2.5 py-1 text-[11px] ${!vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          data-testid="po-vat-basis-exclusive"
+                        >
+                          {t('orders.form.wizard.priceExclusive')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVatInclusive(true)}
+                          className={`px-2.5 py-1 text-[11px] border-l border-gray-300 ${vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                          data-testid="po-vat-basis-inclusive"
+                        >
+                          {t('orders.form.wizard.priceInclusive')}
+                        </button>
+                      </div>
+                    </div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-600">{t('orders.form.wizard.subtotal')}</span>
                       <span className="font-medium">{formatCurrency(subtotalAmount)}</span>

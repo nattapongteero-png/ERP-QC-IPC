@@ -295,6 +295,8 @@
         "netTotal": "Net Total",
         "goods": "Goods",
         "freight": "Freight",
+        "beforeVat": "Before VAT",
+        "vatIncluded": "VAT incl.",
         "units": "units"
       },
       "alerts": {
@@ -527,7 +529,11 @@
       "trackingNumber": "Tracking number",
       "trackingNumberPlaceholder": "Fill in once the goods have left the warehouse",
       "goodsAmount": "Goods",
-      "grandTotal": "Grand total"
+      "grandTotal": "Grand total",
+      "priceBasis": "Price basis",
+      "priceExclusive": "Before VAT",
+      "priceInclusive": "Incl. VAT",
+      "beforeVat": "Before VAT"
     }
   },
   "customers": {

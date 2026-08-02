@@ -23,7 +23,8 @@ import {
 } from '../db/schema';
 import { createAuditLog } from '../audit';
 import { receiveMaterial } from './inventory.service';
-import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt, THAI_VAT_RATE } from './accounting.service';
+import { createPOReceiptJournalEntry, createAPInvoiceFromPOReceipt } from './accounting.service';
+import { computeDocVat, calcLineVat } from '@/lib/utils/vat';
 import { recalculateWAC, updateItemLastPurchase } from './unit-cost.service';
 
 // Types
@@ -259,8 +260,13 @@ export async function createPurchaseOrder(
     }
   }
 
-  // Calculate totals
-  const totalAmount = lines.reduce((sum: number, line) => sum + (line.quantity * line.unitPrice), 0);
+  // Calculate totals. This internal path (e.g. PR→PO) has no inclusive flag, so
+  // prices are treated as VAT-exclusive (add 7%) — the default. Store the full
+  // base/VAT/total breakdown so the accounting side isn't missing VAT.
+  const poDocVat = computeDocVat(lines.map((line) => line.quantity * line.unitPrice), false);
+  const subtotalAmount = poDocVat.subtotal;
+  const vatAmount = poDocVat.vatAmount;
+  const totalAmount = poDocVat.total;
 
   // Generate PO number and insert inside a transaction to prevent duplicate numbers
   const MAX_PO_RETRIES = 3;
@@ -294,6 +300,9 @@ export async function createPurchaseOrder(
             vendorId,
             status: 'draft',
             totalAmount,
+            subtotalAmount,
+            vatAmount,
+            vatInclusive: false,
             currency: 'THB',
             createdBy: userId,
           })
@@ -307,6 +316,9 @@ export async function createPurchaseOrder(
             vendorId,
             status: 'draft',
             totalAmount,
+            subtotalAmount,
+            vatAmount,
+            vatInclusive: false,
             currency: 'THB',
             createdBy: userId,
           });
@@ -580,9 +592,15 @@ export async function receivePurchaseOrder(
 
       // Only create journal entry and AP invoice if there's a price
       if (lineTotal > 0) {
-        // Calculate VAT (7%) - assuming prices include VAT
-        const vatAmount = Math.round(lineTotal * THAI_VAT_RATE * 100) / 100;
-        const netAmount = lineTotal - vatAmount;
+        // VAT per the PO's pricing mode — inclusive prices already contain VAT
+        // (extract 7/107), exclusive prices are net (add 7%). The inventory is
+        // capitalised at the NET amount and GR/IR is raised at the same net, so
+        // it must match how the AP invoice books (both use this flag) or GR/IR
+        // never clears to zero.
+        const isInclusive = po.vatInclusive === true;
+        const lineVat = calcLineVat(lineTotal, isInclusive);
+        const vatAmount = lineVat.vat;
+        const netAmount = lineVat.base;
 
         const receiptDate = getTodayStr();
 
@@ -600,7 +618,7 @@ export async function receivePurchaseOrder(
             itemCode,
             quantity: received.receivedQuantity,
             unitPrice,
-            totalAmount: lineTotal,
+            totalAmount: lineVat.total,
             vatAmount,
             netAmount,
           },
@@ -632,9 +650,10 @@ export async function receivePurchaseOrder(
               itemName,
               quantity: received.receivedQuantity,
               unitPrice,
-              totalAmount: lineTotal,
+              totalAmount: lineVat.total,
               vatAmount,
               netAmount,
+              vatInclusive: isInclusive,
             },
             userId
           );

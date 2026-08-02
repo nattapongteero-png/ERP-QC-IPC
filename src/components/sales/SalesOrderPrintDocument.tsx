@@ -13,6 +13,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { calcLineVat } from '@/lib/utils/vat';
 
 interface CompanyInfo {
   companyName: string;
@@ -45,6 +46,8 @@ export interface SalesOrderPrintData {
   /** Freight charged to the customer — shown as its own line and added to the
    *  grand total (list item 24). */
   shippingCost?: number | null;
+  /** true = line prices already include VAT (extract 7/107); default add 7%. */
+  vatInclusive?: boolean | null;
   lines: SalesOrderPrintLine[];
 }
 
@@ -151,7 +154,7 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
   const companyTitle =
     company?.companyNameTh || company?.companyName || 'บริษัท สมุนไพรไทย จำกัด';
 
-  const subtotal = order.lines.reduce(
+  const rawGoods = order.lines.reduce(
     (sum, l) =>
       sum +
       (l.lineTotal != null
@@ -159,9 +162,13 @@ export function SalesOrderPrintDocument({ order, vatRate = 0.07 }: SalesOrderPri
         : (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0)),
     0,
   );
-  const vat = subtotal * vatRate;
+  // Honour the SO's pricing mode: inclusive → the line prices already contain
+  // VAT (extract 7/107); exclusive → add 7%. Always print base + VAT (ม.86/4).
+  const soV = calcLineVat(rawGoods, order.vatInclusive === true, vatRate);
+  const subtotal = soV.base;
+  const vat = soV.vat;
   const freight = Number(order.shippingCost) || 0;
-  const grandTotal = subtotal + vat + freight;
+  const grandTotal = soV.total + freight;
 
   return (
     <div className="print-only print-doc so-print-doc" data-testid="so-print-document">

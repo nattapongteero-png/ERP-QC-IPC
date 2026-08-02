@@ -59,6 +59,7 @@ import {
   mysqlWorkOrders,
 } from '../db/schema';
 import { createAuditLog } from '../audit';
+import { calcLineVat } from '@/lib/utils/vat';
 import { runMatching } from './matching.service';
 import type {
   JournalEntryStatus,
@@ -1670,6 +1671,10 @@ export interface CreateAPInvoiceInput {
   exchangeRate?: number;
   vatRate?: number;
   vatAmountOverride?: number | null;
+  // true = unitPrice already INCLUDES VAT (extract 7/107); false/undefined =
+  // unitPrice is before VAT (add 7%). Keeps the AP invoice consistent with the
+  // source PO's pricing mode so GR/IR clears to zero.
+  vatInclusive?: boolean;
   lines: {
     description: string;
     itemId?: number | null;
@@ -1726,16 +1731,20 @@ export async function createAPInvoice(
   const { apInvoices, apInvoiceLines } = getAccountingTables();
   const database = (await getDb()) as any;
 
-  // Calculate line amounts and totals using custom VAT rate
+  // Calculate line amounts and totals using custom VAT rate. Honour the
+  // inclusive flag: inclusive → the entered amount already contains VAT so we
+  // extract it (line `amount` = net base); exclusive → the amount is the base
+  // and VAT is added. Either way `amount` ends up as the net base.
   const effectiveVatRate = (input.vatRate ?? 7) / 100;
+  const apInclusive = input.vatInclusive === true;
   const processedLines = input.lines.map((line, index) => {
-    const amount = line.quantity * line.unitPrice;
-    const lineVat = Math.round(amount * effectiveVatRate * 100) / 100;
+    const raw = line.quantity * line.unitPrice;
+    const v = calcLineVat(raw, apInclusive, effectiveVatRate);
     return {
       ...line,
       lineNumber: index + 1,
-      amount,
-      vatAmount: lineVat,
+      amount: v.base,
+      vatAmount: v.vat,
     };
   });
 
@@ -5256,6 +5265,8 @@ export interface APInvoiceFromReceiptInput {
   totalAmount: number;
   vatAmount: number;
   netAmount: number;
+  /** PO pricing mode — passed to the AP invoice so its VAT matches the receipt. */
+  vatInclusive?: boolean;
 }
 
 /**
@@ -5303,6 +5314,7 @@ export async function createAPInvoiceFromPOReceipt(
           dueDate: input.dueDate,
           receivedDate: input.receiptDate,
           description: `รับสินค้า ${input.poNumber} - ${input.itemCode} x ${input.quantity} (Lot: ${input.lotNumber})`,
+          vatInclusive: input.vatInclusive === true,
           lines: [
             {
               description: `${input.itemCode} - ${input.itemName}`,

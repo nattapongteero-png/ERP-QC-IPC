@@ -32,6 +32,7 @@ export async function GET(
             shippedDate: salesOrders.shippedDate,
             status: salesOrders.status,
             totalAmount: salesOrders.totalAmount,
+            vatInclusive: salesOrders.vatInclusive,
             currency: salesOrders.currency,
             paymentTerms: salesOrders.paymentTerms,
             notes: salesOrders.notes,

@@ -65,6 +65,7 @@ export interface Quotation {
   quotationDate?: string | null;
   validUntil?: string | null;
   totalAmount: number;
+  vatInclusive?: boolean | null;
   currency: string;
   paymentTerms?: string | null;
   notes?: string | null;

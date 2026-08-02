@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
 import { formatBaht, formatNumber } from '@/lib/utils/number-format';
+import { computeDocVat } from '@/lib/utils/vat';
 import {
   Send, Package, DollarSign, AlertTriangle,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
@@ -128,6 +129,7 @@ interface PODetail {
     expectedDate: string;
     status: string;
     totalAmount: number;
+    vatInclusive?: boolean | null;
     paymentTerms: string;
     shippingAddress: string;
     notes: string;
@@ -1064,10 +1066,14 @@ export default function PurchaseOrderDetailPage() {
   const { purchaseOrder: po, lines, receivedLots, summary } = data;
   const statusConfig = getStatusConfig(po.status);
 
-  // Financial summary (dynamically recomputed from current lines)
-  const subtotal = lines.reduce((sum, l) => sum + (Number(l.lineTotal) || 0), 0);
-  const vatAmount = subtotal * VAT_RATE;
-  const grandTotal = subtotal + vatAmount;
+  // Financial summary (dynamically recomputed from current lines), honouring the
+  // PO's VAT mode: inclusive → line prices already contain VAT (extract 7/107);
+  // exclusive → add 7% on top. Line-level rounding via the shared helper.
+  const poVatInclusive = po.vatInclusive === true;
+  const poVat = computeDocVat(lines.map((l) => Number(l.lineTotal) || 0), poVatInclusive);
+  const subtotal = poVat.subtotal;
+  const vatAmount = poVat.vatAmount;
+  const grandTotal = poVat.total;
 
   // Workflow step (1..4 or -1 for cancelled)
   const currentStep = STATUS_STEP[po.status] ?? 1;
@@ -1358,12 +1364,12 @@ export default function PurchaseOrderDetailPage() {
                 <p className="text-lg font-bold text-blue-600" data-testid="po-card-grand-total">
                   {formatCurrency(grandTotal)}
                 </p>
-                {vatDisplayMode === 'split' && (
-                  <p className="text-[11px] text-gray-500 leading-tight">
-                    {t.rich(`orderDetail.beforeVatWith`, { amount: formatCurrency(subtotal), b: (c) => <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{c}</span> })}
-                    {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
-                  </p>
-                )}
+                {/* Base + VAT breakdown ("ที่มา") — always shown so a VAT-inclusive
+                    total still reveals how much of it is VAT (ม.86/4). */}
+                <p className="text-[11px] text-gray-500 leading-tight">
+                  {t.rich(`orderDetail.beforeVatWith`, { amount: formatCurrency(subtotal), b: (c) => <span className="font-medium text-gray-700" data-testid="po-card-subtotal">{c}</span> })}
+                  {' '}· VAT {(VAT_RATE * 100).toFixed(0)}% <span className="font-medium text-gray-700" data-testid="po-card-vat">{formatCurrency(vatAmount)}</span>
+                </p>
               </div>
             </div>
           </Card>
@@ -1749,7 +1755,9 @@ export default function PurchaseOrderDetailPage() {
                   <div className="flex justify-end" data-testid="po-summary-block">
                     <div className="w-full md:w-96 border rounded-lg overflow-hidden">
                       <div className="flex justify-between items-center px-4 py-1.5 bg-gray-100 border-b">
-                        <span className="text-[11px] text-gray-500">{t(`orderDetail.displayMode`)}</span>
+                        <span className="text-[11px] text-gray-500" data-testid="po-price-basis">
+                          {poVatInclusive ? t(`orderDetail.priceBasisInclusive`) : t(`orderDetail.priceBasisExclusive`)}
+                        </span>
                         <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white">
                           <button
                             type="button"
@@ -1793,6 +1801,14 @@ export default function PurchaseOrderDetailPage() {
                           {formatCurrency(grandTotal)}
                         </span>
                       </div>
+                      {/* Even in the combined "รวม VAT" view, reveal the breakdown
+                          ("ที่มา") so the VAT inside the total is always visible. */}
+                      {vatDisplayMode === 'inclusive' && (
+                        <div className="px-4 py-1.5 bg-blue-50 text-[11px] text-blue-800 text-right border-t border-blue-100">
+                          {t(`orderDetail.subtotal`)} {formatCurrency(subtotal)}
+                          {' · '}{t(`orderDetail.vatLabel`, { rate: (VAT_RATE * 100).toFixed(0) })} {formatCurrency(vatAmount)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

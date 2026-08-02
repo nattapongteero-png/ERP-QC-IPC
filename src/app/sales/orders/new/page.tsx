@@ -7,6 +7,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
+import { calcLineVat } from '@/lib/utils/vat';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import TextArea from 'devextreme-react/text-area';
@@ -135,6 +136,9 @@ export default function NewSalesOrderPage() {
   });
 
   const [lines, setLines] = useState<SOLine[]>([]);
+  // false = line prices are BEFORE VAT (add 7%); true = prices already INCLUDE
+  // VAT (extract 7/107).
+  const [vatInclusive, setVatInclusive] = useState(false);
 
   // ============================================================================
   // Edit mode — load an existing DRAFT order into the form
@@ -185,6 +189,7 @@ export default function NewSalesOrderPage() {
           carrier: so.carrier || '',
           trackingNumber: so.trackingNumber || '',
         });
+        setVatInclusive(so.vatInclusive === true);
         setLines(
           loaded.map((l, i) => ({
             id: i + 1,
@@ -229,11 +234,13 @@ export default function NewSalesOrderPage() {
     return lines.reduce((sum, line) => sum + line.lineTotal, 0);
   }, [lines]);
 
-  // What the customer actually pays. Only ever computed for display — the two
-  // parts are stored separately because they are separate revenue.
+  // VAT on the goods per the pricing mode (inclusive = extract 7/107, exclusive
+  // = add 7%). Shown so the SO screen agrees with the printed tax invoice.
+  const soVat = useMemo(() => calcLineVat(totalAmount, vatInclusive), [totalAmount, vatInclusive]);
+  // What the customer actually pays: goods incl VAT + freight.
   const grandTotal = useMemo(
-    () => totalAmount + (form.shippingCost || 0),
-    [totalAmount, form.shippingCost],
+    () => soVat.total + (form.shippingCost || 0),
+    [soVat.total, form.shippingCost],
   );
 
   const lineCount = lines.length;
@@ -368,6 +375,7 @@ export default function NewSalesOrderPage() {
             shippingCost: form.shippingCost,
             carrier: form.carrier,
             trackingNumber: form.trackingNumber,
+            vatInclusive,
             lines: lines.map(line => ({
               itemId: line.itemId,
               quantity: line.quantity,
@@ -745,10 +753,28 @@ export default function NewSalesOrderPage() {
                     <div className="p-4 border-t bg-gray-50">
                       <div className="flex justify-end">
                         <div className="w-full max-w-xs space-y-1">
+                          {/* Pricing basis — is the entered price before or incl VAT? */}
+                          <div className="flex justify-between items-center text-sm mb-1">
+                            <span className="text-gray-500">{t('orders.new.priceBasis')}</span>
+                            <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="so-vat-basis-toggle">
+                              <button type="button" onClick={() => setVatInclusive(false)}
+                                className={`px-2 py-0.5 text-[11px] ${!vatInclusive ? 'bg-green-600 text-white' : 'text-gray-600'}`}
+                                data-testid="so-vat-basis-exclusive">{t('orders.new.priceExclusive')}</button>
+                              <button type="button" onClick={() => setVatInclusive(true)}
+                                className={`px-2 py-0.5 text-[11px] border-l border-gray-300 ${vatInclusive ? 'bg-green-600 text-white' : 'text-gray-600'}`}
+                                data-testid="so-vat-basis-inclusive">{t('orders.new.priceInclusive')}</button>
+                            </div>
+                          </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">{t('orders.new.goodsAmount')}</span>
-                            <span className="font-medium text-gray-900" data-testid="so-goods-amount">
-                              {formatCurrency(totalAmount)}
+                            <span className="text-gray-500">{t('orders.new.beforeVat')}</span>
+                            <span className="font-medium text-gray-900" data-testid="so-before-vat">
+                              {formatCurrency(soVat.base)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">VAT 7%</span>
+                            <span className="font-medium text-gray-900" data-testid="so-vat">
+                              {formatCurrency(soVat.vat)}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">

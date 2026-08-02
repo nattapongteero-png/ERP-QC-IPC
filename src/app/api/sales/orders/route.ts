@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
         trackingNumber,
         lines,
         status: requestedStatus,
+        vatInclusive,
       } = body;
 
       // Honour the status chosen on the form (list items 50/58/59: it was
@@ -173,6 +174,7 @@ export async function POST(request: NextRequest) {
           orderDate: dbDate(),
           requiredDate: parsedRequiredDate,
           totalAmount,
+          vatInclusive: vatInclusive === true,
           currency: 'THB',
           paymentTerms,
           notes,
