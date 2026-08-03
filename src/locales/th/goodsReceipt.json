@@ -127,7 +127,9 @@
       "actualQty": "จำนวนจริง",
       "variance": "ความคลาดเคลื่อน",
       "ageDays": "อายุ (วัน)",
-      "qcStatus": "สถานะ QC"
+      "qcStatus": "สถานะ QC",
+      "unit": "หน่วย",
+      "action": "การดำเนินการ"
     }
   },
   "actions": {

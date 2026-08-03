@@ -464,7 +464,7 @@ export default function GrnDetailPage() {
           dataType="number"
           width={80}
         />
-        <Column dataField="unit" caption="หน่วย" width={60} />
+        <Column dataField="unit" caption={t('table.columns.unit')} width={60} />
         <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} minWidth={90} />
         <Column dataField="batchNumber" caption={t('form.batchNumber.label')} minWidth={90} />
         <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" width={100} />
@@ -497,7 +497,7 @@ export default function GrnDetailPage() {
           )}
         />
         <Column
-          caption="การดำเนินการ"
+          caption={t('table.columns.action')}
           width={210}
           minWidth={190}
           fixed
@@ -519,9 +519,12 @@ export default function GrnDetailPage() {
               // (items 42, 43). dx-button-content keeps its label on one line by
               // default, so override white-space + height here.
               <div className="flex flex-col gap-1 items-stretch [&_.dx-button]:w-full [&_.dx-button]:h-auto [&_.dx-button-content]:whitespace-normal [&_.dx-button-text]:whitespace-normal [&_.dx-button-content]:py-1.5 [&_.dx-button-content]:leading-tight">
-                {/* Edit the line's actuals — opens a form popup (Save inside).
-                    Only while the line is still editable (status=created). */}
-                {line.status === 'created' && canRelease && (
+                {/* Edit the line's actuals + lot/batch/mfg/expiry — opens a form
+                    popup (Save inside). Available through the receiving window
+                    (created → checklist_done → qc_pending), i.e. up to but not
+                    including QC approval, so the vendor lot/expiry read off the
+                    physical goods can be recorded even on an auto-created GRN. */}
+                {['created', 'checklist_done', 'qc_pending'].includes(line.status) && canRelease && (
                   <Button
                     type="default"
                     stylingMode="outlined"

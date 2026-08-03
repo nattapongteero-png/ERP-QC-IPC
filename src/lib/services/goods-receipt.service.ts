@@ -292,7 +292,12 @@ export async function updateGrnLine(
       throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'Line not found');
 
     const line = existing[0];
-    if (line.status !== 'created')
+    // Lot / batch / mfg / expiry are read off the PHYSICAL goods, which for an
+    // auto-created (PO-approval) GRN arrive AFTER the line already exists — so the
+    // line must stay editable through the whole receiving window, not only at
+    // 'created'. Allow edits up to (but not including) QC approval; once
+    // qc_approved / released / rejected the actuals are locked.
+    if (!['created', 'checklist_done', 'qc_pending'].includes(line.status))
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.INVALID_TRANSITION,
         'Line is no longer editable',

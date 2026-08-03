@@ -127,7 +127,9 @@
       "actualQty": "Actual",
       "variance": "Variance",
       "ageDays": "Age (days)",
-      "qcStatus": "QC Status"
+      "qcStatus": "QC Status",
+      "unit": "Unit",
+      "action": "Action"
     }
   },
   "actions": {
