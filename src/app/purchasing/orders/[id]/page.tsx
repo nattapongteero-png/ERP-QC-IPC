@@ -292,6 +292,7 @@ export default function PurchaseOrderDetailPage() {
     paymentTerms: '',
     shippingAddress: '',
     notes: '',
+    vatInclusive: false,
   });
   const [isSavingPO, setIsSavingPO] = useState(false);
 
@@ -411,6 +412,7 @@ export default function PurchaseOrderDetailPage() {
       paymentTerms: po.paymentTerms || '',
       shippingAddress: po.shippingAddress || '',
       notes: po.notes || '',
+      vatInclusive: po.vatInclusive === true,
     });
     setIsEditingPO(true);
   };
@@ -1563,6 +1565,32 @@ export default function PurchaseOrderDetailPage() {
                               placeholder={t(`orderDetail.selectPlaceholder`)}
                             />
                           </div>
+                          {/* VAT price basis — is the entered price already VAT-inclusive?
+                              Same choice as the create form; hidden once goods are received
+                              (the API also blocks it then, to protect any AP invoice). */}
+                          {!['partial', 'received', 'closed', 'cancelled'].includes(editPOForm.status) && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orders.form.wizard.priceBasis`)}</label>
+                              <div className="inline-flex rounded-md overflow-hidden border border-gray-300 bg-white" data-testid="po-edit-vat-basis-toggle">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditPOForm({ ...editPOForm, vatInclusive: false })}
+                                  className={`px-3 py-1.5 text-xs ${!editPOForm.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                                  data-testid="po-edit-vat-basis-exclusive"
+                                >
+                                  {t(`orders.form.wizard.priceExclusive`)}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditPOForm({ ...editPOForm, vatInclusive: true })}
+                                  className={`px-3 py-1.5 text-xs border-l border-gray-300 ${editPOForm.vatInclusive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                                  data-testid="po-edit-vat-basis-inclusive"
+                                >
+                                  {t(`orders.form.wizard.priceInclusive`)}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t(`orderDetail.shippingAddress`)}</label>
                             <DxTextArea

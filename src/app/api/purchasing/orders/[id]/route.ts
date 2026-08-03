@@ -9,6 +9,7 @@ import {
 } from '@/lib/api-utils';
 import { createAuditLog, getClientIP } from '@/lib/audit';
 import { normalizePaymentTerms } from '@/lib/constants/payment-terms';
+import { computeDocVat } from '@/lib/utils/vat';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -106,6 +107,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         shippingAddress,
         notes,
         rejectionReason,
+        vatInclusive,
       } = body;
 
       const poTable = getTableRef('purchaseOrders');
@@ -122,6 +124,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             erpOwnerApproval: poTable.erpOwnerApproval,
             poNumber: poTable.poNumber,
             vendorCode: vendorsTbl.code,
+            shippingCost: poTable.shippingCost,
+            otherCharges: poTable.otherCharges,
           })
           .from(poTable)
           .leftJoin(vendorsTbl, eq(poTable.vendorId, vendorsTbl.id))
@@ -213,6 +217,37 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
       if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress;
       if (notes !== undefined) updateData.notes = notes;
+
+      // VAT price basis (รวม/ไม่รวม VAT). Flipping it re-derives the whole
+      // document's VAT, so the stored subtotal/VAT/total are recomputed here from
+      // the current lines. Only allowed BEFORE any goods are received: once a PO
+      // is partial/received an AP invoice may already be entered under the old
+      // basis, and changing it would desync GR/IR (see accounting.service).
+      if (vatInclusive !== undefined) {
+        const BASIS_LOCKED = ['partial', 'received', 'closed', 'cancelled'];
+        if (BASIS_LOCKED.includes(existing.status)) {
+          return errorResponse('เปลี่ยนฐานราคา VAT ไม่ได้ — ใบนี้เริ่มรับของ/ปิดแล้ว', 400);
+        }
+        const isInclusive = vatInclusive === true;
+        const poLinesTable = getTableRef('purchaseOrderLines');
+        const lineRows = await executeDbOperation(async (db) =>
+          db
+            .select({ totalPrice: poLinesTable.totalPrice })
+            .from(poLinesTable)
+            .where(eq(poLinesTable.poId, poId)),
+        );
+        const charges =
+          (Number(existing.shippingCost) || 0) + (Number(existing.otherCharges) || 0);
+        const doc = computeDocVat(
+          (lineRows as Array<{ totalPrice: unknown }>).map((r) => Number(r.totalPrice) || 0),
+          isInclusive,
+          { extraCharges: charges },
+        );
+        updateData.vatInclusive = isInclusive;
+        updateData.subtotalAmount = doc.subtotal;
+        updateData.vatAmount = doc.vatAmount;
+        updateData.totalAmount = doc.total;
+      }
 
       // Metaherb PO submitted for approval → mark BOTH sides 'pending' and queue
       // the po-submit webhook (fired after commit) so it lands in the
