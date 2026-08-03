@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
             itemName: items.nameTh,
             quantity: transactions.quantity,
             unit: lots.unit,
+            // Lot unit cost — used to show the movement's value (|qty| × cost).
+            unitCost: lots.cost,
             fromWarehouseId: transactions.fromWarehouseId,
             toWarehouseId: transactions.toWarehouseId,
             referenceType: transactions.referenceType,

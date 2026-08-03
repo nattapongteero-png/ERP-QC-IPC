@@ -176,6 +176,12 @@ export async function PUT(
         if (!lines || !Array.isArray(lines) || lines.length === 0) {
           return errorResponse('ต้องมีรายการสินค้าอย่างน้อย 1 รายการ');
         }
+        // Mandatory on every save (see POST route) — enforced server-side so no
+        // edit/draft path can save a sales order without them.
+        if (!requiredDate) return errorResponse('กรุณาระบุวันที่ต้องการส่ง');
+        if (!paymentTerms || String(paymentTerms).trim() === '') {
+          return errorResponse('กรุณาระบุเงื่อนไขการชำระเงิน');
+        }
 
         // Freight posts to the GL — reject a bad value rather than coerce it.
         const rawFreight = shippingCost;

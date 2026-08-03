@@ -44,6 +44,7 @@ interface Transaction {
   itemName: string;
   quantity: number;
   unit: string;
+  unitCost?: number | null;
   fromWarehouseId: number | null;
   toWarehouseId: number | null;
   fromWarehouseName: string | null;
@@ -481,6 +482,24 @@ export default function TransactionsPage() {
               {formatNumber(Math.abs(Number(cellInfo.data.quantity)))} {cellInfo.data.unit}
             </span>
           </div>
+        );
+      },
+    },
+    {
+      // Movement value = |quantity| × the lot's unit cost. Exact baht (money is
+      // shown precisely). Dash when the lot has no cost recorded.
+      dataField: 'unitCost',
+      caption: t('transactions.table.columns.value'),
+      width: 130,
+      cellRender: (cellInfo) => {
+        const cost = Number(cellInfo.data.unitCost) || 0;
+        const qty = Math.abs(Number(cellInfo.data.quantity) || 0);
+        const val = cost * qty;
+        if (val <= 0) return <span className="text-gray-400">-</span>;
+        return (
+          <span className="font-medium text-gray-900">
+            ฿{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         );
       },
     },

@@ -139,6 +139,7 @@
         "editItemTitle": "Edit Item",
         "addItemTitle": "Add Item",
         "unitLabel": "Unit: {unit}",
+        "unit": "Unit",
         "quantity": "Quantity",
         "quantityPlaceholder": "Enter quantity",
         "unitPrice": "Unit Price (Baht)",

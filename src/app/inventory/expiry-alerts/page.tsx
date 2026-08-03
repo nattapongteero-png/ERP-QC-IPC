@@ -14,6 +14,7 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { useMobile } from '@/hooks/use-mobile';
 import { AlertTriangle, Clock, XCircle, CheckCircle } from 'lucide-react';
 import { formatNumber, formatMoney } from '@/lib/utils/number-format';
+import * as XLSX from 'xlsx';
 
 interface ExpiryItem {
   lotNumber: string;
@@ -267,6 +268,33 @@ export default function ExpiryAlertsPage() {
   const showAllClearEmpty =
     !isLoading && !apiError && expired.length === 0 && nearExpiry.length === 0;
 
+  // Export both lists (expired + near-expiry) to a two-sheet Excel workbook.
+  const handleExportExcel = () => {
+    if (!report) return;
+    const mapRows = (rows: ExpiryItem[], daysKey: string, daysField: 'daysExpired' | 'daysToExpiry') =>
+      rows.map((it) => ({
+        [t('expiryAlerts.columns.lotNumber')]: it.lotNumber,
+        [t('expiryAlerts.columns.itemCode')]: it.itemCode,
+        [t('expiryAlerts.columns.itemName')]: localizedItemName(it, locale),
+        [t('expiryAlerts.columns.quantity')]: `${formatNumber(it.quantity)} ${it.unit || ''}`.trim(),
+        [t('expiryAlerts.columns.value')]: Number(it.value || 0),
+        [t('expiryAlerts.columns.expiryDate')]: formatExpiryDate(it.expiryDate),
+        [t(daysKey)]: it[daysField] ?? '',
+      }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(mapRows(report.expired || [], 'expiryAlerts.columns.daysExpired', 'daysExpired')),
+      t('expiryAlerts.exportSheetExpired'),
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(mapRows(report.nearExpiry || [], 'expiryAlerts.columns.daysToExpiry', 'daysToExpiry')),
+      t('expiryAlerts.exportSheetNear'),
+    );
+    XLSX.writeFile(wb, `expiry-alerts-${daysThreshold}d.xlsx`);
+  };
+
   return (
     <MainLayout>
       <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
@@ -286,6 +314,14 @@ export default function ExpiryAlertsPage() {
                 valueExpr="value"
                 displayExpr="label"
                 width={isMobile ? undefined : 170}
+              />
+              <DxButton
+                text={t('expiryAlerts.exportExcel')}
+                icon="xlsxfile"
+                type="success"
+                stylingMode="outlined"
+                onClick={handleExportExcel}
+                disabled={!report || (expired.length === 0 && nearExpiry.length === 0)}
               />
               <DxButton
                 text={t('expiryAlerts.refresh')}

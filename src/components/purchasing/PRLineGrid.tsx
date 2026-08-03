@@ -427,6 +427,10 @@ export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [
             caption={t('requisitions.form.columns.vendor')}
             width={180}
             data-testid="col-vendor"
+            // The narrow 180px cell clipped long vendor names in the dropdown
+            // ("VND-2606-7416 - บริษัท ..."). Widen the popup beyond the cell and
+            // wrap any name still longer than that, so the full name is readable.
+            editorOptions={{ dropDownOptions: { width: 340, minWidth: 340 }, wrapItemText: true }}
           >
             <Lookup
               dataSource={vendorOptions}

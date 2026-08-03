@@ -315,7 +315,10 @@
       "title": "No lots near expiry",
       "description": "All your inventory is in good standing"
     },
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "exportExcel": "Export Excel",
+    "exportSheetExpired": "Expired",
+    "exportSheetNear": "Near Expiry"
   },
   "transactions": {
     "pageTitle": "Inventory Transactions",
@@ -343,6 +346,7 @@
         "type": "Type",
         "lotItem": "Lot / Item",
         "quantity": "Quantity",
+        "value": "Value",
         "warehouse": "Warehouse",
         "reference": "Reference",
         "dateBy": "Date / By"

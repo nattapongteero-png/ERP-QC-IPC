@@ -963,6 +963,14 @@ export default function ItemsPage() {
 
             <Summary>
               <TotalItem column="code" summaryType="count" displayFormat={`${t('common.total')}: {0}`} />
+              {/* Grand total of on-hand value across ALL items (client-side sum,
+                  not just the current page). Exact baht — money is shown precisely. */}
+              <TotalItem
+                column="onHandCost"
+                summaryType="sum"
+                valueFormat={{ type: 'fixedPoint', precision: 2 }}
+                displayFormat="฿{0}"
+              />
             </Summary>
 
             <Paging enabled={true} defaultPageSize={20} />

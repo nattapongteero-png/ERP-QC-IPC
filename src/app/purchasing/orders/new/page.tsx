@@ -116,6 +116,9 @@ export default function NewPurchaseOrderPage() {
   // must type a real quantity and price.
   const [itemQuantity, setItemQuantity] = useState<number | null>(null);
   const [itemUnitPrice, setItemUnitPrice] = useState<number | null>(null);
+  // Unit chosen for the line — defaults to the item's primary unit, but the
+  // operator can switch to the item's secondary unit in the add-item dialog.
+  const [itemUnit, setItemUnit] = useState<string | null>(null);
   // When set, the quantity dialog is editing an existing line (by itemId)
   // instead of adding a new one — same form, "save" replaces in place.
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -163,6 +166,7 @@ export default function NewPurchaseOrderPage() {
     // one (otherwise leave empty rather than showing a stuck 0.00).
     setItemQuantity(null);
     setItemUnitPrice(item.costPrice && item.costPrice > 0 ? item.costPrice : null);
+    setItemUnit(item.primaryUnit || null);
     setIsQuantityDialogOpen(true);
   };
 
@@ -176,7 +180,7 @@ export default function NewPurchaseOrderPage() {
       itemId: selectedItem.id,
       itemCode: selectedItem.code,
       itemName: selectedItem.nameTh || selectedItem.nameEn,
-      itemUnit: selectedItem.primaryUnit || 'unit',
+      itemUnit: itemUnit || selectedItem.primaryUnit || 'unit',
       quantity: itemQuantity,
       unitPrice: itemUnitPrice,
       lineTotal: itemQuantity * itemUnitPrice,
@@ -200,6 +204,7 @@ export default function NewPurchaseOrderPage() {
     setSelectedItem(null);
     setItemQuantity(null);
     setItemUnitPrice(null);
+    setItemUnit(null);
     setEditingItemId(null);
     setIsQuantityDialogOpen(false);
   };
@@ -222,6 +227,7 @@ export default function NewPurchaseOrderPage() {
     } as Item);
     setItemQuantity(line.quantity);
     setItemUnitPrice(line.unitPrice);
+    setItemUnit(line.itemUnit || null);
     setEditingItemId(line.itemId);
     setIsQuantityDialogOpen(true);
   };
@@ -1084,12 +1090,11 @@ export default function NewPurchaseOrderPage() {
                     <Badge variant="info">{selectedItem.code}</Badge>
                   </div>
                   <p className="font-medium text-gray-900 mt-1">{selectedItem.nameTh || selectedItem.nameEn}</p>
-                  <p className="text-sm text-gray-500">{t('orders.form.wizard.unitLabel', { unit: selectedItem.primaryUnit || 'unit' })}</p>
                 </div>
               </div>
 
-              {/* Form Fields */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Form Fields — quantity, unit (the item's own units), unit price */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('orders.form.wizard.quantity')} <span className="text-red-500">*</span>
@@ -1101,6 +1106,22 @@ export default function NewPurchaseOrderPage() {
                     showSpinButtons
                     format="#,##0"
                     placeholder={t('orders.form.wizard.quantityPlaceholder')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('orders.form.wizard.unit')} <span className="text-red-500">*</span>
+                  </label>
+                  <DxSelectBox
+                    value={itemUnit ?? undefined}
+                    onValueChange={(v) => setItemUnit((v as string) ?? null)}
+                    dataSource={Array.from(
+                      new Set(
+                        [selectedItem.primaryUnit, selectedItem.secondaryUnit].filter(
+                          (u): u is string => !!u,
+                        ),
+                      ),
+                    )}
                   />
                 </div>
                 <div>

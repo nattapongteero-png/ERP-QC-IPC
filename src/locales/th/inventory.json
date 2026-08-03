@@ -315,7 +315,10 @@
       "title": "ไม่มีล็อตใกล้หมดอายุ",
       "description": "สินค้าคงคลังของคุณทั้งหมดอยู่ในสถานะปกติ"
     },
-    "refresh": "รีเฟรช"
+    "refresh": "รีเฟรช",
+    "exportExcel": "ส่งออก Excel",
+    "exportSheetExpired": "หมดอายุแล้ว",
+    "exportSheetNear": "ใกล้หมดอายุ"
   },
   "transactions": {
     "pageTitle": "รายการเคลื่อนไหว",
@@ -343,6 +346,7 @@
         "type": "ประเภท",
         "lotItem": "ล็อต / สินค้า",
         "quantity": "จำนวน",
+        "value": "มูลค่า",
         "warehouse": "คลัง",
         "reference": "อ้างอิง",
         "dateBy": "วันที่ / ผู้บันทึก"

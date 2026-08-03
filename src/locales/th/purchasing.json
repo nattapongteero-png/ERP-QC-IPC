@@ -139,6 +139,7 @@
         "editItemTitle": "แก้ไขรายการสินค้า",
         "addItemTitle": "เพิ่มรายการสินค้า",
         "unitLabel": "หน่วย: {unit}",
+        "unit": "หน่วย",
         "quantity": "จำนวน",
         "quantityPlaceholder": "ระบุจำนวน",
         "unitPrice": "ราคาต่อหน่วย (บาท)",

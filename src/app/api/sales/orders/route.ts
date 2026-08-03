@@ -120,6 +120,17 @@ export async function POST(request: NextRequest) {
         return errorResponse('At least one line item is required');
       }
 
+      // Required-date and payment-terms are mandatory on EVERY save (incl. draft):
+      // they drive shipping preparation and whether a delivery note can be issued
+      // (a cash order that is unpaid must not ship). Enforced server-side so no
+      // client path — draft save, reused edit form, direct API — can bypass it.
+      if (!requiredDate) {
+        return errorResponse('กรุณาระบุวันที่ต้องการส่ง');
+      }
+      if (!paymentTerms || String(paymentTerms).trim() === '') {
+        return errorResponse('กรุณาระบุเงื่อนไขการชำระเงิน');
+      }
+
       // Freight is money and it posts to the GL. A negative or non-numeric
       // value would be a credit note nobody approved, so it is rejected here
       // rather than quietly coerced to 0.
