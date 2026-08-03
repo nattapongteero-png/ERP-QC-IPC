@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DataGrid, {
   Column,
   Editing,
@@ -22,8 +22,9 @@ import { useTranslations } from 'next-intl';
 import { ItemSearchDialog, type Item as InventoryItem } from '@/components/ui/item-search-dialog';
 import type { PRLineInput } from '@/types/purchase-requisition';
 
-// Standard units always offered in the หน่วยนับ dropdown, merged with any unit
-// configured on the items the user has added (their primary/secondary units).
+// Fallback units for MANUAL rows only (a line typed by hand with no linked item).
+// For an item-linked line the dropdown is restricted to that item's own configured
+// units (primary + secondary) — see getUnitOptions.
 const STANDARD_UNITS = ['EA', 'kg', 'g', 'mg', 'L', 'mL', 'box', 'bottle', 'pack', 'roll'];
 
 interface PRLineGridProps {
@@ -39,19 +40,71 @@ export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [
   const t = useTranslations('purchasing');
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [itemSearchOpen, setItemSearchOpen] = useState(false);
-  // Units gathered from the items the user has picked (primary + secondary),
-  // so the หน่วยนับ dropdown reflects each item's configured units.
-  const [itemUnits, setItemUnits] = useState<string[]>([]);
+  // Configured units per item (itemId -> [primaryUnit, secondaryUnit]). Populated
+  // when items are added via the picker, and back-filled from /api/items/[id] for
+  // lines loaded from an existing PR. The หน่วยนับ dropdown of an item-linked line
+  // is restricted to that item's own units — NOT a global list.
+  const [unitsByItem, setUnitsByItem] = useState<Record<number, string[]>>({});
 
-  // Dropdown options for หน่วยนับ: item-configured units + current line units +
-  // a standard fallback list, de-duplicated.
-  const unitOptions = useMemo(() => {
-    const set = new Set<string>();
-    itemUnits.forEach((u) => u && set.add(u));
-    lines.forEach((l) => l.unitOfMeasure && set.add(l.unitOfMeasure));
-    STANDARD_UNITS.forEach((u) => set.add(u));
-    return Array.from(set).map((u) => ({ value: u, label: u }));
-  }, [itemUnits, lines]);
+  // Per-row dropdown options for หน่วยนับ. For an item-linked line: only that
+  // item's configured units (+ the value already saved on the line, so it always
+  // resolves). For a manual line (no itemId): the standard fallback list.
+  const getUnitOptions = useCallback(
+    (rowData?: Partial<PRLineInput>) => {
+      const itemId = rowData?.itemId;
+      const current = rowData?.unitOfMeasure;
+      let base: string[];
+      if (itemId != null && unitsByItem[itemId]?.length) {
+        base = unitsByItem[itemId];
+      } else if (itemId != null) {
+        base = current ? [current] : []; // item line, units not loaded yet
+      } else {
+        base = STANDARD_UNITS; // manual row, no linked item
+      }
+      const set = new Set(base.filter(Boolean));
+      if (current) set.add(current);
+      return Array.from(set).map((u) => ({ value: u, label: u }));
+    },
+    [unitsByItem],
+  );
+
+  // Back-fill item units for lines loaded from an existing PR (their itemId is
+  // known but the item wasn't picked this session, so unitsByItem has no entry).
+  useEffect(() => {
+    const missing = Array.from(
+      new Set(
+        lines
+          .map((l) => l.itemId)
+          .filter((id): id is number => typeof id === 'number' && !(id in unitsByItem)),
+      ),
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const res = await fetch(`/api/items/${id}`);
+            const data = await res.json();
+            const it = data?.data ?? data;
+            const units = [it?.primaryUnit, it?.secondaryUnit].filter((u): u is string => !!u);
+            return [id, units] as const;
+          } catch {
+            return [id, [] as string[]] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setUnitsByItem((prev) => {
+        const next = { ...prev };
+        for (const [id, units] of entries) next[id] = units;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lines, unitsByItem]);
 
   // Vendor dropdown options for the per-line "บริษัทผู้ขาย" column. A PR line can
   // name the company it should be bought from, so PR→PO conversion can split one
@@ -78,7 +131,7 @@ export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [
     const units = [item.primaryUnit, item.secondaryUnit].filter(
       (u): u is string => !!u,
     );
-    if (units.length) setItemUnits((prev) => Array.from(new Set([...prev, ...units])));
+    setUnitsByItem((prev) => ({ ...prev, [item.id]: units }));
     onChange([...lines, toLine(item)]);
     setItemSearchOpen(false);
   }, [lines, onChange, toLine]);
@@ -86,8 +139,13 @@ export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [
   // Multi-select: add every checked item in one go, skipping any already on the
   // PR (matched by itemId) so re-opening the picker can't create duplicates.
   const handleSelectMultiple = useCallback((items: InventoryItem[]) => {
-    const units = items.flatMap((i) => [i.primaryUnit, i.secondaryUnit]).filter((u): u is string => !!u);
-    if (units.length) setItemUnits((prev) => Array.from(new Set([...prev, ...units])));
+    setUnitsByItem((prev) => {
+      const next = { ...prev };
+      for (const i of items) {
+        next[i.id] = [i.primaryUnit, i.secondaryUnit].filter((u): u is string => !!u);
+      }
+      return next;
+    });
     const existingIds = new Set(lines.map((l) => l.itemId).filter(Boolean));
     const fresh = items.filter((i) => !existingIds.has(i.id)).map(toLine);
     if (fresh.length) onChange([...lines, ...fresh]);
@@ -327,9 +385,14 @@ export function PRLineGrid({ lines, onChange, prId, editable = true, vendors = [
           validationRules={[{ type: 'required', message: t('requisitions.form.validation.unitRequired') }]}
           data-testid="col-uom"
         >
-          {/* Dropdown sourced from the selected items' configured units +
-              standard units (acceptCustomValue lets the user type a new one). */}
-          <Lookup dataSource={unitOptions} valueExpr="value" displayExpr="label" allowClearing={false} />
+          {/* Dropdown restricted per row to the linked item's own units (primary +
+              secondary). Manual rows (no item) fall back to the standard list. */}
+          <Lookup
+            dataSource={(options: { data?: Partial<PRLineInput> }) => getUnitOptions(options?.data)}
+            valueExpr="value"
+            displayExpr="label"
+            allowClearing={false}
+          />
         </Column>
         <Column
           dataField="estimatedUnitPrice"
