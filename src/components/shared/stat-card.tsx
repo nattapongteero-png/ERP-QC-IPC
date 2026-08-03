@@ -131,7 +131,12 @@ export function StatCard({
               row) labels were cut to "TOTAL O..." / "คำสั่งซื้อทั้..." — the
               label needs 82px but only gets 64px. Allow two lines and clamp,
               so the label reads in full instead of being chopped. */}
-          <p className={`text-xs font-medium uppercase tracking-wide line-clamp-2 ${toneStyle.label}`}>{label}</p>
+          {/* `leading-relaxed` (not the tight text-xs default): line-clamp forces
+              overflow:hidden, and a short line-box clipped the TOP of stacked Thai
+              marks — "ทั้งหมด" (ท+◌ั+◌้), "อนุมัติ" — so the label heads looked cut.
+              A taller line box gives the upper marks room; the clamp still caps 2
+              lines. */}
+          <p className={`text-xs font-medium uppercase tracking-wide leading-relaxed line-clamp-2 ${toneStyle.label}`}>{label}</p>
           {isLoading ? (
             <div className="h-8 w-16 bg-black/5 rounded animate-pulse mt-1" />
           ) : (
