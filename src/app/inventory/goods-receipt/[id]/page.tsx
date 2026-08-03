@@ -454,13 +454,13 @@ export default function GrnDetailPage() {
         />
         <Column
           dataField="expectedQuantity"
-          caption={t('table.columns.expectedQty')}
+          caption={t('table.columns.orderedQty')}
           dataType="number"
           width={80}
         />
         <Column
           dataField="actualQuantity"
-          caption={t('table.columns.actualQty')}
+          caption={t('table.columns.receivedQty')}
           dataType="number"
           width={80}
         />
@@ -485,23 +485,6 @@ export default function GrnDetailPage() {
               : '—'
           }
         />
-        <Column
-          dataField="variancePercent"
-          caption={t('table.columns.variance')}
-          minWidth={110}
-          width={120}
-          cellRender={(c) => {
-            const v = c.value as number | null;
-            if (v == null) return '—';
-            const isWarn = Math.abs(v) > 2;
-            return (
-              <span className={isWarn ? 'text-rose-600 font-medium' : 'text-gray-700'}>
-                {v.toFixed(2)}%
-              </span>
-            );
-          }}
-        />
-        <Column dataField="varianceReason" caption={t('form.varianceReason.label')} minWidth={120} />
         <Column
           dataField="status"
           caption={t('table.columns.status')}
@@ -652,7 +635,7 @@ export default function GrnDetailPage() {
               </div>
               {editLine && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {t('table.columns.expectedQty')}: <b>{Number(editLine.expectedQuantity).toLocaleString()}</b> {editLine.unit}
+                  {t('table.columns.orderedQty')}: <b>{Number(editLine.expectedQuantity).toLocaleString()}</b> {editLine.unit}
                 </p>
               )}
             </div>

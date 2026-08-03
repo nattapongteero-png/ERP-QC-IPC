@@ -125,6 +125,8 @@
       "item": "สินค้า",
       "expectedQty": "จำนวนคาด",
       "actualQty": "จำนวนจริง",
+      "orderedQty": "จำนวนสั่ง",
+      "receivedQty": "จำนวนรับ",
       "variance": "ความคลาดเคลื่อน",
       "ageDays": "อายุ (วัน)",
       "qcStatus": "สถานะ QC",

@@ -125,6 +125,8 @@
       "item": "Item",
       "expectedQty": "Expected",
       "actualQty": "Actual",
+      "orderedQty": "Ordered",
+      "receivedQty": "Received",
       "variance": "Variance",
       "ageDays": "Age (days)",
       "qcStatus": "QC Status",
