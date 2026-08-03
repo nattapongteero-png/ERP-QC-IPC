@@ -1115,13 +1115,16 @@ export default function NewPurchaseOrderPage() {
                   <DxSelectBox
                     value={itemUnit ?? undefined}
                     onValueChange={(v) => setItemUnit((v as string) ?? null)}
+                    // DxSelectBox defaults to valueExpr="value"/displayExpr="label",
+                    // so the options must be {value,label} objects — a plain string[]
+                    // rendered blank and would not bind the selected unit.
                     dataSource={Array.from(
                       new Set(
                         [selectedItem.primaryUnit, selectedItem.secondaryUnit].filter(
                           (u): u is string => !!u,
                         ),
                       ),
-                    )}
+                    ).map((u) => ({ value: u, label: u }))}
                   />
                 </div>
                 <div>
