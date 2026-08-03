@@ -1293,9 +1293,10 @@ export default function LotsPage() {
         <div className="bg-white border border-emerald-100 rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] overflow-hidden">
           {/* Tabs + Stats Header */}
           <div className="px-4 py-3 border-b border-emerald-50 bg-gradient-to-b from-[#FBFEFC] to-[#F6FCF9]">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Status Tabs */}
-              <div className="flex items-center gap-1 bg-[#F1FAF5] rounded-xl p-1 border border-emerald-100 overflow-x-auto">
+            <div className="flex flex-col gap-3">
+              {/* Status Tabs — wrap onto multiple rows instead of forcing a
+                  horizontal scrollbar when the 7 chips + stats don't fit. */}
+              <div className="flex flex-wrap items-center gap-1 bg-[#F1FAF5] rounded-xl p-1 border border-emerald-100">
                 {(Object.keys(STATUS_CONFIG) as StatusType[]).map((status) => {
                   const config = STATUS_CONFIG[status];
                   const count = statusCounts[status];
@@ -1323,8 +1324,8 @@ export default function LotsPage() {
                 })}
               </div>
 
-              {/* Compact Stats */}
-              <div className="flex items-center gap-4 text-sm">
+              {/* Compact Stats — own row below the tabs; wrap on narrow widths. */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                 {stats.nearExpiryCount > 0 && (
                   <div className="flex items-center gap-1.5 text-amber-600">
                     <AlertTriangle className="h-4 w-4" />
