@@ -129,7 +129,9 @@
       "ageDays": "Age (days)",
       "qcStatus": "QC Status",
       "unit": "Unit",
-      "action": "Action"
+      "action": "Action",
+      "inventoryLotNumber": "System Lot",
+      "unitCost": "Unit Cost"
     }
   },
   "actions": {

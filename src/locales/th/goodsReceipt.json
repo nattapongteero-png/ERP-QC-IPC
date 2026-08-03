@@ -129,7 +129,9 @@
       "ageDays": "อายุ (วัน)",
       "qcStatus": "สถานะ QC",
       "unit": "หน่วย",
-      "action": "การดำเนินการ"
+      "action": "การดำเนินการ",
+      "inventoryLotNumber": "เลขล็อตระบบ",
+      "unitCost": "ต้นทุน/หน่วย"
     }
   },
   "actions": {

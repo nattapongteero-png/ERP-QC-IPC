@@ -259,6 +259,9 @@ export async function POST(
               manufacturingDate: manufacturingDate ? parseDbDate(manufacturingDate) : null,
               expiryDate: parseDbDate(expiryDate),
               actualQuantity: newReceivedQty,
+              // Link the GRN line to the inventory lot just created, so the GRN
+              // can show the real lot detail (system lot no. / cost) and trace to it.
+              inventoryLotId: Number(lotId),
               varianceAmount: grnVarAmount,
               variancePercent: grnVarPercent,
               updatedAt: dbDate(),

@@ -154,6 +154,10 @@ export interface GoodsReceiptLine {
   varianceReason: string | null;
   status: GrnLineStatus;
   inventoryLotId: number | null;
+  /** System lot number + unit cost of the linked inventory lot, joined for
+   *  display on the GRN — the actual received lot (not just the vendor's lot). */
+  inventoryLotNumber: string | null;
+  unitCost: number | null;
   qcLotId: number | null;
   qcSampleId: number | null;
   qcSampleCreationFailed: boolean;

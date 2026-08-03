@@ -383,16 +383,28 @@ export async function getGrnById(
         line: t.lines,
         itemCode: t.items.code,
         itemName: t.items.nameTh,
+        // The actual inventory lot this line was received into (system lot
+        // number + unit cost), so the GRN shows the real lot detail, not only
+        // the vendor's lot number captured at receiving.
+        inventoryLotNumber: t.inventoryLots.lotNumber,
+        unitCost: t.inventoryLots.cost,
       })
       .from(t.lines)
       .leftJoin(t.items, eq(t.lines.itemId, t.items.id))
+      .leftJoin(t.inventoryLots, eq(t.lines.inventoryLotId, t.inventoryLots.id))
       .where(eq(t.lines.grnId, id))
       .orderBy(t.lines.lineNumber);
 
     return {
       grn: normalizeGrn(grnRows[0]),
       lines: lineRows.map((r: any) =>
-        normalizeLine({ ...r.line, itemCode: r.itemCode, itemName: r.itemName }),
+        normalizeLine({
+          ...r.line,
+          itemCode: r.itemCode,
+          itemName: r.itemName,
+          inventoryLotNumber: r.inventoryLotNumber,
+          unitCost: r.unitCost,
+        }),
       ),
     };
   });
@@ -693,6 +705,8 @@ function normalizeLine(row: any): GoodsReceiptLine {
     varianceReason: row.varianceReason ?? null,
     status: row.status as GrnLineStatus,
     inventoryLotId: row.inventoryLotId != null ? Number(row.inventoryLotId) : null,
+    inventoryLotNumber: row.inventoryLotNumber ?? null,
+    unitCost: row.unitCost != null ? Number(row.unitCost) : null,
     qcLotId: row.qcLotId != null ? Number(row.qcLotId) : null,
     qcSampleId: row.qcSampleId != null ? Number(row.qcSampleId) : null,
     qcSampleCreationFailed: Boolean(row.qcSampleCreationFailed),

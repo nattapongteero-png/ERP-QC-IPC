@@ -466,9 +466,25 @@ export default function GrnDetailPage() {
         />
         <Column dataField="unit" caption={t('table.columns.unit')} width={60} />
         <Column dataField="vendorLotNumber" caption={t('form.vendorLotNumber.label')} minWidth={90} />
+        <Column
+          dataField="inventoryLotNumber"
+          caption={t('table.columns.inventoryLotNumber')}
+          minWidth={110}
+          cellRender={(c) => <span className="font-mono text-emerald-700">{(c.value as string) || '—'}</span>}
+        />
         <Column dataField="batchNumber" caption={t('form.batchNumber.label')} minWidth={90} />
         <Column dataField="manufacturingDate" caption={t('form.manufacturingDate.label')} dataType="date" width={100} />
         <Column dataField="expiryDate" caption={t('form.expiryDate.label')} dataType="date" width={100} />
+        <Column
+          dataField="unitCost"
+          caption={t('table.columns.unitCost')}
+          width={100}
+          cellRender={(c) =>
+            c.value != null
+              ? `฿${Number(c.value).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : '—'
+          }
+        />
         <Column
           dataField="variancePercent"
           caption={t('table.columns.variance')}
