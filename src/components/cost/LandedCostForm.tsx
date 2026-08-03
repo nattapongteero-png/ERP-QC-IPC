@@ -69,14 +69,18 @@ async function fetchLandedCost(id: number): Promise<LandedCostHeader> {
 }
 
 async function fetchVendors(): Promise<Vendor[]> {
-  const res = await fetch('/api/vendors?pageSize=1000');
+  // The list APIs paginate on `limit` (default 20) — `pageSize` is ignored, which
+  // silently truncated the dropdowns. Use `limit` so ALL rows load.
+  const res = await fetch('/api/vendors?limit=1000');
   if (!res.ok) return [];
   const data = await res.json();
   return data.data?.items || [];
 }
 
 async function fetchPurchaseOrders(): Promise<PurchaseOrder[]> {
-  const res = await fetch('/api/purchasing/orders?status=received&pageSize=1000');
+  // Only received POs (their goods have arrived, so landed cost can capitalise
+  // into inventory) — and `limit`, not `pageSize`, so none are dropped.
+  const res = await fetch('/api/purchasing/orders?status=received&limit=1000');
   if (!res.ok) return [];
   const data = await res.json();
   return data.data?.items || [];
@@ -426,7 +430,21 @@ export function LandedCostForm({ mode, landedCostId }: LandedCostFormProps) {
             </label>
             <DxSelectBox
               items={purchaseOrders as any[]}
-              displayExpr="poNumber"
+              // Show PO number + vendor + amount so the buyer can identify the
+              // right PO without memorising numbers (was PO number only).
+              displayExpr={(po: any) =>
+                po
+                  ? [
+                      po.poNumber,
+                      po.vendorName,
+                      po.totalAmount != null
+                        ? `฿${Number(po.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join('  ·  ')
+                  : ''
+              }
               valueExpr="id"
               value={formData.referenceId}
               onValueChange={(val: any) => {
