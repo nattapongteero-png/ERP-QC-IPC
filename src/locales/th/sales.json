@@ -477,10 +477,13 @@
       },
       "paymentOptions": {
         "cash": "เงินสด (Cash)",
+        "net7": "Net 7 วัน",
         "net15": "Net 15 วัน",
         "net30": "Net 30 วัน",
         "net45": "Net 45 วัน",
-        "net60": "Net 60 วัน"
+        "net60": "Net 60 วัน",
+        "net90": "Net 90 วัน",
+        "cod": "ชำระเมื่อส่งมอบ (COD)"
       },
       "columns": {
         "item": "สินค้า",

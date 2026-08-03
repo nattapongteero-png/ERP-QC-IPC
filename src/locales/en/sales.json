@@ -477,10 +477,13 @@
       },
       "paymentOptions": {
         "cash": "Cash",
+        "net7": "Net 7 days",
         "net15": "Net 15 days",
         "net30": "Net 30 days",
         "net45": "Net 45 days",
-        "net60": "Net 60 days"
+        "net60": "Net 60 days",
+        "net90": "Net 90 days",
+        "cod": "Cash on Delivery (COD)"
       },
       "columns": {
         "item": "Item",

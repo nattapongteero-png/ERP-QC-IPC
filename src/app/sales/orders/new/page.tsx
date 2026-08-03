@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MainLayout } from '@/components/layout/main-layout';
 import { calcLineVat } from '@/lib/utils/vat';
+import { normalizePaymentTerms } from '@/lib/constants/payment-terms';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from 'devextreme-react/button';
 import TextArea from 'devextreme-react/text-area';
@@ -73,7 +74,36 @@ interface FormData {
 // ============================================================================
 
 const STATUS_KEYS = ['draft', 'confirmed'] as const;
-const PAYMENT_TERMS_KEYS = ['cash', 'net15', 'net30', 'net45', 'net60'] as const;
+
+// Payment-term dropdown. The VALUE stored on an SO — and on the customer master
+// (sales/customers/new saves PAYMENT_TERM_VALUES[key]) — is the canonical string
+// 'Net 30' / 'Cash' / 'COD', NOT the i18n key. The dropdown MUST offer those
+// exact values, and ALL of them a customer can hold, or a customer-prefilled or
+// previously-saved term renders blank (the bug that kept coming back). Keys drive
+// the translated label only.
+const PAYMENT_TERM_KEYS = ['cash', 'net7', 'net15', 'net30', 'net45', 'net60', 'net90', 'cod'] as const;
+const PAYMENT_TERM_VALUE: Record<(typeof PAYMENT_TERM_KEYS)[number], string> = {
+  cash: 'Cash',
+  net7: 'Net 7',
+  net15: 'Net 15',
+  net30: 'Net 30',
+  net45: 'Net 45',
+  net60: 'Net 60',
+  net90: 'Net 90',
+  cod: 'COD',
+};
+const PAYMENT_TERM_VALUE_SET = new Set<string>(Object.values(PAYMENT_TERM_VALUE));
+
+/**
+ * Map a stored / customer-prefilled payment-terms value to one the dropdown can
+ * display. Canonical values ('Net 30', 'Cash', 'COD'...) pass straight through;
+ * legacy free-text ('เครดิต 30 วัน', 'net30') is normalized to canonical so it
+ * still shows instead of silently blanking. Unmappable → '' (forces a real pick).
+ */
+const toDisplayTerm = (value: string | null | undefined): string => {
+  if (value && PAYMENT_TERM_VALUE_SET.has(value)) return value;
+  return normalizePaymentTerms(value) || '';
+};
 
 // ============================================================================
 // Helper Functions
@@ -113,8 +143,8 @@ export default function NewSalesOrderPage() {
     label: t(`orders.new.statusOptions.${key}` as const),
   })), [t]);
 
-  const paymentTermsOptions = useMemo(() => PAYMENT_TERMS_KEYS.map(key => ({
-    value: key,
+  const paymentTermsOptions = useMemo(() => PAYMENT_TERM_KEYS.map(key => ({
+    value: PAYMENT_TERM_VALUE[key],
     label: t(`orders.new.paymentOptions.${key}` as const),
   })), [t]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -174,15 +204,13 @@ export default function NewSalesOrderPage() {
           customerContact: so.customerContact || '',
           customerAddress: so.customerAddress || '',
           requiredDate: so.requiredDate ? new Date(so.requiredDate) : null,
-          // Only keep a stored term the dropdown can actually show. Legacy orders
-          // hold free-text like "เครดิต 30 วัน" that matches no option, so the
-          // SelectBox rendered blank while the value stayed set — the required-
-          // field guard then passed and let a blank-looking form save. Clearing a
-          // non-matching value makes the empty field truly empty, so save blocks
-          // until a real term is picked.
-          paymentTerms: (PAYMENT_TERMS_KEYS as readonly string[]).includes(so.paymentTerms)
-            ? so.paymentTerms
-            : '',
+          // A saved SO holds a canonical term ('Net 30' / 'Cash' / 'COD'...) that
+          // the dropdown now offers directly, so keep it. Legacy free-text
+          // ("เครดิต 30 วัน") is normalized to canonical so it still shows; only a
+          // truly unmappable value blanks — which then blocks save until a real
+          // term is picked. This is the round-trip fix: prefill → save → reload
+          // all speak the same value, so the field no longer renders blank.
+          paymentTerms: toDisplayTerm(so.paymentTerms),
           notes: so.notes || '',
           status: so.status || 'draft',
           shippingCost: so.shippingCost != null ? Number(so.shippingCost) : 0,
@@ -256,7 +284,9 @@ export default function NewSalesOrderPage() {
       customerName: customer.name,
       customerContact: customer.contactPerson || '',
       customerAddress: customer.address || '',
-      paymentTerms: customer.paymentTerms || '',
+      // Customer master stores the canonical term; map it so the dropdown shows
+      // it instead of blanking on a value it doesn't recognise.
+      paymentTerms: toDisplayTerm(customer.paymentTerms),
     }));
   }, []);
 
