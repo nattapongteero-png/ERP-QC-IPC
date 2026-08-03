@@ -40,7 +40,7 @@ import TextArea from 'devextreme-react/text-area';
 import TextBox from 'devextreme-react/text-box';
 import { DxButton } from '@/components/ui/dx-button';
 import { cn } from '@/lib/utils/cn';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
+import { ResponsivePageHeader } from '@/components/shared';
 import { ProductionPlanCalendar } from '@/components/production/production-plan-calendar';
 import {
   Factory,
@@ -300,7 +300,7 @@ export default function WorkOrdersPage() {
   };
 
   // Fetch work orders
-  const { data: workOrders = [], isLoading, refetch } = useQuery({
+  const { data: workOrders = [], refetch } = useQuery({
     queryKey: ['work-orders'],
     queryFn: fetchWorkOrders,
   });
@@ -710,45 +710,6 @@ export default function WorkOrdersPage() {
           </div>
         }
       />
-
-      {/* Primary KPIs — only the metrics NOT already shown by the status donut
-          / status tabs below, so nothing is repeated: total volume, how many
-          are actively running, how many are urgent, and the completion rate.
-          Per-status counts live in the donut + the filter tabs only. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard
-          label={t('workOrders.stats.totalOrders')}
-          value={stats.total}
-          icon={ClipboardList}
-          iconColor="text-emerald-600"
-          accentColor="border-emerald-600"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.charts.activeOrders')}
-          value={stats.active}
-          icon={PlayCircle}
-          iconColor="text-amber-500"
-          accentColor="border-amber-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.stats.highPriority')}
-          value={stats.highPriority}
-          icon={AlertTriangle}
-          iconColor="text-red-500"
-          accentColor="border-red-500"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label={t('workOrders.charts.completionRate')}
-          value={`${Number(stats.completionRate).toFixed(1)}%`}
-          icon={Target}
-          iconColor="text-emerald-500"
-          accentColor="border-emerald-500"
-          isLoading={isLoading}
-        />
-      </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">

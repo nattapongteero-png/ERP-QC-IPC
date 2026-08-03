@@ -232,7 +232,7 @@ export async function POST(
           // represents the whole PO line; one accepted receipt with a passing
           // checklist marks it received. (Partial receipts keep the same line.)
           const lineRows = await db
-            .select({ id: goodsReceiptLines.id })
+            .select({ id: goodsReceiptLines.id, expectedQuantity: goodsReceiptLines.expectedQuantity })
             .from(goodsReceiptLines)
             .where(and(
               eq(goodsReceiptLines.grnId, grnId),
@@ -241,9 +241,28 @@ export async function POST(
             ))
             .limit(1);
           if (lineRows.length === 0) return;
+          // Copy what the receiver just entered off the PHYSICAL goods onto the
+          // GRN line too — not only the inventory lot. Before this, the vendor
+          // lot / mfg / expiry / actual qty were written to inventory_lots only,
+          // so the GRN detail page (which reads the GRN line) showed blank columns
+          // even though the data WAS captured at receiving. Variance is vs the
+          // GRN line's expected qty, using the cumulative received quantity.
+          const grnExpected = Number(lineRows[0].expectedQuantity) || 0;
+          const grnVarAmount = grnExpected > 0 ? newReceivedQty - grnExpected : null;
+          const grnVarPercent =
+            grnExpected > 0 && grnVarAmount !== null ? (grnVarAmount / grnExpected) * 100 : null;
           await db
             .update(goodsReceiptLines)
-            .set({ status: 'checklist_done', updatedAt: dbDate() })
+            .set({
+              status: 'checklist_done',
+              vendorLotNumber: vendorLotNumber || null,
+              manufacturingDate: manufacturingDate ? parseDbDate(manufacturingDate) : null,
+              expiryDate: parseDbDate(expiryDate),
+              actualQuantity: newReceivedQty,
+              varianceAmount: grnVarAmount,
+              variancePercent: grnVarPercent,
+              updatedAt: dbDate(),
+            })
             .where(eq(goodsReceiptLines.id, Number(lineRows[0].id)));
         });
       } catch (err) {
