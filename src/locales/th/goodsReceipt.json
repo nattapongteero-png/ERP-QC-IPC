@@ -96,6 +96,7 @@
     "vendorLotNumber": {
       "label": "เลขล็อตผู้ขาย"
     },
+    "systemLotEmpty": "ยังไม่มี (สร้างเมื่อรับเข้าสต็อก)",
     "batchNumber": {
       "label": "เลข Batch"
     },

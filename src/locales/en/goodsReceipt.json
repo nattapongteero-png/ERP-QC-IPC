@@ -96,6 +96,7 @@
     "vendorLotNumber": {
       "label": "Vendor Lot Number"
     },
+    "systemLotEmpty": "None yet (created on stock receipt)",
     "batchNumber": {
       "label": "Batch Number"
     },

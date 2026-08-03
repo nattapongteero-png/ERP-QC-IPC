@@ -639,6 +639,18 @@ export default function GrnDetailPage() {
                 </p>
               )}
             </div>
+            {/* System lot number — read-only: it's the inventory lot the system
+                creates when goods are received into stock, so it's shown here for
+                reference (pulled from the line's linked lot), not entered. */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">{t('table.columns.inventoryLotNumber')}</label>
+              <p
+                className="rounded-[11px] border border-[#D9EFE4] bg-gray-50 px-3 py-2 font-mono text-emerald-700"
+                data-testid="edit-system-lot"
+              >
+                {editLine?.inventoryLotNumber || t('form.systemLotEmpty')}
+              </p>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('form.vendorLotNumber.label')}</label>
               <input
