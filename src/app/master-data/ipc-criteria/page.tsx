@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
@@ -68,6 +69,9 @@ export default function IPCCriteriaPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const tRoot = useTranslations('masterData');
+  const t = (k: string, values?: Record<string, string | number>) =>
+    tRoot(`ipcCriteria.${k}`, values as never);
 
   const { data: criteria, isLoading } = useQuery<IPCCriteria[]>({
     queryKey: ['ipc-criteria'],
@@ -89,36 +93,36 @@ export default function IPCCriteriaPage() {
     onSuccess: (result: { data?: { mode?: 'deleted' | 'disabled' } }) => {
       queryClient.invalidateQueries({ queryKey: ['ipc-criteria'] });
       if (result?.data?.mode === 'disabled') {
-        toast.success('ปิดการใช้งาน', 'เกณฑ์นี้ถูกใช้งานแล้ว — ปิดการใช้งานแทนการลบ');
+        toast.success(t('disabledTitle'), t('disabledBody'));
       } else {
-        toast.success('ลบสำเร็จ', 'เกณฑ์ QC และ IPC ถูกลบเรียบร้อย');
+        toast.success(t('deletedTitle'), t('deletedBody'));
       }
     },
-    onError: (error: Error) => toast.error('เกิดข้อผิดพลาด', error.message),
+    onError: (error: Error) => toast.error(t('errorTitle'), error.message),
   });
 
   return (
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       <ResponsivePageHeader
-        title="เกณฑ์ QC และ IPC"
-        subtitle="เกณฑ์การตรวจสอบระหว่างกระบวนการผลิต (In-Process Control) เพื่อคุณภาพการผลิต"
+        title={t('title')}
+        subtitle={t('subtitle')}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         onBack={() => router.push('/master-data')}
         breadcrumbs={[
-          { label: 'ข้อมูลหลัก', href: '/master-data' },
-          { label: 'เกณฑ์ QC และ IPC' },
+          { label: t('breadcrumbMasterData'), href: '/master-data' },
+          { label: t('title') },
         ]}
         actions={
-          <DxButton text="เพิ่มเกณฑ์" icon="plus" type="success" onClick={() => router.push('/master-data/ipc-criteria/new')} />
+          <DxButton text={t('addCriteria')} icon="plus" type="success" onClick={() => router.push('/master-data/ipc-criteria/new')} />
         }
       />
 
       {/* Desktop / Tablet — DataGrid */}
       <div className="hidden md:block bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
         <DxDataGrid
-          dataSource={(criteria || []).map((c: any, i: number) => ({ ...c, _rowNumber: i + 1 }))}
+          dataSource={(criteria || []).map((c: IPCCriteria, i: number) => ({ ...c, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
@@ -127,13 +131,13 @@ export default function IPCCriteriaPage() {
           width="100%"
           columnAutoWidth={false}
         >
-          <DxSearchPanel visible placeholder="ค้นหา..." width={200} />
+          <DxSearchPanel visible placeholder={t('searchPlaceholder')} width={200} />
           <DxPaging defaultPageSize={20} />
 
           <DxColumn dataField="_rowNumber" caption="#" width={50} alignment="center" allowFiltering={false} allowSorting={false} cellRender={(cell) => (
             <span className="text-gray-500 text-sm font-medium">{cell.value}</span>
           )} />
-          <DxColumn caption="รหัส / ชื่อ" minWidth={220} cellRender={(cell) => {
+          <DxColumn caption={t('colCodeName')} minWidth={220} cellRender={(cell) => {
             const d = cell.data as IPCCriteria;
             return (
               <div className="flex flex-col">
@@ -145,17 +149,19 @@ export default function IPCCriteriaPage() {
               </div>
             );
           }} />
-          <DxColumn caption="สเปค / เกณฑ์" minWidth={180} cellRender={(cell) => renderSpecCell(cell.data as IPCCriteria)} />
-          <DxColumn dataField="sampleSize" caption="จำนวนตัวอย่าง" width={80} alignment="center" cellRender={(cell) => (
+          <DxColumn caption={t('colSpec')} minWidth={180} cellRender={(cell) => renderSpecCell(cell.data as IPCCriteria)} />
+          {/* width must fit the caption itself — at 80px the Thai caption overflowed
+              the header cell and printed on top of the next column's caption. */}
+          <DxColumn dataField="sampleSize" caption={t('colSampleSize')} width={125} alignment="center" cellRender={(cell) => (
             <span className="font-mono text-sm">{cell.value}</span>
           )} />
-          <DxColumn caption="สถานะ" width={170} cellRender={(cell) => {
+          <DxColumn caption={t('colStatus')} width={170} cellRender={(cell) => {
             const d = cell.data as IPCCriteria;
             return (
               <div className="flex flex-nowrap items-center gap-1">
                 {d.isCritical && (
                   <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded whitespace-nowrap">
-                    <AlertCircle className="h-3 w-3" />วิกฤต
+                    <AlertCircle className="h-3 w-3" />{t('critical')}
                   </span>
                 )}
                 <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${
@@ -163,24 +169,25 @@ export default function IPCCriteriaPage() {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : 'bg-gray-50 text-gray-500 border-gray-200'
                 }`}>
-                  {d.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                  {d.isActive ? t('active') : t('inactive')}
                 </span>
               </div>
             );
           }} />
-          <DxColumn caption="การดำเนินการ" width={100} alignment="center" cellRender={(cell) => (
+          <DxColumn caption={t('colActions')} width={100} alignment="center" cellRender={(cell) => (
             <div className="flex gap-1 justify-center">
-              <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="แก้ไข">
+              <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title={t('edit')} aria-label={t('edit')}>
                 <Edit className="h-4 w-4" />
               </button>
               <button
                 onClick={() => {
-                  if (confirm(`ต้องการลบ ${(cell.data as IPCCriteria).name} หรือไม่?`)) {
+                  if (confirm(t('confirmDelete', { name: (cell.data as IPCCriteria).name }))) {
                     deleteMutation.mutate((cell.data as IPCCriteria).id);
                   }
                 }}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="ลบ"
+                title={t('delete')}
+                aria-label={t('delete')}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -192,9 +199,9 @@ export default function IPCCriteriaPage() {
       {/* Mobile — Card list */}
       <div className="md:hidden space-y-2">
         {isLoading ? (
-          <div className="text-center py-8 text-gray-400">กำลังโหลด...</div>
+          <div className="text-center py-8 text-gray-400">{t('loading')}</div>
         ) : (criteria || []).length === 0 ? (
-          <div className="text-center py-8 text-gray-400">ยังไม่มีข้อมูลเกณฑ์ QC และ IPC</div>
+          <div className="text-center py-8 text-gray-400">{t('empty')}</div>
         ) : (
           (criteria || []).map((d: IPCCriteria, i: number) => (
             <div key={d.id} className="bg-white border border-emerald-100 rounded-[18px] p-3 shadow-[0_6px_20px_rgba(6,78,59,0.07)]">
@@ -210,17 +217,18 @@ export default function IPCCriteriaPage() {
                   )}
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => router.push(`/master-data/ipc-criteria/${d.id}`)} className="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="แก้ไข">
+                  <button onClick={() => router.push(`/master-data/ipc-criteria/${d.id}`)} className="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title={t('edit')} aria-label={t('edit')}>
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`ต้องการลบ ${d.name} หรือไม่?`)) {
+                      if (confirm(t('confirmDelete', { name: d.name }))) {
                         deleteMutation.mutate(d.id);
                       }
                     }}
                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                    title="ลบ"
+                    title={t('delete')}
+                    aria-label={t('delete')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -228,14 +236,14 @@ export default function IPCCriteriaPage() {
               </div>
               <div className="text-xs space-y-1">
                 <div>
-                  <span className="text-gray-500">เกณฑ์: </span>
+                  <span className="text-gray-500">{t('specLabel')}: </span>
                   {renderSpecCell(d)}
                 </div>
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-gray-500">จำนวนตัวอย่าง: <span className="font-mono font-semibold text-gray-700">{d.sampleSize}</span></span>
+                  <span className="text-gray-500">{t('sampleSizeLabel')}: <span className="font-mono font-semibold text-gray-700">{d.sampleSize}</span></span>
                   {d.isCritical && (
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
-                      <AlertCircle className="h-2.5 w-2.5" />วิกฤต
+                      <AlertCircle className="h-2.5 w-2.5" />{t('critical')}
                     </span>
                   )}
                   <span className={`inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
@@ -243,7 +251,7 @@ export default function IPCCriteriaPage() {
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-gray-50 text-gray-500 border-gray-200'
                   }`}>
-                    {d.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                    {d.isActive ? t('active') : t('inactive')}
                   </span>
                 </div>
               </div>

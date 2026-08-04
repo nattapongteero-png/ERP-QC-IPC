@@ -49,6 +49,8 @@
     "usageOffLine": "Off-line",
     "intervalDays": "Every {days} days",
     "intervalNone": "No schedule",
+    "preUseDueToday": "Pre-use check due today",
+    "preUseDoneToday": "Pre-use check done today",
     "statusNever": "Never inspected",
     "statusOk": "OK",
     "statusDueSoon": "Due soon",

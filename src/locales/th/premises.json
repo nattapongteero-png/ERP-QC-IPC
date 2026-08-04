@@ -49,6 +49,8 @@
     "usageOffLine": "นอกไลน์ผลิต",
     "intervalDays": "ทุก {days} วัน",
     "intervalNone": "ไม่ตั้งรอบ",
+    "preUseDueToday": "ต้องตรวจก่อนใช้งานวันนี้",
+    "preUseDoneToday": "ตรวจก่อนใช้งานแล้ววันนี้",
     "statusNever": "ยังไม่ตรวจ",
     "statusOk": "ปกติ",
     "statusDueSoon": "ใกล้ครบกำหนด",

@@ -1217,7 +1217,13 @@ body.ebmr-preview-active #ebmr-content .ebmr-print-title-row th {
 .dx-datagrid .dx-datagrid-headers .dx-datagrid-text-content {
   white-space: normal !important;
   text-overflow: clip !important;
-  overflow: visible !important;
+  /* overflow was `visible`, which let a caption wider than its column paint on
+     top of the NEXT column's caption (e.g. "จำนวนตัวอย่าง" over "สถานะ" on
+     เกณฑ์ QC และ IPC). Thai runs have no spaces, so `white-space: normal` alone
+     cannot wrap them — overflow-wrap is what actually allows the break. */
+  overflow: hidden !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
   line-height: 1.3 !important;
   min-height: auto;
 }

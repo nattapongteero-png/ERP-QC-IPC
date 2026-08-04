@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils/cn';
 export interface StepperStep {
   /** Stable key matched against `current` to find the active step. */
   key: string;
+  /** Extra status values that also land on this step (aliases / terminal states). */
+  matches?: string[];
   /** Thai label shown under (horizontal) / beside (vertical) the dot. */
   label: string;
   /** Optional icon for the step dot (defaults: done=Check, current=Clock). */
@@ -68,13 +70,18 @@ export function StatusStepper({
   title,
   className,
 }: StatusStepperProps) {
-  const currentIndex = (() => {
-    const i = steps.findIndex((s) => s.key === current);
-    return i === -1 ? 0 : i;
-  })();
+  // A status that isn't in `steps` must NOT be reported as step 0 — that made a
+  // fully-processed record (e.g. a PR already converted to a PO, a QC sample
+  // already released) render as if it were still at "ร่าง", i.e. no progress at
+  // all. Unmatched now yields -1, so every step draws as "upcoming" and nothing
+  // claims to be the current step. Pages map their terminal/extra statuses onto
+  // a step with `matches`.
+  const currentIndex = steps.findIndex(
+    (s) => s.key === current || s.matches?.includes(current ?? ''),
+  );
 
   const stateOf = (idx: number): StepState =>
-    idx < currentIndex ? 'done' : idx === currentIndex ? 'current' : 'upcoming';
+    currentIndex < 0 ? 'upcoming' : idx < currentIndex ? 'done' : idx === currentIndex ? 'current' : 'upcoming';
 
   const toneStyle = TONE[tone] ?? TONE.emerald;
 

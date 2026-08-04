@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils/cn';
 import { PAYMENT_TERMS_OPTIONS } from '@/lib/constants/payment-terms';
 import { formatBaht, formatNumber } from '@/lib/utils/number-format';
 import { computeDocVat } from '@/lib/utils/vat';
+import { checklistCategoryForItemType, pickWarehouseForItemType } from '@/lib/utils/warehouse-type';
 import {
   Send, Package, DollarSign, AlertTriangle,
   Clock, CheckCircle, AlertCircle, Truck, FileText,
@@ -59,6 +60,8 @@ interface WarehouseItem {
   id: number;
   code: string;
   name: string;
+  /** raw_material | finished_goods | quarantine | … — matched against the line's item type. */
+  type?: string | null;
 }
 
 interface Item {
@@ -82,6 +85,8 @@ interface POLine {
   itemName: string;
   itemNameEn: string;
   itemUnit: string;
+  /** raw_material | packaging | wip | finished_goods | consumable */
+  itemType?: string | null;
   quantity: number;
   unitPrice: number;
   receivedQty: number;
@@ -525,6 +530,12 @@ export default function PurchaseOrderDetailPage() {
   const handleReceive = async (line: POLine) => {
     setSelectedLine(line);
 
+    // Destination warehouse follows the ITEM, not the list order: a finished-goods
+    // line defaults to the FG warehouse, raw material / packaging / consumables to
+    // the raw-material one. Previously this was always warehouses[0] (WH-RM), so an
+    // FG receipt was quarantined into the raw-material warehouse.
+    const defaultWarehouseId = pickWarehouseForItemType(warehouses, line.itemType)?.id.toString() ?? '';
+
     // Clear supplier lot fields up front — a partial receive may be followed by
     // a NEXT receive from a different physical lot, so never carry the previous
     // Vendor Lot No. / mfg / exp forward. (Reset again here, before the async
@@ -535,7 +546,7 @@ export default function PurchaseOrderDetailPage() {
       manufacturingDate: '',
       quantity: line.pendingQty,
       expiryDate: '',
-      warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
+      warehouseId: defaultWarehouseId,
     });
 
     // Pull a real, non-colliding running lot from the configured lot pattern.
@@ -563,14 +574,17 @@ export default function PurchaseOrderDetailPage() {
       manufacturingDate: '',
       quantity: line.pendingQty,
       expiryDate: '',
-      warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
+      warehouseId: defaultWarehouseId,
     });
     setReceiptRejectReason('');
-    // Pull the current raw-material receive checklist from Master Data. The
-    // /current route self-seeds default v1, so this always returns items even
-    // on a fresh database (the admin list route returns [] until seeded).
+    // Pull the current receive checklist for THIS line's category from Master
+    // Data — a finished-goods delivery must not be checked against the raw
+    // material checklist. The /current route self-seeds default v1, so this
+    // always returns items even on a fresh database (the admin list route
+    // returns [] until seeded).
     try {
-      const cRes = await fetch('/api/master-data/receipt-checklist-templates/current?category=raw_material');
+      const category = checklistCategoryForItemType(line.itemType);
+      const cRes = await fetch(`/api/master-data/receipt-checklist-templates/current?category=${category}`);
       const cJson = await cRes.json();
       const items: Array<{ id: number; label: string; isMandatory: boolean }> =
         Array.isArray(cJson?.items) ? cJson.items : [];
@@ -613,7 +627,7 @@ export default function PurchaseOrderDetailPage() {
           manufacturingDate: '',
           quantity: 0,
           expiryDate: '',
-          warehouseId: warehouses.length > 0 ? warehouses[0].id.toString() : '',
+          warehouseId: '',
         });
         fetchPODetail();
       }

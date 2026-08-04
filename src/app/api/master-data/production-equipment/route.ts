@@ -90,10 +90,12 @@ export async function POST(request: NextRequest) {
           name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
           lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
           inspectionIntervalDays: data.inspectionIntervalDays ?? null, inspectionChecklist: data.inspectionChecklist ?? null,
+          requirePreUseInspection: data.requirePreUseInspection === true,
           capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
           calibrationCertNumber: data.calibrationCertNumber ?? null,
           calibrationDate: data.calibrationDate || null,
           calibrationExpiryDate: data.calibrationExpiryDate || null,
+          calibrationPoints: data.calibrationPoints || null,
         });
         return successResponse(updated, 'Production equipment updated (code existed)');
       }
@@ -102,10 +104,12 @@ export async function POST(request: NextRequest) {
         code: data.code, name: data.name, nameTh: data.nameTh, equipmentType: data.equipmentType,
         lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
         inspectionIntervalDays: data.inspectionIntervalDays ?? null, inspectionChecklist: data.inspectionChecklist ?? null,
+        requirePreUseInspection: data.requirePreUseInspection === true,
         capacity: data.capacity, roomId: data.roomId, description: data.description, isActive: data.isActive ?? true,
         calibrationCertNumber: data.calibrationCertNumber ?? null,
         calibrationDate: data.calibrationDate || null,
         calibrationExpiryDate: data.calibrationExpiryDate || null,
+        calibrationPoints: data.calibrationPoints || null,
       });
 
       return successResponse(equipment, 'Production equipment created successfully');
@@ -139,6 +143,7 @@ export async function PUT(request: NextRequest) {
         lineCategory: data.lineCategory === 'off_line' ? 'off_line' : 'in_line',
         inspectionIntervalDays: data.inspectionIntervalDays ?? null,
         inspectionChecklist: data.inspectionChecklist ?? null,
+        requirePreUseInspection: data.requirePreUseInspection === true,
         capacity: data.capacity,
         roomId: data.roomId,
         description: data.description,
@@ -146,6 +151,7 @@ export async function PUT(request: NextRequest) {
         calibrationCertNumber: data.calibrationCertNumber ?? null,
         calibrationDate: data.calibrationDate || null,
         calibrationExpiryDate: data.calibrationExpiryDate || null,
+        calibrationPoints: data.calibrationPoints || null,
       });
 
       return successResponse(equipment, 'Production equipment updated successfully');

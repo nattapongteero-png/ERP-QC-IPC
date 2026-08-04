@@ -46,10 +46,53 @@ export interface EquipmentInspectionRow {
   lineCategory: string | null;
   inspectionIntervalDays: number | null;
   inspectionChecklist: string | null;
+  /** Equipment is configured to be inspected before every production run. */
+  requirePreUseInspection: boolean;
+  /** Whether a PASSING inspection already exists for today (covers the whole day). */
+  inspectedToday: boolean;
+  /** requirePreUseInspection && !inspectedToday — production must not start yet. */
+  preUseDueToday: boolean;
   lastResult: string | null;
   lastPerformedAt: string | null;
   nextDueDate: string | null;
   dueStatus: InspectionDueStatus;
+}
+
+/** YYYY-MM-DD of a stored performed_at value (string in SQLite, Date in MySQL). */
+function toYmd(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    const mm = String(value.getMonth() + 1).padStart(2, '0');
+    const dd = String(value.getDate()).padStart(2, '0');
+    return `${value.getFullYear()}-${mm}-${dd}`;
+  }
+  const s = String(value);
+  return s.length >= 10 ? s.slice(0, 10) : null;
+}
+
+/**
+ * Has this equipment already PASSED an inspection today?
+ *
+ * The pre-use rule is "ตรวจก่อนใช้งานทุกรอบการผลิต — แต่ถ้าวันนั้นตรวจไปแล้ว
+ * ไม่ต้องตรวจซ้ำ": the requirement is per production run, but one passing check
+ * covers the rest of that calendar day, so a second run on the same day does not
+ * ask for another inspection. A FAILED inspection does not count — the equipment
+ * has to pass before it can be used.
+ */
+export async function hasPassedInspectionToday(equipmentId: number): Promise<boolean> {
+  return executeDbOperation(async (db) => {
+    const t = getTables();
+    const rows = await db
+      .select({ performedAt: t.inspections.performedAt, result: t.inspections.result })
+      .from(t.inspections)
+      .where(eq(t.inspections.equipmentId, equipmentId))
+      .orderBy(desc(t.inspections.performedAt))
+      .limit(50);
+    const today = getTodayStr();
+    return (rows as Record<string, unknown>[]).some(
+      (r) => r.result === 'pass' && toYmd(r.performedAt) === today,
+    );
+  });
 }
 
 // The registry feed: every active equipment + its latest inspection + due status.
@@ -73,10 +116,22 @@ export async function listEquipmentForInspection(lineCategory?: string): Promise
       if (!latestByEquip.has(eid)) latestByEquip.set(eid, ins);
     }
 
+    // Which equipment already has a PASSING inspection today — one pass covers the
+    // whole calendar day, so a second production run that day doesn't ask again.
+    const passedTodayIds = new Set<number>();
+    const todayYmd = getTodayStr();
+    for (const ins of allInsp as Record<string, unknown>[]) {
+      if (ins.result === 'pass' && toYmd(ins.performedAt) === todayYmd) {
+        passedTodayIds.add(ins.equipmentId as number);
+      }
+    }
+
     const today = getTodayStr();
     return (equipmentRows as Record<string, unknown>[]).map((e) => {
       const last = latestByEquip.get(e.id as number);
       const interval = (e.inspectionIntervalDays as number | null) ?? null;
+      const requirePreUse = Boolean(e.requirePreUseInspection);
+      const inspectedToday = passedTodayIds.has(e.id as number);
       const nextDue = (last?.nextDueDate as string | null) ?? null;
       let dueStatus: InspectionDueStatus;
       if (!last) {
@@ -99,6 +154,9 @@ export async function listEquipmentForInspection(lineCategory?: string): Promise
         lineCategory: (e.lineCategory as string | null) ?? 'in_line',
         inspectionIntervalDays: interval,
         inspectionChecklist: (e.inspectionChecklist as string | null) ?? null,
+        requirePreUseInspection: requirePreUse,
+        inspectedToday,
+        preUseDueToday: requirePreUse && !inspectedToday,
         lastResult: (last?.result as string | null) ?? null,
         lastPerformedAt: (last?.performedAt as string | null) ?? null,
         nextDueDate: nextDue,

@@ -1403,9 +1403,21 @@ export const sqliteProductionEquipment = sqliteTable('production_equipment', {
   calibrationCertNumber: text('calibration_cert_number'),
   calibrationDate: text('calibration_date'),
   calibrationExpiryDate: text('calibration_expiry_date'),
+  // Measured points off the calibration certificate. A balance cert reports, per
+  // test point, the nominal (standard weight) value, the value the instrument
+  // indicated, and the measurement uncertainty — ISO/IEC 17025 §7.8 / OIML R76;
+  // USP <41> then judges accuracy at 0.10%. Stored as JSON so the number of
+  // points is free-form:
+  //   [{ "nominalG": 200, "indicatedG": 199.8, "uncertaintyG": 0.05 }, …]
+  // Error (g and %) and the max error are DERIVED from these — never stored, so
+  // they cannot drift from the readings they come from.
+  calibrationPoints: text('calibration_points'),
   // Routine inspection config — mainly for off-line/support equipment (e.g. HVAC)
   // inspected on a schedule via the equipment-inspection registry. Nullable.
   inspectionIntervalDays: integer('inspection_interval_days'), // e.g. 30 = ตรวจทุก 30 วัน
+  // Pre-use check: this equipment must be inspected before each production run,
+  // but ONE pass covers the whole calendar day (ถ้าวันนั้นตรวจไปแล้ว ไม่ต้องตรวจซ้ำ).
+  requirePreUseInspection: integer('require_pre_use_inspection', { mode: 'boolean' }).notNull().default(false),
   inspectionChecklist: text('inspection_checklist'), // JSON string[] of check items
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -5104,8 +5116,13 @@ export const mysqlProductionEquipment = mysqlTable('production_equipment', {
   calibrationCertNumber: varchar('calibration_cert_number', { length: 100 }),
   calibrationDate: varchar('calibration_date', { length: 10 }),
   calibrationExpiryDate: varchar('calibration_expiry_date', { length: 10 }),
+  // Measured points off the calibration certificate — see sqlite twin for the
+  // JSON shape and why error/max-error are derived rather than stored.
+  calibrationPoints: mysqlText('calibration_points'),
   // Routine inspection config (see sqlite twin). Nullable.
   inspectionIntervalDays: int('inspection_interval_days'),
+  // Pre-use check, once per calendar day (see sqlite twin).
+  requirePreUseInspection: mysqlBoolean('require_pre_use_inspection').notNull().default(false),
   inspectionChecklist: mysqlText('inspection_checklist'),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),

@@ -18,6 +18,7 @@ import { Button } from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
 import { TextArea } from 'devextreme-react/text-area';
 import { SelectBox } from 'devextreme-react/select-box';
+import { XCircle } from 'lucide-react';
 import type { PRWithLines } from '@/types/purchase-requisition';
 
 interface PageProps {
@@ -397,18 +398,40 @@ export default function PurchaseRequisitionDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Workflow status — สถานะการดำเนินงาน */}
+        {/* Workflow status — สถานะการดำเนินงาน
+            The step list must cover every PR status or the stepper shows no
+            progress at all: 'converted' (already turned into a PO) used to be
+            missing, so a finished PR rendered as if it were still a draft.
+            rejected / cancelled leave the happy path, so they get their own
+            terminal step instead of being forced onto "อนุมัติ". */}
         {pr && (
           <div className="mb-4">
             <StatusStepper
               title={t('requisitions.detail.workflowTitle')}
               current={pr.status}
-              steps={[
-                { key: 'draft', label: t('requisitions.detail.steps.draft') },
-                { key: 'submitted', label: t('requisitions.detail.steps.submitted') },
-                { key: 'pending_approval', label: t('requisitions.detail.steps.pendingApproval') },
-                { key: 'approved', label: t('requisitions.detail.steps.approved') },
-              ]}
+              steps={
+                pr.status === 'rejected' || pr.status === 'cancelled'
+                  ? [
+                      { key: 'draft', label: t('requisitions.detail.steps.draft') },
+                      { key: 'submitted', label: t('requisitions.detail.steps.submitted') },
+                      { key: 'pending_approval', label: t('requisitions.detail.steps.pendingApproval') },
+                      {
+                        key: pr.status,
+                        label:
+                          pr.status === 'rejected'
+                            ? t('requisitions.detail.steps.rejected')
+                            : t('requisitions.detail.steps.cancelled'),
+                        icon: XCircle,
+                      },
+                    ]
+                  : [
+                      { key: 'draft', label: t('requisitions.detail.steps.draft') },
+                      { key: 'submitted', label: t('requisitions.detail.steps.submitted') },
+                      { key: 'pending_approval', label: t('requisitions.detail.steps.pendingApproval') },
+                      { key: 'approved', label: t('requisitions.detail.steps.approved') },
+                      { key: 'converted', label: t('requisitions.detail.steps.converted') },
+                    ]
+              }
             />
           </div>
         )}

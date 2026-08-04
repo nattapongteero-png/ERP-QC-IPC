@@ -8,6 +8,7 @@
 import { eq } from 'drizzle-orm';
 import { getTableRef, getInsertId } from '../db/db-helper';
 import { getNow } from '../db/date-utils';
+import { warehouseTypeForItemType } from '../utils/warehouse-type';
 
 // The transactional db handle threaded from executeDbOperation is untyped (any)
 // across this codebase; match that convention here.
@@ -88,24 +89,11 @@ export async function getOrCreateStabilityWarehouse(db: DbClient): Promise<numbe
   return getOrCreateWarehouseByType(db, STABILITY_WAREHOUSE_TYPE, STABILITY_WAREHOUSE_SEED);
 }
 
-/**
- * Map an item's `type` (raw_material / packaging / wip / finished_goods /
- * consumable) to the storage warehouse `type` its released stock belongs in.
- * WIP and finished goods land in the finished-goods warehouse; everything else
- * (raw material, packaging, consumables) lands in the raw-material warehouse.
- */
-export function warehouseTypeForItemType(itemType: string | null | undefined): string {
-  switch (itemType) {
-    case 'finished_goods':
-    case 'wip':
-      return 'finished_goods';
-    case 'raw_material':
-    case 'packaging':
-    case 'consumable':
-    default:
-      return 'raw_material';
-  }
-}
+// The item-type → warehouse-type rule itself lives in lib/utils so the receive
+// dialog can apply the same routing in the browser (this file imports drizzle
+// and must stay server-only). Re-exported so existing server callers/tests keep
+// importing it from here.
+export { warehouseTypeForItemType };
 
 const WAREHOUSE_SEEDS_BY_TYPE: Record<string, SeedSpec> = {
   raw_material: { code: 'WH-RM', name: 'คลังวัตถุดิบ', type: 'raw_material' },

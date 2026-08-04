@@ -658,6 +658,9 @@ export async function getQcSampleById(
         sourceType: tables.samples.sourceType,
         sourceRefId: tables.samples.sourceRefId,
         sourceRefText: tables.samples.sourceRefText,
+        // Needed to fall back to the GRN line's mfg/expiry when the sample's own
+        // snapshot is empty (see below).
+        sourceGrnLineId: tables.samples.sourceGrnLineId,
         productId: tables.samples.productId,
         productCode: tables.items.code,
         productName: tables.items.nameTh,
@@ -689,6 +692,27 @@ export async function getQcSampleById(
 
     const header = headerRows[0] as any;
     if (!header) return null;
+
+    // Mfg / expiry are snapshotted onto the sample when the receipt checklist is
+    // signed. If the receiver had not filled them in yet at that moment (or fills
+    // them in afterwards) the snapshot stays NULL and the QC screen showed "—"
+    // forever. Fall back to the source GRN line, which is the record of truth for
+    // the physical goods, so the dates appear as soon as they exist.
+    if ((header.manufactureDate == null || header.expiryDate == null) && header.sourceGrnLineId != null) {
+      const grnLines = getTableRef('goodsReceiptLines');
+      const lineRows = await db
+        .select({
+          manufacturingDate: grnLines.manufacturingDate,
+          expiryDate: grnLines.expiryDate,
+        })
+        .from(grnLines)
+        .where(eq(grnLines.id, Number(header.sourceGrnLineId)))
+        .limit(1);
+      if (lineRows[0]) {
+        header.manufactureDate = header.manufactureDate ?? lineRows[0].manufacturingDate ?? null;
+        header.expiryDate = header.expiryDate ?? lineRows[0].expiryDate ?? null;
+      }
+    }
 
     // Tests + criteria join + tested/reviewed user names.
     // Pulls master-data settings (criteriaType, sampleSize, tolerance, retest)
@@ -1241,7 +1265,7 @@ export async function addOrUpdateTest(
     // the round-level pass/fail from tolerance %, and use the average as the
     // canonical numericResult on qc_sample_tests.
     let computedNumericResult: number | null = input.numericResult ?? null;
-    let computedTextResult: string | null = input.textResult ?? null;
+    const computedTextResult: string | null = input.textResult ?? null;
     let computedResultStatus: string;
     let evaluatedSamples: Array<{
       sampleNumber: number;

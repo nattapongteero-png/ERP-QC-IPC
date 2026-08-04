@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxButton } from '@/components/ui/dx-button';
@@ -14,10 +15,17 @@ import { DxSelectBox } from '@/components/ui/dx-select-box';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxSwitch } from '@/components/ui/dx-switch';
 import { DateBox } from 'devextreme-react/date-box';
+import { CheckBox } from 'devextreme-react/check-box';
 import { SwitchTypes } from 'devextreme-react/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Wrench } from 'lucide-react';
+import { Wrench, Plus, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  parseCalibrationPoints,
+  stringifyCalibrationPoints,
+  summariseCalibration,
+  type CalibrationPoint,
+} from '@/lib/utils/calibration-points';
 
 interface ProductionEquipment {
   id: number;
@@ -35,8 +43,14 @@ interface ProductionEquipment {
   calibrationCertNumber?: string | null;
   calibrationDate?: string | null;
   calibrationExpiryDate?: string | null;
+  /** JSON array of measured certificate points — see lib/utils/calibration-points. */
+  calibrationPoints?: string | null;
+  /** Acceptance criterion in percent (USP <41> accuracy default = 0.10%). */
+  tolerancePercent?: number | null;
   // Routine inspection config (mainly off-line/support equipment).
   inspectionIntervalDays?: number | null;
+  /** Inspect before every production run; one pass covers the whole calendar day. */
+  requirePreUseInspection?: boolean;
   inspectionChecklist?: string | null; // JSON string[] of check items
 }
 
@@ -51,27 +65,15 @@ interface ProductionEquipmentFormProps {
   id?: number;
 }
 
-// In-line vs off-line: in-line equipment is selectable in a BOM and inspected per
-// work order; off-line (support/utility, e.g. air-conditioner) is not in any BOM and
-// is inspected on a routine schedule via the equipment-inspection registry.
-const lineCategories = [
-  { value: 'in_line', label: 'ในไลน์ผลิต (ใช้ในการผลิต · เลือกได้ใน BOM)' },
-  { value: 'off_line', label: 'นอกไลน์ผลิต (อุปกรณ์สนับสนุน เช่น แอร์)' },
-];
-
-const equipmentTypes = [
-  { value: 'scale', label: 'เครื่องชั่ง' },
-  { value: 'mixer', label: 'เครื่องผสม' },
-  { value: 'hotplate', label: 'แผ่นทำความร้อน' },
-  { value: 'container', label: 'ภาชนะ' },
-  { value: 'tool', label: 'เครื่องมือ' },
-  { value: 'filler', label: 'เครื่องบรรจุ' },
-  { value: 'tank', label: 'ถัง' },
-  { value: 'pump', label: 'ปั๊ม' },
-  { value: 'other', label: 'อื่นๆ' },
-];
+/** Format a number for display without trailing noise from float maths. */
+function fmt(n: number | null | undefined, digits = 4): string {
+  if (n == null || !Number.isFinite(n)) return '—';
+  return String(Number(n.toFixed(digits)));
+}
 
 export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormProps) {
+  const t = useTranslations('masterData');
+
   // Fetch existing equipment for edit mode
   const { data: existingEquipment, isLoading: isLoadingEquipment } = useQuery<ProductionEquipment>({
     queryKey: ['production-equipment', id],
@@ -89,7 +91,7 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
   if (mode === 'edit' && (isLoadingEquipment || !existingEquipment)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">กำลังโหลด...</div>
+        <div className="text-gray-500">{t('productionEquipment.formPage.loading')}</div>
       </div>
     );
   }
@@ -108,10 +110,18 @@ export function ProductionEquipmentForm({ mode, id }: ProductionEquipmentFormPro
         calibrationCertNumber: existingEquipment.calibrationCertNumber ?? '',
         calibrationDate: existingEquipment.calibrationDate ?? '',
         calibrationExpiryDate: existingEquipment.calibrationExpiryDate ?? '',
+        calibrationPoints: existingEquipment.calibrationPoints ?? '',
+        tolerancePercent: existingEquipment.tolerancePercent ?? null,
         inspectionIntervalDays: existingEquipment.inspectionIntervalDays ?? null,
+        requirePreUseInspection: existingEquipment.requirePreUseInspection ?? false,
         inspectionChecklist: existingEquipment.inspectionChecklist ?? '',
       }
-    : { code: '', name: '', nameTh: '', equipmentType: '', lineCategory: 'in_line', capacity: '', roomId: undefined, description: '', isActive: true, calibrationCertNumber: '', calibrationDate: '', calibrationExpiryDate: '', inspectionIntervalDays: null, inspectionChecklist: '' };
+    : {
+        code: '', name: '', nameTh: '', equipmentType: '', lineCategory: 'in_line', capacity: '',
+        roomId: undefined, description: '', isActive: true, calibrationCertNumber: '',
+        calibrationDate: '', calibrationExpiryDate: '', calibrationPoints: '', tolerancePercent: null,
+        inspectionIntervalDays: null, requirePreUseInspection: false, inspectionChecklist: '',
+      };
 
   return <ProductionEquipmentFormInner key={id || 'new'} mode={mode} id={id} initialData={initialData} existingEquipment={existingEquipment} />;
 }
@@ -120,8 +130,49 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const t = useTranslations('masterData');
+  const f = React.useCallback((k: string) => t(`productionEquipment.formPage.${k}`), [t]);
 
   const [formData, setFormData] = React.useState<Partial<ProductionEquipment>>(initialData);
+
+  // In-line vs off-line: in-line equipment is selectable in a BOM and inspected per
+  // work order; off-line (support/utility, e.g. air-conditioner) is not in any BOM and
+  // is inspected on a routine schedule via the equipment-inspection registry.
+  const lineCategories = React.useMemo(
+    () => [
+      { value: 'in_line', label: f('lineCategories.inLine') },
+      { value: 'off_line', label: f('lineCategories.offLine') },
+    ],
+    [f],
+  );
+
+  const equipmentTypes = React.useMemo(
+    () =>
+      ['scale', 'mixer', 'hotplate', 'container', 'tool', 'filler', 'tank', 'pump', 'other'].map(
+        (value) => ({ value, label: f(`types.${value}`) }),
+      ),
+    [f],
+  );
+
+  // Calibration points are edited as a list and stored as the JSON column. Error
+  // and max-error are derived on every render so the summary can never disagree
+  // with the readings above it.
+  const points = React.useMemo(
+    () => parseCalibrationPoints(formData.calibrationPoints),
+    [formData.calibrationPoints],
+  );
+  const calibration = React.useMemo(
+    () => summariseCalibration(points, formData.tolerancePercent),
+    [points, formData.tolerancePercent],
+  );
+
+  const setPoints = (next: CalibrationPoint[]) =>
+    setFormData((prev) => ({ ...prev, calibrationPoints: stringifyCalibrationPoints(next) }));
+
+  const updatePoint = (index: number, patch: Partial<CalibrationPoint>) => {
+    const next = points.map((p, i) => (i === index ? { ...p, ...patch } : p));
+    setPoints(next);
+  };
 
   // Fetch rooms for dropdown
   const { data: rooms } = useQuery<ProductionRoom[]>({
@@ -154,19 +205,24 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-equipment'] });
       toast.success(
-        mode === 'edit' ? 'อัปเดตอุปกรณ์แล้ว' : 'สร้างอุปกรณ์แล้ว',
-        `${formData.name} ถูก${mode === 'edit' ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`
+        mode === 'edit' ? f('toast.updatedTitle') : f('toast.createdTitle'),
+        t(
+          mode === 'edit'
+            ? 'productionEquipment.formPage.toast.updatedBody'
+            : 'productionEquipment.formPage.toast.createdBody',
+          { name: formData.name ?? '' },
+        ),
       );
       router.push('/master-data/production-equipment');
     },
     onError: (error: Error) => {
-      toast.error('ผิดพลาด', error.message);
+      toast.error(f('toast.errorTitle'), error.message);
     },
   });
 
   const handleSave = () => {
     if (!formData.name || !formData.nameTh || !formData.equipmentType) {
-      toast.error('ข้อมูลไม่ครบถ้วน', 'กรุณากรอก ชื่อ EN, ชื่อ TH, และประเภทอุปกรณ์');
+      toast.error(f('toast.incompleteTitle'), f('toast.incompleteBody'));
       return;
     }
     saveMutation.mutate(formData);
@@ -180,26 +236,30 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-4xl mx-auto">
       {/* Header */}
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'แก้ไขอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}
-        subtitle={mode === 'edit' ? `กำลังแก้ไข ${existingEquipment?.name || ''}` : 'สร้างอุปกรณ์การผลิตใหม่'}
+        title={mode === 'edit' ? f('titleEdit') : f('titleCreate')}
+        subtitle={
+          mode === 'edit'
+            ? t('productionEquipment.formPage.subtitleEdit', { name: existingEquipment?.name || '' })
+            : f('subtitleCreate')
+        }
         icon={Wrench}
         iconBgColor="bg-purple-100"
         iconColor="text-purple-600"
         breadcrumbs={[
-          { label: 'ข้อมูลหลัก', href: '/master-data' },
-          { label: 'อุปกรณ์การผลิต', href: '/master-data/production-equipment' },
-          { label: mode === 'edit' ? 'แก้ไข' : 'เพิ่มใหม่' },
+          { label: f('breadcrumbMasterData'), href: '/master-data' },
+          { label: f('breadcrumbEquipment'), href: '/master-data/production-equipment' },
+          { label: mode === 'edit' ? f('breadcrumbEdit') : f('breadcrumbCreate') },
         ]}
         actions={
           <div className="flex gap-2">
             <DxButton
-              text="ยกเลิก"
+              text={f('cancel')}
               icon="back"
               stylingMode="outlined"
               onClick={handleCancel}
             />
             <DxButton
-              text={saveMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+              text={saveMutation.isPending ? f('saving') : f('save')}
               icon="save"
               type="success"
               onClick={handleSave}
@@ -214,29 +274,31 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wrench className="h-5 w-5 text-purple-600" />
-            ข้อมูลอุปกรณ์
+            {f('cardTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รหัส <span className="text-gray-400 font-normal">(สร้างอัตโนมัติ ถ้าไม่กรอก)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {f('codeLabel')} <span className="text-gray-400 font-normal">{f('codeHint')}</span>
+              </label>
               <DxTextBox
                 value={formData.code || ''}
                 onValueChanged={(e) => setFormData({ ...formData, code: e.value })}
-                placeholder="EQ-XXXX (auto)"
+                placeholder={f('codePlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ประเภทอุปกรณ์ *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f('typeLabel')} *</label>
               <DxSelectBox
                 dataSource={equipmentTypes}
                 displayExpr="label"
                 valueExpr="value"
                 value={formData.equipmentType}
                 onValueChanged={(e) => setFormData({ ...formData, equipmentType: e.value })}
-                placeholder="เลือกประเภท"
+                placeholder={f('typePlaceholder')}
               />
             </div>
           </div>
@@ -244,67 +306,65 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
           {/* In-line vs off-line — decides whether this equipment is selectable in
               a BOM (in-line) or inspected only on a routine schedule (off-line). */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">การใช้งาน (ในไลน์ / นอกไลน์ผลิต) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{f('lineCategoryLabel')} *</label>
             <DxSelectBox
               dataSource={lineCategories}
               displayExpr="label"
               valueExpr="value"
               value={formData.lineCategory || 'in_line'}
               onValueChanged={(e) => setFormData({ ...formData, lineCategory: e.value })}
-              placeholder="เลือกการใช้งาน"
+              placeholder={f('lineCategoryPlaceholder')}
             />
-            <p className="mt-1 text-xs text-gray-500">
-              นอกไลน์ผลิต (เช่น แอร์) จะไม่แสดงให้เลือกใน BOM และตรวจสอบตามรอบเวลาในทะเบียนตรวจสอบอุปกรณ์
-            </p>
+            <p className="mt-1 text-xs text-gray-500">{f('lineCategoryHint')}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (EN) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{f('nameEnLabel')} *</label>
             <DxTextBox
               value={formData.name || ''}
               onValueChanged={(e) => setFormData({ ...formData, name: e.value })}
-              placeholder="ชื่ออุปกรณ์ภาษาอังกฤษ"
+              placeholder={f('nameEnPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ (TH) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{f('nameThLabel')} *</label>
             <DxTextBox
               value={formData.nameTh || ''}
               onValueChanged={(e) => setFormData({ ...formData, nameTh: e.value })}
-              placeholder="ชื่ออุปกรณ์ภาษาไทย"
+              placeholder={f('nameThPlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ความจุ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f('capacityLabel')}</label>
               <DxTextBox
                 value={formData.capacity || ''}
                 onValueChanged={(e) => setFormData({ ...formData, capacity: e.value })}
-                placeholder="เช่น 200 กก., 50 ลิตร"
+                placeholder={f('capacityPlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ห้องเริ่มต้น</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f('roomLabel')}</label>
               <DxSelectBox
                 dataSource={(rooms || []).map(r => ({ id: r.id, name: r.name }))}
                 displayExpr="name"
                 valueExpr="id"
                 value={formData.roomId}
                 onValueChanged={(e) => setFormData({ ...formData, roomId: e.value })}
-                placeholder="เลือกห้อง"
+                placeholder={f('roomPlaceholder')}
                 showClearButton
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{f('descriptionLabel')}</label>
             <DxTextBox
               value={formData.description || ''}
               onValueChanged={(e) => setFormData({ ...formData, description: e.value })}
-              placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
+              placeholder={f('descriptionPlaceholder')}
             />
           </div>
 
@@ -312,18 +372,18 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               the standard weight) carries its calibration cert. */}
           {formData.equipmentType === 'scale' && (
             <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
-              <h4 className="text-sm font-semibold text-emerald-900">ใบรับรองการสอบเทียบเครื่องชั่ง (Calibration Certificate)</h4>
+              <h4 className="text-sm font-semibold text-emerald-900">{f('calibration.title')}</h4>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เลขที่ใบรับรอง</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f('calibration.certNumberLabel')}</label>
                 <DxTextBox
                   value={formData.calibrationCertNumber || ''}
                   onValueChanged={(e) => setFormData({ ...formData, calibrationCertNumber: e.value })}
-                  placeholder="เช่น CAL-2026-001"
+                  placeholder={f('calibration.certNumberPlaceholder')}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">วันที่สอบเทียบ</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{f('calibration.dateLabel')}</label>
                   <DateBox
                     type="date"
                     displayFormat="dd/MM/yyyy"
@@ -336,7 +396,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">วันหมดอายุใบรับรอง</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{f('calibration.expiryLabel')}</label>
                   <DateBox
                     type="date"
                     displayFormat="dd/MM/yyyy"
@@ -349,27 +409,176 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
                   />
                 </div>
               </div>
+
+              {/* Measured points off the certificate. A balance cert reports, per
+                  test load, the nominal standard weight and what the instrument
+                  indicated (ISO/IEC 17025 §7.8, OIML R76-1); error and max error
+                  are computed from those, then judged against the equipment's own
+                  acceptance criterion (USP <41> accuracy = 0.10%). */}
+              <div className="pt-2 border-t border-emerald-100">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f('calibration.pointsTitle')}</label>
+                <p className="text-xs text-gray-500 mb-2">{f('calibration.pointsHint')}</p>
+
+                {points.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-2">{f('calibration.empty')}</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[560px]">
+                      <thead>
+                        <tr className="text-xs text-gray-500 text-left">
+                          <th className="pb-1 pr-2 font-medium">{f('calibration.colNominal')}</th>
+                          <th className="pb-1 pr-2 font-medium">{f('calibration.colIndicated')}</th>
+                          <th className="pb-1 pr-2 font-medium">{f('calibration.colUncertainty')}</th>
+                          <th className="pb-1 pr-2 font-medium text-right">{f('calibration.colError')}</th>
+                          <th className="pb-1 pr-2 font-medium text-right">{f('calibration.colErrorPercent')}</th>
+                          <th className="pb-1 w-8" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calibration.points.map((p, i) => (
+                          <tr key={i} className="align-middle">
+                            <td className="py-1 pr-2">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="any"
+                                value={String(p.nominalG)}
+                                onChange={(e) => updatePoint(i, { nominalG: Number(e.target.value) })}
+                                className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                data-testid={`calib-nominal-${i}`}
+                              />
+                            </td>
+                            <td className="py-1 pr-2">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="any"
+                                value={String(p.indicatedG)}
+                                onChange={(e) => updatePoint(i, { indicatedG: Number(e.target.value) })}
+                                className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                data-testid={`calib-indicated-${i}`}
+                              />
+                            </td>
+                            <td className="py-1 pr-2">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="any"
+                                value={p.uncertaintyG != null ? String(p.uncertaintyG) : ''}
+                                onChange={(e) =>
+                                  updatePoint(i, {
+                                    uncertaintyG: e.target.value === '' ? null : Number(e.target.value),
+                                  })
+                                }
+                                className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                data-testid={`calib-uncertainty-${i}`}
+                              />
+                            </td>
+                            <td className="py-1 pr-2 text-right font-mono tabular-nums">
+                              {p.errorG > 0 ? '+' : ''}{fmt(p.errorG)}
+                            </td>
+                            <td className="py-1 pr-2 text-right font-mono tabular-nums">
+                              {p.errorPercent == null ? '—' : `${p.errorPercent > 0 ? '+' : ''}${fmt(p.errorPercent, 4)}%`}
+                            </td>
+                            <td className="py-1">
+                              <button
+                                type="button"
+                                onClick={() => setPoints(points.filter((_, j) => j !== i))}
+                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title={f('calibration.removePoint')}
+                                aria-label={f('calibration.removePoint')}
+                                data-testid={`calib-remove-${i}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setPoints([...points, { nominalG: 0, indicatedG: 0, uncertaintyG: null }])}
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-900"
+                  data-testid="calib-add-point"
+                >
+                  <Plus className="h-4 w-4" />
+                  {f('calibration.addPoint')}
+                </button>
+
+                {calibration.maxAbsErrorG != null && (
+                  <div className="mt-3 rounded-md bg-white border border-emerald-100 p-3 text-sm space-y-1">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      <span className="text-gray-600">
+                        {f('calibration.summaryMaxError')}:{' '}
+                        <strong className="font-mono tabular-nums text-gray-900">
+                          {fmt(calibration.maxAbsErrorG)} g
+                          {calibration.maxAbsErrorPercent != null && ` (${fmt(calibration.maxAbsErrorPercent, 4)}%)`}
+                        </strong>
+                      </span>
+                      {formData.tolerancePercent != null && (
+                        <span className="text-gray-600">
+                          {f('calibration.summaryTolerance')}:{' '}
+                          <strong className="font-mono tabular-nums text-gray-900">
+                            ±{fmt(Number(formData.tolerancePercent), 4)}%
+                          </strong>
+                        </span>
+                      )}
+                    </div>
+                    {calibration.withinTolerance === true && (
+                      <p className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                        <CheckCircle2 className="h-4 w-4" />
+                        {f('calibration.summaryWithin')}
+                      </p>
+                    )}
+                    {calibration.withinTolerance === false && (
+                      <p className="flex items-center gap-1.5 text-rose-700 font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        {f('calibration.summaryOutside')}
+                      </p>
+                    )}
+                    {calibration.withinTolerance === null && (
+                      <p className="text-xs text-gray-500">{f('calibration.summaryNoTolerance')}</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Routine inspection config — used by the equipment-inspection registry.
-              Especially relevant for off-line equipment (e.g. air-conditioner) that
-              is inspected on a schedule rather than per work order. */}
+          {/* Inspection config — used by the equipment-inspection registry. The
+              pre-use checkbox is the per-production-run rule (one pass covers the
+              day); the interval is the calendar schedule for off-line equipment
+              (e.g. air-conditioner) that is not tied to a production run. */}
           <div className="rounded-lg border border-orange-100 bg-orange-50/40 p-4 space-y-3">
-            <h4 className="text-sm font-semibold text-orange-900">การตรวจสอบตามรอบ (ทะเบียนตรวจสอบอุปกรณ์)</h4>
+            <h4 className="text-sm font-semibold text-orange-900">{f('inspection.title')}</h4>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รอบการตรวจ (วัน)</label>
+              <div className="flex items-center gap-2">
+                <CheckBox
+                  value={formData.requirePreUseInspection === true}
+                  onValueChanged={(e) => setFormData({ ...formData, requirePreUseInspection: Boolean(e.value) })}
+                  elementAttr={{ 'data-testid': 'require-pre-use-inspection' }}
+                />
+                <span className="text-sm font-medium text-gray-700">{f('inspection.preUseLabel')}</span>
+              </div>
+              <p className="mt-1 ml-7 text-xs text-gray-500">{f('inspection.preUseHint')}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f('inspection.intervalDaysLabel')}</label>
               <DxTextBox
                 value={formData.inspectionIntervalDays != null ? String(formData.inspectionIntervalDays) : ''}
                 onValueChanged={(e) => {
                   const n = parseInt(String(e.value).replace(/\D/g, ''));
                   setFormData({ ...formData, inspectionIntervalDays: Number.isFinite(n) && n > 0 ? n : null });
                 }}
-                placeholder="เช่น 30 = ตรวจทุก 30 วัน (เว้นว่าง = ไม่ตั้งรอบ)"
+                placeholder={f('inspection.intervalDaysPlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รายการตรวจ (Checklist) — 1 บรรทัด = 1 รายการ</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f('inspection.checklistLabel')}</label>
               <textarea
                 className="w-full min-h-[90px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                 value={(() => { try { return (JSON.parse(formData.inspectionChecklist || '[]') as string[]).join('\n'); } catch { return formData.inspectionChecklist || ''; } })()}
@@ -377,7 +586,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
                   const items = e.target.value.split('\n').map((s) => s.trim()).filter(Boolean);
                   setFormData({ ...formData, inspectionChecklist: items.length ? JSON.stringify(items) : '' });
                 }}
-                placeholder={'เช่น\nล้างฟิลเตอร์\nวัดอุณหภูมิลม\nตรวจน้ำรั่ว'}
+                placeholder={f('inspection.checklistPlaceholder')}
               />
             </div>
           </div>
@@ -387,7 +596,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
               value={formData.isActive !== false}
               onValueChanged={(e: SwitchTypes.ValueChangedEvent) => setFormData({ ...formData, isActive: e.value })}
             />
-            <span className="text-sm text-gray-700">ใช้งาน</span>
+            <span className="text-sm text-gray-700">{f('active')}</span>
           </div>
         </CardContent>
       </Card>
@@ -395,12 +604,12 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
       {/* Bottom Actions */}
       <div className="flex justify-end gap-2 pt-4">
         <DxButton
-          text="ยกเลิก"
+          text={f('cancel')}
           stylingMode="outlined"
           onClick={handleCancel}
         />
         <DxButton
-          text={saveMutation.isPending ? 'กำลังบันทึก...' : (mode === 'edit' ? 'อัปเดตอุปกรณ์' : 'สร้างอุปกรณ์')}
+          text={saveMutation.isPending ? f('saving') : f('save')}
           type="success"
           onClick={handleSave}
           disabled={saveMutation.isPending}

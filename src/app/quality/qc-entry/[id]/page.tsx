@@ -46,11 +46,16 @@ import {
   Paperclip,
   Check,
   X,
+  XCircle,
 } from 'lucide-react';
 import { parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { EntityAuditTrail } from '@/components/quality/EntityAuditTrail';
 import { AttachmentPanel } from '@/components/shared/AttachmentPanel';
 import { QCTestPrintDocument } from '@/components/quality/QCTestPrintDocument';
+
+/** Sample states that end the workflow off the happy path — they replace the
+ *  trailing steps in the workflow stepper instead of being forced onto them. */
+const QC_OFF_PATH_STATUSES = ['rejected', 'oos', 'quarantine'];
 
 /** Live pass/fail evaluator — mirrors server-side logic for instant UX feedback. */
 function evaluateNumeric(
@@ -1121,15 +1126,33 @@ export default function QcSampleDetailPage() {
           />
         </div>
 
+        {/* The step list must cover the whole lifecycle (registered → testing →
+            reviewed → approved → released) or a finished sample shows no
+            progress: 'released' was missing, so a released sample rendered as
+            if it were still at "ลงทะเบียน". rejected / oos / quarantine leave
+            the happy path and get their own terminal step. */}
         <div className="mb-6 print:hidden">
           <StatusStepper
             title={t('qcEntry.detail.stepper.title')}
-            steps={[
-              { key: 'registered', label: t('qcEntry.detail.stepper.registered') },
-              { key: 'testing', label: t('qcEntry.detail.stepper.testing') },
-              { key: 'reviewed', label: t('qcEntry.detail.stepper.reviewed') },
-              { key: 'approved', label: t('qcEntry.detail.stepper.approved') },
-            ]}
+            steps={
+              QC_OFF_PATH_STATUSES.includes(String(detail.status).toLowerCase())
+                ? [
+                    { key: 'registered', matches: ['draft'], label: t('qcEntry.detail.stepper.registered') },
+                    { key: 'testing', label: t('qcEntry.detail.stepper.testing') },
+                    {
+                      key: String(detail.status).toLowerCase(),
+                      label: t(`qcEntry.detail.stepper.${String(detail.status).toLowerCase()}`),
+                      icon: XCircle,
+                    },
+                  ]
+                : [
+                    { key: 'registered', matches: ['draft'], label: t('qcEntry.detail.stepper.registered') },
+                    { key: 'testing', label: t('qcEntry.detail.stepper.testing') },
+                    { key: 'reviewed', label: t('qcEntry.detail.stepper.reviewed') },
+                    { key: 'approved', label: t('qcEntry.detail.stepper.approved') },
+                    { key: 'released', label: t('qcEntry.detail.stepper.released') },
+                  ]
+            }
             current={String(detail.status).toLowerCase()}
           />
         </div>

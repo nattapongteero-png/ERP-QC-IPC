@@ -953,7 +953,11 @@
         "registered": "ลงทะเบียน",
         "testing": "กำลังทดสอบ",
         "reviewed": "ตรวจทาน",
-        "approved": "อนุมัติแล้ว"
+        "approved": "อนุมัติแล้ว",
+        "released": "ปล่อยผ่าน",
+        "rejected": "ไม่ผ่าน",
+        "oos": "ผลนอกสเปค (OOS)",
+        "quarantine": "กักกัน"
       },
       "headerCard": {
         "status": "สถานะ",

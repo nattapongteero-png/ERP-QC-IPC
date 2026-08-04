@@ -281,7 +281,10 @@
         "draft": "ร่าง",
         "submitted": "ส่งแล้ว",
         "pendingApproval": "รออนุมัติ",
-        "approved": "อนุมัติ"
+        "approved": "อนุมัติ",
+        "converted": "แปลงเป็นใบสั่งซื้อ",
+        "rejected": "ไม่อนุมัติ",
+        "cancelled": "ยกเลิก"
       },
       "timeline": {
         "title": "ผู้ดำเนินการ / ประวัติการอนุมัติ",

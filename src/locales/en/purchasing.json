@@ -281,7 +281,10 @@
         "draft": "Draft",
         "submitted": "Submitted",
         "pendingApproval": "Pending Approval",
-        "approved": "Approved"
+        "approved": "Approved",
+        "converted": "Converted to PO",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled"
       },
       "timeline": {
         "title": "Actions / Approval History",

@@ -168,6 +168,7 @@
     "sampleStability": "Stability sample (stability room)",
     "sampleStabilityHint": "Sample for stability study — tick to store",
     "sampleQtyInput": "Enter quantity",
+    "datesRequired": "Record the goods' Mfg Date and Exp Date before signing — enter them in \"Record receipt\" on this line (they are stamped onto the sample lots and the QC record)",
     "passLabel": "Pass",
     "failLabel": "Fail",
     "newVersion": "Create New Version",

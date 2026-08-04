@@ -88,6 +88,9 @@ export async function GET(
             itemName: items.nameTh,
             itemNameEn: items.nameEn,
             itemUnit: items.primaryUnit,
+            // Drives the receive dialog's default warehouse + checklist category:
+            // a finished-goods line must default to the FG warehouse, not WH-RM.
+            itemType: items.type,
             quantity: purchaseOrderLines.quantity,
             unitPrice: purchaseOrderLines.unitPrice,
             receivedQty: purchaseOrderLines.receivedQuantity,

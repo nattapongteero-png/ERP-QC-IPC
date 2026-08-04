@@ -177,6 +177,17 @@ export async function signChecklist(
         'จำนวนที่สุ่มรวม (วิเคราะห์+ตัวแทน+Stability) มากกว่าจำนวนที่รับ',
       );
 
+    // Mfg / expiry are copied from this line onto the QC sample and every sample
+    // lot minted below. Signing without them produced lots and QC records with no
+    // dates at all (บันทึก QC showed "—" for วันผลิต / วันหมดอายุ), which is not
+    // acceptable for a GMP incoming inspection — the receiver must read them off
+    // the physical goods first, in บันทึกรับสินค้า on the GRN line.
+    if (!line.manufacturingDate || !line.expiryDate)
+      throw new GoodsReceiptError(
+        GOODS_RECEIPT_ERROR_CODES.CHECKLIST_INCOMPLETE,
+        'ต้องบันทึก วันผลิต (Mfg Date) และ วันหมดอายุ (Exp Date) ของสินค้าที่รับก่อนเซ็นรับ — กรอกที่ "บันทึกรับสินค้า" ของรายการนี้',
+      );
+
     const grnRows = await db.select().from(t.grns).where(eq(t.grns.id, line.grnId)).limit(1);
     if (grnRows.length === 0)
       throw new GoodsReceiptError(GOODS_RECEIPT_ERROR_CODES.NOT_FOUND, 'GRN not found');

@@ -237,6 +237,12 @@ export default function GrnDetailPage() {
     updateLineMut.mutate({ lineId: editLine.id, patch });
   }
 
+  // Mfg / expiry of the line being signed. They are stamped onto the QC sample
+  // and the sample lots, so signing without them leaves QC with no dates at all.
+  const checklistLine = (data?.lines ?? []).find((l) => l.id === activeLineId);
+  const checklistLineMissingDates =
+    !!activeLineId && (!checklistLine?.manufacturingDate || !checklistLine?.expiryDate);
+
   const signChecklistMut = useMutation({
     mutationFn: async () => {
       if (!activeLineId || !currentTemplate) throw new Error('Missing data');
@@ -676,7 +682,11 @@ export default function GrnDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t('form.manufacturingDate.label')}</label>
+              {/* Required: the checklist signature stamps these onto the QC sample
+                  and every sample lot — see the guard in the checklist popup. */}
+              <label className="block text-sm font-medium mb-1">
+                {t('form.manufacturingDate.label')} <span className="text-rose-600">*</span>
+              </label>
               {/* dd/MM/yyyy display, ISO (YYYY-MM-DD) stored value (item 41) */}
               <DxDateBox
                 type="date"
@@ -691,7 +701,9 @@ export default function GrnDetailPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t('form.expiryDate.label')}</label>
+              <label className="block text-sm font-medium mb-1">
+                {t('form.expiryDate.label')} <span className="text-rose-600">*</span>
+              </label>
               <DxDateBox
                 type="date"
                 value={editForm.expiryDate}
@@ -920,6 +932,17 @@ export default function GrnDetailPage() {
               />
             </div>
 
+            {/* The signed checklist stamps this line's mfg / expiry onto the QC
+                sample and every sample lot. Without them the lot is created with
+                no dates and บันทึก QC shows "—" forever, so block signing here
+                (the server rejects it too) and say where to fill them in. */}
+            {checklistLineMissingDates && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 text-sm flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{t('checklist.datesRequired')}</span>
+              </div>
+            )}
+
             {signChecklistMut.error && (
               <div className="bg-rose-50 border border-rose-200 text-rose-900 rounded p-3 text-sm flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
@@ -935,7 +958,8 @@ export default function GrnDetailPage() {
                 text={t('actions.signChecklist')}
                 disabled={
                   signChecklistMut.isPending ||
-                  !(Number(checklistSampleQty) > 0)
+                  !(Number(checklistSampleQty) > 0) ||
+                  checklistLineMissingDates
                 }
                 onClick={() => signChecklistMut.mutate()}
               />

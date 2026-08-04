@@ -25,6 +25,9 @@ interface InspectionRow {
   lineCategory: string | null;
   inspectionIntervalDays: number | null;
   inspectionChecklist: string | null;
+  requirePreUseInspection: boolean;
+  inspectedToday: boolean;
+  preUseDueToday: boolean;
   lastResult: string | null;
   lastPerformedAt: string | null;
   nextDueDate: string | null;
@@ -174,11 +177,27 @@ export default function EquipmentInspectionPage() {
               </span>
             );
           }} />
-          <DxColumn dataField="inspectionIntervalDays" caption={t('equipmentInspection.colInterval')} width={120} cellRender={(cell) => (
-            <span className="whitespace-nowrap text-sm">
-              {cell.value ? t('equipmentInspection.intervalDays', { days: cell.value }) : t('equipmentInspection.intervalNone')}
-            </span>
-          )} />
+          <DxColumn dataField="inspectionIntervalDays" caption={t('equipmentInspection.colInterval')} width={150} cellRender={(cell) => {
+            const row = cell.data as InspectionRow;
+            return (
+              <div className="flex flex-col gap-0.5">
+                <span className="whitespace-nowrap text-sm">
+                  {cell.value ? t('equipmentInspection.intervalDays', { days: cell.value }) : t('equipmentInspection.intervalNone')}
+                </span>
+                {/* Pre-use rule: required per production run, but one pass covers
+                    the whole day — so once it is inspected today it reads "done". */}
+                {row.requirePreUseInspection && (
+                  <span className={`inline-flex w-fit px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${
+                    row.inspectedToday ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {row.inspectedToday
+                      ? t('equipmentInspection.preUseDoneToday')
+                      : t('equipmentInspection.preUseDueToday')}
+                  </span>
+                )}
+              </div>
+            );
+          }} />
           <DxColumn dataField="lastPerformedAt" caption={t('equipmentInspection.colLast')} width={140} cellRender={(cell) => (
             <span className="whitespace-nowrap text-sm text-gray-600">
               {cell.value ? String(cell.value).slice(0, 10) : t('equipmentInspection.never')}
