@@ -1,417 +1,269 @@
 'use client';
 
 /**
- * Sales dashboard (แดชบอร์ดขาย) — sheet items 46-47.
+ * Sales dashboard.
  *
- * The sales landing used to bounce straight to the orders list, so nobody could
- * answer "how much did we sell and in what state is it" without eyeballing the
- * grid. This page reads the existing sales-summary report (which already rolls
- * the orders up by status and by customer) and draws it: value + order count,
- * value distribution by status, and the top customers by value.
+ * Rebuilt to the same three layers as production and purchasing, so someone
+ * switching modules reads the same shape of screen every time.
  *
- * Money rules come from the report, not this page: cancelled/rejected orders are
- * excluded from the headline value but still appear in the status breakdown, so
- * "การกระจายตามสถานะ" shows where every order went.
+ * What changed from the previous version, and why:
+ *   - Revenue alone flatters: growth bought with discounts looks like growth.
+ *     Gross margin now sits beside it, and the two are SEPARATE charts on a
+ *     shared time axis — a dual-axis chart would imply a relationship that the
+ *     data does not contain.
+ *   - The status donut is gone. Comparing similar angles is something people do
+ *     badly; the funnel answers the real question (where does it leak) instead.
+ *   - Added the promises we make and the money we actually collect: OTIF,
+ *     backlog, win rate, overdue receivables.
+ *
+ * This page wraps MainLayout itself — the sales layout deliberately does not.
  */
-
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DxDateBox } from '@/components/ui/dx-date-box';
-import { DxButton } from '@/components/ui/dx-button';
-import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
-import { ResponsivePageHeader, StatCard } from '@/components/shared';
-import { formatNumber } from '@/lib/utils/number-format';
-import { LineChart, ShoppingBag, Coins, Calculator, PieChart as PieIcon, Users, Clock } from 'lucide-react';
-
-import { PieChart, Series, Label, Legend, Tooltip, Connector } from 'devextreme-react/pie-chart';
+import { ResponsivePageHeader } from '@/components/shared';
 import {
-  Chart,
-  CommonSeriesSettings,
-  Series as ChartSeries,
-  ArgumentAxis,
-  ValueAxis,
-  Legend as ChartLegend,
-  Tooltip as ChartTooltip,
-  Size,
-  Grid,
-} from 'devextreme-react/chart';
+  DashboardSection, KpiTile, ChartCard, BarList, TrendColumns,
+  SEQUENTIAL_BLUES, SERIES_COLORS, type KpiStatus,
+} from '@/components/dashboard/dashboard-shell';
+import { formatNumber, formatBaht } from '@/lib/utils/number-format';
+import { Coins } from 'lucide-react';
 
-// ---- Report shape (mirrors ProcurementSalesReport<SalesReportRow>) ----
-interface StatusBucket {
-  status: string;
-  count: number;
-  value: number;
-}
-interface PartyBucket {
-  name: string;
-  code: string | null;
-  orders: number;
-  value: number;
-}
-interface SalesRow {
-  id: number;
-  soNumber: string;
-  orderDate: string | null;
-  requiredDate: string | null;
-  shippedDate: string | null;
-  customerName: string | null;
-  status: string;
-  totalAmount: number;
-}
-interface SalesReport {
-  summary: {
-    orders: number;
-    value: number;
-    avgOrderValue: number | null;
-    voidedOrders: number;
-    voidedValue: number;
-    parties: number;
+interface Dash {
+  window: { from: string; to: string; days: number };
+  kpis: {
+    revenue: { value: number; orders: number };
+    grossMargin: { value: number | null; target: number; status: string; amount: number };
+    otif: { value: number | null; target: number; status: string; ok: number; total: number };
+    backlog: { value: number; lines: number };
+    winRate: { value: number | null; target: number; status: string; won: number; total: number };
+    overdueAr: { value: number; percent: number | null; target: number; status: string };
   };
-  byStatus: StatusBucket[];
-  byParty: PartyBucket[];
-  byMonth: { month: string; orders: number; value: number }[];
-  rows: SalesRow[];
-  generatedAt: string;
-}
-
-/** Thai labels + chart colours per SO status (kept in step with the orders page). */
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  draft: { label: 'ร่าง', color: '#94a3b8' },
-  confirmed: { label: 'ยืนยันแล้ว', color: '#3b82f6' },
-  processing: { label: 'กำลังดำเนินการ', color: '#f59e0b' },
-  ready: { label: 'พร้อมส่ง', color: '#8b5cf6' },
-  shipped: { label: 'จัดส่งแล้ว', color: '#06b6d4' },
-  delivered: { label: 'ส่งมอบแล้ว', color: '#22c55e' },
-  cancelled: { label: 'ยกเลิก', color: '#ef4444' },
-  rejected: { label: 'ปฏิเสธ', color: '#dc2626' },
-};
-
-function statusLabel(status: string): string {
-  return STATUS_META[status]?.label ?? status;
-}
-function statusColor(status: string): string {
-  return STATUS_META[status]?.color ?? '#6b7280';
-}
-
-/** Default range: start of the current year → today (a sensible "this year" view). */
-function defaultRange(): { from: string; to: string } {
-  const now = new Date();
-  const from = `${now.getFullYear()}-01-01`;
-  const to = now.toISOString().slice(0, 10);
-  return { from, to };
+  revenueTrend: Array<{ month: string; value: number }>;
+  marginTrend: Array<{ month: string; percent: number | null }>;
+  topCustomers: Array<{ customerId: number | null; name: string; value: number; marginPercent: number | null }>;
+  funnel: Array<{ stage: string; count: number; value: number }>;
+  dueSoon: Array<{ id: number; soNumber: string; customerName: string | null; requiredDate: string | null; value: number }>;
 }
 
 export default function SalesDashboardPage() {
   const router = useRouter();
-  const init = defaultRange();
-  const [dateFrom, setDateFrom] = useState(init.from);
-  const [dateTo, setDateTo] = useState(init.to);
-  const [data, setData] = useState<SalesReport | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const tc = useTranslations('common');
+  const tRoot = useTranslations('sales');
+  const t = (k: string, v?: Record<string, string | number>) => tRoot(`dashboard.${k}`, v as never);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const p = new URLSearchParams();
-      if (dateFrom) p.append('dateFrom', dateFrom);
-      if (dateTo) p.append('dateTo', dateTo);
-      const res = await fetch(`/api/sales/reports/sales-summary?${p}`);
-      const json = await res.json();
-      if (json.success) setData(json.data as SalesReport);
-    } catch (e) {
-      console.error('Failed to fetch sales summary:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dateFrom, dateTo]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const summary = data?.summary;
-
-  // Value by status — every status the report saw, including voided ones.
-  const statusChartData = useMemo(
-    () =>
-      (data?.byStatus ?? []).map((b) => ({
-        status: statusLabel(b.status),
-        value: b.value,
-        count: b.count,
-        color: statusColor(b.status),
-      })),
-    [data],
-  );
-
-  // Top ~8 customers by value (byParty is already sorted value-desc by the service).
-  const topCustomers = useMemo(
-    () =>
-      (data?.byParty ?? []).slice(0, 8).map((p) => ({
-        name: p.name,
-        value: p.value,
-        orders: p.orders,
-      })),
-    [data],
-  );
-
-  const recentRows = useMemo(() => (data?.rows ?? []).slice(0, 10), [data]);
-
-  const recentColumns: DxDataGridColumn[] = [
-    { dataField: 'soNumber', caption: 'เลขที่ใบสั่งขาย', width: 150 },
-    { dataField: 'orderDate', caption: 'วันที่', width: 120 },
-    { dataField: 'customerName', caption: 'ลูกค้า', minWidth: 180 },
-    {
-      dataField: 'status',
-      caption: 'สถานะ',
-      width: 140,
-      cellRender: (c) => {
-        const s = String(c.data.status);
-        return (
-          <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: `${statusColor(s)}22`, color: statusColor(s) }}
-          >
-            {statusLabel(s)}
-          </span>
-        );
-      },
+  const { data, isLoading, error } = useQuery<Dash>({
+    queryKey: ['sales-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/sales/dashboard');
+      const j = await res.json();
+      if (!j.success) throw new Error(j.error);
+      return j.data;
     },
-    {
-      dataField: 'totalAmount',
-      caption: 'มูลค่า (บาท)',
-      width: 150,
-      cellRender: (c) => (
-        <span className="tabular-nums">{formatNumber(Number(c.data.totalAmount))}</span>
-      ),
-    },
-  ];
+  });
+
+  const pctText = (v: number | null | undefined) => (v == null ? null : `${formatNumber(v, 1)}%`);
+  const st = (s?: string): KpiStatus =>
+    s === 'on_target' ? 'on_target' : s === 'below_target' ? 'below_target' : 'unknown';
+
+  const stageLabel = (s: string) =>
+    ({
+      quotations: t('funnelQuotations'),
+      orders: t('funnelOrders'),
+      deliveries: t('funnelDeliveries'),
+      invoices: t('funnelInvoices'),
+    } as Record<string, string>)[s] ?? s;
+
+  const k = data?.kpis;
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-5 p-4 md:p-6 max-w-full">
+      <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
         <ResponsivePageHeader
-          title="แดชบอร์ดขาย"
-          subtitle="มูลค่าการขาย การกระจายตามสถานะ และลูกค้าหลัก"
-          icon={LineChart}
-          iconBgColor="bg-emerald-100"
-          iconColor="text-emerald-600"
-          actions={
-            <div className="flex items-center gap-2 flex-wrap">
-              <DxButton icon="refresh" text="รีเฟรช" stylingMode="outlined" onClick={fetchData} />
-              <DxButton
-                icon="textdocument"
-                text="ไปที่ใบสั่งขาย"
-                stylingMode="contained"
-                type="default"
-                onClick={() => router.push('/sales/orders')}
-                elementAttr={{ 'data-testid': 'btn-goto-orders' }}
-              />
-            </div>
-          }
+          title={tRoot('page.title')}
+          subtitle={tRoot('page.description')}
+          icon={Coins}
+          iconBgColor="bg-amber-100"
+          iconColor="text-amber-600"
         />
 
-        {/* Date range filter */}
-        <Card>
-          <CardContent className="flex flex-wrap items-end gap-3 p-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">ตั้งแต่วันที่</label>
-              <DxDateBox
-                value={dateFrom || undefined}
-                onValueChange={(v: unknown) => setDateFrom(v ? String(v).slice(0, 10) : '')}
-                displayFormat="yyyy-MM-dd"
-                width={170}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-500">ถึงวันที่</label>
-              <DxDateBox
-                value={dateTo || undefined}
-                onValueChange={(v: unknown) => setDateTo(v ? String(v).slice(0, 10) : '')}
-                displayFormat="yyyy-MM-dd"
-                width={170}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {error ? (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            {tc('dashboardShell.errorTitle')}: {(error as Error).message}
+          </div>
+        ) : isLoading || !data ? (
+          <p className="py-16 text-center text-gray-400">{tc('dashboardShell.loading')}</p>
+        ) : (
+          <>
+            <p className="text-xs text-gray-500">
+              {tc('dashboardShell.windowNote', { days: data.window.days, from: data.window.from, to: data.window.to })}
+              {' · '}
+              <span className="text-amber-700">{tc('dashboardShell.provisionalTargets')}</span>
+            </p>
 
-        {/* StatCards */}
-        <div
-          className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"
-          data-testid="sales-stat-cards"
-        >
-          <StatCard
-            label="มูลค่าขายรวม (บาท)"
-            value={formatNumber(summary?.value ?? 0)}
-            icon={Coins}
-            tone="emerald"
-            isLoading={isLoading}
-            data-testid="stat-total-value"
-          />
-          <StatCard
-            label="จำนวนใบสั่งขาย"
-            value={formatNumber(summary?.orders ?? 0)}
-            icon={ShoppingBag}
-            tone="blue"
-            isLoading={isLoading}
-            data-testid="stat-order-count"
-          />
-          <StatCard
-            label="มูลค่าเฉลี่ยต่อใบ (บาท)"
-            value={
-              summary?.avgOrderValue == null ? '-' : formatNumber(summary.avgOrderValue)
-            }
-            icon={Calculator}
-            tone="violet"
-            isLoading={isLoading}
-            data-testid="stat-avg-value"
-          />
-        </div>
+            {/* ---------- Layer 1 ---------- */}
+            <DashboardSection title={tc('dashboardShell.layer1')}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiTile
+                  hero
+                  label={t('kpiRevenue')}
+                  value={formatBaht(k?.revenue.value ?? 0)}
+                  sub={`${k?.revenue.orders ?? 0} · ${data.window.days}d`}
+                  testId="kpi-revenue"
+                />
+                <KpiTile
+                  label={t('kpiGrossMargin')}
+                  value={pctText(k?.grossMargin.value)}
+                  sub={`${formatBaht(k?.grossMargin.amount ?? 0)} · ${t('kpiGrossMarginSub')}`}
+                  target={`≥ ${k?.grossMargin.target}%`}
+                  status={st(k?.grossMargin.status)}
+                  testId="kpi-margin"
+                />
+                <KpiTile
+                  label={t('kpiOtif')}
+                  value={pctText(k?.otif.value)}
+                  sub={t('kpiOtifSub', { ok: k?.otif.ok ?? 0, total: k?.otif.total ?? 0 })}
+                  target={`≥ ${k?.otif.target}%`}
+                  status={st(k?.otif.status)}
+                  testId="kpi-otif"
+                />
+                <KpiTile
+                  label={t('kpiBacklog')}
+                  value={formatBaht(k?.backlog.value ?? 0)}
+                  sub={t('kpiBacklogSub', { lines: k?.backlog.lines ?? 0 })}
+                  testId="kpi-backlog"
+                />
+                <KpiTile
+                  label={t('kpiWinRate')}
+                  value={pctText(k?.winRate.value)}
+                  sub={t('kpiWinRateSub', { won: k?.winRate.won ?? 0, total: k?.winRate.total ?? 0 })}
+                  target={`≥ ${k?.winRate.target}%`}
+                  status={st(k?.winRate.status)}
+                  testId="kpi-winrate"
+                />
+                <KpiTile
+                  label={t('kpiOverdueAr')}
+                  value={formatBaht(k?.overdueAr.value ?? 0)}
+                  sub={
+                    k?.overdueAr.percent == null
+                      ? undefined
+                      : t('kpiOverdueArSub', { percent: formatNumber(k.overdueAr.percent, 1) })
+                  }
+                  target={`≤ ${k?.overdueAr.target}%`}
+                  status={st(k?.overdueAr.status)}
+                  testId="kpi-overdue-ar"
+                />
+              </div>
+            </DashboardSection>
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Chart 1 — value by status */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <PieIcon className="h-5 w-5 text-emerald-500" />
-                มูลค่าตามสถานะ (การกระจายตามสถานะ)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div data-testid="chart-value-by-status">
-                {isLoading ? (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    กำลังโหลด...
-                  </div>
-                ) : statusChartData.length > 0 ? (
-                  <PieChart
-                    id="sales-status-pie"
-                    dataSource={statusChartData}
-                    type="doughnut"
-                    innerRadius={0.6}
-                    palette={statusChartData.map((d) => d.color)}
-                  >
-                    <Size height={300} />
-                    <Series argumentField="status" valueField="value">
-                      <Label
-                        visible={true}
-                        position="columns"
-                        customizeText={(e: { argumentText: string; percentText: string }) =>
-                          `${e.argumentText}\n${e.percentText}`
-                        }
-                      >
-                        <Connector visible={true} width={1} />
-                      </Label>
-                    </Series>
-                    <Legend
-                      visible={true}
-                      orientation="horizontal"
-                      horizontalAlignment="center"
-                      verticalAlignment="bottom"
-                    />
-                    <Tooltip
-                      enabled={true}
-                      customizeTooltip={(arg: {
-                        argumentText?: string;
-                        originalValue?: string | number | Date;
-                        percentText?: string;
-                      }) => ({
-                        text: `${arg.argumentText ?? ''}: ${formatNumber(
-                          Number(arg.originalValue ?? 0),
-                        )} บาท (${arg.percentText ?? ''})`,
-                      })}
-                    />
-                  </PieChart>
+            {/* ---------- Layer 2 ---------- */}
+            <DashboardSection title={tc('dashboardShell.layer2')} subtitle={t('marginSeparateNote')}>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <ChartCard
+                  title={t('chartRevenueTrend')}
+                  columns={[tc('dashboardShell.month'), t('kpiRevenue')]}
+                  rows={data.revenueTrend.map((p) => [p.month, formatBaht(p.value)])}
+                  testId="chart-revenue-trend"
+                >
+                  <TrendColumns
+                    points={data.revenueTrend.map((p) => ({ label: p.month, value: p.value }))}
+                    valueFormatter={(v) => formatBaht(v)}
+                    emptyText={tc('dashboardShell.noData')}
+                  />
+                </ChartCard>
+
+                <ChartCard
+                  title={t('chartMarginTrend')}
+                  columns={[tc('dashboardShell.month'), t('kpiGrossMargin')]}
+                  rows={data.marginTrend.map((p) => [p.month, p.percent == null ? '—' : `${formatNumber(p.percent, 1)}%`])}
+                  testId="chart-margin-trend"
+                >
+                  <TrendColumns
+                    points={data.marginTrend.map((p) => ({ label: p.month, value: p.percent }))}
+                    valueFormatter={(v) => `${formatNumber(v, 1)}%`}
+                    targetValue={k?.grossMargin.target}
+                    targetLabel={`${tc('dashboardShell.target')} ${k?.grossMargin.target}%`}
+                    emptyText={tc('dashboardShell.noData')}
+                  />
+                </ChartCard>
+
+                <ChartCard
+                  title={t('colCustomer')}
+                  columns={[t('colCustomer'), t('colValue'), t('kpiGrossMargin')]}
+                  rows={data.topCustomers.map((c) => [c.name, formatBaht(c.value), c.marginPercent == null ? '—' : `${formatNumber(c.marginPercent, 1)}%`])}
+                  testId="chart-top-customers"
+                >
+                  {/* The margin note under each bar is the point of this chart:
+                      the biggest customer is often the thinnest-margin one. */}
+                  <BarList
+                    rows={data.topCustomers.map((c) => ({
+                      label: c.name,
+                      value: c.value,
+                      note: c.marginPercent == null ? undefined : `${t('kpiGrossMargin')} ${formatNumber(c.marginPercent, 1)}%`,
+                    }))}
+                    valueFormatter={(v) => formatBaht(v)}
+                    emptyText={tc('dashboardShell.noData')}
+                  />
+                </ChartCard>
+
+                <ChartCard
+                  title={t('chartFunnel')}
+                  columns={[tc('dashboardShell.value'), tc('dashboardShell.count')]}
+                  rows={data.funnel.map((f) => [stageLabel(f.stage), f.count])}
+                  testId="chart-funnel"
+                >
+                  {/* Funnel stages are ordered, so a single-hue ramp. */}
+                  <BarList
+                    rows={data.funnel.map((f) => ({
+                      label: stageLabel(f.stage),
+                      value: f.count,
+                      note: f.value > 0 ? formatBaht(f.value) : undefined,
+                    }))}
+                    valueFormatter={(v) => formatNumber(v, 0)}
+                    colorFor={(i) => SEQUENTIAL_BLUES[Math.min(i, SEQUENTIAL_BLUES.length - 1)]}
+                    emptyText={tc('dashboardShell.noData')}
+                  />
+                </ChartCard>
+              </div>
+            </DashboardSection>
+
+            {/* ---------- Layer 3 ---------- */}
+            <DashboardSection title={tc('dashboardShell.layer3')}>
+              <div className="overflow-x-auto rounded-[14px] border border-emerald-100 bg-white p-4 shadow-[0_4px_14px_rgba(6,78,59,0.05)]">
+                <h3 className="mb-2 text-sm font-semibold text-[#0F2E22]">{t('tableDueSoon')}</h3>
+                {data.dueSoon.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-gray-400">{t('noDueSoon')}</p>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    ไม่มีข้อมูลในช่วงเวลาที่เลือก
-                  </div>
+                  <table className="w-full min-w-[680px] text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+                        <th className="pb-2 pr-3 font-medium">{t('colSo')}</th>
+                        <th className="pb-2 pr-3 font-medium">{t('colCustomer')}</th>
+                        <th className="pb-2 pr-3 font-medium">{t('colRequired')}</th>
+                        <th className="pb-2 text-right font-medium">{t('colValue')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.dueSoon.map((o) => (
+                        <tr
+                          key={o.id}
+                          className="cursor-pointer border-b border-gray-100 hover:bg-amber-50/40"
+                          onClick={() => router.push(`/sales/orders/${o.id}`)}
+                        >
+                          <td className="py-2 pr-3 font-mono text-xs font-semibold text-amber-700">{o.soNumber}</td>
+                          <td className="py-2 pr-3">{o.customerName ?? '—'}</td>
+                          <td className="py-2 pr-3 whitespace-nowrap text-xs text-gray-600">{o.requiredDate ?? '—'}</td>
+                          <td className="py-2 text-right tabular-nums">{formatBaht(o.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Chart 2 — top customers */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-500" />
-                ลูกค้าหลัก (มูลค่าสูงสุด)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div data-testid="chart-top-customers">
-                {isLoading ? (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    กำลังโหลด...
-                  </div>
-                ) : topCustomers.length > 0 ? (
-                  <Chart id="sales-top-customers" dataSource={topCustomers} rotated={true}>
-                    <Size height={300} />
-                    <CommonSeriesSettings
-                      type="bar"
-                      argumentField="name"
-                      valueField="value"
-                      barWidth={22}
-                      cornerRadius={4}
-                    />
-                    <ChartSeries name="มูลค่า (บาท)" color="#3b82f6" hoverMode="allArgumentPoints" />
-                    <ArgumentAxis>
-                      <Grid visible={false} />
-                    </ArgumentAxis>
-                    <ValueAxis>
-                      <Grid visible={true} color="#E5E7EB" />
-                    </ValueAxis>
-                    <ChartLegend visible={false} />
-                    <ChartTooltip
-                      enabled={true}
-                      customizeTooltip={((arg: {
-                        argumentText?: string;
-                        originalValue?: string | number | Date;
-                      }) => ({
-                        text: `${arg.argumentText ?? ''}: ${formatNumber(
-                          Number(arg.originalValue ?? 0),
-                        )} บาท`,
-                      })) as (pointInfo: unknown) => Record<string, unknown>}
-                    />
-                  </Chart>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    ไม่มีข้อมูลในช่วงเวลาที่เลือก
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent orders table */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Clock className="h-5 w-5 text-gray-500" />
-              ใบสั่งขายล่าสุด
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div data-testid="recent-orders-table">
-              <DxDataGrid
-                dataSource={recentRows as unknown as Record<string, unknown>[]}
-                columns={recentColumns}
-                keyExpr="id"
-                pageSize={10}
-                sorting
-                responsiveColumns
-                onRowClick={(e: { data?: SalesRow }) => {
-                  if (e.data?.id) router.push(`/sales/orders/${e.data.id}`);
-                }}
-                noDataText="ไม่มีใบสั่งขายในช่วงเวลาที่เลือก"
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </DashboardSection>
+          </>
+        )}
       </div>
     </MainLayout>
   );

@@ -469,6 +469,13 @@ export const sqliteWorkOrders = sqliteTable('work_orders', {
   actualEndDate: text('actual_end_date'),
   deliveryDate: text('delivery_date'),
   yieldPercentage: real('yield_percentage'),
+  // Why the order missed its planned end date. Until this is filled in, the
+  // production dashboard's Pareto can only infer causes from deviations, which
+  // is a proxy — a Pareto built on a proxy points at the wrong fix.
+  // Values: material_late | equipment | manpower | quality_hold | changeover |
+  //         utility | planning | other
+  delayReason: text('delay_reason'),
+  delayNotes: text('delay_notes'),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   approvedBy: integer('approved_by').references(() => sqliteUsers.id),
@@ -835,6 +842,14 @@ export const sqliteQuotations = sqliteTable('quotations', {
   notes: text('notes'),
   // Set when the quotation is converted into a sales order (list item 1d).
   soId: integer('so_id').references(() => sqliteSalesOrders.id),
+  // Why a quotation did NOT become an order. Without this the dashboard can say
+  // "254 quotations leaked" but never why — which is the single most useful
+  // thing on the sales page, and the cheapest to collect (one dropdown).
+  // Values: price | lead_time | specification | competitor | no_budget |
+  //         no_response | customer_cancelled | other
+  lostReason: text('lost_reason'),
+  lostToCompetitor: text('lost_to_competitor'),
+  lostNotes: text('lost_notes'),
   createdBy: integer('created_by').references(() => sqliteUsers.id),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
   updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
@@ -2384,6 +2399,9 @@ export const mysqlWorkOrders = mysqlTable('work_orders', {
   actualEndDate: datetime('actual_end_date'),
   deliveryDate: datetime('delivery_date'),
   yieldPercentage: decimal('yield_percentage', { precision: 5, scale: 2 }),
+  // Why the order missed its planned end date — see the sqlite twin.
+  delayReason: varchar('delay_reason', { length: 50 }),
+  delayNotes: mysqlText('delay_notes'),
   notes: mysqlText('notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   approvedBy: int('approved_by').references(() => mysqlUsers.id),
@@ -2740,6 +2758,10 @@ export const mysqlQuotations = mysqlTable('quotations', {
   paymentTerms: varchar('payment_terms', { length: 100 }),
   notes: mysqlText('notes'),
   soId: int('so_id').references(() => mysqlSalesOrders.id),
+  // Why the quotation was lost — see the sqlite twin.
+  lostReason: varchar('lost_reason', { length: 50 }),
+  lostToCompetitor: varchar('lost_to_competitor', { length: 255 }),
+  lostNotes: mysqlText('lost_notes'),
   createdBy: int('created_by').references(() => mysqlUsers.id),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),

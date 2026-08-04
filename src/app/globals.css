@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Dark mode is CLASS-based, not OS-based.
+   ------------------------------------------------------------------
+   Tailwind v4 defaults the `dark:` variant to `prefers-color-scheme`, so a user
+   whose OS is in dark mode silently activates every `dark:` utility in the app.
+   This app has no dark theme — but ~470 stray `dark:` utilities survive in the
+   GMP / CAPA / complaints / recalls / stability / dashboard screens. On a dark-mode
+   machine those fired on their own and produced isolated black boxes in an
+   otherwise light UI (reported on the dashboard's inventory-value cards, whose
+   icons carry `dark:bg-*-950`).
+
+   Redefining the variant to key off an explicit `.dark` ancestor makes those
+   utilities inert, because nothing ever sets that class — the rendered result
+   now matches the light-only design regardless of OS setting. It also leaves the
+   door open: adding `.dark` to <html> later switches them all on deliberately,
+   rather than by accident. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* DevExtreme CSS is imported via JavaScript in DevExtremeProvider
    to avoid @import order issues with bundled CSS.
    See: src/components/providers/devextreme-provider.tsx */

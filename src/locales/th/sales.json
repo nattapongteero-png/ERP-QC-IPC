@@ -994,5 +994,32 @@
       "delivered": "ส่งมอบแล้ว",
       "returned": "ตีกลับ"
     }
+  },
+  "dashboard": {
+    "kpiRevenue": "ยอดขาย",
+    "kpiGrossMargin": "กำไรขั้นต้น",
+    "kpiGrossMarginSub": "จากยอดที่ส่งมอบแล้ว",
+    "kpiOtif": "ส่งครบและตรงเวลา (OTIF)",
+    "kpiOtifSub": "ครบและทัน {ok} จาก {total} ใบ",
+    "kpiBacklog": "ออเดอร์ค้างส่ง",
+    "kpiBacklogSub": "{lines} รายการ",
+    "kpiWinRate": "อัตราปิดใบเสนอราคา",
+    "kpiWinRateSub": "ปิดได้ {won} จาก {total} ใบ",
+    "kpiOverdueAr": "ลูกหนี้เกินกำหนด",
+    "kpiOverdueArSub": "คิดเป็น {percent}% ของลูกหนี้",
+    "chartRevenueTrend": "ยอดขายรายเดือน",
+    "chartMarginTrend": "กำไรขั้นต้นรายเดือน",
+    "chartFunnel": "เส้นทางการขาย",
+    "funnelQuotations": "ใบเสนอราคา",
+    "funnelOrders": "ออเดอร์",
+    "funnelDeliveries": "ส่งมอบ",
+    "funnelInvoices": "วางบิล",
+    "tableDueSoon": "ออเดอร์ที่ต้องส่งใน 7 วัน",
+    "colSo": "เลขที่ออเดอร์",
+    "colCustomer": "ลูกค้า",
+    "colRequired": "กำหนดส่ง",
+    "colValue": "มูลค่า",
+    "noDueSoon": "ไม่มีออเดอร์ที่ต้องส่งใน 7 วัน",
+    "marginSeparateNote": "ยอดขายกับกำไรขั้นต้นแยกเป็นสองกราฟโดยตั้งใจ — กราฟสองแกน Y สร้างความสัมพันธ์ที่ไม่มีจริง"
   }
 }

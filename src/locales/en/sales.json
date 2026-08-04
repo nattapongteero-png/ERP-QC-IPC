@@ -994,5 +994,32 @@
       "delivered": "Delivered",
       "returned": "Returned"
     }
+  },
+  "dashboard": {
+    "kpiRevenue": "Revenue",
+    "kpiGrossMargin": "Gross margin",
+    "kpiGrossMarginSub": "On delivered revenue",
+    "kpiOtif": "On time in full (OTIF)",
+    "kpiOtifSub": "{ok} of {total} orders complete and on time",
+    "kpiBacklog": "Order backlog",
+    "kpiBacklogSub": "{lines} lines",
+    "kpiWinRate": "Quotation win rate",
+    "kpiWinRateSub": "{won} of {total} quotations won",
+    "kpiOverdueAr": "Overdue receivables",
+    "kpiOverdueArSub": "{percent}% of receivables",
+    "chartRevenueTrend": "Monthly revenue",
+    "chartMarginTrend": "Monthly gross margin",
+    "chartFunnel": "Sales funnel",
+    "funnelQuotations": "Quotations",
+    "funnelOrders": "Orders",
+    "funnelDeliveries": "Deliveries",
+    "funnelInvoices": "Invoices",
+    "tableDueSoon": "Orders due within 7 days",
+    "colSo": "Order",
+    "colCustomer": "Customer",
+    "colRequired": "Required date",
+    "colValue": "Value",
+    "noDueSoon": "No orders due within 7 days",
+    "marginSeparateNote": "Revenue and margin are deliberately separate charts — a dual-axis chart invents a relationship that is not in the data"
   }
 }

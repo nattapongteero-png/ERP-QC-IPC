@@ -147,5 +147,25 @@
   "messages": {
     "noResultsTitle": "No matching records",
     "noResultsDescription": "Try adjusting the search text, date range, or status tab and search again"
+  },
+  "dashboardShell": {
+    "layer1": "Status",
+    "layer2": "Trends and causes",
+    "layer3": "Needs attention",
+    "windowNote": "Headline figures cover the last {days} days ({from} to {to})",
+    "target": "Target",
+    "onTarget": "On target",
+    "belowTarget": "Below target",
+    "noData": "No data",
+    "loading": "Loading...",
+    "errorTitle": "Could not load the dashboard",
+    "tableView": "Table view",
+    "chartView": "Chart view",
+    "other": "Other",
+    "month": "Month",
+    "value": "Value",
+    "count": "Count",
+    "provisionalTargets": "All targets are provisional and await confirmation from the responsible departments",
+    "viewAll": "View all"
   }
 }
