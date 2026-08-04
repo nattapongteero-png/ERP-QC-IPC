@@ -218,10 +218,42 @@ export default function GrnDetailPage() {
     });
   }
 
+  // A line that got past QC without its mfg/expiry recorded. Those lines are
+  // otherwise locked, but the dates are missing everywhere downstream (lot,
+  // บันทึก QC) and nothing can supply them — so the edit stays reachable purely
+  // to FILL the blanks. The server enforces the same rule: fill-only, never
+  // overwrite, and it audits the correction.
+  const lineHasDateGap = (line: GoodsReceiptLine) =>
+    !['created', 'checklist_done', 'qc_pending'].includes(line.status) &&
+    (!line.manufacturingDate || !line.expiryDate);
+
   // Save the edit form → PATCH the line. Empty optional fields are sent as null
   // so the user can clear a value; actualQuantity is only sent when numeric.
   function saveEditLine() {
     if (!editLine) return;
+
+    // Locked line being gap-filled: send ONLY the fields that are still blank,
+    // and only when the user actually typed something. Anything else (a value
+    // that is already recorded, a quantity, a variance reason) is rejected by
+    // the server, which is what keeps a "fill the blanks" edit from turning into
+    // a rewrite of an approved record.
+    if (lineHasDateGap(editLine)) {
+      const gap: Partial<GoodsReceiptLine> = {};
+      if (!editLine.vendorLotNumber && editForm.vendorLotNumber.trim())
+        gap.vendorLotNumber = editForm.vendorLotNumber.trim();
+      if (!editLine.batchNumber && editForm.batchNumber.trim())
+        gap.batchNumber = editForm.batchNumber.trim();
+      if (!editLine.manufacturingDate && editForm.manufacturingDate)
+        gap.manufacturingDate = editForm.manufacturingDate;
+      if (!editLine.expiryDate && editForm.expiryDate) gap.expiryDate = editForm.expiryDate;
+      if (Object.keys(gap).length === 0) {
+        setEditLine(null);
+        return;
+      }
+      updateLineMut.mutate({ lineId: editLine.id, patch: gap });
+      return;
+    }
+
     const qtyTrim = editForm.actualQuantity.trim();
     const qtyNum = Number(qtyTrim);
     const patch: Partial<GoodsReceiptLine> = {
@@ -529,7 +561,7 @@ export default function GrnDetailPage() {
                     (created → checklist_done → qc_pending), i.e. up to but not
                     including QC approval, so the vendor lot/expiry read off the
                     physical goods can be recorded even on an auto-created GRN. */}
-                {['created', 'checklist_done', 'qc_pending'].includes(line.status) && canRelease && (
+                {(['created', 'checklist_done', 'qc_pending'].includes(line.status) || lineHasDateGap(line)) && canRelease && (
                   <Button
                     type="default"
                     stylingMode="outlined"
@@ -538,7 +570,7 @@ export default function GrnDetailPage() {
                   >
                     <span className="flex items-center gap-1">
                       <Pencil className="w-4 h-4" />
-                      {t('actions.edit')}
+                      {lineHasDateGap(line) ? t('actions.fillMissingDates') : t('actions.edit')}
                     </span>
                   </Button>
                 )}
@@ -618,6 +650,14 @@ export default function GrnDetailPage() {
         data-testid="edit-line-popup"
       >
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          {/* Gap-fill mode: the line is locked, so say plainly that only the
+              blank fields are in play and that the change is audited. */}
+          {editLine && lineHasDateGap(editLine) && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 text-sm flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span data-testid="gap-fill-hint">{t('actions.gapFillHint')}</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1">{t('form.actualQuantity.label')}</label>
@@ -631,9 +671,10 @@ export default function GrnDetailPage() {
                   data-form-type="other"
                   min={0}
                   step="any"
+                  disabled={!!editLine && lineHasDateGap(editLine)}
                   value={editForm.actualQuantity}
                   onChange={(e) => setEditForm((f) => ({ ...f, actualQuantity: e.target.value }))}
-                  className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15"
+                  className="w-full rounded-[11px] border border-[#D9EFE4] bg-[#FBFEFC] px-3 py-2 text-[#0F2E22] placeholder:text-[#8AA79B] shadow-[0_1px_2px_rgba(6,78,59,0.04)] focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/15 disabled:bg-gray-100 disabled:text-gray-400"
                   placeholder={t('form.actualQuantity.label')}
                   data-testid="edit-actual-qty"
                 />

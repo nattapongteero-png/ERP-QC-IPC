@@ -6,8 +6,17 @@
  * sample already released) rendered as if it were still at the FIRST step —
  * i.e. the workflow bar showed no progress at all.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+
+// lucide-react's barrel pulls in thousands of modules; transforming it takes
+// minutes and the icons are irrelevant here — every assertion is about which
+// LABEL carries which state class. Stub it so this file runs in ~1s.
+vi.mock('lucide-react', () => {
+  const Icon = () => null;
+  return { Check: Icon, Clock: Icon, XCircle: Icon, default: Icon };
+});
+
 import { StatusStepper } from '@/components/shared/StatusStepper';
 
 const STEPS = [

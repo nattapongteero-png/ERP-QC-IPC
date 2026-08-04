@@ -140,6 +140,8 @@
   "actions": {
     "create": "Create GRN",
     "edit": "Edit",
+    "fillMissingDates": "Fill missing dates",
+    "gapFillHint": "This line is already QC-approved and cannot be edited — only fields still blank (Vendor Lot / Batch / Mfg / Exp) can be filled in. Recorded values are never overwritten, and the correction is written to the Audit Trail",
     "save": "Save",
     "cancel": "Cancel",
     "back": "Back",

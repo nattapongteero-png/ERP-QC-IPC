@@ -279,6 +279,47 @@ export async function autoCreateGrnForSource(opts: {
 // Update line actuals (variance calculation)
 // ============================================
 
+/** Line statuses during which the receiver may still edit the actuals freely. */
+export const GRN_LINE_EDITABLE_STATUSES = ['created', 'checklist_done', 'qc_pending'];
+
+/**
+ * Identity fields a LOCKED line may still have filled in. Deliberately excludes
+ * quantities, variance and everything else: this is "complete a blank", not
+ * "amend an approved record".
+ */
+export const GRN_GAP_FILLABLE_FIELDS = [
+  'vendorLotNumber',
+  'batchNumber',
+  'manufacturingDate',
+  'expiryDate',
+] as const;
+
+/**
+ * Is `patch` a permissible gap fill against `line`?
+ *
+ * Lines signed before mfg/expiry were mandatory carry NULLs that nothing can now
+ * correct — the line is locked, so the dates stay missing on the lot and in
+ * บันทึก QC forever. Immutability exists to protect what WAS recorded, not to
+ * freeze a blank, so a locked line may still have a currently-empty identity
+ * field FILLED IN. It may never be used to overwrite or blank a recorded value,
+ * and it may never carry any other field.
+ *
+ * Exported so the rule can be tested on its own — it is the boundary that stops
+ * a "fill the blanks" edit from becoming a rewrite of a QC-approved record.
+ */
+export function isGapFillPatch(
+  line: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): boolean {
+  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return false;
+  return entries.every(([k, v]) => {
+    if (!(GRN_GAP_FILLABLE_FIELDS as readonly string[]).includes(k)) return false;
+    // Target must currently be empty, and the new value must be a real value.
+    return line[k] == null && v !== null && v !== '';
+  });
+}
+
 export async function updateGrnLine(
   lineId: number,
   patch: UpdateGrnLineInput,
@@ -297,10 +338,15 @@ export async function updateGrnLine(
     // line must stay editable through the whole receiving window, not only at
     // 'created'. Allow edits up to (but not including) QC approval; once
     // qc_approved / released / rejected the actuals are locked.
-    if (!['created', 'checklist_done', 'qc_pending'].includes(line.status))
+    const editable = GRN_LINE_EDITABLE_STATUSES.includes(line.status);
+    // See isGapFillPatch: a locked line may still have a BLANK identity field
+    // completed, but never overwritten, and never alongside anything else.
+    const isGapFill = !editable && isGapFillPatch(line, patch as Record<string, unknown>);
+
+    if (!editable && !isGapFill)
       throw new GoodsReceiptError(
         GOODS_RECEIPT_ERROR_CODES.INVALID_TRANSITION,
-        'Line is no longer editable',
+        'Line is no longer editable — เมื่อ QC อนุมัติแล้ว แก้ได้เฉพาะข้อมูลระบุตัวล็อต (Vendor Lot / Batch / วันผลิต / วันหมดอายุ) ที่ยังว่างอยู่เท่านั้น',
       );
 
     // Compute variance
@@ -331,6 +377,49 @@ export async function updateGrnLine(
     if (patch.varianceReason !== undefined) updates.varianceReason = patch.varianceReason;
 
     await db.update(t.lines).set(updates).where(eq(t.lines.id, lineId));
+
+    // A gap fill has to reach the records that copied the blanks: the lots drawn
+    // from this line and the QC sample. Only NULL fields are touched, so a lot
+    // that already carries its own dates is never rewritten. (บันทึก QC also
+    // falls back to this line, so it shows the dates either way.)
+    if (isGapFill) {
+      const lotPatch: Record<string, unknown> = { updatedAt: getNow() };
+      if (updates.manufacturingDate !== undefined) lotPatch.manufacturingDate = updates.manufacturingDate;
+      if (updates.expiryDate !== undefined) lotPatch.expiryDate = updates.expiryDate;
+      if (updates.vendorLotNumber !== undefined) lotPatch.vendorLotNumber = updates.vendorLotNumber;
+      if (Object.keys(lotPatch).length > 1) {
+        await db
+          .update(t.inventoryLots)
+          .set(lotPatch)
+          .where(eq(t.inventoryLots.sourceGrnLineId, lineId));
+        await db
+          .update(t.qcSamples)
+          .set({
+            ...(updates.manufacturingDate !== undefined
+              ? { manufactureDate: updates.manufacturingDate }
+              : {}),
+            ...(updates.expiryDate !== undefined ? { expiryDate: updates.expiryDate } : {}),
+            updatedAt: getNow(),
+          })
+          .where(eq(t.qcSamples.sourceGrnLineId, lineId));
+      }
+
+      // 21 CFR Part 11: a correction to a locked record must say who, what and
+      // when. Best-effort — the fill itself must not fail on a logging problem.
+      try {
+        const { createAuditLog } = await import('../audit');
+        await createAuditLog({
+          userId: _userId,
+          action: 'UPDATE',
+          tableName: 'goods_receipt_lines',
+          recordId: lineId,
+          oldValue: Object.fromEntries(Object.keys(updates).filter((k) => k !== 'updatedAt').map((k) => [k, line[k] ?? null])),
+          newValue: { ...updates, _reason: 'gap-fill of missing lot identity on a locked line' },
+        });
+      } catch (err) {
+        console.warn('[goods-receipt] gap-fill audit log failed (non-fatal)', err);
+      }
+    }
 
     const fresh = await db.select().from(t.lines).where(eq(t.lines.id, lineId)).limit(1);
     return fresh[0] as GoodsReceiptLine;
