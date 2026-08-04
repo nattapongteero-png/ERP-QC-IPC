@@ -166,13 +166,22 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
     [points, formData.tolerancePercent],
   );
 
-  const setPoints = (next: CalibrationPoint[]) =>
-    setFormData((prev) => ({ ...prev, calibrationPoints: stringifyCalibrationPoints(next) }));
+  // Always derive the next list from the PREVIOUS form state, never from the
+  // `points` captured in this render: two clicks in the same tick both read the
+  // stale closure, so "add point" three times in a row only ever added one row.
+  const mutatePoints = (fn: (prev: CalibrationPoint[]) => CalibrationPoint[]) =>
+    setFormData((prev) => ({
+      ...prev,
+      calibrationPoints: stringifyCalibrationPoints(fn(parseCalibrationPoints(prev.calibrationPoints))),
+    }));
 
-  const updatePoint = (index: number, patch: Partial<CalibrationPoint>) => {
-    const next = points.map((p, i) => (i === index ? { ...p, ...patch } : p));
-    setPoints(next);
-  };
+  const addPoint = () =>
+    mutatePoints((prev) => [...prev, { nominalG: 0, indicatedG: 0, uncertaintyG: null }]);
+
+  const removePoint = (index: number) => mutatePoints((prev) => prev.filter((_, i) => i !== index));
+
+  const updatePoint = (index: number, patch: Partial<CalibrationPoint>) =>
+    mutatePoints((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
   // Fetch rooms for dropdown
   const { data: rooms } = useQuery<ProductionRoom[]>({
@@ -483,7 +492,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
                             <td className="py-1">
                               <button
                                 type="button"
-                                onClick={() => setPoints(points.filter((_, j) => j !== i))}
+                                onClick={() => removePoint(i)}
                                 className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                 title={f('calibration.removePoint')}
                                 aria-label={f('calibration.removePoint')}
@@ -501,7 +510,7 @@ function ProductionEquipmentFormInner({ mode, id, initialData, existingEquipment
 
                 <button
                   type="button"
-                  onClick={() => setPoints([...points, { nominalG: 0, indicatedG: 0, uncertaintyG: null }])}
+                  onClick={addPoint}
                   className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-900"
                   data-testid="calib-add-point"
                 >

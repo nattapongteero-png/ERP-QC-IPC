@@ -174,7 +174,9 @@ export default function IPCCriteriaPage() {
               </div>
             );
           }} />
-          <DxColumn caption={t('colActions')} width={100} alignment="center" cellRender={(cell) => (
+          {/* Same reason as the sample-size column: the caption has to fit, or the
+              header clips it ("การดำเนินการ" → "การดำเนิน"). */}
+          <DxColumn caption={t('colActions')} width={130} alignment="center" cellRender={(cell) => (
             <div className="flex gap-1 justify-center">
               <button onClick={() => router.push(`/master-data/ipc-criteria/${(cell.data as IPCCriteria).id}`)} className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title={t('edit')} aria-label={t('edit')}>
                 <Edit className="h-4 w-4" />
