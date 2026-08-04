@@ -209,7 +209,9 @@ export default function ProductionEquipmentPage() {
             const data = cell.data as ProductionEquipment;
             return data.room?.name || data.roomName || '-';
           }} />
-          <DxColumn dataField="isActive" caption="สถานะ" width={150} cellRender={(cell) => {
+          {/* Kept tight: this grid uses columnAutoWidth, so every extra pixel here
+              pushes the action column off the right edge at 1920. */}
+          <DxColumn dataField="isActive" caption="สถานะ" width={118} cellRender={(cell) => {
             const d = cell.data as ProductionEquipment;
             return (
               <div className="flex flex-col gap-1">
@@ -227,7 +229,7 @@ export default function ProductionEquipmentPage() {
               </div>
             );
           }} />
-          <DxColumn caption="การดำเนินการ" width={155} cellRender={(cell) => (
+          <DxColumn caption="การดำเนินการ" width={140} fixed fixedPosition="right" cellRender={(cell) => (
             <div className="flex gap-1">
               {/* Individual equipment log — 21 CFR 211.182 */}
               <button

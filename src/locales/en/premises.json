@@ -861,7 +861,7 @@
     "notVerified": "Awaiting check",
     "verify": "Check",
     "verifyHint": "The checker must be a different person from the performer (21 CFR 211.182)",
-    "takeOutOfService": "Take out of service",
+    "takeOutOfService": "Out of service",
     "returnToService": "Return to service",
     "outOfServiceWarning": "This equipment is under maintenance — it must not be used in production until returned to service",
     "formEquipment": "Equipment",

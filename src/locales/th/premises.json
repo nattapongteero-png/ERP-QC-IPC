@@ -861,7 +861,7 @@
     "notVerified": "รอทวนสอบ",
     "verify": "ทวนสอบ",
     "verifyHint": "ผู้ทวนสอบต้องเป็นคนละคนกับผู้ปฏิบัติงาน ตาม 21 CFR 211.182",
-    "takeOutOfService": "งดใช้งาน (ซ่อมบำรุง)",
+    "takeOutOfService": "งดใช้งาน",
     "returnToService": "คืนสภาพพร้อมใช้",
     "outOfServiceWarning": "อุปกรณ์นี้อยู่ระหว่างซ่อมบำรุง — ห้ามนำไปใช้ในไลน์ผลิตจนกว่าจะคืนสภาพ",
     "formEquipment": "อุปกรณ์",

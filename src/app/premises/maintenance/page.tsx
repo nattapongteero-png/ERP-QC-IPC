@@ -386,7 +386,9 @@ export default function EquipmentMaintenancePage() {
                   {statusLabel(cell.value as string)}
                 </span>
               )} />
-              <DxColumn caption={t('colActions')} width={190} cellRender={(cell) => {
+              {/* Wide enough for the longest label in either language — a clipped
+                  action button is how "งดใช้งาน (ซ่อมบำ…" happened. */}
+              <DxColumn caption={t('colActions')} width={210} cellRender={(cell) => {
                 const d = cell.data as ScheduleRow;
                 return (
                   <div className="flex flex-col gap-1">
