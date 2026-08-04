@@ -1440,6 +1440,70 @@ export const sqliteEquipmentInspections = sqliteTable('equipment_inspections', {
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 
+// ============================================================================
+// Production Equipment Maintenance — GMP maintenance register
+//
+// Deliberately separate from acct_maintenance_* (which hangs off
+// accounting_equipment): a GMP maintenance record and an asset maintenance
+// record are different documents with different retention, signatories and
+// audit expectations, and the accounting tables are in live use. The generic
+// maintenance_plan_templates table is shared by both.
+//
+// Fields follow 21 CFR 211.67 (written procedure must name the responsible
+// party, the schedule, and the method/materials) and 21 CFR 211.182 (the log
+// entry is dated and signed by the person performing AND the one checking).
+// ============================================================================
+
+// Preventive-maintenance plan for one production equipment.
+export const sqliteProductionMaintenanceSchedules = sqliteTable('production_maintenance_schedules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteProductionEquipment.id),
+  maintenanceType: text('maintenance_type').notNull().default('preventive'), // preventive | corrective | calibration
+  description: text('description'),
+  // Interval. 'days' covers the common case; months/weeks are converted on write.
+  intervalType: text('interval_type').notNull().default('days'), // days | weeks | months
+  intervalValue: integer('interval_value').notNull(),
+  // 211.67(a) — who is accountable for carrying this out.
+  responsibleUserId: integer('responsible_user_id').references(() => sqliteUsers.id),
+  responsibleRole: text('responsible_role'),
+  // 211.67(c) — how it is done and with what.
+  method: text('method'),
+  materials: text('materials'),
+  // Why THIS interval: criticality / manufacturer recommendation / history.
+  intervalRationale: text('interval_rationale'),
+  isCritical: integer('is_critical', { mode: 'boolean' }).notNull().default(false),
+  lastPerformedDate: text('last_performed_date'),
+  nextDueDate: text('next_due_date').notNull(),
+  alertDaysBefore: integer('alert_days_before').notNull().default(7),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdBy: integer('created_by').references(() => sqliteUsers.id),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+// One completed maintenance job. Closing a job rolls its schedule forward.
+export const sqliteProductionMaintenanceRecords = sqliteTable('production_maintenance_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  equipmentId: integer('equipment_id').notNull().references(() => sqliteProductionEquipment.id),
+  scheduleId: integer('schedule_id').references(() => sqliteProductionMaintenanceSchedules.id),
+  maintenanceType: text('maintenance_type').notNull().default('preventive'),
+  description: text('description').notNull(),
+  performedDate: text('performed_date').notNull(),
+  // What was actually done, with what — the record half of 211.67(c).
+  workDone: text('work_done'),
+  partsUsed: text('parts_used'),
+  downtimeMinutes: integer('downtime_minutes'),
+  result: text('result').notNull().default('completed'), // completed | failed | deferred
+  // 211.182 — performed by AND double-checked by, each dated.
+  performedByUserId: integer('performed_by_user_id').notNull().references(() => sqliteUsers.id),
+  performedAt: text('performed_at').notNull().default('CURRENT_TIMESTAMP'),
+  verifiedByUserId: integer('verified_by_user_id').references(() => sqliteUsers.id),
+  verifiedAt: text('verified_at'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
 // Environmental Conditions (Master Data) - Lookup table for environmental condition profiles
 export const sqliteEnvironmentalConditions = sqliteTable('environmental_conditions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -5140,6 +5204,50 @@ export const mysqlEquipmentInspections = mysqlTable('equipment_inspections', {
   performedByUserId: int('performed_by_user_id').references(() => mysqlUsers.id),
   nextDueDate: varchar('next_due_date', { length: 10 }),
   createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Production Equipment Maintenance - MySQL (see sqlite twin for the standards
+// each field comes from: 21 CFR 211.67 / 211.182, PIC/S Chapter 3)
+export const mysqlProductionMaintenanceSchedules = mysqlTable('production_maintenance_schedules', {
+  id: int('id').primaryKey().autoincrement(),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlProductionEquipment.id),
+  maintenanceType: varchar('maintenance_type', { length: 30 }).notNull().default('preventive'),
+  description: mysqlText('description'),
+  intervalType: varchar('interval_type', { length: 20 }).notNull().default('days'),
+  intervalValue: int('interval_value').notNull(),
+  responsibleUserId: int('responsible_user_id').references(() => mysqlUsers.id),
+  responsibleRole: varchar('responsible_role', { length: 50 }),
+  method: mysqlText('method'),
+  materials: mysqlText('materials'),
+  intervalRationale: mysqlText('interval_rationale'),
+  isCritical: mysqlBoolean('is_critical').notNull().default(false),
+  lastPerformedDate: varchar('last_performed_date', { length: 10 }),
+  nextDueDate: varchar('next_due_date', { length: 10 }).notNull(),
+  alertDaysBefore: int('alert_days_before').notNull().default(7),
+  isActive: mysqlBoolean('is_active').notNull().default(true),
+  createdBy: int('created_by').references(() => mysqlUsers.id),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const mysqlProductionMaintenanceRecords = mysqlTable('production_maintenance_records', {
+  id: int('id').primaryKey().autoincrement(),
+  equipmentId: int('equipment_id').notNull().references(() => mysqlProductionEquipment.id),
+  scheduleId: int('schedule_id').references(() => mysqlProductionMaintenanceSchedules.id),
+  maintenanceType: varchar('maintenance_type', { length: 30 }).notNull().default('preventive'),
+  description: mysqlText('description').notNull(),
+  performedDate: varchar('performed_date', { length: 10 }).notNull(),
+  workDone: mysqlText('work_done'),
+  partsUsed: mysqlText('parts_used'),
+  downtimeMinutes: int('downtime_minutes'),
+  result: varchar('result', { length: 20 }).notNull().default('completed'),
+  performedByUserId: int('performed_by_user_id').notNull().references(() => mysqlUsers.id),
+  performedAt: datetime('performed_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  verifiedByUserId: int('verified_by_user_id').references(() => mysqlUsers.id),
+  verifiedAt: datetime('verified_at'),
+  notes: mysqlText('notes'),
+  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Environmental Conditions (Master Data) - MySQL

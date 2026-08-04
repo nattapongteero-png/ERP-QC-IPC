@@ -52,6 +52,7 @@ import {
   Calculator,
   Landmark,
   Wrench,
+  Hammer,
   CalendarCheck,
   DollarSign,
   LayoutGrid,
@@ -163,7 +164,13 @@ const navigation: NavItem[] = [
       { name: 'Premises Overview', href: '/premises', icon: Building2 },
       { name: 'Storage Monitoring', href: '/premises/storage-monitoring', icon: Thermometer },
       { name: 'Environmental Inspection', href: '/premises/environmental/inspections', icon: Thermometer },
+      // GMP Chapter 3 asks for three equipment registers side by side: the
+      // equipment itself, its inspections, and its maintenance. The register
+      // points at the master-data page rather than duplicating it — one dataset
+      // behind two screens is what produces drift.
+      { name: 'Equipment Register', href: '/master-data/production-equipment', icon: Wrench },
       { name: 'Equipment Inspection', href: '/premises/equipment-inspection', icon: Scale },
+      { name: 'Equipment Maintenance', href: '/premises/maintenance', icon: Hammer },
       { name: 'Sanitation', href: '/premises/sanitation', icon: Sparkles },
       { name: 'Water Quality', href: '/premises/environmental/water-quality', icon: Droplets },
       { name: 'Maintenance Alerts', href: '/premises/notifications', icon: Bell },

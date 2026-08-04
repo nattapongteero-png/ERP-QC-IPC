@@ -5,13 +5,14 @@
  * Manages production equipment for GMP compliance.
  */
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResponsivePageHeader } from '@/components/shared';
 import { DxDataGrid, DxColumn, DxPaging, DxSearchPanel } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { useToast } from '@/hooks/use-toast';
-import { Wrench, Eye, Edit, Trash2 } from 'lucide-react';
+import { Wrench, Eye, Edit, Trash2, ClipboardList, AlertTriangle } from 'lucide-react';
 
 interface ProductionEquipment {
   id: number;
@@ -26,6 +27,8 @@ interface ProductionEquipment {
   room?: { name: string };
   description?: string;
   isActive: boolean;
+  /** 'active' | 'maintenance' | 'out_of_service' — set from the maintenance register. */
+  scaleStatus?: string;
 }
 
 // Distinct colour per equipment type so the Type column isn't a wall of
@@ -50,6 +53,7 @@ export default function ProductionEquipmentPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [lineFilter, setLineFilter] = useState<'all' | 'in_line' | 'off_line'>('all');
 
   // Fetch equipment
   const { data: equipment, isLoading } = useQuery<ProductionEquipment[]>({
@@ -103,6 +107,16 @@ export default function ProductionEquipmentPage() {
     );
   };
 
+  // Legacy rows carry a null lineCategory and are treated as in-line, so the
+  // in-line tab must match on "not off_line" rather than on "=== in_line".
+  const filteredEquipment = (equipment || []).filter((e) =>
+    lineFilter === 'all'
+      ? true
+      : lineFilter === 'off_line'
+        ? e.lineCategory === 'off_line'
+        : e.lineCategory !== 'off_line',
+  );
+
   // In-line vs off-line badge. Legacy rows have null → treated as in-line.
   const renderLineCategoryBadge = (value?: string) => {
     const offLine = value === 'off_line';
@@ -137,10 +151,36 @@ export default function ProductionEquipmentPage() {
         }
       />
 
+      {/* The register must cover BOTH in-line and off-line equipment (GMP Ch.3),
+          so the default is "all" and the tabs only narrow it. */}
+      <div className="flex flex-wrap gap-2">
+        {(['all', 'in_line', 'off_line'] as const).map((k) => (
+          <button
+            key={k}
+            onClick={() => setLineFilter(k)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              lineFilter === k
+                ? 'bg-purple-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+            data-testid={`equip-filter-${k}`}
+          >
+            {k === 'all' ? 'ทั้งหมด' : k === 'in_line' ? 'ในไลน์ผลิต' : 'นอกไลน์ผลิต'}
+            <span className="ml-2 text-xs opacity-70">
+              {k === 'all'
+                ? (equipment || []).length
+                : (equipment || []).filter((e) =>
+                    k === 'off_line' ? e.lineCategory === 'off_line' : e.lineCategory !== 'off_line',
+                  ).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Data Grid */}
       <div className="bg-white rounded-[18px] shadow-[0_6px_20px_rgba(6,78,59,0.07)] border border-emerald-100 p-4">
         <DxDataGrid
-          dataSource={(equipment || []).map((e, i) => ({ ...e, _rowNumber: i + 1 }))}
+          dataSource={filteredEquipment.map((e, i) => ({ ...e, _rowNumber: i + 1 }))}
           keyExpr="id"
           showBorders={false}
           rowAlternationEnabled
@@ -169,13 +209,35 @@ export default function ProductionEquipmentPage() {
             const data = cell.data as ProductionEquipment;
             return data.room?.name || data.roomName || '-';
           }} />
-          <DxColumn dataField="isActive" caption="สถานะ" width={100} cellRender={(cell) => (
-            <span className={`dx-cell-tag inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
-            </span>
-          )} />
-          <DxColumn caption="การดำเนินการ" width={120} cellRender={(cell) => (
+          <DxColumn dataField="isActive" caption="สถานะ" width={150} cellRender={(cell) => {
+            const d = cell.data as ProductionEquipment;
+            return (
+              <div className="flex flex-col gap-1">
+                <span className={`dx-cell-tag inline-flex w-fit px-2 py-0.5 rounded-full text-xs font-medium ${cell.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                  {cell.value ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                </span>
+                {/* Set from the maintenance register — a machine being worked on
+                    must be visible as unusable here too, not only over there. */}
+                {d.scaleStatus && d.scaleStatus !== 'active' && (
+                  <span className="dx-cell-tag inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">
+                    <AlertTriangle className="h-3 w-3" />
+                    {d.scaleStatus === 'maintenance' ? 'ซ่อมบำรุง' : 'งดใช้งาน'}
+                  </span>
+                )}
+              </div>
+            );
+          }} />
+          <DxColumn caption="การดำเนินการ" width={155} cellRender={(cell) => (
             <div className="flex gap-1">
+              {/* Individual equipment log — 21 CFR 211.182 */}
+              <button
+                onClick={() => router.push(`/premises/equipment-log/${(cell.data as ProductionEquipment).id}`)}
+                className="p-1.5 text-gray-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"
+                title="ประวัติรายเครื่อง"
+                aria-label="ประวัติรายเครื่อง"
+              >
+                <ClipboardList className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => handleEdit((cell.data as ProductionEquipment).id)}
                 className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"

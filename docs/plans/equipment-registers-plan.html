@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แผนงาน — ทะเบียนอุปกรณ์ / ตรวจสอบ / บำรุงรักษา</title>
+<style>
+  :root{
+    --ink:#0F2E22; --muted:#5B7A6C; --line:#D9EFE4; --bg:#FBFEFC;
+    --em:#047857; --em-bg:#ECFDF5; --warn:#B45309; --warn-bg:#FFFBEB;
+    --bad:#B91C1C; --bad-bg:#FEF2F2; --ok:#047857;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 20px 64px;
+    font-family:"Sarabun","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink); background:#fff; line-height:1.65;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+  header{border-bottom:3px solid var(--em);padding-bottom:16px;margin-bottom:8px}
+  h1{font-size:26px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:13px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+  h2{font-size:19px;margin:36px 0 12px;padding-left:11px;border-left:4px solid var(--em)}
+  h3{font-size:15px;margin:22px 0 8px}
+  p{margin:9px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--em-bg);font-weight:600;color:#064E3B}
+  tbody tr:nth-child(even){background:var(--bg)}
+  code{background:#F1F5F9;padding:1px 6px;border-radius:4px;font-size:13px;
+       font-family:ui-monospace,Menlo,Consolas,monospace}
+  .tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .ok{background:var(--em-bg);color:var(--ok);border:1px solid #A7F3D0}
+  .warn{background:var(--warn-bg);color:var(--warn);border:1px solid #FDE68A}
+  .bad{background:var(--bad-bg);color:var(--bad);border:1px solid #FECACA}
+  .box{border:1px solid var(--line);border-left:4px solid var(--em);background:var(--bg);
+       padding:13px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .box.w{border-left-color:var(--warn);background:var(--warn-bg)}
+  .box.b{border-left-color:var(--bad);background:var(--bad-bg)}
+  .box h4{margin:0 0 6px;font-size:14px}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  .phase{border:1px solid var(--line);border-radius:10px;padding:4px 18px 16px;margin:16px 0}
+  .phase>h3{border-bottom:1px solid var(--line);padding-bottom:8px}
+  .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+       border-radius:50%;background:var(--em);color:#fff;font-size:13px;margin-right:8px}
+  footer{margin-top:48px;padding-top:14px;border-top:1px solid var(--line);
+         font-size:12px;color:var(--muted)}
+  @media print{body{padding:0}.phase{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>แผนงาน — ทะเบียนอุปกรณ์ · ทะเบียนตรวจสอบ · ทะเบียนบำรุงรักษา</h1>
+  <div class="sub">Herbal ERP · โมดูล อาคารและสถานที่ + การผลิต</div>
+  <div class="meta">
+    <span><b>วันที่</b> 4 สิงหาคม 2569</span>
+    <span><b>ฐานอ้างอิง</b> commit 1884879c</span>
+    <span><b>มาตรฐาน</b> PIC/S GMP Chapter 3 (Premises &amp; Equipment)</span>
+  </div>
+</header>
+
+<h2>1. ข้อกำหนดที่ได้รับ</h2>
+<p><b>อาคารและสถานที่</b></p>
+<ol>
+  <li>ต้องมีทะเบียนอุปกรณ์ทั้งหมด ทั้งในไลน์และนอกไลน์</li>
+  <li>ต้องมีทะเบียนตรวจสอบอุปกรณ์</li>
+  <li>ต้องมีทะเบียนบำรุงรักษา</li>
+</ol>
+<p><b>การผลิต</b></p>
+<ol start="4">
+  <li>อุปกรณ์ที่ตั้งค่าไว้ว่าใช้ในไลน์ผลิต ต้องมาแสดงเป็นตัวเลือก</li>
+  <li>ในการบันทึกผลิตต้องมี card บันทึกตรวจอุปกรณ์ในไลน์ และมีหน้าบันทึก SOP ให้เลือก</li>
+</ol>
+
+<h2>2. ผลตรวจสอบระบบปัจจุบัน</h2>
+<table>
+  <thead><tr><th style="width:26%">ข้อกำหนด</th><th style="width:13%">สถานะ</th><th>ของจริงในระบบ</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>1. ทะเบียนอุปกรณ์</td>
+      <td><span class="tag warn">มี แต่ผิดเมนู</span></td>
+      <td><code>/master-data/production-equipment</code> รองรับ <code>lineCategory</code> แยก in_line / off_line ครบแล้ว แต่อยู่ใต้เมนู <b>ข้อมูลหลัก</b> ไม่ปรากฏใน <b>อาคารและสถานที่</b></td>
+    </tr>
+    <tr>
+      <td>2. ทะเบียนตรวจสอบอุปกรณ์</td>
+      <td><span class="tag ok">ครบแล้ว</span></td>
+      <td><code>/premises/equipment-inspection</code> — มีรอบตรวจ, checklist, ป้าย “ต้องตรวจก่อนใช้งานวันนี้”</td>
+    </tr>
+    <tr>
+      <td>3. ทะเบียนบำรุงรักษา</td>
+      <td><span class="tag bad">ขาด</span></td>
+      <td>มีเฉพาะฝั่งบัญชี ผูกกับ <code>accounting_equipment</code> — <b>อุปกรณ์ผลิตทำแผนและบันทึกซ่อมบำรุงไม่ได้เลย</b></td>
+    </tr>
+    <tr>
+      <td>4. อุปกรณ์ in-line เป็นตัวเลือก</td>
+      <td><span class="tag ok">ครบแล้ว</span></td>
+      <td><code>bom/[id]/configuration</code> กรอง <code>lineCategory=in_line</code></td>
+    </tr>
+    <tr>
+      <td>5. card ตรวจอุปกรณ์ + SOP</td>
+      <td><span class="tag ok">ครบแล้ว</span></td>
+      <td><code>ExecutionDashboard</code> มี card <code>equipment-inspection</code> และ card SOP แยกตาม phase</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box b">
+  <h4>ปัญหาโครงสร้างที่พบ — ระบบมีตารางอุปกรณ์ 3 ชุดแยกกัน</h4>
+  <table style="margin-top:8px">
+    <thead><tr><th>ตาราง</th><th>ใช้ทำอะไร</th><th>มีทะเบียนบำรุงรักษา</th></tr></thead>
+    <tbody>
+      <tr><td><code>production_equipment</code></td><td>อุปกรณ์ผลิต GMP (in/off-line, calibration, ตรวจสอบ)</td><td><span class="tag bad">ไม่มี</span></td></tr>
+      <tr><td><code>accounting_equipment</code></td><td>ทรัพย์สิน/บัญชี</td><td><span class="tag ok">มี</span> <code>acct_maintenance_schedules</code> + <code>_records</code></td></tr>
+      <tr><td><code>equipment</code></td><td>ตารางเก่า</td><td>มี <code>maintenance_records</code> แต่ไม่ได้ใช้งาน</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-bottom:0">ผลคือเครื่องชั่ง/เครื่องผสมที่ใช้ผลิตจริงไม่มีแผนบำรุงรักษา ขัดกับ PIC/S Chapter 3 · ระบบแจ้งเตือน <code>equipment_notifications</code> รองรับ <code>entityType='production_equipment'</code> ไว้แล้ว แต่ยิงได้แค่ “ถึงรอบตรวจสอบ” เพราะไม่มีตารางรอบบำรุงรักษาให้อ่าน</p>
+</div>
+
+<h2>3. งานวิจัยมาตรฐานสากล</h2>
+<p>ค้นข้อกำหนดจริงก่อนออกแบบ เพื่อไม่ให้ทำตามความเข้าใจเอาเอง</p>
+
+<table>
+  <thead><tr><th style="width:22%">มาตรฐาน</th><th>สาระที่บังคับ</th><th style="width:18%">ผลต่อระบบ</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>21 CFR 211.67</b><br><span class="sub">Equipment cleaning and maintenance</span></td>
+      <td>ต้องมี <b>ขั้นตอนเป็นลายลักษณ์อักษร</b> สำหรับทำความสะอาดและบำรุงรักษา ซึ่งต้องระบุ (ก) <b>ผู้รับผิดชอบ</b> (ข) <b>ตารางรอบ</b>การบำรุงรักษาและทำความสะอาด (ค) <b>รายละเอียดวิธี อุปกรณ์ และวัสดุ</b>ที่ใช้</td>
+      <td>แผนบำรุงรักษาต้องเก็บ ผู้รับผิดชอบ + วิธี/วัสดุ ไม่ใช่แค่รอบวัน</td>
+    </tr>
+    <tr>
+      <td><b>21 CFR 211.182</b><br><span class="sub">Equipment cleaning and use log</span></td>
+      <td>ต้องมี <b>log รายเครื่อง</b> บันทึกการทำความสะอาด การบำรุงรักษา และ<b>การใช้งาน</b> โดยแสดง <b>วันที่ เวลา ผลิตภัณฑ์ และเลข lot ของทุกแบตช์ที่ผลิต</b> · ผู้ปฏิบัติ <b>และผู้ทวนสอบ</b> ต้องลงวันที่และลงนามกำกับ</td>
+      <td>ต้องมีหน้า “ประวัติรายเครื่อง” รวมทุกเหตุการณ์ + ต้องมี<b>ลายเซ็น 2 คน</b>บนบันทึกซ่อมบำรุง</td>
+    </tr>
+    <tr>
+      <td><b>PIC/S GMP Chapter 3</b><br><span class="sub">Premises &amp; Equipment</span></td>
+      <td>อุปกรณ์ต้องถูกบำรุงรักษาให้เหมาะกับการใช้งาน ต้องมีขั้นตอนและ<b>บันทึก</b>ของการสอบเทียบ บำรุงรักษา และทำความสะอาด · ต้องมี<b>ตารางบำรุงรักษาเชิงป้องกัน</b>พร้อมบันทึกการทำเสร็จ</td>
+      <td>ยืนยันโครงสร้าง แผน (schedule) + บันทึก (record) แยกกัน</td>
+    </tr>
+    <tr>
+      <td><b>PIC/S / แนวปฏิบัติสากล</b><br><span class="sub">การกำหนดรอบ</span></td>
+      <td>ความถี่ควรอิงจาก <b>ความวิกฤตของอุปกรณ์ · คำแนะนำผู้ผลิต · ประวัติการใช้งาน</b> และต้องมี<b>เหตุผลกำกับ</b>ว่าทำไมเลือกรอบนี้</td>
+      <td>แผนต้องมีช่อง “เหตุผลของรอบ” และธง “อุปกรณ์วิกฤต”</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box b">
+  <h4>สิ่งที่งานวิจัยทำให้ต้องเพิ่มจากแผนเดิม</h4>
+  <ol style="margin-bottom:0">
+    <li><b>หน้าประวัติรายเครื่อง (Equipment Log)</b> — 211.182 บังคับให้มี log รายเครื่องที่รวมทั้งการทำความสะอาด บำรุงรักษา และการใช้งานพร้อมเลข lot · ข้อมูลมีอยู่แล้วใน <code>wo_cleaning_logs</code>, <code>wo_equipment_inspection</code>, <code>equipment_inspections</code>, <code>scale_verifications</code> แต่<b>ยังไม่มีหน้าไหนรวมให้ดูรายเครื่อง</b></li>
+    <li><b>ลายเซ็น 2 คนบนบันทึกซ่อมบำรุง</b> — ผู้ทำและผู้ทวนสอบ (เดิมวางไว้คนเดียว)</li>
+    <li><b>ช่องผู้รับผิดชอบ / วิธี / วัสดุ / เหตุผลของรอบ</b> ในแผนบำรุงรักษา ตาม 211.67</li>
+  </ol>
+</div>
+
+<h2>4. การตัดสินใจเชิงออกแบบ</h2>
+
+<div class="box">
+  <h4>ตัดสินใจ 1 — สร้างตารางบำรุงรักษาแยกสำหรับอุปกรณ์ผลิต ไม่แก้ตารางบัญชี</h4>
+  <p style="margin-bottom:0">บันทึกบำรุงรักษาของ GMP กับของทรัพย์สินบัญชีเป็นคนละเอกสารตามกฎหมาย อายุการเก็บ ผู้ลงนาม และ audit ต่างกัน และการแก้ตารางบัญชีที่ใช้งานจริงอยู่เสี่ยงเกินเหตุ · ส่วน <code>maintenance_plan_templates</code> เป็นตารางกลางไม่มี FK จึง<b>ใช้ร่วมกันได้</b> ไม่ต้องทำซ้ำ</p>
+</div>
+
+<div class="box">
+  <h4>ตัดสินใจ 2 — ไม่สร้างหน้าทะเบียนอุปกรณ์ซ้ำ</h4>
+  <p style="margin-bottom:0">ใช้หน้าเดิม เพิ่มลิงก์เข้าเมนูอาคารฯ และเพิ่มแท็บกรอง ทั้งหมด / ในไลน์ / นอกไลน์ · ข้อมูลชุดเดียวแต่มีสองหน้าจอคือที่มาของบั๊กแบบที่เจอมาแล้ว</p>
+</div>
+
+<div class="box w">
+  <h4>ตัดสินใจ 3 — เครื่องที่อยู่สถานะซ่อมบำรุง ห้ามเลือกใช้ในไลน์ผลิต</h4>
+  <p style="margin-bottom:0">ตาม GMP · ผลข้างเคียงที่ต้องระวัง: ถ้าหน้างานลืมปิดงานซ่อม เครื่องจะถูกกันไว้ จึงต้องปิดงานได้ง่ายและเห็นสถานะชัด</p>
+</div>
+
+<div class="box w">
+  <h4>ตัดสินใจ 4 — เลยกำหนดบำรุงรักษาแล้ว “เตือน” ยังไม่ “บล็อก”</h4>
+  <p style="margin-bottom:0">ใช้รูปแบบเดียวกับป้าย <code>preUseDueToday</code> ที่ทำไว้แล้ว · การบล็อกการผลิตกลางคันมีผลกระทบสูง ควรตกลงกันก่อนเปิดใช้</p>
+</div>
+
+<h2>5. แผนดำเนินการ</h2>
+
+<div class="phase">
+  <h3><span class="num">1</span>ทะเบียนอุปกรณ์เข้าเมนูอาคารและสถานที่</h3>
+  <table>
+    <thead><tr><th style="width:42%">งาน</th><th>ไฟล์</th></tr></thead>
+    <tbody>
+      <tr><td>เพิ่มเมนู “ทะเบียนอุปกรณ์” ใต้ อาคารและสถานที่</td><td><code>src/components/layout/sidebar.tsx</code></td></tr>
+      <tr><td>เพิ่มการ์ดในหน้า hub</td><td><code>src/app/premises/page.tsx</code></td></tr>
+      <tr><td>เพิ่มแท็บกรอง ทั้งหมด / ในไลน์ / นอกไลน์</td><td><code>src/app/master-data/production-equipment/page.tsx</code></td></tr>
+      <tr><td>i18n ทั้ง th และ en</td><td><code>src/locales/{th,en}/*.json</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="phase">
+  <h3><span class="num">2</span>ทะเบียนบำรุงรักษาอุปกรณ์ผลิต</h3>
+  <table>
+    <thead><tr><th style="width:42%">งาน</th><th>ไฟล์</th></tr></thead>
+    <tbody>
+      <tr><td>ตาราง <code>production_maintenance_schedules</code> + <code>_records</code> (sqlite + mysql)<br><span class="sub">schedule: ผู้รับผิดชอบ · วิธี/วัสดุ · เหตุผลของรอบ (211.67) · record: ลายเซ็น 2 คน (211.182)</span></td><td><code>src/lib/db/schema.ts</code></td></tr>
+      <tr><td>types + validation</td><td><code>src/types/</code>, <code>src/lib/validation/</code></td></tr>
+      <tr><td>service: แผน / บันทึกงาน / คำนวณรอบถัดไป / ปิดงาน</td><td><code>production-maintenance.service.ts</code> <i>(ใหม่)</i></td></tr>
+      <tr><td>ขยาย <code>applyTemplateToEquipment</code> ให้รับอุปกรณ์ผลิต</td><td><code>maintenance-plan-template.service.ts</code></td></tr>
+      <tr><td>API routes</td><td><code>/api/premises/maintenance/*</code> <i>(ใหม่)</i></td></tr>
+      <tr><td>หน้าทะเบียนบำรุงรักษา + บันทึกงานซ่อม</td><td><code>/premises/maintenance</code> <i>(ใหม่)</i></td></tr>
+      <tr><td>แจ้งเตือน “ถึงรอบบำรุงรักษา” ของอุปกรณ์ผลิต</td><td><code>equipment-notification.service.ts</code></td></tr>
+      <tr><td>กันเครื่องสถานะซ่อมบำรุงไม่ให้เลือกใช้ในไลน์</td><td><code>bom/[id]/configuration</code>, API อุปกรณ์</td></tr>
+      <tr><td>เทส: คำนวณรอบ · ปิดงานแล้วเลื่อนรอบ · กันเครื่องที่กำลังซ่อม</td><td><code>tests/lib/services/</code> <i>(ใหม่)</i></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="phase">
+  <h3><span class="num">3</span>หน้าประวัติรายเครื่อง — Equipment Log (21 CFR 211.182)</h3>
+  <p>รวมทุกเหตุการณ์ของอุปกรณ์หนึ่งเครื่องไว้ที่เดียว ตามที่กฎหมายบังคับให้มี log รายเครื่อง</p>
+  <table>
+    <thead><tr><th style="width:42%">งาน</th><th>แหล่งข้อมูล (มีอยู่แล้ว)</th></tr></thead>
+    <tbody>
+      <tr><td>การใช้งาน — แบตช์ไหนใช้เครื่องนี้ พร้อมวันที่/เวลา/ผลิตภัณฑ์/เลข lot</td><td><code>wo_equipment_inspection</code> + <code>wo_cleaning_logs</code> → <code>work_orders</code></td></tr>
+      <tr><td>การทำความสะอาด พร้อมผู้ทำ + ผู้ทวนสอบ</td><td><code>wo_cleaning_logs</code></td></tr>
+      <tr><td>การตรวจสอบ (ตามรอบ + ก่อนใช้งาน)</td><td><code>equipment_inspections</code>, <code>wo_equipment_inspection</code></td></tr>
+      <tr><td>การสอบเทียบ / ตรวจด้วยลูกตุ้ม</td><td><code>production_equipment.calibration*</code>, <code>scale_verifications</code></td></tr>
+      <tr><td>การบำรุงรักษา</td><td><i>ตารางใหม่จาก Phase 2</i></td></tr>
+      <tr><td>หน้าจอ timeline รวม + กรองตามชนิดเหตุการณ์ + พิมพ์ได้</td><td><code>/premises/equipment-log/[id]</code> <i>(ใหม่)</i></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="phase">
+  <h3><span class="num">4</span>ตรวจสอบและส่งมอบ</h3>
+  <ul>
+    <li><code>tsc</code> ต้องได้ 5 errors เท่า baseline · <code>eslint</code> ไฟล์ที่แก้ 0 errors</li>
+    <li>เทสชุดที่เกี่ยวข้องผ่านทั้งหมด · ไม่เพิ่ม failure จาก baseline เดิม</li>
+    <li>i18n ครบทั้ง th และ en ไม่มีข้อความ hardcode</li>
+    <li>แคปหน้าจอ 1920 / 1440 / 768 / 390 ทั้งสองภาษา</li>
+    <li><b>กดจริงใน Chrome</b> ไม่ใช่แค่ถ่ายรูป — ตรวจ console error และผลการกด</li>
+    <li>commit → push ทั้ง gitlab และ origin → build → deploy → ยืนยัน marker ที่ <code>/api/health</code></li>
+  </ul>
+</div>
+
+<h2>6. ความเสี่ยงที่รู้ล่วงหน้า</h2>
+<table>
+  <thead><tr><th style="width:34%">ความเสี่ยง</th><th>การรับมือ</th></tr></thead>
+  <tbody>
+    <tr><td>เพิ่มตารางใหม่แล้ว schema-sync ไม่สร้างให้</td><td>ใช้คอลัมน์ nullable หรือมี default ทุกช่อง แล้วตรวจด้วย <code>SHOW COLUMNS</code> บน UAT หลัง deploy</td></tr>
+    <tr><td>กันเครื่องสถานะซ่อมแล้วหน้างานผลิตไม่ได้</td><td>แสดงเหตุผลบนหน้าจอว่าเครื่องไหนถูกกันและเพราะอะไร + ปิดงานซ่อมได้จากหน้าเดียว</td></tr>
+    <tr><td>สับสนระหว่างทะเบียนบำรุงรักษา GMP กับของบัญชี</td><td>คนละเมนู คนละชื่อ และระบุที่หัวหน้าจอว่าอันนี้คือของอุปกรณ์ผลิต</td></tr>
+    <tr><td>ตารางอุปกรณ์ 3 ชุดยังอยู่</td><td>งานนี้ไม่รวมการยุบรวม — บันทึกไว้เป็นหนี้ทางเทคนิคที่ควรจัดการแยก</td></tr>
+  </tbody>
+</table>
+
+<h2>7. นอกขอบเขตงานนี้</h2>
+<ul>
+  <li>ยุบรวมตารางอุปกรณ์ 3 ชุดให้เหลือชุดเดียว</li>
+  <li>บล็อกการผลิตเมื่อเลยกำหนดบำรุงรักษา (ทำแค่เตือนก่อน)</li>
+  <li>เชื่อมต้นทุนงานซ่อมเข้าระบบบัญชี</li>
+</ul>
+
+<footer>
+  เอกสารนี้สร้างจากการตรวจสอบโค้ดจริง ไม่ใช่การประเมินจากเอกสาร · สถานะแต่ละข้อยืนยันด้วยการเปิดไฟล์และ query ฐานข้อมูล UAT
+</footer>
+
+</div>
+</body>
+</html>

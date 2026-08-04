@@ -19,6 +19,8 @@ import {
   Bell,
   Sparkles,
   Scale,
+  Wrench,
+  Hammer,
   ChevronRight,
 } from 'lucide-react';
 
@@ -41,6 +43,18 @@ const cards = [
     titleEn: 'Environmental Inspection',
     descKey: 'hub.environmentalInspection.desc',
   },
+  // The three equipment registers GMP Chapter 3 expects, in order: what we own,
+  // how it is inspected, how it is maintained. The register itself lives in
+  // master data — linked, not duplicated, so there is one dataset behind it.
+  {
+    href: '/master-data/production-equipment',
+    icon: Wrench,
+    iconBg: 'bg-purple-100',
+    iconColor: 'text-purple-600',
+    titleKey: 'hub.equipmentRegister.title',
+    titleEn: 'Equipment Register',
+    descKey: 'hub.equipmentRegister.desc',
+  },
   {
     href: '/premises/equipment-inspection',
     icon: Scale,
@@ -49,6 +63,15 @@ const cards = [
     titleKey: 'hub.equipmentInspection.title',
     titleEn: 'Equipment Inspection',
     descKey: 'hub.equipmentInspection.desc',
+  },
+  {
+    href: '/premises/maintenance',
+    icon: Hammer,
+    iconBg: 'bg-orange-100',
+    iconColor: 'text-orange-600',
+    titleKey: 'hub.equipmentMaintenance.title',
+    titleEn: 'Equipment Maintenance',
+    descKey: 'hub.equipmentMaintenance.desc',
   },
   {
     href: '/premises/sanitation',
