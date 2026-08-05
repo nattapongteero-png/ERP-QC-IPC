@@ -908,7 +908,8 @@ export class VmiSalesOrderService {
   async matchOrderLine(
     orderId: number,
     lineId: number,
-    itemId: number
+    itemId: number,
+    userId: number = 1
   ): Promise<VmiSalesOrderLine> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = (await this.getDb()) as any;
@@ -943,7 +944,7 @@ export class VmiSalesOrderService {
 
     // Bug L1: Audit log for line match update
     await createAuditLog({
-      userId: 1,
+      userId,
       action: 'UPDATE',
       tableName: 'vmi_sales_order_lines',
       recordId: lineId,

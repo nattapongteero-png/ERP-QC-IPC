@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
-import { VmiSalesOrderService } from '@/lib/services/vmi-sales-order.service';
+import { VmiSalesOrderService, VmiSalesOrderError } from '@/lib/services/vmi-sales-order.service';
 import { z } from 'zod';
 
 const matchLineSchema = z.object({
@@ -67,50 +67,20 @@ export async function POST(
         }, { status: 404 });
       }
 
-      // Verify item exists
-      const { isSqlite, getDb } = await import('@/lib/db');
-      const { sqliteItems, mysqlItems, sqliteVmiSalesOrderLines, mysqlVmiSalesOrderLines } = await import('@/lib/db/schema');
-      const { eq } = await import('drizzle-orm');
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const database = (await getDb()) as any;
-      const itemsTable = isSqlite() ? sqliteItems : mysqlItems;
-
-      const items = await database
-        .select()
-        .from(itemsTable)
-        .where(eq(itemsTable.id, data.itemId))
-        .limit(1);
-      const item = items[0];
-
-      if (!item) {
-        return NextResponse.json({
-          success: false,
-          error: 'Item not found',
-        }, { status: 404 });
-      }
-
-      // Update the line with the matched item
-      const linesTable = isSqlite() ? sqliteVmiSalesOrderLines : mysqlVmiSalesOrderLines;
-      const unitPriceValue = isSqlite()
-        ? item.sellingPrice
-        : (item.sellingPrice ? String(item.sellingPrice) : null);
-      const lineTotalValue = isSqlite()
-        ? (item.sellingPrice ? item.sellingPrice * line.quantity : null)
-        : (item.sellingPrice ? String(Number(item.sellingPrice) * line.quantity) : null);
-
-      await database
-        .update(linesTable)
-        .set({
-          matchedItemId: data.itemId,
-          matchMethod: 'manual',
-          unitPrice: unitPriceValue,
-          lineTotal: lineTotalValue,
-        })
-        .where(eq(linesTable.id, lineIdNum));
+      // The service owns the write: it sets the real columns (item_id,
+      // local_code, match_status) and writes the audit trail. Matching does NOT
+      // touch unit_price / line_total — the VMI Portal is the source of truth
+      // for order pricing, and those columns are NOT NULL.
+      const updatedLine = await service.matchOrderLine(
+        orderIdNum,
+        lineIdNum,
+        data.itemId,
+        session.userId
+      );
 
       // Get updated order
       const updatedOrder = await service.getOrderById(orderIdNum);
+      const matchedItem = updatedOrder?.lines?.find(l => l.id === lineIdNum)?.matchedItem;
 
       return NextResponse.json({
         success: true,
@@ -118,8 +88,8 @@ export async function POST(
           orderId: orderIdNum,
           lineId: lineIdNum,
           matchedItemId: data.itemId,
-          matchedItemCode: item.code,
-          matchedItemName: item.name,
+          matchedItemCode: matchedItem?.code ?? updatedLine.localCode ?? null,
+          matchedItemName: matchedItem?.nameTh ?? matchedItem?.nameEn ?? null,
           message: 'Line matched successfully',
           order: updatedOrder,
         },
@@ -133,6 +103,13 @@ export async function POST(
           error: 'Invalid request body',
           details: error.issues,
         }, { status: 400 });
+      }
+
+      if (error instanceof VmiSalesOrderError) {
+        return NextResponse.json({
+          success: false,
+          error: error.message,
+        }, { status: error.httpStatus });
       }
 
       return NextResponse.json({

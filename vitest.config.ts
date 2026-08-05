@@ -28,6 +28,14 @@ const byCpu = Math.max(1, os.cpus().length - 2); // leave 2 cores for OS/Docker
 // the cores it actually has — a low-RAM machine still lands well under 12.
 const WORKERS = Math.min(byCpu, byRam, 12);
 
+// We run vitest under Bun (no Node on the build machines). Bun's CJS interop
+// hands vite a namespace object for zod that has `default` but no named `z`, so
+// ANY test importing a src module that does `import { z } from 'zod'` died at
+// import time with "undefined is not an object (evaluating '...z.object')" —
+// which is why API-route tests could only ever assert on hand-written response
+// shapes. Inlining makes vite transform zod's own ESM, restoring named exports.
+const INLINE_DEPS = ['zod'];
+
 export default defineConfig({
   test: {
     globals: true,
@@ -61,6 +69,7 @@ export default defineConfig({
           include: ['tests/**/*.test.ts'],
           exclude: JSDOM_TS_TESTS,
           sequence: { shuffle: false },
+          server: { deps: { inline: INLINE_DEPS } },
         },
       },
       {
@@ -73,6 +82,7 @@ export default defineConfig({
           setupFiles: ['./tests/setup.ts'],
           include: ['tests/**/*.test.tsx', ...JSDOM_TS_TESTS],
           sequence: { shuffle: false },
+          server: { deps: { inline: INLINE_DEPS } },
         },
       },
     ],

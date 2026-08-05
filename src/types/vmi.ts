@@ -641,6 +641,16 @@ export interface VmiSalesOrderLine {
   unitPrice: number;
   lineTotal: number;
   matchStatus: VmiItemMatchStatus;
+  /**
+   * Joined local item, populated by getOrderById(). Absent on the plain row
+   * returned by matchOrderLine(), hence optional.
+   */
+  matchedItem?: {
+    id: number;
+    code: string;
+    nameTh: string;
+    nameEn?: string | null;
+  } | null;
 }
 
 export interface VmiSalesOrderDetail extends VmiSalesOrder {
