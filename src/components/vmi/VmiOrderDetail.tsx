@@ -378,7 +378,10 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
     {
       dataField: 'matchMethod',
       caption: t(`orderDetail.columns.matchMethod`),
-      width: 90,
+      // 90 cut "ด้วยตนเอง" to "ด้วยตนเ…". The column only ever renders once a
+      // line is matched, so the clipping was invisible until manual matching
+      // started working.
+      width: 120,
       cellRender: (cellInfo: DataGridTypes.ColumnCellTemplateData) => {
         if (!cellInfo.value) return '-';
         const methodLabels: Record<string, string> = {
@@ -660,6 +663,10 @@ export function VmiOrderDetail({ orderId, onClose, onConfirm, onShip }: VmiOrder
             keyExpr="id"
             height={300}
             sorting
+            // The columns total ~1350px, so on a 1440 laptop the last few sit
+            // behind the pinned action column. The grid already scrolls; the
+            // default 'onHover' scrollbar just never told anyone it did.
+            showScrollbar="always"
             noDataText={t(`orderDetail.noLines`)}
           />
         </CardContent>

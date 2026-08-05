@@ -36,6 +36,16 @@ pscp -batch -pw '<pw>' herbal-app-uat.tar.gz \
 ```
 ⚠️ Wi-Fi MTU ต้อง = 1300 ไม่งั้นค้างที่ 4kB · ใช้เวลา ~6 นาที
 
+⚠️ **บรรทัด `docker save | gzip >` ต้องรันใน bash เท่านั้น ห้ามรันใน PowerShell**
+PowerShell แปลง binary ที่ผ่าน `>` เป็น text — ได้ไฟล์ที่ขึ้นต้นด้วย BOM `EF BB BF`
+และมี `EF BF BD` (replacement char) แทรกอยู่ ขนาดใหญ่ผิดปกติ (810MB แทน ~505MB)
+อัปโหลดจนครบแล้วเพิ่งพังตอน `gunzip -t` บนเซิร์ฟเวอร์ = เสียเวลา ~10 นาทีฟรี
+
+```bash
+# ตรวจก่อนอัปโหลดทุกครั้ง — 2 วินาที กัน 10 นาที
+gzip -t herbal-app-uat.tar.gz && head -c 4 herbal-app-uat.tar.gz | xxd   # ต้องได้ 1f8b 0800
+```
+
 ## 3. Deploy
 
 ```bash

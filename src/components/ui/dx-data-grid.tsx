@@ -165,6 +165,11 @@ export interface DxDataGridProps<T = Record<string, unknown>> {
   columnChooser?: boolean;
   /** Enable virtual scrolling */
   virtualScrolling?: boolean;
+  /** Horizontal scrollbar visibility. DevExtreme defaults to 'onHover', which
+   *  hides the fact that a grid scrolls at all — set 'always' on grids whose
+   *  columns are wider than the card they sit in, so the user can see there is
+   *  more to the right. */
+  showScrollbar?: 'onScroll' | 'onHover' | 'always' | 'never';
   /** Enable search panel */
   searchPanel?: boolean;
   /** Row click handler */
@@ -260,6 +265,7 @@ export function DxDataGrid<T = Record<string, unknown>>({
   exportFileName = 'export',
   columnChooser = false,
   virtualScrolling = false,
+  showScrollbar,
   searchPanel = false,
   onRowClick,
   onRowDblClick,
@@ -363,8 +369,10 @@ export function DxDataGrid<T = Record<string, unknown>>({
         </>
       )}
 
-      {virtualScrolling && (
-        <Scrolling mode="virtual" rowRenderingMode="virtual" />
+      {virtualScrolling ? (
+        <Scrolling mode="virtual" rowRenderingMode="virtual" showScrollbar={showScrollbar} />
+      ) : (
+        showScrollbar && <Scrolling showScrollbar={showScrollbar} />
       )}
 
       {sorting && <Sorting mode="multiple" />}
