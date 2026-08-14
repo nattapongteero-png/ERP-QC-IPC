@@ -930,6 +930,9 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPayload }: RecordingProps) {
   const count = Math.min(Math.max(sampleSize, 1), 20);
   const target = formData.specTarget ?? (bounds ? (bounds.lo + bounds.hi) / 2 : 100);
+  // Only used to make the demo gross weights look like gross weights — a
+  // rough shell allowance. It is never shown as a tare, and never typed into
+  // the tare box, which the operator fills from the scale.
   const tareBase = target * 0.25;
   const sourceCode =
     specPayload?.type === 'multi_point' ? specPayload.tareSourceCode : '';
@@ -943,17 +946,24 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
     `g|${count}|${target}`,
     seeded,
   );
-  // The linked tare criterion is recorded once per batch or shift, so the
-  // operator does not retype it per point — it arrives already measured.
-  const [linkedTare, setLinkedTare] = React.useState(String(round(tareBase, 3)));
-  React.useEffect(() => setLinkedTare(String(round(tareBase, 3))), [tareBase]);
-  const tareValue = linkedTare.trim() === '' ? 0 : Number(linkedTare) || 0;
+  /**
+   * Typed by the operator, and starts empty.
+   *
+   * It used to open on `target × 0.25`, a ratio invented here that read like a
+   * measurement — and with no target set that came out as 25 from a fallback of
+   * 100. A number nobody weighed has no business seeding a column of nets, so
+   * the box stays blank until the shells are actually on the pan.
+   */
+  const [linkedTare, setLinkedTare] = React.useState('');
+  const tareEntered = linkedTare.trim() !== '';
+  const tareValue = tareEntered ? Number(linkedTare) || 0 : 0;
 
   const nets = gross.numbers.map((g) => g - tareValue);
-  const filledNets = nets.filter((_, i) => gross.values[i].trim() !== '');
+  const done = (i: number) => tareEntered && gross.values[i].trim() !== '';
+  const filledNets = nets.filter((_, i) => done(i));
   const { mean, sd, rsd } = stats(filledNets);
   const failCount = bounds
-    ? gross.values.filter((v, i) => v.trim() !== '' && (nets[i] < bounds.lo || nets[i] > bounds.hi)).length
+    ? gross.values.filter((_, i) => done(i) && (nets[i] < bounds.lo || nets[i] > bounds.hi)).length
     : 0;
   const pass = failCount <= allowedFail;
   const has = filledNets.length > 0;
@@ -986,7 +996,9 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
               className={cn(CELL_INPUT, 'w-28')}
               value={linkedTare}
               onChange={(e) => setLinkedTare(e.target.value)}
+              placeholder="ชั่งแล้วกรอก"
               aria-label="ค่า Tare"
+              data-testid="linked-tare-value"
             />
             <span className="text-[11px] text-[#bfbfbf]">
               {formData.unit || 'g'} · บันทึกครั้งเดียวต่อรุ่น ไม่ต้องชั่งซ้ำทุกจุด
@@ -1009,7 +1021,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
           <span className="truncate">Net (Gross − Tare)</span>
         </div>
         {gross.values.map((g, i) => {
-          const state = g.trim() === '' ? null : judge(nets[i], bounds);
+          const state = done(i) ? judge(nets[i], bounds) : null;
           return (
             <div key={i} className="grid grid-cols-[28px_1fr_1fr] items-center gap-2">
               <span className="text-[11px] text-[#bfbfbf]">{i + 1}</span>
@@ -1020,7 +1032,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
                 aria-label={`gross #${i + 1}`}
               />
               <div className={cn(FIELD_BOX, state && CELL_STATE[state])}>
-                {g.trim() === '' ? '—' : fmt(nets[i], 3)}
+                {done(i) ? fmt(nets[i], 3) : '—'}
               </div>
             </div>
           );
