@@ -58,6 +58,13 @@ export interface SharedSpecExtras {
    */
   stage: StageValue;
   useContext: string[];
+  /**
+   * What the sampling interval counts, for methods that count something other
+   * than minutes — systematic sampling takes every Nth unit, and only the
+   * plant knows whether N is tablets, bottles or pallets. The number itself
+   * stays in the checkIntervalMinutes column.
+   */
+  samplingUnit: string;
   sopStepRef: SopStepRef;
   triggers: Triggers;
   derivedCalcs: DerivedCalc[];
@@ -84,6 +91,12 @@ export interface UseContextOption {
   /** One line on the chip explaining when this context applies. */
   desc: string;
   /**
+   * QC stages this context belongs to. Receiving a raw material and releasing
+   * a finished batch are different jobs, and offering all eight everywhere
+   * asked the user to filter the list in their head.
+   */
+  stages: StageValue[];
+  /**
    * Triggers that make sense for this context. Selecting the context switches
    * these on and keeps the rest out of the way — it does not forbid them, so a
    * plant with its own procedure can still reach every trigger.
@@ -105,12 +118,14 @@ export interface UseContextOption {
 export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'incoming_material',
+    stages: ['raw_material'],
     label: 'รับวัตถุดิบเข้า',
     desc: 'ตรวจวัตถุดิบก่อนรับเข้าคลัง',
     triggers: ['oncePerBatch'],
   },
   {
     value: 'line_clearance',
+    stages: ['ipc'],
     label: 'ก่อนเริ่มผลิต / Line Clearance',
     desc: 'ตรวจความพร้อมก่อนเดินเครื่อง',
     triggers: ['milestone'],
@@ -118,12 +133,14 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   },
   {
     value: 'routine_ipc',
+    stages: ['ipc'],
     label: 'ระหว่างผลิต รอบปกติ',
     desc: 'สุ่มตรวจตามรอบตลอดการผลิต',
     triggers: ['time', 'quantity'],
   },
   {
     value: 'lot_change',
+    stages: ['raw_material', 'ipc'],
     label: 'หลังเปลี่ยน lot วัตถุดิบ',
     desc: 'ยืนยันคุณภาพหลังสลับล็อต',
     triggers: ['event'],
@@ -131,6 +148,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   },
   {
     value: 'changeover',
+    stages: ['ipc'],
     label: 'หลัง changeover / ปรับตั้งเครื่อง',
     desc: 'ตรวจหลังเปลี่ยนรุ่นหรือปรับพารามิเตอร์',
     triggers: ['event'],
@@ -138,6 +156,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   },
   {
     value: 'release',
+    stages: ['fg_release'],
     label: 'ก่อนปิดรุ่น / ปล่อยผ่าน',
     desc: 'ตรวจสรุปก่อนปล่อยผลิตภัณฑ์',
     triggers: ['milestone', 'oncePerBatch'],
@@ -145,6 +164,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   },
   {
     value: 'validation',
+    stages: ['ipc', 'fg_release'],
     label: 'ทวนสอบกระบวนการ (Process Validation)',
     desc: 'เก็บข้อมูลถี่กว่าปกติเพื่อพิสูจน์กระบวนการ',
     triggers: ['time', 'milestone'],
@@ -152,6 +172,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   },
   {
     value: 'investigation',
+    stages: ['raw_material', 'ipc', 'fg_release'],
     label: 'สอบสวนผลผิดปกติ (OOS)',
     desc: 'ตรวจเพิ่มเมื่อผลหลุดเกณฑ์',
     triggers: ['event'],
@@ -166,6 +187,11 @@ const LEGACY_USE_CONTEXT: Record<string, string> = {
   routine: 'routine_ipc',
   troubleshoot: 'investigation',
 };
+
+/** The contexts that apply to a stage, in list order. */
+export function contextOptionsForStage(stage: StageValue): UseContextOption[] {
+  return USE_CONTEXT_OPTIONS.filter((o) => o.stages.includes(stage));
+}
 
 /** Triggers recommended by the contexts currently selected, as a union. */
 export function triggersForContexts(values: string[]): Set<TriggerKey> {
@@ -197,6 +223,7 @@ export function defaultSharedExtras(): SharedSpecExtras {
   return {
     stage: 'ipc',
     useContext: [],
+    samplingUnit: '',
     sopStepRef: { sopCode: '', sopVersion: '', stepNumber: '', stepDescription: '', link: '' },
     triggers: {
       time: { on: false, every: '' },
@@ -247,7 +274,14 @@ export function parseSharedExtras(raw: unknown): SharedSpecExtras {
     ? (obj.derivedCalcs as unknown[]).filter(isObject).map(parseDerivedCalc)
     : [];
 
-  return { stage: parseStage(obj.stage), useContext, sopStepRef, triggers, derivedCalcs };
+  return {
+    stage: parseStage(obj.stage),
+    useContext,
+    samplingUnit: typeof obj.samplingUnit === 'string' ? obj.samplingUnit : '',
+    sopStepRef,
+    triggers,
+    derivedCalcs,
+  };
 }
 
 function parseTriggers(raw: unknown): Triggers {
@@ -381,6 +415,13 @@ export interface MultiPointPayload {
    * weighs 10 shells against 20 filled capsules.
    */
   tareCount: string;
+  /**
+   * What the tare step is called on the recording screen — e.g. "น้ำหนัก
+   * แคปซูลเปล่า เบอร์ 0". A criterion may weigh shells, lids or trays; the
+   * operator needs to be told which, and only the person writing the
+   * criterion knows. Blank falls back to a generic wording.
+   */
+  tareLabel: string;
   /** Filled units measured — the sample the verdict is taken on. */
   pointCount: string;       // e.g. "20"
   pointLabel: string;       // e.g. "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...
@@ -550,6 +591,7 @@ function validatePayload(obj: Record<string, unknown>): SpecPayload | null {
       // Records saved before this field existed were all per-unit.
       tareMode: obj.tareMode === 'bulk' ? 'bulk' : 'per_unit',
       tareCount: typeof obj.tareCount === 'string' ? obj.tareCount : String(obj.tareCount ?? '10'),
+      tareLabel: typeof obj.tareLabel === 'string' ? obj.tareLabel : '',
       pointCount: typeof obj.pointCount === 'string' ? obj.pointCount : String(obj.pointCount ?? '20'),
       pointLabel: typeof obj.pointLabel === 'string' ? obj.pointLabel : '',
       perPointTarget: typeof obj.perPointTarget === 'string' ? obj.perPointTarget : String(obj.perPointTarget ?? ''),
@@ -652,6 +694,7 @@ export function defaultPayload(criteriaType: string): SpecPayload | null {
       type: 'multi_point',
       tareMode: 'per_unit',
       tareCount: '10',
+      tareLabel: '',
       pointCount: '20', pointLabel: 'จุด', perPointTarget: '', perPointTolerance: '',
       aggregateRule: 'all_pass', aggregateLimit: '', tareSourceCode: '',
     };

@@ -178,6 +178,33 @@ function jitter(i: number): number {
   return s - Math.floor(s);
 }
 
+/**
+ * How many rows a count field asks for.
+ *
+ * `Number('0') || fallback` is 0-is-falsy, so a sample size of 0 used to fall
+ * back to the default and the preview showed ten boxes for a criterion that
+ * asks for none. An empty field still falls back — nothing has been said yet —
+ * but a typed zero means zero.
+ */
+function rowCount(raw: string | undefined, fallback: number, max: number): number {
+  const text = (raw ?? '').trim();
+  const n = text === '' ? fallback : Number(text);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.floor(n), max);
+}
+
+/** Shown in place of a table the spec has asked to be empty. */
+function NoRows({ what }: { what: string }) {
+  return (
+    <p
+      data-testid="preview-no-rows"
+      className="rounded-[12px] border border-dashed border-[#e1e4e8] px-3 py-4 text-center text-[11px] text-[#bfbfbf]"
+    >
+      {what} = 0 — ยังไม่มีช่องให้บันทึก กำหนดจำนวนก่อน
+    </p>
+  );
+}
+
 function stats(values: number[]) {
   const n = values.length;
   if (n === 0) return { mean: 0, sd: 0, rsd: 0 };
@@ -669,8 +696,9 @@ function RecordingArea(props: RecordingProps) {
       return <TareAverageRecorder {...props} />;
     case 'friability':
       return <FriabilityRecorder {...props} />;
-    case 'checklist':
     case 'pass_fail':
+      return <PassFailRecorder {...props} />;
+    case 'checklist':
       return <ChecklistRecorder {...props} />;
     case 'text':
       return <TextRecorder {...props} />;
@@ -726,7 +754,7 @@ function judge(v: number, bounds: { lo: number; hi: number } | null): 'pass' | '
 
 // Per-unit grid — n samples, mean/SD/%RSD and the accept/reject count.
 function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData }: RecordingProps) {
-  const count = Math.min(Math.max(sampleSize, 1), 30);
+  const count = Math.min(Math.max(sampleSize, 0), 30);
   const base = bounds ? (bounds.lo + bounds.hi) / 2 : (formData.specTarget ?? 100);
   const spread = bounds ? (bounds.hi - bounds.lo) / 2 : base * 0.05;
 
@@ -749,6 +777,7 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData }: Recordin
   return (
     <>
       <div className={RECORD_BOX}>
+        {count === 0 && <NoRows what="Sample Size" />}
         <CellGrid>
           {values.map((v, i) => (
             <Cell
@@ -786,9 +815,12 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData }: Recordin
  */
 function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, unit }: RecordingProps) {
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
-  const tareRows = Math.min(Math.max(Number(mp?.tareCount ?? '') || 10, 1), 20);
-  const sampleRows = Math.min(Math.max(Number(mp?.pointCount ?? '') || sampleSize, 1), 20);
+  const tareRows = rowCount(mp?.tareCount, 10, 20);
+  const sampleRows = rowCount(mp?.pointCount, sampleSize, 20);
   const noun = (mp?.pointLabel || 'เม็ด').trim();
+  // Whatever the criterion calls this weighing — a shell, a lid, a tray. The
+  // recording screen has to say the same thing the criterion says.
+  const tareTitle = (mp?.tareLabel || '').trim() || 'ชั่งแคปซูลเปล่า';
   const target = Number(mp?.perPointTarget ?? '') || formData.specTarget || 0;
   const shellBase = target > 0 ? target * 0.2 : 0;
   const seeded = target > 0;
@@ -852,7 +884,8 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
     <>
       {/* ── ตาราง Tare ─────────────────────────────────────── */}
       <div className={RECORD_BOX}>
-        {step(1, `ชั่งแคปซูลเปล่า ${tareRows} ชิ้น ก่อนบรรจุ`)}
+        {step(1, `${tareTitle} — ${tareRows} ตัวอย่าง ก่อนบรรจุ`)}
+        {tareRows === 0 && <NoRows what="จำนวนเปลือกที่ชั่ง (Tare)" />}
         <CellGrid>
           {shell.values.map((v, i) => (
             <Cell
@@ -873,7 +906,8 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 
       {/* ── ตาราง Sample ───────────────────────────────────── */}
       <div className={RECORD_BOX}>
-        {step(2, `ชั่งแคปซูลที่บรรจุแล้ว ${sampleRows} ${noun} — ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
+        {step(2, `ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง · ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
+        {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
         <div className="grid grid-cols-[24px_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
@@ -928,7 +962,8 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 
 // Matched-pair tare — gross and tare weighed for the same unit; net is derived.
 function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPayload }: RecordingProps) {
-  const count = Math.min(Math.max(sampleSize, 1), 20);
+  const mp = specPayload?.type === 'multi_point' ? specPayload : null;
+  const count = rowCount(mp?.pointCount, sampleSize, 20);
   const target = formData.specTarget ?? (bounds ? (bounds.lo + bounds.hi) / 2 : 100);
   // Only used to make the demo gross weights look like gross weights — a
   // rough shell allowance. It is never shown as a tare, and never typed into
@@ -1011,10 +1046,11 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
             2
           </span>
           <span className="text-[11px] font-medium text-slate-700">
-            ชั่งน้ำหนักรวมของแต่ละ{pointLabel} — ระบบหัก Tare ให้เป็น Net
+            ตารางการบันทึกผล — ชั่งรวมของแต่ละ{pointLabel} · ระบบหัก Tare ให้เป็น Net
           </span>
         </div>
 
+        {count === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
         <div className="grid grid-cols-[28px_1fr_1fr] gap-2 px-1 text-[11px] text-[#bfbfbf]">
           <span>#</span>
           <span className="truncate">Gross</span>
@@ -1062,9 +1098,12 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
  */
 function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: RecordingProps) {
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
-  const tareBatch = Math.max(Number(mp?.tareCount ?? '') || 10, 1);
-  const sampleRows = Math.min(Math.max(Number(mp?.pointCount ?? '') || 10, 1), 20);
+  const tareBatch = rowCount(mp?.tareCount, 10, 999);
+  const sampleRows = rowCount(mp?.pointCount, 10, 20);
   const noun = (mp?.pointLabel || 'เม็ด').trim();
+  // Whatever the criterion calls this weighing — a shell, a lid, a tray. The
+  // recording screen has to say the same thing the criterion says.
+  const tareTitle = (mp?.tareLabel || '').trim() || 'ชั่งแคปซูลเปล่า';
   const target = Number(mp?.perPointTarget ?? '') || formData.specTarget || 0;
   const shellBase = target > 0 ? target * 0.2 : 0;
   const seeded = target > 0;
@@ -1113,7 +1152,8 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
     <>
       {/* ── ① Tare รวม — ชั่งครั้งเดียว ─────────────────────── */}
       <div className={RECORD_BOX}>
-        {step(1, `ชั่งแคปซูลเปล่า ${tareBatch} ชิ้น พร้อมกัน ก่อนบรรจุ`)}
+        {step(1, `${tareTitle} — ${tareBatch} ตัวอย่าง พร้อมกัน ก่อนบรรจุ`)}
+        {tareBatch === 0 && <NoRows what="จำนวนเปลือกที่ชั่ง (Tare)" />}
         <Cell
           label={`น้ำหนักรวมแคปซูลเปล่า${u}`}
           value={shell.values[0] ?? ''}
@@ -1131,7 +1171,8 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
 
       {/* ── ② ตาราง Sample — เหมือนโหมดชั่งทีละเม็ดทุกประการ ── */}
       <div className={RECORD_BOX}>
-        {step(2, `ชั่งแคปซูลที่บรรจุแล้ว ${sampleRows} ${noun} — ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
+        {step(2, `ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง · ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
+        {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
         <div className="grid grid-cols-[24px_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
@@ -1298,6 +1339,124 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
 }
 
 // Checklist / pass-fail — a tick per inspection point or per sampled unit.
+/**
+ * Pass / Fail — judged against the two definitions the criterion carries.
+ *
+ * This used to borrow the visual checklist, which showed a column of ticked
+ * boxes labelled "ตัวอย่าง #1…" and nothing else. It never said what passing
+ * meant, and every box arrived already ticked, so the screen answered the
+ * question before the operator had looked at anything.
+ *
+ * The definitions come first, because they are what the operator compares
+ * against; the verdict is then two explicit buttons per sample, neither of
+ * them preselected.
+ */
+function PassFailRecorder({ specPayload, sampleSize, allowedFail }: RecordingProps) {
+  const pf = specPayload?.type === 'pass_fail' ? specPayload : null;
+  const count = Math.min(Math.max(sampleSize, 1), 20);
+  const [verdicts, setVerdicts] = React.useState<(boolean | null)[]>(() =>
+    Array.from({ length: count }, () => null),
+  );
+  React.useEffect(
+    () => setVerdicts(Array.from({ length: count }, () => null)),
+    [count],
+  );
+
+  const judged = verdicts.filter((v) => v !== null).length;
+  const failCount = verdicts.filter((v) => v === false).length;
+  const passCount = verdicts.filter((v) => v === true).length;
+  const done = judged === count;
+  const pass = failCount <= allowedFail;
+
+  const set = (i: number, v: boolean) =>
+    setVerdicts((prev) => prev.map((old, idx) => (idx === i ? (old === v ? null : v) : old)));
+
+  const Definition = ({
+    tone,
+    title,
+    text,
+  }: {
+    tone: 'pass' | 'fail';
+    title: string;
+    text: string;
+  }) => (
+    <div
+      className={cn(
+        'flex min-w-0 flex-1 flex-col gap-1.5 rounded-[12px] border p-3',
+        tone === 'pass' ? 'border-[#a7e0bd] bg-[#e8f7ee]' : 'border-[#f0b4ae] bg-[#fbeceb]',
+      )}
+    >
+      <span
+        className={cn(
+          'text-[11px] font-bold',
+          tone === 'pass' ? 'text-[#1a8a4a]' : 'text-[#c0362c]',
+        )}
+      >
+        {title}
+      </span>
+      <span className={cn('text-xs leading-relaxed', text ? 'text-slate-700' : 'text-[#bfbfbf]')}>
+        {text || 'ยังไม่ได้กำหนดในเกณฑ์'}
+      </span>
+    </div>
+  );
+
+  return (
+    <>
+      {/* What the operator is judging against. */}
+      <div className={RECORD_BOX} data-testid="pass-fail-definitions">
+        <p className="text-[11px] font-medium text-slate-700">เทียบกับเกณฑ์นี้</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Definition tone="pass" title="ผ่าน (PASS)" text={pf?.passDefinition ?? ''} />
+          <Definition tone="fail" title="ไม่ผ่าน (FAIL)" text={pf?.failDefinition ?? ''} />
+        </div>
+      </div>
+
+      {/* The verdict itself. */}
+      <div className={RECORD_BOX}>
+        <p className="text-[11px] font-medium text-slate-700">
+          ตัดสินทีละตัวอย่าง — {count} ตัวอย่าง
+        </p>
+        {verdicts.map((v, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-[11px] text-[#bfbfbf]">ตัวอย่าง {i + 1}</span>
+            {([true, false] as const).map((want) => {
+              const on = v === want;
+              return (
+                <button
+                  type="button"
+                  key={String(want)}
+                  aria-pressed={on}
+                  aria-label={`ตัวอย่าง ${i + 1} ${want ? 'ผ่าน' : 'ไม่ผ่าน'}`}
+                  data-testid={`pf-${i}-${want ? 'pass' : 'fail'}`}
+                  onClick={() => set(i, want)}
+                  className={cn(
+                    'h-9 flex-1 rounded-[10px] border text-xs font-semibold transition-colors',
+                    on && want && 'border-[#1a8a4a] bg-[#1a8a4a] text-white',
+                    on && !want && 'border-[#c0362c] bg-[#c0362c] text-white',
+                    !on && 'border-[#e5e7eb] bg-[#f9fafb] text-slate-500 hover:border-[#9db9e8]',
+                  )}
+                >
+                  {want ? 'PASS' : 'FAIL'}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <StatRow>
+        <StatCard label="ผ่าน" value={String(passCount)} />
+        <StatCard label="ไม่ผ่าน" value={String(failCount)} />
+        <StatCard label="เสียได้" value={String(allowedFail)} />
+        <StatCard label="ยังไม่ตัดสิน" value={String(count - judged)} />
+      </StatRow>
+      {/* No verdict until every sample has one — a batch cannot be passed on
+          the strength of the samples nobody looked at. */}
+      <ResultBar pass={done ? pass : null} note={done ? undefined : 'ตัดสินให้ครบทุกตัวอย่างก่อน'} />
+    </>
+  );
+}
+
 function ChecklistRecorder({ template, specPayload, sampleSize, allowedFail }: RecordingProps) {
   const items = React.useMemo(() => {
     if (template === 'checklist' && specPayload?.type === 'visual') {

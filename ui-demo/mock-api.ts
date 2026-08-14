@@ -19,7 +19,10 @@ const GMP_DOCUMENTS = [
  * state and the "create one here" flow are the part worth reviewing, and a
  * pre-filled list would hide both.
  */
-const IPC_CRITERIA: { id: number; code: string; name: string; criteriaType: string }[] = [];
+const IPC_CRITERIA: {
+  id: number; code: string; name: string; criteriaType: string;
+  unit: string | null; specification: string | null;
+}[] = [];
 let nextCriteriaId = 900;
 
 const json = (body: unknown) =>
@@ -40,11 +43,15 @@ export function installMockApi() {
         // A tare created from the Multi-Point section has to come back out of
         // the list, or the demo could not show it being linked.
         if (sent.criteriaType === 'tare') {
+          // Unit and specification are kept too: the Multi-Point section reads
+          // them back to describe the tare it just linked.
           const row = {
             id: (nextCriteriaId += 1),
             code: String(sent.code ?? ''),
             name: String(sent.name ?? ''),
             criteriaType: 'tare',
+            unit: sent.unit ?? null,
+            specification: sent.specification ?? null,
           };
           IPC_CRITERIA.push(row);
           return json({ success: true, data: row });

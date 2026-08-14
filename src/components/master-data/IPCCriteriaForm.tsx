@@ -63,6 +63,7 @@ import {
   type Triggers,
   type DerivedCalc,
   USE_CONTEXT_OPTIONS,
+  contextOptionsForStage,
   triggersForContexts,
   type TriggerKey,
 } from '@/lib/master-data/ipc-spec-payload';
@@ -232,6 +233,8 @@ function CheckIntervalChips({
   onChange,
   theme,
   cadence,
+  unit,
+  onUnitChange,
 }: {
   value: number | null;
   onChange: (value: number | null) => void;
@@ -239,6 +242,9 @@ function CheckIntervalChips({
   theme: StageTheme;
   /** Sampling rhythm implied by the selected method. */
   cadence: SamplingCadence;
+  /** What the interval counts, for methods that do not count minutes. */
+  unit: string;
+  onUnitChange: (unit: string) => void;
 }) {
   const presets = cadence.presets;
   const isPreset = value != null && presets.includes(value);
@@ -303,7 +309,9 @@ function CheckIntervalChips({
               )}
             >
               <span className={cn('text-base font-bold', theme.chip.text)}>{minutes}</span>
-              <span className="text-[10px] text-black/40">นาที</span>
+              <span className="text-[10px] text-black/40">
+                {cadence.mode === 'interval' ? (unit || 'หน่วย') : 'นาที'}
+              </span>
             </button>
           );
         })}
@@ -332,7 +340,9 @@ function CheckIntervalChips({
               )}
               placeholder="—"
             />
-            <span className="text-[10px] text-black/40">นาที</span>
+            <span className="text-[10px] text-black/40">
+              {cadence.mode === 'interval' ? (unit || 'หน่วย') : 'นาที'}
+            </span>
           </div>
         ) : (
           <button
@@ -345,8 +355,43 @@ function CheckIntervalChips({
             }}
             className={cn(INTERVAL_CHIP, INTERVAL_CHIP_OFF)}
           >
-            <span className="text-[13px] text-[#bfbfbf]">ระบุเวลาเอง</span>
+            <span className="text-[13px] text-[#bfbfbf]">
+              {cadence.mode === 'interval' ? 'ระบุระยะเอง' : 'ระบุเวลาเอง'}
+            </span>
           </button>
+        )}
+
+        {/* The unit belongs beside the number, not under it: "20" and "ชิ้น"
+            are one statement, and splitting them made the row read as a
+            finished answer with a stray question underneath. Disabled until
+            there is a number for it to qualify. */}
+        {cadence.mode === 'interval' && (
+          <label className="flex items-center gap-2">
+            <span className="text-[13px] text-[#bfbfbf]">
+              หน่วย <span className="text-[#e32727]">*</span>
+            </span>
+            <select
+              aria-label="หน่วยของระยะ"
+              data-testid="sampling-unit"
+              disabled={value == null}
+              value={unit}
+              onChange={(e) => onUnitChange(e.target.value)}
+              className={cn(
+                INTERVAL_CHIP,
+                'cursor-pointer appearance-none pl-4 pr-8 text-[13px] font-medium',
+                unit ? cn('ring-2', theme.chip.on, theme.chip.text) : INTERVAL_CHIP_OFF,
+                !unit && 'text-[#bfbfbf]',
+                value == null && 'cursor-not-allowed opacity-50',
+              )}
+            >
+              <option value="">เลือกหน่วย…</option>
+              {(cadence.units ?? []).map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
       </div>
     </div>
@@ -891,6 +936,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     setIsCustomName(false);
     setAutoFilled(new Set());
     setAutoFillNote('');
+    // The form is blank again, so the retest budget is unchosen again — the
+    // "1" left in formData is the column default, not a decision.
+    setRetestChosen(mode === 'edit');
+    setRetestCustom(false);
+    setRetestMissingShown(false);
   };
 
   /** Anything the user would be upset to lose. */
@@ -902,6 +952,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         formData.specTarget != null ||
         formData.gmpDocumentId != null ||
         (mode === 'create' && formData.code) ||
+        sharedExtras.useContext.length > 0 ||
         criteriaType !== 'numeric' ||
         stages.length > 0 ||
         Object.values(sharedExtras.sopStepRef).some((v) => v.trim() !== ''),
@@ -1203,6 +1254,43 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const recommendedTriggers = React.useMemo(
     () => triggersForContexts(sharedExtras.useContext),
     [sharedExtras.useContext],
+  );
+
+  /**
+   * Only the contexts that belong to the chosen stage. A criterion on a raw
+   * material is never "ก่อนปิดรุ่น", and a release check is never "Line
+   * Clearance" — offering all eight everywhere made the user do the filtering.
+   *
+   * Nothing is stranded by this: changing stage resets the form, contexts
+   * included, so a selection can never be left hidden behind a stage switch.
+   */
+  const stageContextOptions = React.useMemo(
+    () => contextOptionsForStage(sharedExtras.stage),
+    [sharedExtras.stage],
+  );
+
+  /**
+   * The rest of the catalogue, reachable but out of the way.
+   *
+   * The stage mapping is our reading of where each context belongs, not a
+   * rule — a plant may check incoming material again at release, or run a
+   * line clearance on a raw-material stage we did not anticipate. Anything
+   * already chosen stays in the main list whatever stage it came from, so a
+   * saved setting is never hidden behind a disclosure.
+   */
+  const [showOtherContexts, setShowOtherContexts] = React.useState(false);
+  const shownContextOptions = React.useMemo(
+    () =>
+      USE_CONTEXT_OPTIONS.filter(
+        (o) =>
+          stageContextOptions.some((s) => s.value === o.value) ||
+          sharedExtras.useContext.includes(o.value),
+      ),
+    [stageContextOptions, sharedExtras.useContext],
+  );
+  const otherContextOptions = React.useMemo(
+    () => USE_CONTEXT_OPTIONS.filter((o) => !shownContextOptions.includes(o)),
+    [shownContextOptions],
   );
 
   const triggerIsOn = (key: TriggerKey) =>
@@ -1637,12 +1725,19 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       className={cn(
         'flex flex-col gap-5 p-4 md:p-6 w-full max-w-full box-border',
         'lg:h-[calc(100vh-3rem)] lg:min-h-0 lg:overflow-y-auto',
+        // From xl the two columns scroll instead of the page. A sticky column
+        // could never solve this on its own: until the page had been scrolled
+        // past the header the column was not pinned yet, so its bottom — the
+        // CREATE button — sat below the fold no matter what height it was
+        // given. Handing each column the exact height that is left removes the
+        // guesswork, and the pointer scrolls whichever one it is over.
+        'xl:overflow-hidden',
       )}
       style={{ fontFamily: 'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif' }}
     >
       <ResponsivePageHeader
         title={mode === 'edit' ? 'Edit QC & IPC Criteria' : 'New QC & IPC Criteria'}
-        subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์ควบคุมคุณภาพระหว่างการผลิต (In-Process Control) ตามมาตรฐาน GMP / USP'}
+        subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์การควบคุมคุณภาพการผลิต'}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
@@ -1653,9 +1748,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         ]}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 xl:min-h-0 xl:flex-1">
         {/* ─── Form column (2/3) ─────────────────────────────────── */}
-        <div className="xl:col-span-2 flex flex-col gap-5">
+        {/* pr-1 keeps the card shadows off the scrollbar. */}
+        <div
+          data-testid="form-column"
+          className="xl:col-span-2 flex flex-col gap-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+        >
           {/*
             Stage + product form + test name — Figma "ข้อมูลพื้นฐาน" panel.
             Sits outside the white form card as its own surface, per the design.
@@ -1837,10 +1936,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     { value: 'numeric', label: 'ตัวเลข (Numeric) — ใส่ค่าวัด + เทียบ Min/Max' },
                     { value: 'pass_fail', label: 'Pass/Fail — ผ่าน/ไม่ผ่าน' },
                     { value: 'visual', label: 'Visual — ตรวจด้วยสายตา' },
-                    { value: 'text', label: 'Text — บันทึกข้อความ' },
                     { value: 'multi_point', label: 'Multi-Point — วัดหลายจุด + aggregate (mean/rsd/all-pass)' },
                     { value: 'tare', label: 'Tare — น้ำหนักภาชนะเปล่า (ใช้ reference โดย multi_point)' },
-                    { value: 'calibration', label: 'Calibration — เทียบสอบ instrument' },
                     { value: 'calculated', label: 'Calculated — คำนวณจาก criteria อื่น (Yield, %LOD)' },
                     { value: 'custom_multi_field', label: 'Custom Multi-Field — หลายฟิลด์ผสม' },
                   ]}
@@ -1994,8 +2091,23 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <p className="text-xs text-[#bfbfbf]">GMP / USP Standard</p>
                 </div>
                 <SearchableSelect
+                  testId="sampling-method"
                   value={formData.testMethod || ''}
-                  onChange={(v) => setFormData({ ...formData, testMethod: v || null })}
+                  onChange={(v) => {
+                    // The interval means different things under different
+                    // methods — 20 minutes under Random, every 20th unit under
+                    // Systematic. Carrying the old number across would keep the
+                    // digits and silently change what they say, so the choice
+                    // is asked for again.
+                    const before = cadenceForSamplingMethod(formData.testMethod).mode;
+                    const after = cadenceForSamplingMethod(v || null).mode;
+                    setFormData({
+                      ...formData,
+                      testMethod: v || null,
+                      checkIntervalMinutes: before === after ? formData.checkIntervalMinutes : null,
+                    });
+                    if (before !== after) setSharedExtras((prev) => ({ ...prev, samplingUnit: '' }));
+                  }}
                   options={SAMPLING_METHOD_OPTIONS}
                   placeholder="เลือกวิธีสุ่ม"
                   triggerClassName={STAGE_FIELD}
@@ -2008,6 +2120,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               onChange={(v) => setFormData({ ...formData, checkIntervalMinutes: v })}
               theme={theme}
               cadence={cadence}
+              unit={sharedExtras.samplingUnit}
+              onUnitChange={(u) => setSharedExtras((prev) => ({ ...prev, samplingUnit: u }))}
             />
           </div>
 
@@ -2286,7 +2400,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
             <div className="grid grid-cols-1 gap-3 p-6 sm:grid-cols-2">
-              {USE_CONTEXT_OPTIONS.map((opt) => {
+              {shownContextOptions.map((opt) => {
                 const active = sharedExtras.useContext.includes(opt.value);
                 return (
                   <button
@@ -2326,6 +2440,56 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 );
               })}
             </div>
+
+            {otherContextOptions.length > 0 && (
+              <div className="border-t border-[#f1f3f5] px-6 pb-6">
+                <button
+                  type="button"
+                  data-testid="toggle-other-contexts"
+                  aria-expanded={showOtherContexts}
+                  onClick={() => setShowOtherContexts((v) => !v)}
+                  className="flex items-center gap-2 py-4 text-[13px] font-medium text-[#6b7280] transition hover:text-[#2f6fd0]"
+                >
+                  <ChevronDown
+                    className={cn('h-4 w-4 transition-transform', showOtherContexts && 'rotate-180')}
+                  />
+                  ตัวเลือกอื่นที่ไม่ค่อยใช้กับ stage นี้ ({otherContextOptions.length})
+                </button>
+
+                {showOtherContexts && (
+                  <>
+                    <p className="mb-3 text-[11px] leading-relaxed text-[#bfbfbf]">
+                      การจัดกลุ่มตาม stage เป็นค่าแนะนำ ไม่ใช่ข้อบังคับ — แต่ละโรงงานตรวจไม่เหมือนกัน
+                      เลือกจากตรงนี้ได้ตามจริง
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {otherContextOptions.map((opt) => (
+                        <button
+                          type="button"
+                          key={opt.value}
+                          data-testid={`use-context-${opt.value}`}
+                          aria-pressed={false}
+                          onClick={() => toggleUseContext(opt.value)}
+                          className={cn(
+                            'flex items-start gap-3 rounded-[14px] border border-dashed p-3 text-left transition-colors',
+                            'border-[#e1e4e8] bg-white hover:border-[#9db9e8]',
+                          )}
+                        >
+                          <span
+                            aria-hidden
+                            className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 border-[#d9d9d9]"
+                          />
+                          <span className="flex min-w-0 flex-col gap-1">
+                            <span className="text-[13px] font-semibold text-black">{opt.label}</span>
+                            <span className="text-[11px] leading-tight text-[#bfbfbf]">{opt.desc}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── ตรวจสอบเมื่อ — Figma node 6:4198 ───────────────────────
@@ -2639,8 +2803,34 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         </div>
 
         {/* ─── Live Preview column (1/3) ────────────────────────── */}
-        <aside className="xl:col-span-1">
-          <div className="xl:sticky xl:top-4 space-y-4">
+        <aside className="xl:col-span-1 xl:h-full xl:min-h-0">
+          {/*
+            The sticky column scrolls on its own.
+
+            It was only sticky before, so a preview taller than the viewport
+            could not be read without scrolling the whole page to the bottom
+            first — and the page stops there, which meant the tail of a
+            twenty-row recording table was unreachable. Giving the column its
+            own height and overflow lets the pointer scroll it in place.
+
+            `overscroll-contain` keeps that scroll from continuing into the
+            page once the column hits its end.
+          */}
+          <div
+            data-testid="preview-column"
+            className={cn(
+              'space-y-4',
+              'xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1',
+              // The page root is h-[calc(100vh-3rem)] and this sticks 1rem
+              // below its top edge, so the space actually left for the column
+              // is 3rem + 1rem less than the viewport. Asking for
+              // 100vh-2rem made it taller than the room it had, and the
+              // bottom of the column — the CREATE button — sat below the fold
+              // even after scrolling the column to its end.
+              // Room for the last card's shadow, which a flush edge clips.
+              'xl:pb-2',
+            )}
+          >
             <LivePreviewPanel
               formData={formData}
               criteriaType={criteriaType}
@@ -2967,6 +3157,12 @@ interface TareCriteriaOption {
   id: number;
   code: string;
   name: string;
+  /** Read back once linked, so the choice can be checked without leaving. */
+  unit: string;
+  acceptanceMin: string;
+  acceptanceMax: string;
+  expireAfter: string;
+  storeAs: string;
 }
 
 function MultiPointSection({
@@ -2989,10 +3185,28 @@ function MultiPointSection({
       const res = await fetch('/api/master-data/ipc-criteria?isActive=true');
       const data = await res.json();
       if (!data.success) return [];
-      const all: { id: number; code: string; name: string; criteriaType: string }[] = data.data || [];
+      const all: {
+        id: number; code: string; name: string; criteriaType: string;
+        unit?: string | null; specification?: unknown;
+      }[] = data.data || [];
       return all
         .filter((c) => c.criteriaType === 'tare' && c.id !== currentId)
-        .map((c) => ({ id: c.id, code: c.code, name: c.name }));
+        .map((c) => {
+          // The tare's own numbers live in its spec envelope; parse it here so
+          // linking one can show what it actually is.
+          const spec = parseSpecPayload('tare', c.specification);
+          const t = spec?.type === 'tare' ? spec : null;
+          return {
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            unit: t?.referenceUnit || c.unit || '',
+            acceptanceMin: t?.acceptanceMin ?? '',
+            acceptanceMax: t?.acceptanceMax ?? '',
+            expireAfter: t?.expireAfter ?? '',
+            storeAs: t?.storeAs ?? '',
+          };
+        });
     },
     staleTime: 30_000,
   });
@@ -3021,6 +3235,8 @@ function MultiPointSection({
     max: '',
   });
   const [newTareError, setNewTareError] = React.useState('');
+
+  const linkedTare = tareList.find((t) => t.id === tareSourceId) ?? null;
 
   /** Opens the panel with a generated code, as the catalogue tests get one. */
   const openNewTare = (seedCode?: string) => {
@@ -3115,6 +3331,255 @@ function MultiPointSection({
           <span className="text-[11px] text-slate-400">Tare Recording Method</span>
         </div>
 
+        {/* Linking a tare answers the whole question: the shell weight comes
+            from that criterion, so there is nothing left to choose about how
+            to weigh it here. The picker therefore comes first, and the manual
+            settings below only appear when nothing is linked. */}
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50/40 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-cyan-800">
+              ใช้ค่า Tare จากเกณฑ์อื่น (Tare Source)
+            </span>
+            <span className="text-[11px] text-slate-400">ไม่บังคับ</span>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="ml-auto text-[11px] text-cyan-600 underline hover:text-cyan-800"
+            >
+              ⟳ refresh
+            </button>
+          </div>
+          <SearchableSelect
+            testId="tare-source"
+            value={tareSourceId ? String(tareSourceId) : ''}
+            onChange={(v) => {
+              if (!v) {
+                onTareSourceIdChange(null);
+                onChange({ ...payload, tareSourceCode: '' });
+              } else {
+                const opt = tareList.find((t) => String(t.id) === v);
+                onTareSourceIdChange(Number(v));
+                onChange({ ...payload, tareSourceCode: opt?.code ?? '' });
+              }
+            }}
+            options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
+            placeholder="— ไม่ใช้ tare —"
+            onAddNew={(text) => openNewTare(text)}
+            addNewLabel="＋ สร้าง Tare criteria ใหม่"
+          />
+
+          {/* Empty list is not a dead end — say so, and offer the way out. */}
+          {tareList.length === 0 && !newTareOpen && (
+            <div
+              data-testid="tare-empty"
+              className="mt-2 flex flex-col gap-2 rounded-lg border border-cyan-200 bg-white/70 p-3"
+            >
+              <p className="text-[11px] leading-relaxed text-cyan-800">
+                ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
+                <br />
+                เลือกสร้างไว้ก็ต่อเมื่ออยากให้ค่า Tare ใช้ร่วมกันหลายหัวข้อ หรือชั่งไว้ล่วงหน้าครั้งเดียวต่อรุ่น
+              </p>
+              <button
+                type="button"
+                data-testid="tare-create-open"
+                onClick={() => openNewTare()}
+                className="flex w-fit items-center gap-2 rounded-full bg-cyan-700 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-cyan-800"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                สร้าง Tare criteria ใหม่
+              </button>
+            </div>
+          )}
+
+          {newTareOpen && (
+            <div
+              data-testid="tare-create-panel"
+              className="mt-2 flex flex-col gap-3 rounded-lg border border-cyan-300 bg-white p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
+                <button
+                  type="button"
+                  aria-label="ปิด"
+                  onClick={() => { setNewTareOpen(false); setNewTareError(''); }}
+                  className="text-slate-400 transition hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={FIELD_LABEL}>
+                    Code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="เช่น IPC-TARE-101"
+                    data-testid="tare-new-code"
+                    value={newTare.code}
+                    onChange={(e) => setNewTare({ ...newTare, code: e.target.value })}
+                  />
+                  <p className={FIELD_HELPER}>ระบบสร้างให้แล้ว แก้ได้</p>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>
+                    ชื่อ / Reference Label <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 1"
+                    data-testid="tare-new-name"
+                    value={newTare.name}
+                    onChange={(e) => setNewTare({ ...newTare, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>หน่วย (Reference Unit)</label>
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="g"
+                    data-testid="tare-new-unit"
+                    value={newTare.unit}
+                    onChange={(e) => setNewTare({ ...newTare, unit: e.target.value })}
+                  />
+                </div>
+                <div>
+                  {/* "Store As" names a thing that appears nowhere else on this
+                      screen, so the label on its own cannot explain it. */}
+                  <label className={cn(FIELD_LABEL, 'flex items-center gap-1')}>
+                    Store As (symbol)
+                    <InfoTip
+                      text="ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน"
+                      testId="tare-new-store-as-info"
+                    />
+                  </label>
+                  <input
+                    className={FIELD_INPUT}
+                    placeholder="tare_empty_cap"
+                    data-testid="tare-new-store-as"
+                    value={newTare.storeAs}
+                    onChange={(e) => setNewTare({ ...newTare, storeAs: e.target.value })}
+                  />
+                  <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated — เว้นว่างได้ ระบบใช้ Code แทน</p>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Expire After</label>
+                  <select
+                    className={FIELD_INPUT}
+                    aria-label="Expire After"
+                    data-testid="tare-new-expire"
+                    value={newTare.expireAfter}
+                    onChange={(e) =>
+                      setNewTare({ ...newTare, expireAfter: e.target.value as TarePayload['expireAfter'] })
+                    }
+                  >
+                    <option value="batch">หมดอายุเมื่อจบ batch</option>
+                    <option value="shift">หมดอายุเมื่อจบกะ</option>
+                    <option value="permanent">ใช้ได้ตลอด (permanent)</option>
+                  </select>
+                  <p className={FIELD_HELPER}>ต้องชั่งเปลือกใหม่เมื่อไร</p>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Acceptance Min – Max</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="any"
+                      className={FIELD_INPUT}
+                      placeholder="0.0900"
+                      aria-label="Acceptance Min"
+                      data-testid="tare-new-min"
+                      value={newTare.min}
+                      onChange={(e) => setNewTare({ ...newTare, min: e.target.value })}
+                    />
+                    <span className="text-xs text-slate-400">–</span>
+                    <input
+                      type="number"
+                      step="any"
+                      className={FIELD_INPUT}
+                      placeholder="0.1100"
+                      aria-label="Acceptance Max"
+                      data-testid="tare-new-max"
+                      value={newTare.max}
+                      onChange={(e) => setNewTare({ ...newTare, max: e.target.value })}
+                    />
+                  </div>
+                  <p className={FIELD_HELPER}>ไม่บังคับ — ใช้เตือนเมื่อเปลือกผิดน้ำหนัก</p>
+                </div>
+              </div>
+
+              {newTareError && (
+                <p className="flex items-start gap-1.5 text-[11px] text-[#c0362c]">
+                  <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{newTareError}</span>
+                </p>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="tare-create-submit"
+                  disabled={createTare.isPending}
+                  onClick={submitNewTare}
+                  className="rounded-full bg-cyan-700 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                >
+                  {createTare.isPending ? 'กำลังสร้าง…' : 'สร้างแล้วเลือกใช้เลย'}
+                </button>
+                <span className="text-[11px] text-slate-500">
+                  บันทึกเป็นหัวข้อแยกทันที — เกณฑ์ที่กำลังกรอกอยู่ยังไม่ถูกบันทึก
+                </span>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {linkedTare ? (
+          /* Everything the linked criterion says, so the choice can be checked
+             without opening it. */
+          <div
+            data-testid="tare-source-summary"
+            className="rounded-lg border border-cyan-300 bg-white p-3"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-cyan-100 px-2 py-0.5 font-mono text-[11px] font-bold text-cyan-800">
+                {linkedTare.code}
+              </span>
+              <span className="text-[13px] font-semibold text-slate-800">{linkedTare.name}</span>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
+              {[
+                { k: 'หน่วย', v: linkedTare.unit || '—' },
+                {
+                  k: 'ช่วงที่ยอมรับ',
+                  v: linkedTare.acceptanceMin || linkedTare.acceptanceMax
+                    ? `${linkedTare.acceptanceMin || '—'} – ${linkedTare.acceptanceMax || '—'}`
+                    : '—',
+                },
+                {
+                  k: 'อายุค่า Tare',
+                  v: linkedTare.expireAfter === 'shift'
+                    ? 'จบกะ'
+                    : linkedTare.expireAfter === 'permanent'
+                      ? 'ใช้ได้ตลอด'
+                      : 'จบ batch',
+                },
+                { k: 'Store As', v: linkedTare.storeAs || '—' },
+              ].map((f) => (
+                <div key={f.k} className="flex flex-col">
+                  <span className="text-[10px] text-slate-400">{f.k}</span>
+                  <span className="text-[12px] font-medium text-slate-700">{f.v}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-cyan-700">
+              ผูกไว้แล้ว — ไม่ต้องตั้งค่าการชั่งเปลือกในหัวข้อนี้อีก
+              ตอนบันทึกผลจะดึงค่า Tare จากเกณฑ์นี้มาให้
+            </p>
+          </div>
+        ) : (
+        <>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[
             {
@@ -3154,6 +3619,19 @@ function MultiPointSection({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className={FIELD_LABEL}>ชื่อหัวข้อการบันทึก</label>
+            <input
+              className={FIELD_INPUT}
+              placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 0"
+              data-testid="mp-tare-label"
+              value={payload.tareLabel}
+              onChange={(e) => onChange({ ...payload, tareLabel: e.target.value })}
+            />
+            <p className={FIELD_HELPER}>
+              ชื่อที่ operator จะเห็นตอนบันทึกผล — เว้นว่างได้ ระบบจะใช้ &quot;ชั่งแคปซูลเปล่า&quot;
+            </p>
+          </div>
           {/* Two counts, not one: the shells are weighed before filling, so
               they are a different set of units from the capsules measured
               afterwards. USP <905> weighs 10 shells against 20 capsules. */}
@@ -3175,15 +3653,38 @@ function MultiPointSection({
                 : 'ชั่งเปลือกเปล่าทีละชิ้นกี่แถว — ใช้ค่าเฉลี่ยเป็น Tare'}
             </p>
           </div>
+        </div>
+        </>
+        )}
+
+      </div>
+
+      {/* ── ② ชั่งน้ำหนักรวมของแต่ละจุด ───────────────────────────
+          The other half of the job, and its own group. These four describe the
+          filled units — how many, what a good one weighs, how far it may
+          stray — and had been sitting under "วิธีบันทึกค่า Tare", which made
+          them read as settings for the shell weighing they have nothing to do
+          with. */}
+      <div className="rounded-xl border border-teal-200 bg-white/70 p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4 text-teal-700" />
+          <h4 className="text-sm font-semibold text-teal-800">ตารางการบันทึกผล</h4>
+          <span className="text-[11px] text-slate-400">
+            ชั่งน้ำหนักรวมของแต่ละจุด — ระบบหัก Tare ให้เป็น Net
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={FIELD_LABEL}>
               จำนวนตัวอย่างที่วัด (Sample Size) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
-              min={1}
+              min={0}
               className={FIELD_INPUT}
               placeholder="20"
+              data-testid="mp-point-count"
               value={payload.pointCount}
               onChange={(e) => onChange({ ...payload, pointCount: e.target.value })}
             />
@@ -3211,6 +3712,7 @@ function MultiPointSection({
               step="any"
               className={FIELD_INPUT}
               placeholder="0.500"
+              data-testid="mp-per-point-target"
               value={payload.perPointTarget}
               onChange={(e) => onChange({ ...payload, perPointTarget: e.target.value })}
             />
@@ -3223,6 +3725,7 @@ function MultiPointSection({
                 step="any"
                 className={cn(FIELD_INPUT, 'pr-8')}
                 placeholder="7.5"
+                data-testid="mp-per-point-tolerance"
                 value={payload.perPointTolerance}
                 onChange={(e) => onChange({ ...payload, perPointTolerance: e.target.value })}
               />
@@ -3230,7 +3733,6 @@ function MultiPointSection({
             </div>
           </div>
         </div>
-
       </div>
 
       {/* ── การตั้งค่าการผลิต ────────────────────────────────────
@@ -3297,199 +3799,6 @@ function MultiPointSection({
       </div>
       </div>
 
-      {/* Tare cross-reference */}
-      <div className="rounded-xl border-2 border-cyan-300 bg-cyan-50/40 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Layers className="w-4 h-4 text-cyan-700" />
-          <h4 className="text-sm font-semibold text-cyan-800">Tare Source (optional)</h4>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="ml-auto text-[11px] text-cyan-600 hover:text-cyan-800 underline"
-          >
-            ⟳ refresh
-          </button>
-        </div>
-        <SearchableSelect
-          testId="tare-source"
-          value={tareSourceId ? String(tareSourceId) : ''}
-          onChange={(v) => {
-            if (!v) {
-              onTareSourceIdChange(null);
-              onChange({ ...payload, tareSourceCode: '' });
-            } else {
-              const opt = tareList.find((t) => String(t.id) === v);
-              onTareSourceIdChange(Number(v));
-              onChange({ ...payload, tareSourceCode: opt?.code ?? '' });
-            }
-          }}
-          options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
-          placeholder="— ไม่ใช้ tare —"
-          onAddNew={(text) => openNewTare(text)}
-          addNewLabel="＋ สร้าง Tare criteria ใหม่"
-        />
-
-        {/* Empty list is not a dead end — say so, and offer the way out. */}
-        {tareList.length === 0 && !newTareOpen && (
-          <div
-            data-testid="tare-empty"
-            className="mt-2 flex flex-col gap-2 rounded-lg border border-cyan-200 bg-white/70 p-3"
-          >
-            <p className="text-[11px] leading-relaxed text-cyan-800">
-              ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
-              <br />
-              เลือกสร้างไว้ก็ต่อเมื่ออยากให้ค่า Tare ใช้ร่วมกันหลายหัวข้อ หรือชั่งไว้ล่วงหน้าครั้งเดียวต่อรุ่น
-            </p>
-            <button
-              type="button"
-              data-testid="tare-create-open"
-              onClick={() => openNewTare()}
-              className="flex w-fit items-center gap-2 rounded-full bg-cyan-700 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-cyan-800"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              สร้าง Tare criteria ใหม่
-            </button>
-          </div>
-        )}
-
-        {newTareOpen && (
-          <div
-            data-testid="tare-create-panel"
-            className="mt-2 flex flex-col gap-3 rounded-lg border border-cyan-300 bg-white p-3"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
-              <button
-                type="button"
-                aria-label="ปิด"
-                onClick={() => { setNewTareOpen(false); setNewTareError(''); }}
-                className="text-slate-400 transition hover:text-slate-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className={FIELD_LABEL}>
-                  Code <span className="text-red-500">*</span>
-                </label>
-                <input
-                  className={FIELD_INPUT}
-                  placeholder="เช่น IPC-TARE-101"
-                  data-testid="tare-new-code"
-                  value={newTare.code}
-                  onChange={(e) => setNewTare({ ...newTare, code: e.target.value })}
-                />
-                <p className={FIELD_HELPER}>ระบบสร้างให้แล้ว แก้ได้</p>
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>
-                  ชื่อ / Reference Label <span className="text-red-500">*</span>
-                </label>
-                <input
-                  className={FIELD_INPUT}
-                  placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 1"
-                  data-testid="tare-new-name"
-                  value={newTare.name}
-                  onChange={(e) => setNewTare({ ...newTare, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>หน่วย (Reference Unit)</label>
-                <input
-                  className={FIELD_INPUT}
-                  placeholder="g"
-                  data-testid="tare-new-unit"
-                  value={newTare.unit}
-                  onChange={(e) => setNewTare({ ...newTare, unit: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>Store As (symbol)</label>
-                <input
-                  className={FIELD_INPUT}
-                  placeholder="tare_empty_cap"
-                  data-testid="tare-new-store-as"
-                  value={newTare.storeAs}
-                  onChange={(e) => setNewTare({ ...newTare, storeAs: e.target.value })}
-                />
-                <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated — เว้นว่างได้ ระบบใช้ Code แทน</p>
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>Expire After</label>
-                <select
-                  className={FIELD_INPUT}
-                  aria-label="Expire After"
-                  data-testid="tare-new-expire"
-                  value={newTare.expireAfter}
-                  onChange={(e) =>
-                    setNewTare({ ...newTare, expireAfter: e.target.value as TarePayload['expireAfter'] })
-                  }
-                >
-                  <option value="batch">หมดอายุเมื่อจบ batch</option>
-                  <option value="shift">หมดอายุเมื่อจบกะ</option>
-                  <option value="permanent">ใช้ได้ตลอด (permanent)</option>
-                </select>
-                <p className={FIELD_HELPER}>ต้องชั่งเปลือกใหม่เมื่อไร</p>
-              </div>
-              <div>
-                <label className={FIELD_LABEL}>Acceptance Min – Max</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    className={FIELD_INPUT}
-                    placeholder="0.0900"
-                    aria-label="Acceptance Min"
-                    data-testid="tare-new-min"
-                    value={newTare.min}
-                    onChange={(e) => setNewTare({ ...newTare, min: e.target.value })}
-                  />
-                  <span className="text-xs text-slate-400">–</span>
-                  <input
-                    type="number"
-                    step="any"
-                    className={FIELD_INPUT}
-                    placeholder="0.1100"
-                    aria-label="Acceptance Max"
-                    data-testid="tare-new-max"
-                    value={newTare.max}
-                    onChange={(e) => setNewTare({ ...newTare, max: e.target.value })}
-                  />
-                </div>
-                <p className={FIELD_HELPER}>ไม่บังคับ — ใช้เตือนเมื่อเปลือกผิดน้ำหนัก</p>
-              </div>
-            </div>
-
-            {newTareError && (
-              <p className="flex items-start gap-1.5 text-[11px] text-[#c0362c]">
-                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{newTareError}</span>
-              </p>
-            )}
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                data-testid="tare-create-submit"
-                disabled={createTare.isPending}
-                onClick={submitNewTare}
-                className="rounded-full bg-cyan-700 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-cyan-800 disabled:opacity-60"
-              >
-                {createTare.isPending ? 'กำลังสร้าง…' : 'สร้างแล้วเลือกใช้เลย'}
-              </button>
-              <span className="text-[11px] text-slate-500">
-                บันทึกเป็นหัวข้อแยกทันที — เกณฑ์ที่กำลังกรอกอยู่ยังไม่ถูกบันทึก
-              </span>
-            </div>
-          </div>
-        )}
-
-        <p className={cn(FIELD_HELPER, 'text-cyan-700')}>
-          เลือก Tare criteria เพื่อให้ operator ตอน record บันทึก Gross weight แล้วระบบหัก Tare ให้อัตโนมัติ (Net = Gross − Tare)
-        </p>
-      </div>
     </div>
   );
 }
@@ -3522,7 +3831,13 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
           />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Store As (symbol)</label>
+          <label className={cn(FIELD_LABEL, 'flex items-center gap-1')}>
+            Store As (symbol)
+            <InfoTip
+              text="ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน"
+              testId="tare-store-as-info"
+            />
+          </label>
           <input
             className={FIELD_INPUT}
             placeholder="tare_empty_cap"
@@ -3920,35 +4235,6 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
             value={payload.failDefinition}
             onChange={(e) => onChange({ ...payload, failDefinition: e.target.value })}
           />
-        </div>
-      </div>
-      <div className="mt-3">
-        <label className={FIELD_LABEL}>ค่าที่คาดหวังโดยปริยาย (Default Expected)</label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange({ ...payload, defaultExpected: 'pass' })}
-            className={cn(
-              'flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
-              payload.defaultExpected === 'pass'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-            )}
-          >
-            ✓ ปกติต้องผ่าน
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange({ ...payload, defaultExpected: 'fail' })}
-            className={cn(
-              'flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
-              payload.defaultExpected === 'fail'
-                ? 'bg-red-50 border-red-300 text-red-700'
-                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-            )}
-          >
-            ✕ ปกติต้องไม่พบ
-          </button>
         </div>
       </div>
     </div>

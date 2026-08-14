@@ -623,12 +623,18 @@ export const SAMPLING_METHOD_OPTIONS: Array<{ value: string; label: string }> = 
  * QA should confirm them before this is used to write real criteria.
  */
 export interface SamplingCadence {
-  /** 'minutes' — operator picks a clock interval. 'per_batch' — no interval applies. */
-  mode: 'minutes' | 'per_batch';
-  /** Minute presets offered as chips, when mode is 'minutes'. */
+  /**
+   * 'minutes'  — a clock interval.
+   * 'interval' — every N of something the user picks a unit for.
+   * 'per_batch'— no interval applies.
+   */
+  mode: 'minutes' | 'interval' | 'per_batch';
+  /** Numbers offered as chips, for 'minutes' and 'interval'. */
   presets: number[];
   /** Fixed sampling points shown in place of chips, when mode is 'per_batch'. */
   points: string[];
+  /** Units offered after a number is chosen, when mode is 'interval'. */
+  units?: string[];
 }
 
 /** Offered before a method is chosen. */
@@ -641,8 +647,18 @@ export const DEFAULT_SAMPLING_CADENCE: SamplingCadence = {
 export const SAMPLING_CADENCE: Record<string, SamplingCadence> = {
   // Sampled across the whole batch, so the rhythm is a plain clock interval.
   random: { mode: 'minutes', presets: [30, 60, 120], points: [] },
-  // Tied to production order, so it runs tighter than the others.
-  systematic: { mode: 'minutes', presets: [15, 30, 60], points: [] },
+  /**
+   * Systematic sampling counts along the production order, not the clock: the
+   * run is put in sequence, the first sample is drawn at random, and from
+   * there every Nth one is taken. What N counts — units, minutes, pallets —
+   * depends on the line, so the unit is the operator's to choose.
+   */
+  systematic: {
+    mode: 'interval',
+    presets: [10, 20, 30],
+    points: [],
+    units: ['ชิ้น', 'เม็ด', 'ขวด', 'ซอง', 'กล่อง', 'พาเลท', 'นาที'],
+  },
   // Three points of batch progress — a clock interval cannot express this.
   stratified: {
     mode: 'per_batch',
