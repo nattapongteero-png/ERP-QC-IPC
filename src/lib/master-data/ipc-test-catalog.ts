@@ -373,6 +373,55 @@ export const IPC_TEST_CATALOG: TestNameEntry[] = [
   },
 ];
 
+// ════════════════════ QC STAGE → TEST SCOPE ════════════════════
+// Which tests belong to which QC stage. Kept as one table rather than a field
+// on each catalog entry so QA can review the whole scope in one place.
+//
+// ⚠ NOT taken from an existing spec — drafted from GMP practice against the
+// catalog above and pending QA sign-off. Units are intentionally NOT scoped by
+// stage: the unit follows the test (Hardness → N, Weight → mg) and is already
+// auto-filled when a test is picked.
+
+export type QcStage = 'raw_material' | 'ipc' | 'fg_release';
+
+export const STAGE_TEST_KEYS: Record<QcStage, string[]> = {
+  // Incoming herbal raw material: identity, purity, contamination.
+  raw_material: [
+    'appearance', 'moisture', 'loss_on_drying', 'residue_on_ignition',
+    'heavy_metals', 'foreign_matter', 'extractive_value', 'tlc',
+    'pesticide_residue', 'tamc', 'tymc',
+  ],
+  // In-process control: what an operator can measure on the line.
+  ipc: [
+    'weight_variation', 'hardness', 'friability', 'thickness',
+    'disintegration', 'uniformity', 'appearance', 'homogeneity',
+    'viscosity', 'ph', 'moisture', 'loss_on_drying',
+  ],
+  // Finished goods release: potency, performance, microbial safety.
+  fg_release: [
+    'assay', 'dissolution', 'disintegration', 'uniformity', 'appearance',
+    'ph', 'viscosity', 'specific_gravity', 'heavy_metals', 'tamc', 'tymc',
+    'specified_micro', 'sterility', 'extractive_value', 'tlc',
+  ],
+};
+
+/** Catalog entries in scope for a stage, in catalog order. */
+export function testsForStage(stage: QcStage): TestNameEntry[] {
+  const keys = new Set(STAGE_TEST_KEYS[stage] ?? []);
+  return IPC_TEST_CATALOG.filter((t) => keys.has(t.key));
+}
+
+/**
+ * Dosage forms offered for a stage. Raw material has no dosage form yet — it is
+ * crude drug — so offering "capsule"/"balm" there would be meaningless.
+ */
+export function dosageFormOptionsForStage(
+  stage: QcStage,
+): Array<{ value: string; label: string }> {
+  if (stage !== 'raw_material') return DOSAGE_FORM_OPTIONS;
+  return DOSAGE_FORM_OPTIONS.filter((o) => o.value === 'powder' || o.value === 'other');
+}
+
 /**
  * Standard unit options for dropdown.
  * Each entry: value used in DB + label shown to operator.
@@ -398,6 +447,133 @@ export const UNIT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'cfu/mL', label: 'cfu/mL — โคโลนีต่อมิลลิลิตร' },
   { value: '', label: '— ไม่ระบุหน่วย —' },
 ];
+
+// ════════════════ DOSAGE FORM → UNIT SCOPE ════════════════
+// Most units do not depend on the dosage form at all: hardness is N, pH has no
+// unit, assay/LOD/friability are %, heavy metals are ppm, whatever the product
+// is. Only three families actually depend on whether the product is measured by
+// mass or by volume, and those are the only ones filtered here — over-filtering
+// would hide a unit QA legitimately needs.
+//
+//   · mL / L      volume, meaningless for a tablet or capsule
+//   · g/mL        density, only measured on liquids
+//   · cfu/g vs cfu/mL   microbial counts follow mass vs volume
+
+export type DosageFormState = 'solid' | 'semi_solid' | 'liquid';
+
+export const DOSAGE_FORM_STATE: Record<string, DosageFormState> = {
+  capsule: 'solid', tablet: 'solid', powder: 'solid', pill: 'solid',
+  tea_bag: 'solid', patch: 'solid', suppository: 'solid',
+  cream: 'semi_solid', ointment: 'semi_solid', balm: 'semi_solid',
+  gel: 'semi_solid', lotion: 'semi_solid',
+  liquid: 'liquid', syrup: 'liquid', tincture: 'liquid',
+  decoction: 'liquid', oil: 'liquid', spray: 'liquid',
+  // 'other' is intentionally absent — unknown state means no filtering.
+};
+
+/** Units that make no sense for a given physical state. */
+const UNITS_EXCLUDED_BY_STATE: Record<DosageFormState, string[]> = {
+  solid: ['mL', 'L', 'g/mL', 'cfu/mL'],
+  semi_solid: ['cfu/mL'],
+  liquid: ['cfu/g'],
+};
+
+/** Unit options in scope for a dosage form. Unknown/blank form → all units. */
+// ════════════════ TEST → UNIT SCOPE ════════════════
+// What a test measures decides its unit far more narrowly than the dosage form
+// does: Weight Variation is a mass whatever the product is, Hardness is a
+// force, Disintegration is a time. Offering all 19 units for every test makes
+// the picker a haystack and lets a criterion be saved with "cfu/g" hardness.
+//
+// A test that is absent from this map keeps the full list — that is deliberate.
+// Custom test names and anything QA adds later must not be silently narrowed.
+
+const UNITS_BY_TEST: Record<string, string[]> = {
+  weight_variation: ['mcg', 'mg', 'g', 'kg'],
+  hardness: ['N'],
+  thickness: ['mm', 'cm'],
+  disintegration: ['sec', 'min'],
+  viscosity: ['cP'],
+  specific_gravity: ['g/mL'],
+  // Percentage results — of label claim, of released drug, of weight lost.
+  friability: ['%'],
+  dissolution: ['%'],
+  uniformity: ['%'],
+  moisture: ['%'],
+  loss_on_drying: ['%'],
+  residue_on_ignition: ['%'],
+  foreign_matter: ['%'],
+  extractive_value: ['%'],
+  // Assay is reported as % of claim, or as content per unit.
+  assay: ['%', 'mg', 'mcg'],
+  // Trace contaminants.
+  heavy_metals: ['ppm'],
+  pesticide_residue: ['ppm'],
+  // Plate counts follow mass or volume; the dosage-form filter picks which.
+  tamc: ['cfu/g', 'cfu/mL'],
+  tymc: ['cfu/g', 'cfu/mL'],
+  // Judged by eye or as pass/fail — a unit would be meaningless.
+  appearance: [''],
+  homogeneity: [''],
+  ph: [''],
+  specified_micro: [''],
+  sterility: [''],
+  tlc: [''],
+};
+
+/**
+ * Units offered for a test, narrowed further by the product's physical state.
+ *
+ * Both filters apply: TAMC allows cfu/g and cfu/mL, but on a tablet only cfu/g
+ * survives. The blank "no unit" entry is always kept so a unit can be cleared.
+ */
+export function unitOptionsForTest(
+  testKey: string | null | undefined,
+  dosageForm: string | null | undefined,
+): Array<{ value: string; label: string }> {
+  const byForm = unitOptionsForDosageForm(dosageForm);
+  const allowed = testKey ? UNITS_BY_TEST[testKey] : undefined;
+  if (!allowed) return byForm;
+  const scope = new Set(allowed);
+  const scoped = byForm.filter((u) => scope.has(u.value));
+  // Never return an empty picker: if the state filter removed everything the
+  // test allows, fall back to what the product permits.
+  if (scoped.length === 0) return byForm;
+  return scoped.some((u) => u.value === '')
+    ? scoped
+    : [...scoped, ...byForm.filter((u) => u.value === '')];
+}
+
+/** Test entry for a display name such as "Weight Variation — การทดสอบ…". */
+export function testKeyFromName(nameEn: string | null | undefined): string | null {
+  if (!nameEn) return null;
+  return IPC_TEST_CATALOG.find((t) => t.nameEn === nameEn)?.key ?? null;
+}
+
+export function unitOptionsForDosageForm(
+  dosageForm: string | null | undefined,
+): Array<{ value: string; label: string }> {
+  const state = dosageForm ? DOSAGE_FORM_STATE[dosageForm] : undefined;
+  if (!state) return UNIT_OPTIONS;
+  const excluded = new Set(UNITS_EXCLUDED_BY_STATE[state]);
+  return UNIT_OPTIONS.filter((u) => !excluded.has(u.value));
+}
+
+/**
+ * Microbial counts are reported per gram for solids and per millilitre for
+ * liquids. The catalog defaults to cfu/g, so a liquid product would otherwise
+ * be auto-filled with the wrong unit.
+ */
+export function adaptUnitToDosageForm(
+  unit: string,
+  dosageForm: string | null | undefined,
+): string {
+  const state = dosageForm ? DOSAGE_FORM_STATE[dosageForm] : undefined;
+  if (!state) return unit;
+  if (state === 'liquid' && unit === 'cfu/g') return 'cfu/mL';
+  if (state !== 'liquid' && unit === 'cfu/mL') return 'cfu/g';
+  return unit;
+}
 
 /**
  * Standard dosage forms for Herbal ERP — covers conventional + Thai herbal.
@@ -433,6 +609,55 @@ export const SAMPLING_METHOD_OPTIONS: Array<{ value: string; label: string }> = 
   { value: 'stratified', label: 'Stratified — สุ่มแบ่งชั้น (ต้น/กลาง/ปลาย batch)' },
   { value: 'square_root', label: '√n + 1 — ตามมาตรฐานเภสัชกรรม' },
 ];
+
+/**
+ * How often each sampling method draws a sample.
+ *
+ * Two of the four methods are not clock-driven at all: Stratified samples at
+ * three points of the batch's progress, and √n + 1 is a sample-*size* rule with
+ * a single draw per batch. Offering "every N minutes" there invites a plan that
+ * cannot be followed — a 20-minute batch on a 30-minute interval yields one
+ * point where the method requires three.
+ *
+ * The minute presets are drafts from general GMP practice, not from a site SOP.
+ * QA should confirm them before this is used to write real criteria.
+ */
+export interface SamplingCadence {
+  /** 'minutes' — operator picks a clock interval. 'per_batch' — no interval applies. */
+  mode: 'minutes' | 'per_batch';
+  /** Minute presets offered as chips, when mode is 'minutes'. */
+  presets: number[];
+  /** Fixed sampling points shown in place of chips, when mode is 'per_batch'. */
+  points: string[];
+}
+
+/** Offered before a method is chosen. */
+export const DEFAULT_SAMPLING_CADENCE: SamplingCadence = {
+  mode: 'minutes',
+  presets: [30, 45, 60],
+  points: [],
+};
+
+export const SAMPLING_CADENCE: Record<string, SamplingCadence> = {
+  // Sampled across the whole batch, so the rhythm is a plain clock interval.
+  random: { mode: 'minutes', presets: [30, 60, 120], points: [] },
+  // Tied to production order, so it runs tighter than the others.
+  systematic: { mode: 'minutes', presets: [15, 30, 60], points: [] },
+  // Three points of batch progress — a clock interval cannot express this.
+  stratified: {
+    mode: 'per_batch',
+    presets: [],
+    points: ['ต้น batch', 'กลาง batch', 'ปลาย batch'],
+  },
+  // A sample-size formula with a single draw per batch, not a cadence at all.
+  square_root: { mode: 'per_batch', presets: [], points: ['ครั้งเดียวต่อรุ่น'] },
+};
+
+export function cadenceForSamplingMethod(
+  method: string | null | undefined,
+): SamplingCadence {
+  return (method && SAMPLING_CADENCE[method]) || DEFAULT_SAMPLING_CADENCE;
+}
 
 export const CRITERIA_TYPE_META: Record<CriteriaType, {
   label: string;

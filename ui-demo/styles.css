@@ -1,0 +1,2 @@
+/* The app's own stylesheet. No DevExtreme theme — the demo does not ship it. */
+@import '../src/app/globals.css';

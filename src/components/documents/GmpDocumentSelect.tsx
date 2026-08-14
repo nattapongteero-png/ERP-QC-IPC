@@ -21,9 +21,17 @@ export interface GmpDocumentOption {
 interface GmpDocumentSelectProps {
   value: number | null;
   onValueChange: (id: number | null) => void;
+  /**
+   * The whole picked record, alongside the id. Callers that mirror fields of
+   * the document (an SOP code, its title) need more than the id, and refetching
+   * it themselves would duplicate the list this component already holds.
+   */
+  onDocumentChange?: (doc: GmpDocumentOption | null) => void;
   disabled?: boolean;
   placeholder?: string;
   width?: number | string;
+  /** Override the editor height so it can line up with plain inputs. */
+  height?: number | string;
 }
 
 const STATUS_TH: Record<string, string> = {
@@ -67,9 +75,11 @@ async function loadDocuments(): Promise<GmpDocumentOption[]> {
 export function GmpDocumentSelect({
   value,
   onValueChange,
+  onDocumentChange,
   disabled,
   placeholder = 'เลือกเอกสาร GMP (ไม่บังคับ)…',
   width = '100%',
+  height,
 }: GmpDocumentSelectProps) {
   const [options, setOptions] = useState<GmpDocumentOption[]>(_cache ?? []);
 
@@ -94,6 +104,7 @@ export function GmpDocumentSelect({
       disabled={disabled}
       placeholder={placeholder}
       width={width}
+      height={height}
       noDataText="ไม่มีเอกสาร — สร้างที่เมนู GMP > เอกสาร"
       // Render the option list at document.body. This SelectBox sits inside the
       // SOP-step / IPC inline editor whose card uses overflow/stacking contexts;
@@ -101,7 +112,11 @@ export function GmpDocumentSelect({
       // and the options don't appear (Firefox renders it anyway). This is the
       // same proven fix used by the shared DxSelectBox wrapper.
       dropDownOptions={{ container: 'body' }}
-      onValueChanged={(e) => onValueChange(e.value == null ? null : Number(e.value))}
+      onValueChanged={(e) => {
+        const id = e.value == null ? null : Number(e.value);
+        onValueChange(id);
+        onDocumentChange?.(id == null ? null : (options.find((o) => o.id === id) ?? null));
+      }}
     />
   );
 }

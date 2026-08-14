@@ -51,21 +51,131 @@ export interface DerivedCalc {
 }
 
 export interface SharedSpecExtras {
+  /**
+   * QC stage this criteria belongs to — Raw Material / IPC / FG Release.
+   * Lives in the spec JSON envelope rather than its own column: ipc_criteria
+   * has no stage column and adding one is a schema change.
+   */
+  stage: StageValue;
   useContext: string[];
   sopStepRef: SopStepRef;
   triggers: Triggers;
   derivedCalcs: DerivedCalc[];
 }
 
-export const USE_CONTEXT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'routine', label: 'Routine (รอบปกติ)' },
-  { value: 'release', label: 'Release (ก่อนปล่อยสินค้า)' },
-  { value: 'validation', label: 'Validation' },
-  { value: 'troubleshoot', label: 'Troubleshoot' },
-  { value: 'changeover', label: 'Changeover' },
-  { value: 'cleaning_verify', label: 'Cleaning Verification' },
-  { value: 'equipment_qual', label: 'Equipment Qualification' },
+export type StageValue = 'raw_material' | 'ipc' | 'fg_release';
+
+export const STAGE_OPTIONS: { value: StageValue; titleEn: string; titleTh: string }[] = [
+  { value: 'raw_material', titleEn: 'Raw Material', titleTh: 'วัตถุดิบ' },
+  { value: 'ipc', titleEn: 'In Process Control', titleTh: 'ระหว่างผลิต' },
+  { value: 'fg_release', titleEn: 'FG Release', titleTh: 'ปล่อยผ่าน' },
 ];
+
+function parseStage(raw: unknown): StageValue {
+  return STAGE_OPTIONS.some((o) => o.value === raw) ? (raw as StageValue) : 'ipc';
+}
+
+/** The five "ตรวจสอบเมื่อ" triggers, addressable by key. */
+export type TriggerKey = 'time' | 'quantity' | 'milestone' | 'event' | 'oncePerBatch';
+
+export interface UseContextOption {
+  value: string;
+  label: string;
+  /** One line on the chip explaining when this context applies. */
+  desc: string;
+  /**
+   * Triggers that make sense for this context. Selecting the context switches
+   * these on and keeps the rest out of the way — it does not forbid them, so a
+   * plant with its own procedure can still reach every trigger.
+   */
+  triggers: TriggerKey[];
+  /** Sub-options pre-selected inside the milestone / event trigger. */
+  milestoneIds?: string[];
+  eventIds?: string[];
+}
+
+/**
+ * Why this criterion gets measured.
+ *
+ * Scoped deliberately to the production process and to QC of the product and
+ * its raw materials. Equipment-side contexts (cleaning verification,
+ * equipment qualification) are not here: they judge a machine, not a batch,
+ * and they belong to their own criteria rather than to an IPC spec.
+ */
+export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
+  {
+    value: 'incoming_material',
+    label: 'รับวัตถุดิบเข้า',
+    desc: 'ตรวจวัตถุดิบก่อนรับเข้าคลัง',
+    triggers: ['oncePerBatch'],
+  },
+  {
+    value: 'line_clearance',
+    label: 'ก่อนเริ่มผลิต / Line Clearance',
+    desc: 'ตรวจความพร้อมก่อนเดินเครื่อง',
+    triggers: ['milestone'],
+    milestoneIds: ['batch_start'],
+  },
+  {
+    value: 'routine_ipc',
+    label: 'ระหว่างผลิต รอบปกติ',
+    desc: 'สุ่มตรวจตามรอบตลอดการผลิต',
+    triggers: ['time', 'quantity'],
+  },
+  {
+    value: 'lot_change',
+    label: 'หลังเปลี่ยน lot วัตถุดิบ',
+    desc: 'ยืนยันคุณภาพหลังสลับล็อต',
+    triggers: ['event'],
+    eventIds: ['lot_change'],
+  },
+  {
+    value: 'changeover',
+    label: 'หลัง changeover / ปรับตั้งเครื่อง',
+    desc: 'ตรวจหลังเปลี่ยนรุ่นหรือปรับพารามิเตอร์',
+    triggers: ['event'],
+    eventIds: ['changeover', 'param'],
+  },
+  {
+    value: 'release',
+    label: 'ก่อนปิดรุ่น / ปล่อยผ่าน',
+    desc: 'ตรวจสรุปก่อนปล่อยผลิตภัณฑ์',
+    triggers: ['milestone', 'oncePerBatch'],
+    milestoneIds: ['batch_end'],
+  },
+  {
+    value: 'validation',
+    label: 'ทวนสอบกระบวนการ (Process Validation)',
+    desc: 'เก็บข้อมูลถี่กว่าปกติเพื่อพิสูจน์กระบวนการ',
+    triggers: ['time', 'milestone'],
+    milestoneIds: ['batch_start', 'batch_mid', 'batch_end'],
+  },
+  {
+    value: 'investigation',
+    label: 'สอบสวนผลผิดปกติ (OOS)',
+    desc: 'ตรวจเพิ่มเมื่อผลหลุดเกณฑ์',
+    triggers: ['event'],
+  },
+];
+
+/**
+ * Values written by the previous option list. Kept so a criterion saved before
+ * this change still shows a chip instead of silently losing its context.
+ */
+const LEGACY_USE_CONTEXT: Record<string, string> = {
+  routine: 'routine_ipc',
+  troubleshoot: 'investigation',
+};
+
+/** Triggers recommended by the contexts currently selected, as a union. */
+export function triggersForContexts(values: string[]): Set<TriggerKey> {
+  const out = new Set<TriggerKey>();
+  for (const v of values) {
+    const opt = USE_CONTEXT_OPTIONS.find((o) => o.value === v);
+    opt?.triggers.forEach((t) => out.add(t));
+  }
+  return out;
+}
 
 export const MILESTONE_DEFAULTS: TriggerOption[] = [
   { id: 'batch_start', label: 'เริ่ม batch', on: false },
@@ -85,6 +195,7 @@ export const EVENT_DEFAULTS: TriggerOption[] = [
 
 export function defaultSharedExtras(): SharedSpecExtras {
   return {
+    stage: 'ipc',
     useContext: [],
     sopStepRef: { sopCode: '', sopVersion: '', stepNumber: '', stepDescription: '', link: '' },
     triggers: {
@@ -114,7 +225,14 @@ export function parseSharedExtras(raw: unknown): SharedSpecExtras {
   if (!obj) return fallback;
 
   const useContext = Array.isArray(obj.useContext)
-    ? (obj.useContext as unknown[]).filter((x): x is string => typeof x === 'string')
+    ? [
+        ...new Set(
+          (obj.useContext as unknown[])
+            .filter((x): x is string => typeof x === 'string')
+            .map((x) => LEGACY_USE_CONTEXT[x] ?? x)
+            .filter((x) => USE_CONTEXT_OPTIONS.some((o) => o.value === x)),
+        ),
+      ]
     : [];
   const sopStepRefRaw = isObject(obj.sopStepRef) ? obj.sopStepRef : {};
   const sopStepRef: SopStepRef = {
@@ -129,7 +247,7 @@ export function parseSharedExtras(raw: unknown): SharedSpecExtras {
     ? (obj.derivedCalcs as unknown[]).filter(isObject).map(parseDerivedCalc)
     : [];
 
-  return { useContext, sopStepRef, triggers, derivedCalcs };
+  return { stage: parseStage(obj.stage), useContext, sopStepRef, triggers, derivedCalcs };
 }
 
 function parseTriggers(raw: unknown): Triggers {
@@ -188,7 +306,10 @@ export function serializeSpecification(
 ): string | null {
   // Build envelope: type-specific fields ∪ shared extras.
   // Numeric has no type payload, so envelope is just { type: 'numeric', ...extras }.
+  // 'ipc' is the default stage, so on its own it is not a reason to write an
+  // envelope where there previously was none (specification stays null).
   const hasExtras =
+    extras.stage !== 'ipc' ||
     extras.useContext.length > 0 ||
     extras.derivedCalcs.length > 0 ||
     Object.values(extras.triggers).some((v: { on?: boolean }) => v.on === true) ||
@@ -200,6 +321,7 @@ export function serializeSpecification(
   if (typePayload) {
     Object.assign(envelope, typePayload);
   }
+  envelope.stage = extras.stage;
   if (extras.useContext.length > 0) envelope.useContext = extras.useContext;
   if (Object.values(extras.sopStepRef).some((v) => typeof v === 'string' && v.trim() !== '')) {
     envelope.sopStepRef = extras.sopStepRef;
@@ -236,8 +358,30 @@ export interface TextPayload {
 // `tareSourceCode` is the human-readable code of the linked tare criteria;
 // the DB also stores `ipc_criteria.tareSourceCriteriaId` as the FK target for
 // efficient lookup. UI keeps the code so it survives criteria-id renumbering.
+/**
+ * How the operator captures the weights.
+ *
+ *  · per_unit — one row per unit, so every unit is judged on its own. USP
+ *    <905> Weight Variation needs this: the limit is per unit, not on the mean.
+ *  · bulk     — weigh N units together and enter one figure; the mean per unit
+ *    is derived. Faster on a line, but it cannot see a single bad unit, so it
+ *    only suits checks written against an average.
+ */
+export type TareRecordMode = 'per_unit' | 'bulk';
+
 export interface MultiPointPayload {
   type: 'multi_point';
+  /** Defaults to per_unit — the stricter of the two. */
+  tareMode: TareRecordMode;
+  /**
+   * How many empty shells are weighed to establish the tare.
+   *
+   * Separate from pointCount on purpose: the shells are weighed before
+   * filling, so they are not the same units measured afterwards. USP <905>
+   * weighs 10 shells against 20 filled capsules.
+   */
+  tareCount: string;
+  /** Filled units measured — the sample the verdict is taken on. */
   pointCount: string;       // e.g. "20"
   pointLabel: string;       // e.g. "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...
   perPointTarget: string;   // numeric target per point
@@ -403,6 +547,9 @@ function validatePayload(obj: Record<string, unknown>): SpecPayload | null {
     const rule = obj.aggregateRule;
     return {
       type: 'multi_point',
+      // Records saved before this field existed were all per-unit.
+      tareMode: obj.tareMode === 'bulk' ? 'bulk' : 'per_unit',
+      tareCount: typeof obj.tareCount === 'string' ? obj.tareCount : String(obj.tareCount ?? '10'),
       pointCount: typeof obj.pointCount === 'string' ? obj.pointCount : String(obj.pointCount ?? '20'),
       pointLabel: typeof obj.pointLabel === 'string' ? obj.pointLabel : '',
       perPointTarget: typeof obj.perPointTarget === 'string' ? obj.perPointTarget : String(obj.perPointTarget ?? ''),
@@ -503,6 +650,8 @@ export function defaultPayload(criteriaType: string): SpecPayload | null {
   if (criteriaType === 'multi_point') {
     return {
       type: 'multi_point',
+      tareMode: 'per_unit',
+      tareCount: '10',
       pointCount: '20', pointLabel: 'จุด', perPointTarget: '', perPointTolerance: '',
       aggregateRule: 'all_pass', aggregateLimit: '', tareSourceCode: '',
     };

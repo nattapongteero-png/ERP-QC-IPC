@@ -34,10 +34,22 @@ interface Props {
   onAddNew?: (searchText: string) => void;
   addNewLabel?: string;
   className?: string;
+  /**
+   * Extra classes for the trigger button itself. Appended last so a caller can
+   * override the default height/radius/type-scale — used by the Stage panel,
+   * where the Figma spec calls for tall 16px-radius fields on a dark surface.
+   */
+  triggerClassName?: string;
   /** Show clear (×) button when something is selected */
   showClear?: boolean;
   /** Disabled state */
   disabled?: boolean;
+  /**
+   * Stable hook for e2e tests. The trigger gets it as-is; the panel, search box
+   * and each option get it with a suffix, so a test never has to guess at
+   * nth-child or match on Thai label text.
+   */
+  testId?: string;
 }
 
 export function SearchableSelect({
@@ -48,8 +60,10 @@ export function SearchableSelect({
   onAddNew,
   addNewLabel = '＋ เพิ่มตัวเลือกใหม่...',
   className,
+  triggerClassName,
   showClear = true,
   disabled = false,
+  testId,
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -120,6 +134,7 @@ export function SearchableSelect({
     <div ref={containerRef} className={cn('relative', className)}>
       <button
         type="button"
+        data-testid={testId}
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
@@ -129,6 +144,7 @@ export function SearchableSelect({
           selected ? 'text-slate-900' : 'text-slate-400',
           disabled && 'opacity-50 cursor-not-allowed',
           open && 'border-emerald-500 ring-2 ring-emerald-500/15',
+          triggerClassName,
         )}
       >
         <span className="truncate text-left flex-1">
@@ -163,12 +179,16 @@ export function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1.5 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+        <div
+          data-testid={testId ? `${testId}-panel` : undefined}
+          className="absolute z-30 mt-1.5 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
+        >
           <div className="p-2 border-b border-slate-100 bg-slate-50">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 autoFocus
+                data-testid={testId ? `${testId}-search` : undefined}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKey}
@@ -190,6 +210,8 @@ export function SearchableSelect({
                 <button
                   key={o.value}
                   type="button"
+                  data-testid={testId ? `${testId}-option` : undefined}
+                  data-value={o.value}
                   onClick={() => select(o.value)}
                   onMouseEnter={() => setHoveredIdx(i)}
                   className={cn(
@@ -214,6 +236,7 @@ export function SearchableSelect({
           {onAddNew && (
             <button
               type="button"
+              data-testid={testId ? `${testId}-add-new` : undefined}
               onClick={() => {
                 setOpen(false);
                 setSearch('');
