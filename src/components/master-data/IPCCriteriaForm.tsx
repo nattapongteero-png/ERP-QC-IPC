@@ -27,6 +27,7 @@ import {
   normalizeCriteriaType,
   findTestByName,
   suggestCodeForTest,
+  suggestCodeForCustom,
   type CriteriaType,
 } from '@/lib/master-data/ipc-test-catalog';
 import {
@@ -953,7 +954,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const handleSelectTest = (nameEn: string | null | undefined) => {
     if (!nameEn || nameEn === '__custom__') {
       setIsCustomName(true);
-      setFormData((p) => ({ ...p, name: '', nameTh: '' }));
+      setFormData((p) => ({
+        ...p,
+        name: '',
+        nameTh: '',
+        // A code is generated here for the same reason the catalogue tests get
+        // one: there is no Code field to type it into. Without this, a custom
+        // topic could be filled in completely and still never save.
+        code: mode === 'edit' && p.code ? p.code : suggestCodeForCustom(),
+      }));
       setAutoFilled(new Set());
       setAutoFillNote('');
       return;
@@ -2988,6 +2997,93 @@ function MultiPointSection({
     staleTime: 30_000,
   });
 
+  /**
+   * Inline creation of a tare criterion.
+   *
+   * A tare source is another ipc_criteria row, so on a fresh database the
+   * dropdown is empty and the only way forward was to abandon this half-filled
+   * form, create the tare elsewhere and start again. The four fields a tare
+   * needs fit here, so it is made here.
+   */
+  const [newTareOpen, setNewTareOpen] = React.useState(false);
+  /**
+   * The same fields the full form writes for a tare criterion — the row itself
+   * (code, name, unit) plus every field of `TarePayload`, so a tare made here
+   * is indistinguishable from one made the long way round.
+   */
+  const [newTare, setNewTare] = React.useState({
+    code: '',
+    name: '',
+    unit: 'g',
+    storeAs: '',
+    expireAfter: 'batch' as TarePayload['expireAfter'],
+    min: '',
+    max: '',
+  });
+  const [newTareError, setNewTareError] = React.useState('');
+
+  /** Opens the panel with a generated code, as the catalogue tests get one. */
+  const openNewTare = (seedCode?: string) => {
+    setNewTare((prev) => ({
+      ...prev,
+      code: seedCode?.trim() ? seedCode.trim().toUpperCase() : prev.code || suggestCodeForCustom('TARE'),
+    }));
+    setNewTareOpen(true);
+  };
+
+  const createTare = useMutation({
+    mutationFn: async () => {
+      const spec: TarePayload = {
+        type: 'tare',
+        referenceLabel: newTare.name.trim(),
+        referenceUnit: newTare.unit.trim(),
+        // Falls back to the code so the symbol is never empty — a calculated
+        // formula referencing this tare needs something to name it by.
+        storeAs: newTare.storeAs.trim() || newTare.code.trim(),
+        acceptanceMin: newTare.min.trim(),
+        acceptanceMax: newTare.max.trim(),
+        expireAfter: newTare.expireAfter,
+      };
+      const res = await fetch('/api/master-data/ipc-criteria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newTare.code.trim(),
+          name: newTare.name.trim(),
+          criteriaType: 'tare',
+          unit: newTare.unit.trim() || null,
+          sampleSize: 10,
+          isActive: true,
+          isCritical: false,
+          specification: serializeSpecification(spec, defaultSharedExtras(), 'tare'),
+        }),
+      });
+      const body = await res.json();
+      if (!body.success) throw new Error(body.error || 'สร้าง Tare ไม่สำเร็จ');
+      return body.data as { id: number };
+    },
+    onSuccess: async (created) => {
+      // Link it straight away — the user asked for this tare in order to use
+      // it, so making them pick it from the list afterwards is a wasted step.
+      await refetch();
+      onTareSourceIdChange(created.id);
+      onChange({ ...payload, tareSourceCode: newTare.code.trim() });
+      setNewTareOpen(false);
+      setNewTare({ code: '', name: '', unit: 'g', storeAs: '', expireAfter: 'batch', min: '', max: '' });
+      setNewTareError('');
+    },
+    onError: (e: Error) => setNewTareError(e.message),
+  });
+
+  const submitNewTare = () => {
+    if (!newTare.code.trim() || !newTare.name.trim()) {
+      setNewTareError('ต้องกรอก Code และชื่อ');
+      return;
+    }
+    setNewTareError('');
+    createTare.mutate();
+  };
+
   // Auto-compute aggregateLimit for mean/min_max (target ± tolerance%)
   React.useEffect(() => {
     if (payload.aggregateRule !== 'mean' && payload.aggregateRule !== 'min_max') return;
@@ -3215,6 +3311,7 @@ function MultiPointSection({
           </button>
         </div>
         <SearchableSelect
+          testId="tare-source"
           value={tareSourceId ? String(tareSourceId) : ''}
           onChange={(v) => {
             if (!v) {
@@ -3228,7 +3325,167 @@ function MultiPointSection({
           }}
           options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
           placeholder="— ไม่ใช้ tare —"
+          onAddNew={(text) => openNewTare(text)}
+          addNewLabel="＋ สร้าง Tare criteria ใหม่"
         />
+
+        {/* Empty list is not a dead end — say so, and offer the way out. */}
+        {tareList.length === 0 && !newTareOpen && (
+          <div
+            data-testid="tare-empty"
+            className="mt-2 flex flex-col gap-2 rounded-lg border border-cyan-200 bg-white/70 p-3"
+          >
+            <p className="text-[11px] leading-relaxed text-cyan-800">
+              ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
+              <br />
+              เลือกสร้างไว้ก็ต่อเมื่ออยากให้ค่า Tare ใช้ร่วมกันหลายหัวข้อ หรือชั่งไว้ล่วงหน้าครั้งเดียวต่อรุ่น
+            </p>
+            <button
+              type="button"
+              data-testid="tare-create-open"
+              onClick={() => openNewTare()}
+              className="flex w-fit items-center gap-2 rounded-full bg-cyan-700 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-cyan-800"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              สร้าง Tare criteria ใหม่
+            </button>
+          </div>
+        )}
+
+        {newTareOpen && (
+          <div
+            data-testid="tare-create-panel"
+            className="mt-2 flex flex-col gap-3 rounded-lg border border-cyan-300 bg-white p-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
+              <button
+                type="button"
+                aria-label="ปิด"
+                onClick={() => { setNewTareOpen(false); setNewTareError(''); }}
+                className="text-slate-400 transition hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className={FIELD_LABEL}>
+                  Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  className={FIELD_INPUT}
+                  placeholder="เช่น IPC-TARE-101"
+                  data-testid="tare-new-code"
+                  value={newTare.code}
+                  onChange={(e) => setNewTare({ ...newTare, code: e.target.value })}
+                />
+                <p className={FIELD_HELPER}>ระบบสร้างให้แล้ว แก้ได้</p>
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>
+                  ชื่อ / Reference Label <span className="text-red-500">*</span>
+                </label>
+                <input
+                  className={FIELD_INPUT}
+                  placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 1"
+                  data-testid="tare-new-name"
+                  value={newTare.name}
+                  onChange={(e) => setNewTare({ ...newTare, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>หน่วย (Reference Unit)</label>
+                <input
+                  className={FIELD_INPUT}
+                  placeholder="g"
+                  data-testid="tare-new-unit"
+                  value={newTare.unit}
+                  onChange={(e) => setNewTare({ ...newTare, unit: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Store As (symbol)</label>
+                <input
+                  className={FIELD_INPUT}
+                  placeholder="tare_empty_cap"
+                  data-testid="tare-new-store-as"
+                  value={newTare.storeAs}
+                  onChange={(e) => setNewTare({ ...newTare, storeAs: e.target.value })}
+                />
+                <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated — เว้นว่างได้ ระบบใช้ Code แทน</p>
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Expire After</label>
+                <select
+                  className={FIELD_INPUT}
+                  aria-label="Expire After"
+                  data-testid="tare-new-expire"
+                  value={newTare.expireAfter}
+                  onChange={(e) =>
+                    setNewTare({ ...newTare, expireAfter: e.target.value as TarePayload['expireAfter'] })
+                  }
+                >
+                  <option value="batch">หมดอายุเมื่อจบ batch</option>
+                  <option value="shift">หมดอายุเมื่อจบกะ</option>
+                  <option value="permanent">ใช้ได้ตลอด (permanent)</option>
+                </select>
+                <p className={FIELD_HELPER}>ต้องชั่งเปลือกใหม่เมื่อไร</p>
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Acceptance Min – Max</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    className={FIELD_INPUT}
+                    placeholder="0.0900"
+                    aria-label="Acceptance Min"
+                    data-testid="tare-new-min"
+                    value={newTare.min}
+                    onChange={(e) => setNewTare({ ...newTare, min: e.target.value })}
+                  />
+                  <span className="text-xs text-slate-400">–</span>
+                  <input
+                    type="number"
+                    step="any"
+                    className={FIELD_INPUT}
+                    placeholder="0.1100"
+                    aria-label="Acceptance Max"
+                    data-testid="tare-new-max"
+                    value={newTare.max}
+                    onChange={(e) => setNewTare({ ...newTare, max: e.target.value })}
+                  />
+                </div>
+                <p className={FIELD_HELPER}>ไม่บังคับ — ใช้เตือนเมื่อเปลือกผิดน้ำหนัก</p>
+              </div>
+            </div>
+
+            {newTareError && (
+              <p className="flex items-start gap-1.5 text-[11px] text-[#c0362c]">
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{newTareError}</span>
+              </p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                data-testid="tare-create-submit"
+                disabled={createTare.isPending}
+                onClick={submitNewTare}
+                className="rounded-full bg-cyan-700 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-cyan-800 disabled:opacity-60"
+              >
+                {createTare.isPending ? 'กำลังสร้าง…' : 'สร้างแล้วเลือกใช้เลย'}
+              </button>
+              <span className="text-[11px] text-slate-500">
+                บันทึกเป็นหัวข้อแยกทันที — เกณฑ์ที่กำลังกรอกอยู่ยังไม่ถูกบันทึก
+              </span>
+            </div>
+          </div>
+        )}
+
         <p className={cn(FIELD_HELPER, 'text-cyan-700')}>
           เลือก Tare criteria เพื่อให้ operator ตอน record บันทึก Gross weight แล้วระบบหัก Tare ให้อัตโนมัติ (Net = Gross − Tare)
         </p>

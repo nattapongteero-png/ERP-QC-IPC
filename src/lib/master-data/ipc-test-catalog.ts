@@ -752,3 +752,16 @@ export function suggestCodeForTest(test: TestNameEntry): string {
   const seq = String(Math.floor(Math.random() * 900) + 100);
   return `IPC-${test.codePrefix}-${seq}`;
 }
+
+/**
+ * Code for a topic that is not in the catalogue.
+ *
+ * The form has no Code field — the code has always come from the chosen test —
+ * so a topic entered by hand had no way to get one, and Create stayed disabled
+ * for good. `prefix` lets a caller mark what kind of topic it is (TARE for a
+ * tare reference), otherwise CUS for a plain custom topic.
+ */
+export function suggestCodeForCustom(prefix = 'CUS'): string {
+  const seq = String(Math.floor(Math.random() * 900) + 100);
+  return `IPC-${prefix}-${seq}`;
+}
