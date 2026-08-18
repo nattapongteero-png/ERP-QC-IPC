@@ -17,12 +17,8 @@ import { ResponsivePageHeader, StatCard } from '@/components/shared';
 import { DxDataGrid, DxDataGridColumn } from '@/components/ui/dx-data-grid';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
-import { DxSelectBox } from '@/components/ui/dx-select-box';
-import { DxTagBox } from '@/components/ui/dx-tag-box';
-import { DxTextBox } from '@/components/ui/dx-text-box';
-import { DxNumberBox } from '@/components/ui/dx-number-box';
-import { DxCheckBox } from '@/components/ui/dx-check-box';
 import { Badge } from '@/components/ui/badge';
+import { PanelRowDialogSoft } from '@/components/quality/PanelRowDialogSoft';
 import { useToast } from '@/hooks/use-toast';
 import { ListChecks, Package, CheckCircle2, FolderOpen } from 'lucide-react';
 
@@ -53,6 +49,52 @@ interface CriteriaOption {
   code: string;
   name: string;
   nameTh?: string | null;
+  criteriaType?: string | null;
+  /** JSON envelope; carries the QC stage the criterion belongs to. */
+  specification?: string | null;
+}
+
+/**
+ * Criteria types that are not a QC test in their own right, and so have no
+ * place in a test panel:
+ *
+ *  - `tare`        a reference weight a multi_point criterion subtracts from
+ *                  its own readings. On a sample of its own it measures
+ *                  nothing about the product.
+ *  - `calibration` verifies an instrument against a standard, not the batch.
+ *  - `text`        retired from the criteria editor.
+ *
+ * Everything else — numeric, pass/fail, visual, multi-point, calculated,
+ * custom multi-field — produces a result recorded against the sample.
+ */
+const NON_QC_CRITERIA_TYPES = new Set(['tare', 'calibration', 'text']);
+
+/**
+ * QC stages a test panel can draw from.
+ *
+ * A panel seeds the tests of a QC *sample* — material received, or a batch
+ * being released. In-process criteria are not sampled this way: production
+ * links them to a BOM (`bom_in_process_qc`) and records them during work-order
+ * execution, so offering them here would put a test on a QC sample that the
+ * line is already running.
+ */
+const QC_SAMPLE_STAGES = new Set(['raw_material', 'fg_release']);
+
+/**
+ * The stage a criterion was written for.
+ *
+ * ipc_criteria has no stage column: it lives in the `specification` JSON
+ * envelope. A criterion saved before stages existed has neither, and is
+ * reported as null so it can be kept rather than guessed at.
+ */
+function stageOfCriteria(spec: string | null | undefined): string | null {
+  if (!spec) return null;
+  try {
+    const parsed = JSON.parse(spec) as { stage?: unknown };
+    return typeof parsed.stage === 'string' ? parsed.stage : null;
+  } catch {
+    return null;
+  }
 }
 
 interface FormState {
@@ -144,12 +186,28 @@ export default function TestPanelsAdminPage() {
       })),
     [products],
   );
+  /**
+   * What the dialog may offer: the criteria a QC sample is actually tested
+   * against. Filtered here rather than by a control on the screen — which
+   * stage a criterion belongs to is a fact about the criterion, not a
+   * preference for the person filling in the panel.
+   */
   const criteriaItems = useMemo(
     () =>
-      criteria.map((c) => ({
-        id: c.id,
-        label: `${c.code} — ${c.nameTh || c.name}`,
-      })),
+      criteria
+        // A tare is a reference another criterion subtracts; a calibration
+        // checks an instrument. Neither is a result recorded against a sample.
+        .filter((c) => !NON_QC_CRITERIA_TYPES.has(String(c.criteriaType ?? 'numeric')))
+        .filter((c) => {
+          const stage = stageOfCriteria(c.specification);
+          // No stage recorded — from before stages existed — so it is kept:
+          // dropping it would hide criteria that are still in use.
+          return stage === null || QC_SAMPLE_STAGES.has(stage);
+        })
+        .map((c) => ({
+          id: c.id,
+          label: `${c.code} — ${c.nameTh || c.name}`,
+        })),
     [criteria],
   );
 
@@ -529,137 +587,19 @@ export default function TestPanelsAdminPage() {
         width="min(560px, 95vw)"
         height="auto"
         showCloseButton
+        wrapperAttr={{ class: 'panel-row-popup' }}
       >
-        <div className="p-4 space-y-4">
-          <p className="text-xs text-gray-600">
-            {t.rich('testPanels.dialog.hint', { em: (c) => <em>{c}</em> })}
-          </p>
-          <DxSelectBox
-            label={t('testPanels.dialog.productLabel')}
-            value={form.productId}
-            dataSource={productItems}
-            displayExpr="label"
-            valueExpr="id"
-            onValueChange={(v) =>
-              setForm({ ...form, productId: v == null ? null : Number(v) })
-            }
-            searchEnabled
-            showClearButton
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DxSelectBox
-              label={t('testPanels.dialog.categoryLabel')}
-              value={form.productCategory}
-              items={productCategories}
-              displayExpr="label"
-              valueExpr="value"
-              onValueChange={(v) =>
-                setForm({ ...form, productCategory: String(v ?? '') })
-              }
-              showClearButton
-            />
-            <DxTextBox
-              label={t('testPanels.dialog.categoryManualLabel')}
-              value={form.productCategory}
-              onValueChange={(v) =>
-                setForm({ ...form, productCategory: v || '' })
-              }
-            />
-          </div>
-          {/* New mode: multi-select; Edit mode: single. Each criteria = one row. */}
-          {form.id == null ? (
-            <>
-              <DxTagBox
-                label={t('testPanels.dialog.criteriaMultiLabel')}
-                value={form.criteriaIds}
-                dataSource={criteriaItems as unknown as Record<string, unknown>[]}
-                displayExpr="label"
-                valueExpr="id"
-                onValueChanged={(e) => {
-                  // DevExtreme returns the new selection as an array. Cast safely
-                  // — empty/undefined → []. We don't re-Number the values because
-                  // valueExpr="id" already binds them as numbers from criteriaItems.
-                  const next = Array.isArray(e.value) ? (e.value as number[]) : [];
-                  setForm({ ...form, criteriaIds: next });
-                }}
-                searchEnabled
-                showSelectionControls
-                placeholder={t('testPanels.dialog.criteriaMultiPlaceholder')}
-              />
-              {form.criteriaIds.length > 0 && (
-                <p className="text-xs text-cyan-700">
-                  {t.rich('testPanels.dialog.willCreate', {
-                    count: form.criteriaIds.length,
-                    from: form.sequence,
-                    to: form.sequence + form.criteriaIds.length - 1,
-                    strong: (c) => <strong>{c}</strong>,
-                  })}
-                </p>
-              )}
-            </>
-          ) : (
-            <DxSelectBox
-              label={t('testPanels.dialog.criteriaLabel')}
-              value={form.criteriaId}
-              dataSource={criteriaItems}
-              displayExpr="label"
-              valueExpr="id"
-              onValueChange={(v) =>
-                setForm({ ...form, criteriaId: v == null ? null : Number(v) })
-              }
-              searchEnabled
-              required
-            />
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <DxNumberBox
-              label={form.id == null ? t('testPanels.dialog.startSequence') : t('testPanels.dialog.sequence')}
-              value={form.sequence}
-              onValueChange={(v) => setForm({ ...form, sequence: Number(v) || 1 })}
-              min={1}
-              max={999}
-              step={1}
-              showSpinButtons
-            />
-            <div className="flex flex-col gap-2 pt-1">
-              <label className="flex items-center gap-2 text-sm">
-                <DxCheckBox
-                  value={form.isRequired}
-                  onValueChange={(v) =>
-                    setForm({ ...form, isRequired: Boolean(v) })
-                  }
-                />
-                <span>{t('testPanels.required')}</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <DxCheckBox
-                  value={form.isActive}
-                  onValueChange={(v) => setForm({ ...form, isActive: Boolean(v) })}
-                />
-                <span>{t('testPanels.active')}</span>
-              </label>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <DxButton
-              text={t('testPanels.dialog.cancel')}
-              stylingMode="outlined"
-              onClick={() => setShowForm(false)}
-              disabled={submitting}
-            />
-            <DxButton
-              text={submitting ? t('testPanels.dialog.saving') : t('testPanels.dialog.save')}
-              type="default"
-              onClick={handleSubmit}
-              disabled={
-                submitting ||
-                (form.id == null
-                  ? form.criteriaIds.length === 0
-                  : !form.criteriaId)
-              }
-            />
-          </div>
-        </div>
+        <PanelRowDialogSoft
+          form={form}
+          onChange={setForm}
+          productItems={productItems}
+          productCategories={productCategories}
+          criteriaItems={criteriaItems}
+          products={products}
+          submitting={submitting}
+          onCancel={() => setShowForm(false)}
+          onSubmit={handleSubmit}
+        />
       </DxPopup>
     </>
   );

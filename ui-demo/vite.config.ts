@@ -32,6 +32,15 @@ export default defineConfig({
         find: /^@\/components\/ui\/dx-button$/,
         replacement: path.resolve(__dirname, 'shims/dx-button.tsx'),
       },
+      {
+        find: /^@\/components\/ui\/dx-popup$/,
+        replacement: path.resolve(__dirname, 'shims/dx-popup.tsx'),
+      },
+      {
+        find: /^@\/components\/ui\/dx-data-grid$/,
+        replacement: path.resolve(__dirname, 'shims/dx-data-grid.tsx'),
+      },
+      { find: 'next-intl', replacement: path.resolve(__dirname, 'shims/next-intl.tsx') },
       { find: 'next/navigation', replacement: path.resolve(__dirname, 'shims/next-navigation.tsx') },
       { find: 'next/link', replacement: path.resolve(__dirname, 'shims/next-link.tsx') },
       { find: '@', replacement: path.resolve(__dirname, '../src') },

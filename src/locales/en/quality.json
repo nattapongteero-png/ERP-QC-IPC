@@ -1257,7 +1257,19 @@
       "sequence": "Sequence",
       "cancel": "Cancel",
       "saving": "Saving...",
-      "save": "Save"
+      "save": "Save",
+      "sectionTarget": "Applies to",
+      "sectionCriteria": "Criteria to test",
+      "sectionSettings": "Settings",
+      "criteriaAddPlaceholder": "Search, then pick to add a criterion",
+      "criteriaEmpty": "No criteria chosen yet — pick at least one",
+      "criteriaRemove": "Remove this criterion",
+      "targetProduct": "Applies to product {name} only",
+      "targetCategory": "Applies to every product in category {name}",
+      "targetBoth": "Applies to product {name} (a product is set, so the category is ignored)",
+      "targetNone": "Nothing chosen yet — set a product or a category",
+      "requiredHint": "Marks this criterion as mandatory in the panel (not enforced anywhere yet)",
+      "activeHint": "Off = the row stays, but new samples will not pick it up"
     }
   },
   "testCatalog": {
