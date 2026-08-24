@@ -1,3 +1,5 @@
+import FIXTURES from './data/wo-fixtures.json';
+
 /**
  * Stand-in for the API the screen calls at runtime.
  *
@@ -27,10 +29,12 @@ let nextCriteriaId = 900;
 
 /** Products the test-panel screen offers, shaped like /api/items. */
 const ITEMS = [
-  { id: 1, code: 'FG-CAP-001', nameTh: 'ฟ้าทะลายโจรแคปซูล 400 mg', category: 'capsule' },
-  { id: 2, code: 'FG-TAB-002', nameTh: 'ขมิ้นชันเม็ด 500 mg', category: 'tablet' },
-  { id: 3, code: 'RM-HRB-010', nameTh: 'ผงฟ้าทะลายโจร', category: 'herb' },
-  { id: 4, code: 'FG-POW-004', nameTh: 'ผงขิงชงดื่ม', category: 'powder' },
+  { id: 1, code: 'FG-CAP-001', nameTh: 'ฟ้าทะลายโจรแคปซูล 400 mg', category: 'capsule', type: 'finished_goods' },
+  { id: 2, code: 'FG-TAB-002', nameTh: 'ขมิ้นชันเม็ด 500 mg', category: 'tablet', type: 'finished_goods' },
+  { id: 3, code: 'RM-HRB-010', nameTh: 'ผงฟ้าทะลายโจร', category: 'herb', type: 'raw_material' },
+  { id: 4, code: 'FG-POW-004', nameTh: 'ผงขิงชงดื่ม', category: 'powder', type: 'finished_goods' },
+  { id: 5, code: 'PK-BOT-020', nameTh: 'ขวดแก้วสีชา 100 ml', category: 'bottle', type: 'packaging' },
+  { id: 6, code: 'CS-GLV-001', nameTh: 'ถุงมือไนไตรล์', category: 'ppe', type: 'consumable' },
 ];
 
 /**
@@ -69,8 +73,86 @@ export function installMockApi() {
   window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
+    // The shell's own calls — a session so MainLayout renders, and an empty
+    // notification list so the bell draws without a badge.
+    if (url.includes('/api/auth/session')) {
+      return json({
+        success: true,
+        data: { user: { id: 1, name: 'สมชาย ผลิตดี', email: 'production@herbal-erp.com', role: 'admin' } },
+      });
+    }
+    if (url.includes('/api/notifications')) {
+      return json({ success: true, count: 0, items: [], data: { items: [] } });
+    }
+    /* ── QC entry ────────────────────────────────────────────────
+       Same arrangement as the work order screens: the application's own
+       pages, handed a frozen copy of what the server answered for five real
+       QC samples. Writes are acknowledged so the screens stay responsive,
+       but a static site has nowhere to keep them. */
+    if (url.includes('/api/quality/qc-samples')) {
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (method !== 'GET') return json({ success: true, data: {} });
+      const oos = url.match(/\/qc-samples\/(\d+)\/oos/);
+      const byId = (map: unknown, id: string) => (map as Record<string, unknown>)?.[id];
+      if (oos) return json(byId(FIXTURES.qcOosBySample, oos[1]) ?? { success: true, data: [] });
+      const one = url.match(/\/qc-samples\/(\d+)/);
+      if (one) return json(byId(FIXTURES.qcSampleById, one[1]) ?? { success: false, error: 'not found' });
+      return json(FIXTURES.qcSamples);
+    }
+    if (url.includes('/api/quality/incoming-inspection/pending-qa')) {
+      return json(FIXTURES.qcPendingQa ?? { items: [], total: 0 });
+    }
+    if (url.includes('/api/quality/coa')) {
+      return json({ success: true, data: { items: [] } });
+    }
+    if (url.includes('/api/quality/oos')) {
+      return json({ success: true, data: {} });
+    }
+    if (url.includes('/api/attachments')) {
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (method !== 'GET') return json({ success: true, data: {} });
+      return json({ success: true, data: [] });
+    }
+
+    // One document — the SOP the operator opens from a step.
+    const docHit = url.match(/\/api\/documents\/(\d+)/);
+    if (docHit) {
+      const doc = (FIXTURES.documentById as Record<string, unknown>)[docHit[1]];
+      if (doc) return json(doc);
+    }
     if (url.includes('/api/documents')) {
-      return json({ data: { documents: GMP_DOCUMENTS } });
+      // Real SOP documents, so the titles on the step cards are the ones the
+      // work order actually references.
+      const captured = FIXTURES.documents?.data?.documents;
+      return json({ data: { documents: captured?.length ? captured : GMP_DOCUMENTS } });
+    }
+
+    /* ── Work order screens ──────────────────────────────────────────
+       The SOP execution and IPC screens in this demo are the application's
+       own pages, not replicas. They are handed a frozen copy of what the
+       server answered for one real work order, so what a reviewer clicks
+       through is the shipped screen against a shipped payload. Writes are
+       acknowledged but not kept — a static demo has nowhere to keep them. */
+    const woHit = url.match(/\/api\/production\/work-orders\/\d+\/([a-z-]+)/);
+    if (woHit) {
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (method !== 'GET') return json({ success: true, data: {} });
+      switch (woHit[1]) {
+        case 'detail':
+          return json(FIXTURES.detail);
+        case 'execution-summary':
+          return json(FIXTURES.executionSummary);
+        case 'sop-execution':
+          return json(FIXTURES.sopExecution);
+        case 'bom-config':
+          return json(FIXTURES.bomConfig);
+        case 'ipc':
+          return json(
+            url.includes('action=bom-config') ? FIXTURES.ipcBomConfig : FIXTURES.ipcTests,
+          );
+        default:
+          return json({ success: true, data: [] });
+      }
     }
     if (url.includes('/api/quality/test-panels')) {
       const method = (init?.method ?? 'GET').toUpperCase();
@@ -101,7 +183,13 @@ export function installMockApi() {
         return json({ success: true });
       }
       if (method === 'PUT') return json({ success: true });
-      return json({ success: true, data: { items: TEST_PANELS } });
+      // Real panel rows when the capture has them — the demo's four hand-made
+      // rows show far less than the screen actually holds.
+      const captured = FIXTURES.qcTestPanels?.data?.items;
+      return json({
+        success: true,
+        data: { items: captured?.length ? [...captured, ...TEST_PANELS] : TEST_PANELS },
+      });
     }
     if (url.includes('/api/items')) {
       return json({ success: true, data: { items: ITEMS } });
@@ -130,7 +218,10 @@ export function installMockApi() {
         return json({ success: true, data: { id: 999 } });
       }
       if (method !== 'GET') return json({ success: true, data: { id: 999 } });
-      return json({ success: true, data: [...CRITERIA, ...IPC_CRITERIA] });
+      // The work order screens read this list to label each criterion's linked
+      // GMP document, so the captured rows go first.
+      const captured = (FIXTURES.ipcCriteria?.data ?? []) as typeof CRITERIA;
+      return json({ success: true, data: [...captured, ...CRITERIA, ...IPC_CRITERIA] });
     }
     return real(input as RequestInfo, init);
   };
