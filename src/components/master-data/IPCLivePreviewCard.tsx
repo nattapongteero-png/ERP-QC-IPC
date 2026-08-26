@@ -17,6 +17,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/number-format';
 import {
   DOSAGE_FORM_OPTIONS,
   testsForStage,
@@ -92,6 +93,17 @@ export interface IPCLivePreviewCardProps {
   stages: AcceptanceStage[];
   specPayload: SpecPayload | null;
   stage: StageValue;
+  /**
+   * Start every input empty. Set when the card is the recording surface rather
+   * than a preview — the operator must enter what they measured, not confirm
+   * numbers the screen invented.
+   */
+  blank?: boolean;
+  /**
+   * Called with what the operator has entered, whenever it changes. Set by a
+   * screen that has to save the round; a preview leaves it off.
+   */
+  onValuesChange?: (values: RecordedValues) => void;
 }
 
 // ── Recording templates ────────────────────────────────────────────
@@ -278,7 +290,18 @@ function CellGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-3 gap-4">{children}</div>;
 }
 
-function StatCard({ label, value, tone }: { label: string; value: string; tone?: 'pass' | 'fail' }) {
+function StatCard({
+  label,
+  value,
+  tone,
+  hint,
+}: {
+  label: string;
+  value: string;
+  tone?: 'pass' | 'fail';
+  /** The rule behind the number — e.g. the tolerance the allowance came from. */
+  hint?: string;
+}) {
   return (
     <div className={STAT_CARD}>
       <span className={STAT_LABEL}>{label}</span>
@@ -291,6 +314,7 @@ function StatCard({ label, value, tone }: { label: string; value: string; tone?:
       >
         {value}
       </span>
+      {hint && <span className="text-center text-[9px] leading-tight text-[#bfbfbf]">{hint}</span>}
     </div>
   );
 }
@@ -426,6 +450,8 @@ export function IPCLivePreviewCard({
   stages,
   specPayload,
   stage,
+  blank = false,
+  onValuesChange,
 }: IPCLivePreviewCardProps) {
   const theme = STAGE_THEME[stage];
   const unit = formData.unit ?? '';
@@ -527,6 +553,8 @@ export function IPCLivePreviewCard({
             recorder — otherwise a verdict from the previous layout would keep
             tinting the card until something re-rendered. */}
         <VerdictContext.Provider value={reportVerdict}>
+          <ReportContext.Provider value={onValuesChange ?? null}>
+          <BlankContext.Provider value={blank}>
           <RecordingArea
             key={template}
             template={template}
@@ -537,6 +565,8 @@ export function IPCLivePreviewCard({
             allowedFail={allowedFail}
             unit={unit}
           />
+          </BlankContext.Provider>
+          </ReportContext.Provider>
         </VerdictContext.Provider>
       </div>
 
@@ -720,6 +750,78 @@ function RecordingArea(props: RecordingProps) {
  * author can drag a number out of range and watch the accept/reject maths
  * react. Re-seeds whenever the spec that produced them changes.
  */
+/**
+ * True while the card is being used to record a real result.
+ *
+ * On the criteria screen the cells carry sample numbers so the author can see
+ * the layout working. On the recording screen those same numbers would read as
+ * measurements nobody took, so every cell starts empty instead.
+ */
+const BlankContext = React.createContext(false);
+
+/**
+ * What the operator has entered, in the one shape every recorder can express.
+ *
+ * The card draws thirteen different recording surfaces — a weight grid, a
+ * verdict per sample, a checklist, a free-text answer — and the screen holding
+ * the card has to save whatever came out of it. So each recorder reports the
+ * same thing: readings in order, plus whether the round is complete. A screen
+ * that only saves complete rounds can check one field rather than know which
+ * of the thirteen it is looking at.
+ */
+export interface RecordedValues {
+  samples: Array<{
+    numericValue: number | null;
+    result: 'pass' | 'fail' | null;
+    textValue: string | null;
+  }>;
+  /** Set for free-text criteria, where there is one answer and no samples. */
+  text?: string | null;
+  /** Every reading the criterion asks for has been entered. */
+  complete: boolean;
+}
+
+const ReportContext = React.createContext<((v: RecordedValues) => void) | null>(null);
+
+/**
+ * Hand the current entry up to whoever is holding the card.
+ *
+ * Serialised for the dependency check: the payload is rebuilt on every render,
+ * so comparing the objects would report forever.
+ */
+function useReportValues(build: () => RecordedValues) {
+  const report = React.useContext(ReportContext);
+  const value = build();
+  const key = JSON.stringify(value);
+  React.useEffect(() => {
+    report?.(JSON.parse(key) as RecordedValues);
+  }, [key, report]);
+}
+
+/** Readings that came from a numeric grid. */
+function numericSamples(
+  values: string[],
+  numbers: number[],
+  verdict: (v: number, i: number) => 'pass' | 'fail' | null,
+): RecordedValues {
+  const samples = values.map((v, i) =>
+    v.trim() === ''
+      ? { numericValue: null, result: null, textValue: null }
+      : { numericValue: numbers[i], result: verdict(numbers[i], i), textValue: null },
+  );
+  return { samples, complete: samples.length > 0 && samples.every((x) => x.numericValue != null) };
+}
+
+/** Readings that are a verdict per item rather than a measurement. */
+function verdictSamples(verdicts: (boolean | null)[]): RecordedValues {
+  const samples = verdicts.map((v) => ({
+    numericValue: null,
+    result: v === null ? null : v ? ('pass' as const) : ('fail' as const),
+    textValue: null,
+  }));
+  return { samples, complete: samples.length > 0 && samples.every((x) => x.result != null) };
+}
+
 function useDemoValues(
   count: number,
   seed: (i: number) => number,
@@ -731,11 +833,13 @@ function useDemoValues(
    */
   seeded = true,
 ) {
+  const blank = React.useContext(BlankContext);
+  const fill = seeded && !blank;
   const build = React.useCallback(
-    () => Array.from({ length: count }, (_, i) => (seeded ? String(round(seed(i), 3)) : '')),
+    () => Array.from({ length: count }, (_, i) => (fill ? String(round(seed(i), 3)) : '')),
     // `seed` is rebuilt on every render by design; `signature` is the real key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [count, signature, seeded],
+    [count, signature, fill],
   );
   const [values, setValues] = React.useState<string[]>(build);
   React.useEffect(() => setValues(build()), [build]);
@@ -766,6 +870,8 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData }: Recordin
     `${count}|${bounds?.lo}|${bounds?.hi}`,
     bounds != null,
   );
+
+  useReportValues(() => numericSamples(values, numbers, (v) => judge(v, bounds)));
 
   const { mean, sd, rsd } = stats(filled);
   const failCount = bounds
@@ -869,6 +975,21 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
   };
   const failCount = nets.filter((_, i) => done(i) && outOfSpec(i)).length;
   const pass = failCount <= allowedFail;
+
+  // The gross weight belongs to the bench: judging it would let a heavy shell
+  // pass for a correct dose, so the net is what leaves this card.
+  useReportValues(() => ({
+    samples: nets.map((n, i) =>
+      done(i)
+        ? {
+            numericValue: round(n, 3),
+            result: outOfSpec(i) ? ('fail' as const) : ('pass' as const),
+            textValue: null,
+          }
+        : { numericValue: null, result: null, textValue: null },
+    ),
+    complete: tareReady && gross.values.every((v) => v.trim() !== ''),
+  }));
 
   const u = unit ? ` (${unit})` : '';
   const step = (n: number, text: string) => (
@@ -1012,7 +1133,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
         weigh the shell again, which is the whole thing the link avoids.
       */}
       <div className={RECORD_BOX}>
-        <div className="flex flex-col gap-2 rounded-[12px] bg-[#f9fafb] p-3">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#5682e9] text-[10px] font-bold text-white">
               1
@@ -1137,6 +1258,21 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
   };
   const failCount = nets.filter((_, i) => done(i) && outOfSpec(i)).length;
   const pass = failCount <= allowedFail;
+
+  // The gross weight belongs to the bench: judging it would let a heavy shell
+  // pass for a correct dose, so the net is what leaves this card.
+  useReportValues(() => ({
+    samples: nets.map((n, i) =>
+      done(i)
+        ? {
+            numericValue: round(n, 3),
+            result: outOfSpec(i) ? ('fail' as const) : ('pass' as const),
+            textValue: null,
+          }
+        : { numericValue: null, result: null, textValue: null },
+    ),
+    complete: tareReady && gross.values.every((v) => v.trim() !== ''),
+  }));
 
   const u = unit ? ` (${unit})` : '';
   const step = (n: number, text: string) => (
@@ -1311,6 +1447,8 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
   const has = values[0]?.trim() !== '';
   const state = has ? judge(numbers[0], bounds) : null;
 
+  useReportValues(() => numericSamples(values, numbers, (v) => judge(v, bounds)));
+
   return (
     <>
       <div className={RECORD_BOX}>
@@ -1351,7 +1489,7 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
  * against; the verdict is then two explicit buttons per sample, neither of
  * them preselected.
  */
-function PassFailRecorder({ specPayload, sampleSize, allowedFail }: RecordingProps) {
+function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail }: RecordingProps) {
   const pf = specPayload?.type === 'pass_fail' ? specPayload : null;
   const count = Math.min(Math.max(sampleSize, 1), 20);
   const [verdicts, setVerdicts] = React.useState<(boolean | null)[]>(() =>
@@ -1400,6 +1538,8 @@ function PassFailRecorder({ specPayload, sampleSize, allowedFail }: RecordingPro
     </div>
   );
 
+  useReportValues(() => verdictSamples(verdicts));
+
   return (
     <>
       {/* What the operator is judging against. */}
@@ -1447,7 +1587,11 @@ function PassFailRecorder({ specPayload, sampleSize, allowedFail }: RecordingPro
       <StatRow>
         <StatCard label="ผ่าน" value={String(passCount)} />
         <StatCard label="ไม่ผ่าน" value={String(failCount)} />
-        <StatCard label="เสียได้" value={String(allowedFail)} />
+        <StatCard
+          label="เสียได้"
+          value={String(allowedFail)}
+          hint={`ยอมรับ ${formatNumber(formData.tolerancePercent ?? 0)}%`}
+        />
         <StatCard label="ยังไม่ตัดสิน" value={String(count - judged)} />
       </StatRow>
       {/* No verdict until every sample has one — a batch cannot be passed on
@@ -1457,7 +1601,8 @@ function PassFailRecorder({ specPayload, sampleSize, allowedFail }: RecordingPro
   );
 }
 
-function ChecklistRecorder({ template, specPayload, sampleSize, allowedFail }: RecordingProps) {
+function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowedFail }: RecordingProps) {
+  const blank = React.useContext(BlankContext);
   const items = React.useMemo(() => {
     if (template === 'checklist' && specPayload?.type === 'visual') {
       const list = specPayload.checklist.filter(Boolean);
@@ -1466,47 +1611,76 @@ function ChecklistRecorder({ template, specPayload, sampleSize, allowedFail }: R
     return Array.from({ length: Math.min(Math.max(sampleSize, 1), 12) }, (_, i) => `ตัวอย่าง #${i + 1}`);
   }, [template, specPayload, sampleSize]);
 
-  const [checked, setChecked] = React.useState<boolean[]>(() => items.map(() => true));
-  React.useEffect(() => setChecked(items.map(() => true)), [items]);
+  // Undecided while recording — a tick box that starts ticked passes every
+  // item the operator never looked at. The verdict has to be given, not
+  // withheld, so each row is an explicit PASS/FAIL choice like every other
+  // per-sample judgement on this card.
+  const [verdicts, setVerdicts] = React.useState<(boolean | null)[]>(() =>
+    items.map(() => (blank ? null : true)),
+  );
+  React.useEffect(() => setVerdicts(items.map(() => (blank ? null : true))), [items, blank]);
+  const set = (i: number, want: boolean) =>
+    setVerdicts((prev) => prev.map((v, idx) => (idx === i ? (v === want ? null : want) : v)));
 
-  const failCount = checked.filter((c) => !c).length;
+  useReportValues(() => verdictSamples(verdicts));
+
+  const judged = verdicts.filter((v) => v !== null).length;
+  const passCount = verdicts.filter((v) => v === true).length;
+  const failCount = verdicts.filter((v) => v === false).length;
   const limit = template === 'checklist' ? 0 : allowedFail;
+  const done = judged === verdicts.length;
   const pass = failCount <= limit;
 
   return (
     <>
       <div className={RECORD_BOX}>
         {items.map((label, i) => (
-          <label
+          <div
             key={i}
-            className="flex cursor-pointer items-center gap-3 rounded-[12px] bg-white px-3 py-3"
+            className="flex flex-col gap-2 rounded-[12px] bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3"
           >
-            <input
-              type="checkbox"
-              checked={checked[i] ?? true}
-              onChange={(e) =>
-                setChecked((prev) => prev.map((c, idx) => (idx === i ? e.target.checked : c)))
-              }
-              className="h-4 w-4 shrink-0 accent-[#5682e9]"
-            />
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-900">{label}</span>
-            <span
-              className={cn(
-                'shrink-0 text-xs font-semibold',
-                checked[i] ? 'text-[#1a8a4a]' : 'text-[#c0362c]',
-              )}
-            >
-              {checked[i] ? 'PASS' : 'FAIL'}
-            </span>
-          </label>
+            <span className="min-w-0 flex-1 text-sm text-slate-900">{label}</span>
+            <div className="flex shrink-0 gap-2 sm:w-[184px]">
+              {([true, false] as const).map((want) => {
+                const on = verdicts[i] === want;
+                return (
+                  <button
+                    type="button"
+                    key={String(want)}
+                    aria-pressed={on}
+                    aria-label={`${label} ${want ? 'ผ่าน' : 'ไม่ผ่าน'}`}
+                    data-testid={`cl-${i}-${want ? 'pass' : 'fail'}`}
+                    onClick={() => set(i, want)}
+                    className={cn(
+                      'h-9 flex-1 rounded-[10px] border text-xs font-semibold transition-colors',
+                      on && want && 'border-[#1a8a4a] bg-[#1a8a4a] text-white',
+                      on && !want && 'border-[#c0362c] bg-[#c0362c] text-white',
+                      !on && 'border-[#e5e7eb] bg-[#f9fafb] text-slate-500 hover:border-[#9db9e8]',
+                    )}
+                  >
+                    {want ? 'PASS' : 'FAIL'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </div>
       <StatRow>
-        <StatCard label="ผ่าน" value={String(checked.length - failCount)} />
+        <StatCard label="ผ่าน" value={String(passCount)} />
         <StatCard label="ไม่ผ่าน" value={String(failCount)} />
-        <StatCard label="เสียได้" value={String(limit)} />
+        <StatCard
+          label="เสียได้"
+          value={String(limit)}
+          hint={
+            template === 'checklist'
+              ? 'ต้องผ่านทุกข้อ'
+              : `ยอมรับ ${formatNumber(formData.tolerancePercent ?? 0)}%`
+          }
+        />
+        <StatCard label="ยังไม่ตัดสิน" value={String(verdicts.length - judged)} />
       </StatRow>
-      <ResultBar pass={pass} />
+      <ResultBar pass={done ? pass : null} note={done ? undefined : 'ตัดสินให้ครบทุกหัวข้อก่อน'} />
     </>
   );
 }
@@ -1515,6 +1689,12 @@ function ChecklistRecorder({ template, specPayload, sampleSize, allowedFail }: R
 function TextRecorder({ specPayload }: RecordingProps) {
   const text = specPayload?.type === 'text' ? specPayload : null;
   const [value, setValue] = React.useState('');
+
+  useReportValues(() => ({
+    samples: [{ numericValue: null, result: null, textValue: value.trim() || null }],
+    text: value.trim() || null,
+    complete: value.trim() !== '',
+  }));
 
   return (
     <>
@@ -1549,7 +1729,8 @@ function CalibrationRecorder({ specPayload }: RecordingProps) {
   const standard = Number(cal?.standardValue ?? '') || 0;
   const tolValue = Number(cal?.toleranceValue ?? '') || 0;
   const allowance = cal?.toleranceType === 'percent' ? (standard * tolValue) / 100 : tolValue;
-  const [reading, setReading] = React.useState(String(round(standard, 3)));
+  const blank = React.useContext(BlankContext);
+  const [reading, setReading] = React.useState(blank ? '' : String(round(standard, 3)));
 
   React.useEffect(() => setReading(String(round(standard, 3))), [standard]);
 
