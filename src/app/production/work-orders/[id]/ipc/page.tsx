@@ -10,7 +10,8 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { ResponsivePageHeader } from '@/components/shared';
+import { SOFT_PRIMARY_BTN } from '@/components/shared/soft-form';
 import { OrganicGridTheme } from '@/components/ui/organic-grid-theme';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,12 +31,19 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  Building2,
   ClipboardList,
+  Lock,
   FileText,
 } from 'lucide-react';
 import { GmpDocumentPreviewDialog } from '@/components/documents';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
-import { parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { formatSpecSummary, parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import {
+  IPCRecordDialog,
+  type RecordableCriterion,
+} from '@/components/ipc-recording/IPCRecordDialog';
+import { IPCRoundHistory } from '@/components/ipc-recording/IPCRoundHistory';
 import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { cn } from '@/lib/utils/cn';
@@ -149,13 +157,27 @@ interface IPCTest {
   sopStepNumber?: string | null;
 }
 
+/** The slice of a SOP execution's linked IPC that carries the recorded round. */
+interface SOPRecordedIPC {
+  recordedTestId?: number | null;
+  recordedStatus?: string | null;
+  recordedSamples?: IPCSample[];
+  recordedTestedByName?: string | null;
+  recordedTestDate?: string | null;
+  recordedAcceptanceStages?: string | null;
+}
+
 // Filterable execution phases (pre_packaging collapsed into packaging).
 type IPCPhase = 'pre_production' | 'production' | 'post_production' | 'packaging';
-const IPC_PHASE_LABELS: Record<IPCPhase, string> = {
-  pre_production: 'Pre-Production',
-  production: 'Production',
-  post_production: 'Post-Production',
-  packaging: 'Packaging',
+/** The order production runs them in. */
+const PHASE_ORDER = ['pre_production', 'production', 'post_production', 'pre_packaging', 'packaging'];
+
+const IPC_PHASE_LABELS: Record<string, string> = {
+  pre_packaging: 'ก่อนบรรจุ',
+  pre_production: 'ก่อนการผลิต',
+  production: 'ระหว่างการผลิต',
+  post_production: 'หลังการผลิต',
+  packaging: 'การบรรจุ',
 };
 
 interface IPCSample {
@@ -200,6 +222,88 @@ interface WorkOrderBasic {
   productName: string;
   status: string;
 }
+
+/** The latest recorded reading, in the corner the QC entry cards keep it. */
+function latestReadingOf(
+  samples: { testRound: number; numericValue: number | null; result: string | null }[],
+  unit?: string | null,
+): { value: string; sub: string } | null {
+  if (!samples.length) return null;
+  const lastRound = Math.max(...samples.map((x) => x.testRound));
+  const inRound = samples.filter((x) => x.testRound === lastRound);
+  const nums = inRound
+    .map((x) => (x.numericValue == null ? null : Number(x.numericValue)))
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  const value = nums.length
+    ? `${(nums.reduce((a, b) => a + b, 0) / nums.length).toLocaleString(undefined, { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`
+    : `ผ่าน ${inRound.filter((x) => x.result === 'pass').length}/${inRound.length}`;
+  return { value, sub: `รอบที่ ${lastRound}${inRound.length > 1 ? ` · เฉลี่ยจาก ${inRound.length}` : ''}` };
+}
+
+// The criterion's spec envelope, rendered exactly as the SOP execution screen
+// renders it — same helper, so the two screens cannot drift apart.
+function IPCSpecLines({ test }: { test: IPCTest }) {
+  const lines = formatSpecSummary({
+    criteriaType: test.criteriaType || 'numeric',
+    specification: test.specSpecification,
+    sampleSize: test.sampleSize,
+    minValue: test.specMinValue,
+    maxValue: test.specMaxValue,
+    unit: test.specUnit,
+  });
+  if (lines.length === 0) return null;
+  return (
+    <div className="mt-1 space-y-0.5">
+      {lines.map((ln, i) => (
+        <div
+          key={i}
+          className={`flex items-start gap-1.5 text-xs ${
+            ln.tone === 'pass' ? 'text-emerald-700'
+              : ln.tone === 'fail' ? 'text-rose-700'
+                : ln.tone === 'meta' ? 'text-gray-500'
+                  : 'text-gray-700'
+          }`}
+        >
+          <span className="w-3.5 flex-none select-none text-center">{ln.icon}</span>
+          <span className="break-words">{ln.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Recorded state as a soft pill — the same vocabulary the SOP cards use.
+function IPCStatusPill({ test }: { test: IPCTest }) {
+  const recorded = test.status !== 'pending' && (test.samples?.length ?? 0) > 0;
+  if (!recorded) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-[#f1f3f5] px-1.5 py-0.5 text-[10px] font-semibold text-[#6b7280]">
+        ยังไม่บันทึก
+      </span>
+    );
+  }
+  const tone =
+    test.status === 'pass'
+      ? 'bg-[#e8f6ee] text-[#1a8a4a]'
+      : test.status === 'fail'
+        ? 'bg-[#fbeceb] text-[#c0362c]'
+        : 'bg-[#fdf0e6] text-[#b45309]';
+  const label =
+    test.status === 'pass'
+      ? 'บันทึกแล้ว — ผ่าน'
+      : test.status === 'fail'
+        ? 'บันทึกแล้ว — ไม่ผ่าน'
+        : 'บันทึกแล้ว';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tone}`}>
+      <CheckCircle2 className="h-2.5 w-2.5" />
+      {label}
+    </span>
+  );
+}
+
+const SOFT_META_PILL =
+  'inline-flex items-center gap-1 rounded-md bg-[#f1f3f5] px-1.5 py-0.5 text-[10px] font-semibold text-[#6b7280]';
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
@@ -247,6 +351,132 @@ export default function IPCPage() {
   const [checkboxResults, setCheckboxResults] = useState<('pass' | 'fail' | null)[]>([]);
   const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
 
+  // Recording happens in the same dialog the SOP execution screen opens, over
+  // the same card the criteria author previewed. One recording surface for the
+  // whole system — press a criterion here or there and you meet the same thing.
+  const [recordDialog, setRecordDialog] = useState<RecordableCriterion | null>(null);
+
+  /** Recorded rounds show on the card, open by default; this holds the folded ones. */
+  const [collapsedTests, setCollapsedTests] = useState<Set<number>>(new Set());
+  const toggleTestCollapsed = (id: number) =>
+    setCollapsedTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // A criterion recorded from a SOP step keeps its samples on that step's own
+  // quality_tests row, so this page's row carries only the cross-reference.
+  // Read the SOP execution board (a plain GET, nothing written) and index the
+  // recorded rounds by test id, so the details can open here instead of
+  // sending the operator to another screen to read their own result.
+  const { data: sopBoard } = useQuery<{
+    /** Recorded rounds, keyed by the quality_tests row they live on. */
+    recorded: Record<number, SOPRecordedIPC>;
+    /** Position of each criterion in the SOP, keyed by criteriaId. */
+    order: Record<number, number>;
+    /** The step each criterion is checked at, keyed by criteriaId. */
+    step: Record<number, { sequence: number; name: string; phase: string | null }>;
+  }>({
+    queryKey: ['wo-ipc-sop-board', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/sop-execution`);
+      const json = await res.json();
+      const steps = json?.data?.executions ?? json?.data?.items ?? json?.data ?? [];
+      const recorded: Record<number, SOPRecordedIPC> = {};
+      const order: Record<number, number> = {};
+      const step: Record<number, { sequence: number; name: string; phase: string | null }> = {};
+      let seen = 0;
+      // Walk the board in the order the operator works it: step by step, and
+      // within a step the order the criteria are listed.
+      const inStepOrder = (Array.isArray(steps) ? [...steps] : []).sort(
+        (a, b) => Number(a.sequence ?? a.stepSequence ?? 0) - Number(b.sequence ?? b.stepSequence ?? 0),
+      );
+      for (const step0 of inStepOrder) {
+        for (const ipc of step0.linkedIPC ?? []) {
+          if (ipc.criteriaId != null && order[Number(ipc.criteriaId)] == null) {
+            order[Number(ipc.criteriaId)] = (seen += 1);
+            step[Number(ipc.criteriaId)] = {
+              sequence: Number(step0.sequence ?? step0.stepSequence ?? 0),
+              name: String(step0.stepNameTh || step0.stepName || ''),
+              phase: step0.phase ?? null,
+            };
+          }
+          if (ipc.recordedTestId == null) continue;
+          recorded[Number(ipc.recordedTestId)] = ipc as SOPRecordedIPC;
+        }
+      }
+      return { recorded, order, step };
+    },
+    staleTime: 0,
+  });
+  const sopRecordedMap = sopBoard?.recorded;
+
+  const toRecordable = (test: IPCTest): RecordableCriterion => {
+    const sampleSize = Number(test.sampleSize) || 1;
+    const tolPct = Number(test.tolerancePercent) || 0;
+    const min = test.specMinValue == null ? null : Number(test.specMinValue);
+    const max = test.specMaxValue == null ? null : Number(test.specMaxValue);
+    const stages = parseAcceptanceStages(test.acceptanceStages);
+    const criteriaId = test.ipcCriteriaId ?? test.id;
+    const criteriaType = (test.criteriaType || 'numeric') as RecordableCriterion['criteriaType'];
+    const allowedFail = Math.floor((sampleSize * tolPct) / 100);
+    const viaSOP = test.sopRecordedTestId != null
+      ? sopRecordedMap?.[Number(test.sopRecordedTestId)] ?? null
+      : null;
+    return {
+      criteriaId,
+      criteriaType,
+      stage: 'ipc',
+      formData: {
+        code: criteriaCodeMap?.[criteriaId] ?? `IPC-${criteriaId}`,
+        name: test.testName ?? '',
+        unit: test.specUnit ?? null,
+        sampleSize,
+        specTarget: min != null && max != null ? (min + max) / 2 : null,
+        specTolerancePercent: 0,
+        tolerancePercent: tolPct,
+        isCritical: false,
+        isActive: true,
+      },
+      specPayload: parseSpecPayload(criteriaType, test.specSpecification ?? null),
+      calculatedMinMax:
+        min != null && max != null && Number.isFinite(min) && Number.isFinite(max)
+          ? { min, max }
+          : null,
+      acceptanceMath: { sampleSize, allowedFail, mustPass: sampleSize - allowedFail },
+      multiStageEnabled: stages.length > 0,
+      stages,
+      recorded: {
+        criteriaId,
+        criteriaType,
+        unit: test.specUnit ?? null,
+        sampleSize,
+        tolerancePercent: tolPct,
+        isCriteriaCritical: false,
+        recordedTestId: viaSOP?.recordedTestId ?? test.id,
+        recordedStatus:
+          (viaSOP?.recordedStatus as 'pass' | 'fail' | 'pending' | null)
+          ?? (test.sopRecordedStatus as 'pass' | 'fail' | 'pending' | null)
+          ?? (test.status as 'pass' | 'fail' | 'pending' | null)
+          ?? null,
+        recordedSamples: (viaSOP?.recordedSamples ?? test.samples ?? []).map((sm) => ({
+          sampleNumber: sm.sampleNumber,
+          testRound: sm.testRound,
+          numericValue: sm.numericValue,
+          textValue: sm.textValue,
+          result: sm.result,
+        })),
+        recordedTestedByName: viaSOP?.recordedTestedByName ?? test.testedByName ?? test.sopRecordedByName ?? null,
+        recordedTestDate: viaSOP?.recordedTestDate ?? test.testDate ?? test.sopRecordedAt ?? null,
+        recordedAcceptanceStages: viaSOP?.recordedAcceptanceStages ?? test.acceptanceStages ?? null,
+        maxRetestRounds: null,
+        recordedRetestReason: null,
+      },
+    };
+  };
+
   // Fetch work order basic info
   const { data: workOrder } = useQuery<WorkOrderBasic>({
     queryKey: ['work-order', workOrderId],
@@ -284,6 +514,18 @@ export default function IPCPage() {
   // ipc_criteria now carries gmpDocumentId; join with the documents list so
   // the recording card can show the doc name + a preview button.
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const { data: criteriaCodeMap } = useQuery<Record<number, string>>({
+    queryKey: ['ipc-criteria-codes'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria');
+      const json = await res.json();
+      const map: Record<number, string> = {};
+      for (const c of json?.data ?? []) if (c.code) map[Number(c.id)] = String(c.code);
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: criteriaDocMap } = useQuery<Record<number, { docId: number; label: string }>>({
     queryKey: ['ipc-criteria-docmap'],
     queryFn: async () => {
@@ -516,9 +758,118 @@ export default function IPCPage() {
   // Phase-filtered view — matches per-phase IPC cards on the dashboard.
   const displayTests = useMemo<IPCTest[] | undefined>(() => {
     if (!ipcTests) return ipcTests;
-    if (!phaseFilter) return ipcTests;
-    return ipcTests.filter((t) => (t.ipcPhase || 'production') === phaseFilter);
-  }, [ipcTests, phaseFilter]);
+    const rows = phaseFilter
+      ? ipcTests.filter((t) => (t.ipcPhase || 'production') === phaseFilter)
+      : [...ipcTests];
+    /**
+     * In the order the SOP runs them.
+     *
+     * The list arrived in whatever order the rows were created, so a criterion
+     * checked at step 5 could sit above one checked at step 1 — and the
+     * operator working down the SOP had to hunt for each next test. The SOP
+     * board is the authority on that order, so the position is read from it.
+     *
+     * A criterion the SOP does not mention keeps its own sequence, after the
+     * ones that are on the board rather than silently interleaved with them.
+     */
+    const order = sopBoard?.order ?? {};
+    return [...rows].sort((a, b) => {
+      const pa = a.ipcCriteriaId != null ? order[a.ipcCriteriaId] : undefined;
+      const pb = b.ipcCriteriaId != null ? order[b.ipcCriteriaId] : undefined;
+      if (pa != null && pb != null && pa !== pb) return pa - pb;
+      if (pa != null && pb == null) return -1;
+      if (pa == null && pb != null) return 1;
+      return a.id - b.id;
+    });
+  }, [ipcTests, phaseFilter, sopBoard]);
+
+  /**
+   * The rooms the recipe assigns to each phase.
+   *
+   * A phase is where the work physically happens — weighing room, filling
+   * room, packing room — so naming the room is what tells an operator standing
+   * on the floor whether a criterion is theirs to check right now.
+   */
+  const { data: bomRooms } = useQuery<
+    { phase: string; roomCode: string; roomName: string; roomNameTh: string; sequence: number }[]
+  >({
+    queryKey: ['wo-bom-rooms', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/bom-config`);
+      const json = await res.json();
+      return json?.data?.rooms ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  /**
+   * The same list, cut into the SOP steps it is checked at.
+   *
+   * Sorting alone put the criteria in the right order but still ran them as
+   * one column, which said nothing about where one step's checks end and the
+   * next begin. Criteria the SOP does not mention gather at the end under
+   * their own heading rather than being folded into the last real step.
+   */
+  const groupedTests = useMemo(() => {
+    const rows = displayTests ?? [];
+    const groups: {
+      key: string;
+      label: string;
+      rooms: string[];
+      tests: IPCTest[];
+      locked: boolean;
+      blockedBy: string;
+    }[] = [];
+    for (const phase of PHASE_ORDER) {
+      const tests = rows.filter((t) => (t.ipcPhase || 'production') === phase);
+      if (tests.length === 0) continue;
+      groups.push({
+        key: phase,
+        label: IPC_PHASE_LABELS[phase as IPCPhase] ?? phase,
+        rooms: (bomRooms ?? [])
+          .filter((r) => r.phase === phase)
+          .sort((a, b) => a.sequence - b.sequence)
+          .map((r) => `${r.roomCode} — ${r.roomNameTh || r.roomName}`),
+        tests,
+        /**
+         * Production runs the phases in order and the checks go with it: a
+         * capsule cannot be weighed in the filling room before the raw
+         * material was cleared in the weighing room. So a phase stays shut
+         * until every check in the phase before it has been recorded, and the
+         * screen says which one is holding it rather than just refusing.
+         */
+        locked: false,
+        blockedBy: '',
+      });
+    }
+    // Anything on a phase the recipe does not use keeps its own heading rather
+    // than being folded into one that happens to sort next to it.
+    const known = new Set(PHASE_ORDER);
+    for (const test of rows) {
+      const phase = test.ipcPhase || 'production';
+      if (known.has(phase)) continue;
+      let group = groups.find((g) => g.key === phase);
+      if (!group) {
+        group = { key: phase, label: phase, rooms: [], tests: [], locked: false, blockedBy: '' };
+        groups.push(group);
+      }
+      group.tests.push(test);
+    }
+    // Walk them in order, shutting everything after the first unfinished one.
+    let blocker = '';
+    for (const group of groups) {
+      if (blocker) {
+        group.locked = true;
+        group.blockedBy = blocker;
+        continue;
+      }
+      const done = group.tests.every(
+        (t) => t.status === 'pass' || t.status === 'fail' || !!t.sopRecordedAt,
+      );
+      if (!done) blocker = group.label;
+    }
+    return groups;
+  }, [displayTests, bomRooms]);
 
   // Progress calculations — operate on displayed (filtered) list when a phase is selected.
   const totalTests = displayTests?.length || 0;
@@ -545,47 +896,41 @@ export default function IPCPage() {
         onBack={() => router.push(`/production/work-orders/${workOrderId}?tab=execution`)}
       />
 
-      {/* Progress Card */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium text-gray-700">
-                {t('execution.ipcProgress')}
+      {/* Progress — same banner shape as the SOP execution screen */}
+      <div className="rounded-[20px] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-black">{t('execution.ipcProgress')}</p>
+            <p className="mt-0.5 text-[11px] text-[#bfbfbf]">
+              {completedTests}/{totalTests} {t('execution.testsCompleted')}
+            </p>
+          </div>
+          <div className="flex items-center gap-6">
+            {approvedTests > 0 && (
+              <div className="text-right">
+                <p className="text-xl font-semibold text-[#1a8a4a]">{approvedTests}</p>
+                <p className="text-[11px] text-[#bfbfbf]">{t('execution.approved')}</p>
               </div>
-              <span className="text-sm text-gray-500">
-                {completedTests}/{totalTests} {t('execution.testsCompleted')}
-              </span>
-              {approvedTests > 0 && (
-                <span className="text-sm text-emerald-600">
-                  <ShieldCheck className="h-3.5 w-3.5 inline mr-1" />
-                  {approvedTests} {t('execution.approved')}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {!hasTests && hasBOMConfig && (
-                <DxButton
-                  text={t('execution.initializeIPCTests')}
-                  type="default"
-                  stylingMode="contained"
-                  onClick={() => initMutation.mutate()}
-                  disabled={initMutation.isPending}
-                />
-              )}
-            </div>
+            )}
+            {!hasTests && hasBOMConfig && (
+              <button
+                type="button"
+                onClick={() => initMutation.mutate()}
+                disabled={initMutation.isPending}
+                className={SOFT_PRIMARY_BTN}
+              >
+                {t('execution.initializeIPCTests')}
+              </button>
+            )}
           </div>
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className={`h-2.5 rounded-full transition-all ${
-                progressPercent === 100 ? 'bg-emerald-500' : 'bg-emerald-400'
-              }`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#eef0f2]">
+          <div
+            className="h-2 rounded-full bg-[#5682e9] transition-all"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
 
       {/* Loading */}
       {isLoading && (
@@ -618,694 +963,220 @@ export default function IPCPage() {
         </Card>
       )}
 
-      {/* IPC Test Checklist */}
+      {/* IPC criteria — one soft card each. Pressing a card opens the same
+          recording dialog the SOP execution screen opens, so an operator meets
+          one recording surface no matter which screen they came from. */}
       {hasTests && (
-        <div className="space-y-3">
-          {displayTests!.map((test) => {
-            const isExpanded = expandedTests.has(test.id);
-            const hasSamples = (test.sampleSize || 1) > 1;
-            const isRecorded = test.status !== 'pending';
+        <div className="flex flex-col gap-6">
+          {groupedTests.map((group) => (
+          <div key={group.key} className="flex flex-col gap-3">
+            {/* The phase these criteria belong to, named by the room the
+                recipe assigns to it. Grouping by SOP step read plausibly but
+                was the wrong cut: the recipe configures IPC per phase, and a
+                phase is a room someone is standing in — which is what decides
+                whether a check is theirs to make right now. */}
+            <div className="flex flex-wrap items-baseline gap-2 px-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8effc] px-2.5 py-1 text-[11px] font-semibold text-[#3559b0]">
+                {group.label}
+              </span>
+              {group.rooms.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                  {group.rooms.join(' · ')}
+                </span>
+              )}
+              <span className="text-[11px] text-[#bfbfbf]">{group.tests.length} หัวข้อ</span>
+              {group.locked && (
+                <span
+                  data-testid={`phase-locked-${group.key}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#fdf0e6] px-2.5 py-1 text-[11px] font-medium text-[#b45309]"
+                >
+                  <Lock className="h-3 w-3" />
+                  รอ{group.blockedBy}ให้ครบก่อน
+                </span>
+              )}
+            </div>
+          <div className={cn('flex flex-col gap-3', group.locked && 'pointer-events-none opacity-45')}>
+          {group.tests.map((test) => {
             const isApproved = test.approvedBy != null;
-            // Two-way sync (Bug 2): same criterion recorded via SOP execution.
-            // Skip the recording UI on this page and surface a link to SOP.
+            // Two-way sync: the same criterion may have been recorded from a
+            // SOP step, in which case the round lives on that step's row. The
+            // details open here either way — the operator should not have to
+            // leave the screen to read a result they are looking straight at.
             const recordedViaSOP = !!test.sopRecordedAt;
-
-            if (recordedViaSOP) {
-              const phase = test.ipcPhase || 'production';
-              return (
-                <Card key={test.id} className="border-l-4 border-l-emerald-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-gray-900">
-                            {test.testName || `Test #${test.id}`}
-                          </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3" />
-                            บันทึกผ่าน SOP step {test.sopStepNumber || '?'}
-                          </span>
-                          {test.sopRecordedResult && (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              test.sopRecordedResult === 'pass' ? 'bg-green-100 text-green-700'
-                              : test.sopRecordedResult === 'fail' ? 'bg-red-100 text-red-700'
-                              : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {test.sopRecordedResult === 'pass' ? 'ผ่าน' : test.sopRecordedResult === 'fail' ? 'ไม่ผ่าน' : test.sopRecordedResult}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {test.sopRecordedByName && <span>ผู้บันทึก: <strong className="text-gray-700">{test.sopRecordedByName}</strong></span>}
-                          {test.sopRecordedAt && <span> · {new Date(test.sopRecordedAt).toLocaleString('th-TH')}</span>}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/production/work-orders/${workOrderId}/sop-execution?phase=${phase}`)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                      >
-                        <ClipboardList className="h-4 w-4" />
-                        ดู / แก้ที่ SOP →
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }
-
-            // New-type criteria (multi_point/tare/calibration/calculated/custom_multi_field)
-            // route to the dedicated recorder panel (writes to ipc_recording_rounds).
-            // Legacy types fall through to the existing per-sample card below.
-            if (isNewType(test.criteriaType) && workOrder?.batchNumber && test.ipcCriteriaId) {
-              return (
-                <NewTypeRecorderPanel
-                  key={test.id}
-                  criteria={{
-                    id: test.ipcCriteriaId,
-                    code: `IPC-${test.ipcCriteriaId}`,
-                    name: test.testName ?? '',
-                    nameTh: null,
-                    unit: test.specUnit ?? null,
-                    criteriaType: test.criteriaType || 'numeric',
-                    specification: test.specSpecification ?? null,
-                  }}
-                  batchNumber={workOrder.batchNumber}
-                />
-              );
-            }
-
-            // New-type criteria that can't be routed to the recorder (missing
-            // ipcCriteriaId soft-FK or batchNumber). The legacy per-sample card
-            // below renders no input for these types — so show an explicit
-            // message instead of an unusable empty card.
-            if (isNewType(test.criteriaType)) {
-              return (
-                <Card key={test.id} className="border-l-4 border-l-amber-400" data-testid={`ipc-newtype-unavailable-${test.id}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                      <div className="text-sm">
-                        <div className="font-semibold text-gray-900">
-                          {test.testName || `Test #${test.id}`}
-                        </div>
-                        <div className="text-gray-600 mt-1">
-                          {!workOrder?.batchNumber
-                            ? 'ยังบันทึกผลไม่ได้ — ใบสั่งผลิตนี้ยังไม่มี Batch Number'
-                            : 'ยังบันทึกผลไม่ได้ — รายการตรวจนี้ยังไม่ได้ผูกกับเกณฑ์ IPC (กรุณาซิงก์ BOM IPC ใหม่)'}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }
+            const sopRound = recordedViaSOP && test.sopRecordedTestId != null
+              ? sopRecordedMap?.[Number(test.sopRecordedTestId)]
+              : null;
+            const hasRecorded =
+              (test.samples?.length ?? 0) > 0 || (sopRound?.recordedSamples?.length ?? 0) > 0;
+            const stages = parseAcceptanceStages(test.acceptanceStages);
+            const doc = test.ipcCriteriaId != null ? criteriaDocMap?.[test.ipcCriteriaId] : null;
+            const openDialog = () => setRecordDialog(toRecordable(test));
 
             return (
-              <Card key={test.id} className={`border-l-4 ${
-                isApproved ? 'border-l-emerald-500' :
-                test.status === 'pass' ? 'border-l-green-400' :
-                test.status === 'fail' ? 'border-l-red-400' :
-                'border-l-gray-300'
-              }`}>
-                <CardContent className="p-4">
-                  {/* Test Header Row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div
-                        className="cursor-pointer"
-                        onClick={() => toggleExpanded(test.id)}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-gray-900">
-                            {test.testName || `Test #${test.id}`}
-                          </span>
-                          <StatusBadge status={test.status} />
-                          {/* Source badge — distinguish tests recorded inline
-                              from a SOP step versus the standalone BOM IPC
-                              flow. SOP-* sample_number is the deterministic
-                              key recordSOPLinkedIPCResults uses. */}
-                          {(() => {
-                            const sample = String(test.sampleNumber || '');
-                            const sopMatch = sample.match(/^SOP-(\d+)-IPC-(\d+)$/);
-                            if (sopMatch) {
-                              const phase = test.ipcPhase || 'production';
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/production/work-orders/${workOrderId}/sop-execution?phase=${phase}`);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
-                                  title="คลิกเพื่อไป SOP Step ที่บันทึก"
-                                >
-                                  <ClipboardList className="h-3 w-3" />
-                                  SOP Step →
-                                </button>
-                              );
-                            }
-                            return (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                BOM IPC
-                              </span>
-                            );
-                          })()}
-                          {test.totalRounds > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                              Round {test.totalRounds}
-                            </span>
-                          )}
-                          {(() => {
-                            const stages = parseAcceptanceStages(test.acceptanceStages);
-                            return stages.length > 0 && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                <Layers className="h-3 w-3" /> Multi-Stage ({stages.length})
-                              </span>
-                            );
-                          })()}
-                          {isApproved && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                              <ShieldCheck className="h-3 w-3" /> {t('execution.approved')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {test.testMethod && <span>{test.testMethod} · </span>}
-                          {test.specMinValue != null && test.specMaxValue != null && (
-                            <span>
-                              {t('execution.range')}: {formatNumber(test.specMinValue)} - {formatNumber(test.specMaxValue)}
-                              {test.specUnit ? ` ${test.specUnit}` : ''}
-                            </span>
-                          )}
-                          {test.specSpecification && !test.specMinValue && !test.specSpecification.trim().startsWith('{') && (
-                            <span>{t('execution.spec')}: {test.specSpecification}</span>
-                          )}
-                          {hasSamples && (
-                            <span> · {formatNumber(test.sampleSize)} {t('execution.samples')}</span>
-                          )}
-                        </div>
-                        {/* Linked GMP document — name + preview */}
-                        {test.ipcCriteriaId != null && criteriaDocMap?.[test.ipcCriteriaId] && (
-                          <div className="mt-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewDocId(criteriaDocMap[test.ipcCriteriaId!].docId)}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                              title="ดูเอกสาร GMP"
-                            >
-                              <FileText className="h-3.5 w-3.5" />
-                              {criteriaDocMap[test.ipcCriteriaId].label}
-                            </button>
-                          </div>
-                        )}
-                        {/* Tester/Approver names on card header */}
-                        {(test.testedByName || test.approvedByName) && (
-                          <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
-                            {test.testedByName && (
-                              <span>ผู้บันทึก: <strong className="text-gray-700">{test.testedByName}</strong></span>
-                            )}
-                            {test.approvedByName && (
-                              <span>ผู้อนุมัติ: <strong className="text-emerald-700">{test.approvedByName}</strong></span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+              <div
+                key={test.id}
+                role="button"
+                tabIndex={0}
+                data-testid={`ipc-card-${test.id}`}
+                onClick={() => (hasRecorded ? toggleTestCollapsed(test.id) : openDialog())}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  if (hasRecorded) toggleTestCollapsed(test.id);
+                  else openDialog();
+                }}
+                className="cursor-pointer rounded-[20px] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 flex-none items-center justify-center rounded-[14px] bg-[#f1f3f5] text-slate-500">
+                    <FlaskConical className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {test.ipcCriteriaId != null && (
+                        <span className="rounded-md bg-[#e8effc] px-2 py-0.5 font-mono text-[11px] font-bold text-[#3559b0]">
+                          {criteriaCodeMap?.[test.ipcCriteriaId] ?? `IPC-${test.ipcCriteriaId}`}
+                        </span>
+                      )}
+                      <span className="min-w-0 break-words text-sm font-medium text-gray-900">
+                        {test.testName || `Test #${test.id}`}
+                      </span>
+                      {recordedViaSOP ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6ee] px-1.5 py-0.5 text-[10px] font-semibold text-[#1a8a4a]">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          บันทึกผ่าน SOP ขั้นตอนที่ {test.sopStepNumber || '?'}
+                        </span>
+                      ) : (
+                        <IPCStatusPill test={test} />
+                      )}
+                      {test.totalRounds > 0 && (
+                        <span className={SOFT_META_PILL}>รอบที่ {test.totalRounds}</span>
+                      )}
+                      {stages.length > 0 && (
+                        <span className={SOFT_META_PILL}>
+                          <Layers className="h-2.5 w-2.5" />
+                          หลายขั้น ({stages.length})
+                        </span>
+                      )}
+                      {isApproved && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#e8f6ee] px-1.5 py-0.5 text-[10px] font-semibold text-[#1a8a4a]">
+                          <ShieldCheck className="h-2.5 w-2.5" />
+                          {t('execution.approved')}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Result display */}
-                    {isRecorded && (
-                      <div className="text-right mr-4">
-                        <div className="text-sm font-medium">
-                          {test.numericResult != null
-                            ? `${formatNumber(test.numericResult, 2)}${test.specUnit ? ` ${test.specUnit}` : ''}`
-                            : test.result || '-'}
-                        </div>
+                    <IPCSpecLines test={test} />
+
+                    {(test.testedByName || test.approvedByName || test.sopRecordedByName) && (
+                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-[#bfbfbf]">
+                        {(test.testedByName || test.sopRecordedByName) && (
+                          <span>
+                            ผู้บันทึก:{' '}
+                            <strong className="font-medium text-slate-600">
+                              {test.testedByName || test.sopRecordedByName}
+                            </strong>
+                          </span>
+                        )}
+                        {(test.testDate || test.sopRecordedAt) && (
+                          <span>{new Date((test.testDate || test.sopRecordedAt)!).toLocaleString('th-TH')}</span>
+                        )}
+                        {test.approvedByName && (
+                          <span>
+                            ผู้อนุมัติ:{' '}
+                            <strong className="font-medium text-slate-600">{test.approvedByName}</strong>
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      {!isRecorded && (
-                        <DxButton
-                          text={t('execution.record')}
-                          type="default"
-                          stylingMode="contained"
-                          onClick={() => openInlineRecord(test)}
-                          disabled={workOrder?.status === 'completed'}
-                        />
-                      )}
-                      {isRecorded && (
-                        <DxButton
-                          text={`+ Round ${(test.totalRounds || 0) + 1}`}
-                          type="normal"
-                          stylingMode="outlined"
-                          onClick={() => openInlineRecord(test)}
-                          disabled={workOrder?.status === 'completed' || isApproved}
-                        />
-                      )}
-                    </div>
+                    {doc && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPreviewDocId(doc.docId); }}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3 py-1 text-[11px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0]"
+                        title="ดูเอกสาร GMP"
+                      >
+                        <FileText className="h-3 w-3" />
+                        {doc.label}
+                      </button>
+                    )}
+
+                    {!hasRecorded && (
+                      <div className="mt-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2f6fd0] px-3.5 py-1.5 text-[12px] font-medium text-white transition">
+                          <FlaskConical className="h-3.5 w-3.5" />
+                          บันทึกผล
+                        </span>
+                      </div>
+                    )}
+                    {/* The recorded rounds live on the card, open by default —
+                        a result that exists should be readable without a
+                        click. The card folds them away and back. */}
                   </div>
 
-                  {/* Expanded Details — grouped by round */}
-                  {isExpanded && (
-                    <div className="mt-3 pt-3 border-t">
-                      {/* Round-by-round results */}
-                      {test.rounds && test.rounds.length > 0 ? (
-                        <div className="space-y-3">
-                          {test.rounds.map((round) => (
-                            <div key={round.round} className="border rounded-lg p-3 bg-[#F6FCF9]">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-gray-800">
-                                    Round {round.round}
-                                  </span>
-                                  <StatusBadge status={round.result} />
-                                  {round.isApproved && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                      <ShieldCheck className="h-3 w-3" /> Approved
-                                    </span>
-                                  )}
-                                  {round.avg != null && (
-                                    <span className="text-xs text-gray-500">
-                                      Avg: <strong>{formatNumber(round.avg, 2)}</strong>{test.specUnit ? ` ${test.specUnit}` : ''}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {!round.isApproved && (
-                                    <button
-                                      className="text-xs text-emerald-600 hover:text-emerald-800 underline"
-                                      onClick={() => openInlineRecord(test, round.round)}
-                                    >
-                                      แก้ไข
-                                    </button>
-                                  )}
-                                  {!round.isApproved && (
-                                    currentUser?.id && test.testedBy === currentUser.id ? (
-                                      <AwaitingOtherVerifierBadge label="รอ QA ตรวจสอบ" />
-                                    ) : (
-                                      <DxButton
-                                        text="Approve"
-                                        type="success"
-                                        stylingMode="outlined"
-                                        onClick={() => approveMutation.mutate({
-                                          qualityTestId: test.id,
-                                          testRound: round.round,
-                                        })}
-                                        disabled={approveMutation.isPending}
-                                      />
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
-                                {round.samples.map((sample) => (
-                                  <div
-                                    key={sample.id}
-                                    className={`text-center p-1.5 rounded text-xs ${
-                                      sample.result === 'pass'
-                                        ? 'bg-green-50 text-green-700'
-                                        : sample.result === 'fail'
-                                        ? 'bg-red-50 text-red-700'
-                                        : 'bg-gray-50 text-gray-600'
-                                    }`}
-                                  >
-                                    <div className="font-medium">#{sample.sampleNumber}</div>
-                                    <div>
-                                      {sample.numericValue != null
-                                        ? `${formatNumber(sample.numericValue, 2)}${test.specUnit ? ` ${test.specUnit}` : ''}`
-                                        : sample.result === 'pass' ? 'Pass'
-                                        : sample.result === 'fail' ? 'Fail'
-                                        : sample.textValue || '-'}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-400">ยังไม่มีผลการทดสอบ</p>
-                      )}
-
-                      {/* Notes */}
-                      {test.notes && (
-                        <div className="text-xs text-gray-600 mt-2">
-                          <span className="font-medium">{t('execution.notes')}:</span> {test.notes}
-                        </div>
-                      )}
-
-                      {/* Tester and approver info */}
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
-                        {test.testedByName && (
-                          <span>ผู้บันทึก: <strong className="text-gray-700">{test.testedByName}</strong></span>
+                  {/* The reading and the fold control, in the corner the QC
+                      entry cards keep them. */}
+                  {hasRecorded ? (() => {
+                    const samples = toRecordable(test).recorded?.recordedSamples ?? [];
+                    const read = latestReadingOf(samples, test.specUnit);
+                    return (
+                      <div className="flex flex-none items-start gap-2">
+                        {read && (
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-black">{read.value}</div>
+                            <div className="text-[11px] text-[#bfbfbf]">{read.sub}</div>
+                          </div>
                         )}
-                        {test.testDate && (
-                          <span>วันที่บันทึก: {new Date(test.testDate).toLocaleString('th-TH')}</span>
-                        )}
-                        {test.approvedByName && (
-                          <span>ผู้อนุมัติ: <strong className="text-emerald-700">{test.approvedByName}</strong></span>
-                        )}
-                        {test.approvedAt && (
-                          <span>วันที่อนุมัติ: {new Date(test.approvedAt).toLocaleString('th-TH')}</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Inline Record Form */}
-                  {selectedTest?.id === test.id && !isApproved && (
-                    <div className="mt-3 pt-3 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-3 space-y-3">
-                      {/* Round indicator */}
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800">
-                          Round {recordRound}
+                        <span
+                          className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full text-slate-400"
+                          aria-hidden
+                        >
+                          {collapsedTests.has(test.id) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4" />
+                          )}
                         </span>
-                        {recordRound > 1 && (
-                          <span className="text-xs text-gray-500">
-                            (ทดสอบรอบที่ {recordRound})
-                          </span>
-                        )}
                       </div>
+                    );
+                  })() : null}
+                </div>
 
-                      {/* Phase 3: stage info for current round */}
-                      <StageInfoBanner test={test} round={recordRound} />
-
-                      {/* Spec info — typed renderer based on criteriaType */}
-                      <SpecInfoCard test={test} />
-
-                      {/* Single value input — numeric only */}
-                      {test.criteriaType === 'numeric' && getEffectiveSampleSize(test, recordRound) <= 1 && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('execution.measuredValue')} {test.specUnit ? `(${test.specUnit})` : ''}
-                          </label>
-                          <DxNumberBox
-                            value={numericResult}
-                            onValueChanged={(e) => setNumericResult(e.value)}
-                            placeholder="0.00"
-                          />
-                        </div>
-                      )}
-
-                      {/* Multi-sample inputs — numeric only */}
-                      {test.criteriaType === 'numeric' && getEffectiveSampleSize(test, recordRound) > 1 && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('execution.sampleValues')} ({getEffectiveSampleSize(test, recordRound)} {t('execution.samples')})
-                          </label>
-                          <div className="grid grid-cols-5 gap-2">
-                            {sampleValues.map((val, idx) => {
-                              const prevFilled = idx === 0 || sampleValues[idx - 1] != null;
-                              return (
-                                <div key={idx} className={!prevFilled ? 'opacity-40' : ''}>
-                                  <label className="block text-xs text-gray-500 mb-0.5">#{idx + 1}</label>
-                                  <DxNumberBox
-                                    value={val}
-                                    onValueChanged={(e) => {
-                                      const next = [...sampleValues];
-                                      next[idx] = e.value;
-                                      setSampleValues(next);
-                                    }}
-                                    placeholder="0.00"
-                                    disabled={!prevFilled}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Text mode — single text input */}
-                      {isTextMode(test.criteriaType) && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            ผลตรวจ (ข้อความ) <span className="text-red-500">*</span>
-                          </label>
-                          <DxTextArea
-                            value={recordNotes}
-                            onValueChanged={(e) => setRecordNotes(e.value)}
-                            placeholder={(() => {
-                              const p = getSpecPayload(test);
-                              return p?.type === 'text' && p.example ? `เช่น ${p.example}` : 'พิมพ์ผลที่บันทึก';
-                            })()}
-                            height={80}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            ระบบจะบันทึกเป็น sample #1 พร้อมข้อความที่กรอก
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Checklist mode — checkbox/pass_fail/visual */}
-                      {isChecklistMode(test.criteriaType) && (() => {
-                        // Visual mode replaces generic #N labels with the
-                        // admin-defined checklist items so operators know
-                        // exactly what each box represents.
-                        const visualPayload = test.criteriaType === 'visual' ? getSpecPayload(test) : null;
-                        const checklistLabels = visualPayload?.type === 'visual' && visualPayload.checklist.length > 0
-                          ? visualPayload.checklist
-                          : null;
-                        const totalSize = checklistLabels ? checklistLabels.length : (test.sampleSize || 1);
-                        const itemLabel = checklistLabels ? 'จุดตรวจ' : 'ตัวอย่าง';
-                        const isVisualLayout = !!checklistLabels;
-                        return (
-                        <div>
-                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                              ผลการตรวจ ({totalSize} {itemLabel})
-                            </label>
-                            <div className="flex gap-2" data-testid="ipc-bulk-actions">
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
-                                onClick={() => {
-                                  setCheckboxResults(Array(totalSize).fill('pass'));
-                                }}
-                                title="ทำเครื่องหมายผ่านทั้งหมด"
-                                data-testid="ipc-pass-all"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                ผ่านทั้งหมด
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
-                                onClick={() => {
-                                  setCheckboxResults(Array(totalSize).fill('fail'));
-                                }}
-                                title="ทำเครื่องหมายไม่ผ่านทั้งหมด"
-                                data-testid="ipc-fail-all"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                ไม่ผ่านทั้งหมด
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors border border-gray-300"
-                                onClick={() => {
-                                  setCheckboxResults(Array(totalSize).fill(null));
-                                }}
-                                title="ล้างค่าทั้งหมด"
-                                data-testid="ipc-clear-all"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                ล้างค่า
-                              </button>
-                            </div>
-                          </div>
-                          <div className={isVisualLayout ? 'space-y-1.5' : 'grid grid-cols-5 gap-2'}>
-                            {checkboxResults.map((val, idx) => {
-                              // Bulk-fill removes sequential requirement; allow editing any sample once bulk action applied
-                              const anyFilled = checkboxResults.some((r) => r != null);
-                              const prevFilled = idx === 0 || checkboxResults[idx - 1] != null || anyFilled;
-                              const labelText = checklistLabels?.[idx] || `#${idx + 1}`;
-                              return (
-                                <div
-                                  key={idx}
-                                  className={cn(
-                                    !prevFilled && 'opacity-40 pointer-events-none',
-                                    isVisualLayout
-                                      ? 'flex items-center gap-2 bg-white border border-amber-100 rounded-md px-2 py-1.5'
-                                      : 'text-center'
-                                  )}
-                                >
-                                  <label className={cn(
-                                    isVisualLayout
-                                      ? 'flex-1 text-xs text-slate-700 font-medium'
-                                      : 'block text-xs text-gray-500 mb-0.5'
-                                  )}>
-                                    {isVisualLayout && (
-                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold mr-2">
-                                        {idx + 1}
-                                      </span>
-                                    )}
-                                    {labelText}
-                                  </label>
-                                  <div className="flex gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={!prevFilled}
-                                      className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
-                                        val === 'pass'
-                                          ? 'bg-green-500 text-white'
-                                          : 'bg-gray-100 text-gray-500 hover:bg-green-100'
-                                      } disabled:cursor-not-allowed`}
-                                      onClick={() => {
-                                        const next = [...checkboxResults];
-                                        next[idx] = 'pass';
-                                        setCheckboxResults(next);
-                                      }}
-                                    >
-                                      Pass
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={!prevFilled}
-                                      className={`flex-1 px-1 py-1.5 rounded text-xs font-medium transition-colors ${
-                                        val === 'fail'
-                                          ? 'bg-red-500 text-white'
-                                          : 'bg-gray-100 text-gray-500 hover:bg-red-100'
-                                      } disabled:cursor-not-allowed`}
-                                      onClick={() => {
-                                        const next = [...checkboxResults];
-                                        next[idx] = 'fail';
-                                        setCheckboxResults(next);
-                                      }}
-                                    >
-                                      Fail
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        );
-                      })()}
-
-                      {/* Summary bar — real-time pass/fail preview */}
-                      {(() => {
-                        const criteriaType = test.criteriaType || 'numeric';
-                        const tolerancePct = Number(test.tolerancePercent) || 0;
-                        let passCount = 0;
-                        let totalCount = 0;
-
-                        if (isChecklistMode(criteriaType)) {
-                          const filled = checkboxResults.filter((r) => r != null);
-                          totalCount = filled.length;
-                          passCount = filled.filter((r) => r === 'pass').length;
-                        } else if (isTextMode(criteriaType)) {
-                          // Text mode has a single sample (the typed answer)
-                          totalCount = recordNotes.trim() ? 1 : 0;
-                          passCount = totalCount;
-                        } else if ((test.sampleSize || 1) > 1) {
-                          const filled = sampleValues.filter((v) => v != null);
-                          totalCount = filled.length;
-                          passCount = filled.filter((v) =>
-                            v != null && test.specMinValue != null && test.specMaxValue != null &&
-                            v >= Number(test.specMinValue) && v <= Number(test.specMaxValue)
-                          ).length;
-                        }
-
-                        if (totalCount === 0) return null;
-
-                        const failCount = totalCount - passCount;
-                        const failPct = (failCount / totalCount) * 100;
-                        const overallPass = failPct <= tolerancePct;
-
-                        return (
-                          <div className={`flex items-center justify-between p-2 rounded text-sm font-medium ${
-                            overallPass ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                          }`}>
-                            <span>
-                              ผ่าน {passCount}/{totalCount} ตัวอย่าง ({formatNumber(100 - failPct, 0)}%)
-                            </span>
-                            <span className="text-xs">
-                              Tolerance: ±{formatNumber(tolerancePct)}% — {overallPass ? 'PASS' : 'FAIL'}
-                            </span>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Notes */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('execution.notes')}</label>
-                        <DxTextArea
-                          value={recordNotes}
-                          onValueChanged={(e) => setRecordNotes(e.value)}
-                          placeholder={t('execution.notesPlaceholder')}
-                          height={60}
-                        />
-                      </div>
-
-                      {/* Actions */}
-                      {(() => {
-                        const criteriaType = test.criteriaType || 'numeric';
-                        // Phase 4: visual mode counts per checklist length, not sample size.
-                        // Text mode requires a non-empty answer.
-                        let ss = test.sampleSize || 1;
-                        if (criteriaType === 'visual') {
-                          const p = getSpecPayload(test);
-                          if (p?.type === 'visual' && p.checklist.length > 0) ss = p.checklist.length;
-                        }
-                        let allFilled = false;
-                        if (isChecklistMode(criteriaType)) {
-                          allFilled = checkboxResults.length === ss && checkboxResults.every(r => r != null);
-                        } else if (isTextMode(criteriaType)) {
-                          allFilled = recordNotes.trim().length > 0;
-                        } else if (ss > 1) {
-                          allFilled = sampleValues.length === ss && sampleValues.every(v => v != null);
-                        } else {
-                          allFilled = numericResult != null;
-                        }
-                        const filledCount = isChecklistMode(criteriaType)
-                          ? checkboxResults.filter(r => r != null).length
-                          : isTextMode(criteriaType)
-                          ? (recordNotes.trim() ? 1 : 0)
-                          : ss > 1 ? sampleValues.filter(v => v != null).length
-                          : numericResult != null ? 1 : 0;
-                        return (
-                          <div className="flex items-center justify-between gap-2">
-                            {!allFilled && ss > 1 && (
-                              <span className="text-xs text-amber-600">
-                                <AlertTriangle className="h-3 w-3 inline mr-1" />
-                                กรอกผลแล้ว {filledCount}/{ss} ตัวอย่าง — ต้องกรอกครบทุกตัวอย่างจึงจะบันทึกได้
-                              </span>
-                            )}
-                            {allFilled && <span />}
-                            <div className="flex gap-2">
-                              <DxButton text={tc('actions.cancel')} stylingMode="text" onClick={resetForm} />
-                              <DxButton
-                                text={recordMutation.isPending ? tc('actions.saving') : tc('actions.save')}
-                                type="default"
-                                stylingMode="text"
-                                onClick={handleSaveRecord}
-                                disabled={recordMutation.isPending || !allFilled}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                {/* The recorded rounds, across the whole card — boxing them
+                    into the text column wasted the width the readings need. */}
+                {hasRecorded && !collapsedTests.has(test.id) && (
+                  <div
+                    className="mt-3 border-t border-[#eef0f2] pt-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <IPCRoundHistory
+                      ipc={toRecordable(test).recorded!}
+                      onStartRetest={() => setRecordDialog(toRecordable(test))}
+                    />
+                  </div>
+                )}
+              </div>
             );
           })}
+          </div>
+          </div>
+          ))}
         </div>
       )}
 
-      {/* Popup removed — inline recording is used instead */}
+      {/* The one recording surface, shared with the SOP execution screen. */}
+      <IPCRecordDialog
+        open={recordDialog != null}
+        criterion={recordDialog}
+        context={{
+          workOrderNumber: workOrder?.woNumber ?? '',
+          batchNumber: workOrder?.batchNumber ?? '',
+        }}
+        onClose={() => setRecordDialog(null)}
+        onSubmit={() => setRecordDialog(null)}
+      />
 
       {/* GMP document preview */}
       <GmpDocumentPreviewDialog

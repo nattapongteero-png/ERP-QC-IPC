@@ -12,12 +12,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import { formatNumber } from '@/lib/utils/number-format';
-import { ResponsivePageHeader, AwaitingOtherVerifierBadge } from '@/components/shared';
+import { ResponsivePageHeader } from '@/components/shared';
+import { SOFT_PRIMARY_BTN, SOFT_SECONDARY_BTN } from '@/components/shared/soft-form';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { BOMConfigResponse } from '@/types/bom-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { NewTypeRecorderPanel, isNewType } from '@/components/ipc-recording/NewTypeRecorderPanel';
-import { formatSpecSummary } from '@/lib/master-data/ipc-spec-payload';
+import {
+  IPCRecordDialog,
+  type RecordableCriterion,
+} from '@/components/ipc-recording/IPCRecordDialog';
+import { IPCRoundHistory } from '@/components/ipc-recording/IPCRoundHistory';
+import { formatSpecSummary, parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -36,6 +42,8 @@ import {
   Gauge,
   Wrench,
   ListChecks,
+  ChevronDown,
+  ChevronUp,
   FlaskConical,
   FileText,
 } from 'lucide-react';
@@ -179,6 +187,55 @@ interface WorkOrderBasic {
   status: string;
 }
 
+// The recorded state of an IPC criterion, in the soft pill language the rest
+// of the screen uses. Purely a label — the whole card is the click target.
+function IPCStatusPill({ ipc }: { ipc: LinkedIPCCriterion }) {
+  if (!ipc.recordedTestId || !ipc.recordedSamples?.length) {
+    return (
+      <span className="inline-flex items-center rounded-md bg-[#f1f3f5] px-1.5 py-0.5 text-[10px] font-semibold text-[#6b7280]">
+        ยังไม่บันทึก
+      </span>
+    );
+  }
+  const tone =
+    ipc.recordedStatus === 'pass'
+      ? 'bg-[#e8f6ee] text-[#1a8a4a]'
+      : ipc.recordedStatus === 'fail'
+        ? 'bg-[#fbeceb] text-[#c0362c]'
+        : 'bg-[#fdf0e6] text-[#b45309]';
+  const label =
+    ipc.recordedStatus === 'pass'
+      ? 'บันทึกแล้ว — ผ่าน'
+      : ipc.recordedStatus === 'fail'
+        ? 'บันทึกแล้ว — ไม่ผ่าน'
+        : 'บันทึกแล้ว';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tone}`}>
+      <CheckCircle2 className="h-2.5 w-2.5" />
+      {label}
+    </span>
+  );
+}
+
+/**
+ * The latest recorded reading, in the corner the QC entry cards keep it —
+ * the one figure someone scanning the list is after.
+ */
+function latestReading(ipc: LinkedIPCCriterion): { value: string; sub: string } | null {
+  const samples = ipc.recordedSamples ?? [];
+  if (samples.length === 0) return null;
+  const lastRound = Math.max(...samples.map((x) => x.testRound));
+  const inRound = samples.filter((x) => x.testRound === lastRound);
+  const nums = inRound
+    .map((x) => (x.numericValue == null ? null : Number(x.numericValue)))
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  const value = nums.length
+    ? `${(nums.reduce((a, b) => a + b, 0) / nums.length).toLocaleString(undefined, { maximumFractionDigits: 2 })}${ipc.unit ? ` ${ipc.unit}` : ''}`
+    : `ผ่าน ${inRound.filter((x) => x.result === 'pass').length}/${inRound.length}`;
+  const sub = `รอบที่ ${lastRound}${inRound.length > 1 ? ` · เฉลี่ยจาก ${inRound.length}` : ''}`;
+  return { value, sub };
+}
+
 // Renders an IPC criterion's spec envelope as human-readable lines.
 // Replaces the legacy "Spec: <raw JSON>" inline rendering that operators
 // could not read. Used by all 4 IPC display sites in this page.
@@ -269,14 +326,84 @@ export default function SOPExecutionPage() {
 
   // Phase 6a — Set of recordedTestId currently expanded into the details
   // panel. Toggling clicks on the "บันทึกแล้ว" badge.
-  const [expandedRecordedIPC, setExpandedRecordedIPC] = useState<Set<number>>(new Set());
-  const toggleExpandedRecorded = (testId: number) => {
-    setExpandedRecordedIPC((prev) => {
+  // Recorded rounds open in a dialog instead of unfolding in place.
+  // Expanding inline pushed every following step down the page, so the
+  // operator lost the row they were working on just to read a result.
+  const [recordedModal, setRecordedModal] =
+    useState<{ step: SOPStep; ipc: LinkedIPCCriterion } | null>(null);
+  // Recording opens the same card the criteria author previewed when they
+  // wrote the criterion, so what was designed is what the operator meets.
+  const [recordDialog, setRecordDialog] = useState<RecordableCriterion | null>(null);
+
+  /**
+   * Recorded rounds show on the card itself, open by default — a result that
+   * exists should be readable without a click. This holds the ones the
+   * operator has folded away, so everything else stays open.
+   */
+  const [collapsedIPC, setCollapsedIPC] = useState<Set<number>>(new Set());
+  const toggleIPCCollapsed = (id: number) =>
+    setCollapsedIPC((prev) => {
       const next = new Set(prev);
-      if (next.has(testId)) next.delete(testId);
-      else next.add(testId);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+
+  const toRecordable = (ipc: LinkedIPCCriterion): RecordableCriterion => {
+    const sampleSize = Number(ipc.sampleSize) || 1;
+    const target = ipc.specTarget == null ? null : Number(ipc.specTarget);
+    const tolPct = Number(ipc.specTolerancePercent) || 0;
+    // Prefer the stored bounds; fall back to target ± tolerance, which is
+    // how the criteria screen derives them.
+    let min = ipc.minValue == null ? null : Number(ipc.minValue);
+    let max = ipc.maxValue == null ? null : Number(ipc.maxValue);
+    if ((min == null || max == null) && target != null && Number.isFinite(target)) {
+      min = target * (1 - tolPct / 100);
+      max = target * (1 + tolPct / 100);
+    }
+    const stages = parseStages(ipc.recordedAcceptanceStages);
+    return {
+      criteriaId: ipc.criteriaId,
+      criteriaType: (ipc.criteriaType || 'numeric') as RecordableCriterion['criteriaType'],
+      stage: 'ipc',
+      formData: {
+        code: ipc.criteriaCode,
+        name: (locale === 'th' && ipc.criteriaNameTh ? ipc.criteriaNameTh : ipc.criteriaName) ?? '',
+        unit: ipc.unit ?? null,
+        sampleSize,
+        specTarget: target,
+        specTolerancePercent: tolPct,
+        tolerancePercent: 0,
+        isCritical: !!(ipc.isCritical || ipc.isCriteriaCritical),
+        isActive: true,
+      },
+      specPayload: parseSpecPayload(ipc.criteriaType ?? 'numeric', ipc.specification ?? null),
+      calculatedMinMax:
+        min != null && max != null && Number.isFinite(min) && Number.isFinite(max)
+          ? { min, max }
+          : null,
+      acceptanceMath: { sampleSize, allowedFail: 0, mustPass: sampleSize },
+      multiStageEnabled: stages.length > 0,
+      stages,
+      recorded: {
+        criteriaId: ipc.criteriaId,
+        criteriaType: ipc.criteriaType ?? 'numeric',
+        unit: ipc.unit ?? null,
+        sampleSize,
+        // The SOP board's payload carries only the spec tolerance (target ± %),
+        // never a sample-failure allowance, so the history judges rounds here
+        // against zero — which is what this board's criteria actually demand.
+        isCriteriaCritical: !!(ipc.isCritical || ipc.isCriteriaCritical),
+        recordedTestId: ipc.recordedTestId ?? null,
+        recordedStatus: ipc.recordedStatus ?? null,
+        recordedSamples: ipc.recordedSamples ?? [],
+        recordedTestedByName: ipc.recordedTestedByName ?? null,
+        recordedTestDate: ipc.recordedTestDate ?? null,
+        recordedAcceptanceStages: ipc.recordedAcceptanceStages ?? null,
+        maxRetestRounds: ipc.maxRetestRounds ?? null,
+        recordedRetestReason: ipc.recordedRetestReason ?? null,
+      },
+    };
   };
 
   // Phase 6b + Retest Gate — Retest dialog state. Operator opens it for a
@@ -1310,47 +1437,43 @@ export default function SOPExecutionPage() {
         }
       />
 
-      {/* WO Banner — gradient hero card showing WO context with progress stats */}
-      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${activeTheme.gradient} shadow-lg shadow-slate-300/40`}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.25),_transparent_60%)]" />
-        <div className="absolute -right-12 -bottom-12 opacity-10">
-          <ClipboardList className="h-48 w-48 text-white" />
-        </div>
-        <div className="relative p-5 md:p-6 text-white">
+      {/* WO context + progress. Plain surface, grey labels, one accent —
+          the same language as the QC & IPC criteria screen. */}
+      <div className="rounded-[20px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+        <div className="p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/80">
-                <span className="inline-flex h-2 w-2 rounded-full bg-white animate-pulse" />
-                {phaseFilter ? SOP_PHASE_LABELS[phaseFilter] : 'All Phases'}
-                <span className="opacity-50">·</span>
+              <div className="flex items-center gap-2 text-[11px] text-[#bfbfbf]">
+                <span>{phaseFilter ? SOP_PHASE_LABELS[phaseFilter] : 'All Phases'}</span>
+                <span>·</span>
                 <span>{workOrder.status}</span>
               </div>
-              <h2 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight">
+              <h2 className="mt-1 font-mono text-2xl font-bold tracking-tight text-black">
                 {workOrder.woNumber}
               </h2>
-              <p className="text-white/85 text-sm mt-0.5">
-                {workOrder.productName} <span className="text-white/60">·</span> Batch{' '}
-                <span className="font-mono font-semibold">{workOrder.batchNumber}</span>
+              <p className="mt-0.5 text-sm text-slate-600">
+                {workOrder.productName} <span className="text-[#d5d8dc]">·</span> Batch{' '}
+                <span className="font-mono font-semibold text-slate-900">{workOrder.batchNumber}</span>
               </p>
             </div>
             <div className="flex items-center gap-3 md:gap-5">
               <div className="text-right">
-                <div className="text-3xl md:text-4xl font-bold leading-none tabular-nums">
+                <div className="text-3xl font-bold leading-none tabular-nums text-[#5682e9]">
                   {progress.completed}
-                  <span className="text-lg text-white/70 font-normal">/{progress.total}</span>
+                  <span className="text-lg font-normal text-[#bfbfbf]">/{progress.total}</span>
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-white/75 mt-1">Completed</div>
+                <div className="mt-1 text-[11px] text-[#bfbfbf]">บันทึกแล้ว</div>
               </div>
-              <div className="h-12 w-px bg-white/30" />
+              <div className="h-10 w-px bg-[#eef0f2]" />
               <div className="text-right">
-                <div className="text-3xl md:text-4xl font-bold leading-none tabular-nums">
+                <div className="text-3xl font-bold leading-none tabular-nums text-[#1a8a4a]">
                   {progress.verified}
-                  <span className="text-lg text-white/70 font-normal">/{progress.total}</span>
+                  <span className="text-lg font-normal text-[#bfbfbf]">/{progress.total}</span>
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-white/75 mt-1">Verified</div>
+                <div className="mt-1 text-[11px] text-[#bfbfbf]">ตรวจสอบแล้ว</div>
               </div>
               {progress.verified === progress.total && progress.total > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold border border-white/30 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f6ee] px-3 py-1.5 text-xs font-medium text-[#1a8a4a]">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   All Verified
                 </span>
@@ -1359,17 +1482,17 @@ export default function SOPExecutionPage() {
           </div>
           {/* Dual progress bar — completed (lighter) on top of verified (darker) */}
           <div className="mt-5 space-y-1.5">
-            <div className="relative h-2.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+            <div className="relative h-2 overflow-hidden rounded-full bg-[#eef0f2]">
               <div
-                className="absolute inset-y-0 left-0 bg-white/40 transition-all duration-500 ease-out"
+                className="absolute inset-y-0 left-0 bg-[#5682e9] transition-all duration-500 ease-out"
                 style={{ width: `${completedPct}%` }}
               />
               <div
-                className="absolute inset-y-0 left-0 bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)] transition-all duration-500 ease-out"
+                className="absolute inset-y-0 left-0 bg-[#1a8a4a] transition-all duration-500 ease-out"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-white/70 font-medium">
+            <div className="flex justify-between text-[10px] text-[#bfbfbf]">
               <span>{Math.round(progressPct)}% verified</span>
               <span>{Math.round(completedPct)}% completed</span>
             </div>
@@ -1378,8 +1501,8 @@ export default function SOPExecutionPage() {
       </div>
 
       {/* Steps List */}
-      <Card className="rounded-2xl border border-emerald-100 shadow-[0_6px_20px_rgba(6,78,59,0.06)] backdrop-blur-sm bg-white">
-        <CardContent className="p-4 md:p-5">
+      <div>
+        <div>
           {stepsLoading ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3">
               <DxLoadIndicator />
@@ -1451,47 +1574,41 @@ export default function SOPExecutionPage() {
                 const stepInstructions = locale === 'th' && step.instructionsTh ? step.instructionsTh : step.instructions;
 
                 const stepTheme = phaseTheme(step.phase as SOPPhase);
-                // Modern status pill with gradient + animated dot for in_progress
+                // Flat tint on a pale ground — the pill style used on the
+                // QC & IPC criteria screen. No gradient, no coloured shadow.
                 const statusPillClasses =
                   step.status === 'in_progress'
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-amber-200'
+                    ? 'bg-[#fdf0e6] text-[#b45309]'
                     : step.status === 'completed'
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm shadow-emerald-200'
+                      ? 'bg-[#e8f6ee] text-[#1a8a4a]'
                       : step.status === 'verified'
-                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-500 text-white shadow-sm shadow-emerald-200'
+                        ? 'bg-[#e8f6ee] text-[#1a8a4a]'
                         : step.status === 'deviation'
-                          ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm shadow-rose-200'
-                          : 'bg-slate-200 text-slate-700';
+                          ? 'bg-[#fbeceb] text-[#c0362c]'
+                          : 'bg-[#f1f3f5] text-[#6b7280]';
                 return (
                   <div
                     key={step.id}
-                    className={`group relative overflow-hidden rounded-2xl border bg-white backdrop-blur-sm shadow-[0_6px_20px_rgba(6,78,59,0.06)] transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300 ${
-                      step.status === 'in_progress'
-                        ? 'border-amber-300 ring-2 ring-amber-100 bg-gradient-to-br from-amber-50/40 to-white'
-                        : step.status === 'verified'
-                          ? 'border-emerald-200/70'
-                          : step.status === 'deviation'
-                            ? 'border-rose-200 ring-1 ring-rose-100'
-                            : 'border-emerald-100'
+                    // The shadow already separates the card from the page, and
+                    // the status pill already names the state — so no border,
+                    // except on a deviation, where the outline is the alert.
+                    className={`group relative overflow-hidden rounded-[20px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-shadow duration-200 hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)] ${
+                      step.status === 'deviation' ? 'border border-rose-200' : ''
                     }`}
                   >
-                    {/* Phase color accent stripe — left edge */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${stepTheme.gradient}`} />
-                    <div className="p-4 md:p-5 pl-5 md:pl-6">
+                    <div className="p-5 md:p-6">
                     {/* Mobile: stack title block above action buttons so the
                         title isn't squeezed into a thin column when
                         Start/Complete/Verify chips are also rendered. */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-start gap-3 md:gap-4 min-w-0 flex-1">
-                        <div className={`relative flex-none w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${stepTheme.gradient} text-white shadow-md shadow-slate-200/60`}>
+                        <div className="relative flex h-11 w-11 flex-none items-center justify-center rounded-[14px] bg-[#f1f3f5] text-slate-500">
                           <StatusIcon className="h-5 w-5" />
-                          {step.status === 'in_progress' && (
-                            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-amber-400 ring-2 ring-white animate-pulse" />
-                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-base md:text-lg font-semibold text-slate-900 tracking-tight break-words">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                            <span className="block text-base font-semibold tracking-tight text-slate-900 break-words md:text-lg">
                               {/* Renumber from 1 within the filtered view —
                                   e.g. global seq 2 + 5 in pre_production
                                   shows as "step 1" + "step 2". The original
@@ -1499,39 +1616,72 @@ export default function SOPExecutionPage() {
                                   audit trails still align. */}
                               {t('bomConfiguration.step', { sequence: phaseFilter ? displayIndex + 1 : step.sequence })}: {locale === 'th' && step.stepNameTh ? step.stepNameTh : step.stepName}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusPillClasses}`}>
-                              {step.status === 'in_progress' && (
-                                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                              )}
-                              {statusInfo.label}
-                            </span>
-                            {step.requiresVerification && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                <UserCheck className="h-2.5 w-2.5" />
-                                Requires Verification
-                              </span>
+                            {/* Secondary language name, kept with the title. */}
+                            {locale === 'th' && step.stepName && step.stepNameTh && (
+                              <p className="mt-0.5 text-sm text-gray-500">{step.stepName}</p>
                             )}
-                          </div>
-                          {/* Show secondary language name */}
-                          {locale === 'th' && step.stepName && step.stepNameTh && (
-                            <p className="text-gray-500 text-sm">{step.stepName}</p>
-                          )}
-                          {locale !== 'th' && step.stepNameTh && (
-                            <p className="text-gray-500 text-sm">{step.stepNameTh}</p>
-                          )}
+                            {locale !== 'th' && step.stepNameTh && (
+                              <p className="mt-0.5 text-sm text-gray-500">{step.stepNameTh}</p>
+                            )}
+                            </div>
 
-                          {/* Template-level GMP document — links the whole SOP
-                              Template (distinct from per-sub-step and per-IPC). */}
-                          {step.templateGmpDocumentId != null && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setPreviewDocId(step.templateGmpDocumentId!); }}
-                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                              title="ดูเอกสาร GMP ของ SOP Template"
-                            >
-                              <FileText className="h-3.5 w-3.5" />
-                              {docLabelMap?.[step.templateGmpDocumentId] ?? 'เอกสาร SOP Template'}
-                            </button>
+                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:max-w-[45%]">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusPillClasses}`}>
+                                {statusInfo.label}
+                              </span>
+                              {step.requiresVerification && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                  <UserCheck className="h-2.5 w-2.5" />
+                                  Requires Verification
+                                </span>
+                              )}
+                              {showAwaitingOtherVerifier && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#fdf0e6] px-2 py-0.5 text-[10px] font-semibold text-[#b45309]">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  รอผู้ตรวจสอบคนอื่น
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Details span the whole card — indenting them past
+                          the icon bought nothing and cost a column of width. */}
+                      <div>
+
+                          {/* Method of record for this step. */}
+                          {(step.templateGmpDocumentId != null || stepInstructions) && (
+                            <div className="mt-4 border-t border-[#eef0f2] pt-4">
+                              <div className="mb-2 flex items-center gap-1.5">
+                                <FileText className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="text-[11px] font-medium text-[#bfbfbf]">
+                                  วิธีปฏิบัติงานมาตรฐาน (SOP)
+                                </span>
+                              </div>
+                              <div className="rounded-[12px] bg-[#f9fafb] p-3">
+                                {step.templateGmpDocumentId != null && (
+                                  <p className="text-[13px] font-medium text-slate-900">
+                                    {docLabelMap?.[step.templateGmpDocumentId] ?? 'เอกสาร SOP'}
+                                  </p>
+                                )}
+                                {stepInstructions && (
+                                  <p className="mt-1 text-[12px] leading-relaxed text-slate-500">
+                                    {stepInstructions}
+                                  </p>
+                                )}
+                                {step.templateGmpDocumentId != null && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewDocId(step.templateGmpDocumentId!)}
+                                    className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0]"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    ดูเอกสาร SOP
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           )}
 
                           {/* BOM Instructions */}
@@ -1657,32 +1807,6 @@ export default function SOPExecutionPage() {
                                               </button>
                                             )}
                                           </div>
-                                          {/* Phase 8e — Prominent "บันทึก IPC" button at sub-step
-                                              header. Highlighted when there are unrecorded IPCs and
-                                              the parent step is in_progress. Stops propagation so
-                                              clicking the button doesn't toggle the sub-step. */}
-                                          {(() => {
-                                            const unrecorded = subIPCs.filter((i) => !i.recordedTestId);
-                                            const canRecord = step.status === 'in_progress' && unrecorded.length > 0;
-                                            if (!canRecord) return null;
-                                            return (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleOpenIPCDialog(step, sub.id);
-                                                }}
-                                                className="flex-none inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all animate-pulse"
-                                                title={`บันทึก IPC ${unrecorded.length} รายการของขั้นตอนนี้`}
-                                              >
-                                                <FlaskConical className="h-5 w-5" />
-                                                บันทึก IPC
-                                                <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white text-amber-600 text-xs font-extrabold">
-                                                  {unrecorded.length}
-                                                </span>
-                                              </button>
-                                            );
-                                          })()}
                                         </div>
                                         {/* IPC criteria linked to this sub-step — visible inline so
                                             operator sees the test alongside the procedure (Phase 8c).
@@ -1690,76 +1814,78 @@ export default function SOPExecutionPage() {
                                         {subIPCs.length > 0 && (
                                           <div className="mt-2 ml-12 space-y-1.5">
                                             {subIPCs.map((ipc) => {
-                                              const isExpanded = ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId);
+                                              const recorded = ipc.recordedSamples?.length;
                                               return (
                                                 <div
                                                   key={ipc.id}
-                                                  className="px-2 py-1.5 rounded bg-white border border-emerald-200/60"
+                                                  role="button"
+                                                  tabIndex={0}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setRecordDialog(toRecordable(ipc));
+                                                  }}
+                                                  onKeyDown={(e) => {
+                                                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setRecordDialog(toRecordable(ipc));
+                                                  }}
+                                                  className="flex cursor-pointer flex-wrap items-start gap-2 rounded-[12px] bg-[#f9fafb] p-3 text-left transition hover:bg-[#f1f3f5]"
                                                 >
-                                                  <div className="flex items-start gap-1.5 text-xs">
-                                                    <FlaskConical className="h-3 w-3 text-emerald-600 mt-0.5 flex-shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <span className="font-mono font-semibold text-emerald-700 bg-emerald-50 px-1 rounded text-[10px]">
-                                                          {ipc.criteriaCode}
+                                                  <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
+                                                  <div className="min-w-0 flex-1">
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                      <span className="rounded-md bg-[#e8effc] px-2 py-0.5 font-mono text-[11px] font-bold text-[#3559b0]">
+                                                        {ipc.criteriaCode}
+                                                      </span>
+                                                      <span className="min-w-0 break-words text-sm font-medium text-gray-900">
+                                                        {ipc.criteriaNameTh || ipc.criteriaName}
+                                                      </span>
+                                                      {ipc.isCritical && (
+                                                        <span className="inline-flex items-center gap-1 rounded-md bg-[#fbeceb] px-1.5 py-0.5 text-[10px] font-semibold text-[#c0362c]">
+                                                          <AlertCircle className="h-2.5 w-2.5" />
+                                                          Critical
                                                         </span>
-                                                        <span className="text-gray-900 break-words min-w-0">
-                                                          {ipc.criteriaNameTh || ipc.criteriaName}
-                                                        </span>
-                                                        {ipc.isCritical && (
-                                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-rose-100 text-rose-700 px-1 rounded">
-                                                            <AlertCircle className="h-2 w-2" />
-                                                            Critical
-                                                          </span>
-                                                        )}
-                                                        {ipc.recordedTestId ? (
-                                                          <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              toggleExpandedRecorded(ipc.recordedTestId!);
-                                                            }}
-                                                            className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
-                                                              ipc.recordedStatus === 'pass'
-                                                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                                : ipc.recordedStatus === 'fail'
-                                                                  ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                                                                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                                            }`}
-                                                            title="คลิกเพื่อดูรายละเอียดและบันทึกรอบใหม่"
-                                                          >
-                                                            <CheckCircle2 className="h-2.5 w-2.5" />
-                                                            {ipc.recordedStatus === 'pass'
-                                                              ? 'ผ่าน'
-                                                              : ipc.recordedStatus === 'fail'
-                                                                ? 'ไม่ผ่าน'
-                                                                : 'รอผล'}
-                                                            {isExpanded ? ' ▴' : ' ▾'}
-                                                          </button>
-                                                        ) : (
-                                                          <span className="inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                                                            ยังไม่บันทึก
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                      <IPCSpecLines ipc={ipc} size="10" />
-                                                      {/* Per-IPC GMP document — distinct from the
-                                                          template-level and sub-step document links. */}
-                                                      {ipc.gmpDocumentId != null && (
-                                                        <button
-                                                          type="button"
-                                                          onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
-                                                          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                                                          title="ดูเอกสาร GMP ของ IPC"
-                                                        >
-                                                          <FileText className="h-3 w-3" />
-                                                          {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
-                                                        </button>
                                                       )}
+                                                      <IPCStatusPill ipc={ipc} />
+                                                    </div>
+                                                    <IPCSpecLines ipc={ipc} />
+                                                    {/* Per-IPC GMP document — distinct from the
+                                                        template-level and sub-step document links. */}
+                                                    {ipc.gmpDocumentId != null && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
+                                                        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3 py-1 text-[11px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0]"
+                                                        title="ดูเอกสาร GMP ของ IPC"
+                                                      >
+                                                        <FileText className="h-3 w-3" />
+                                                        {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
+                                                      </button>
+                                                    )}
+                                                    <div className="mt-3">
+                                                      <span
+                                                        className={
+                                                          'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition ' +
+                                                          (recorded
+                                                            ? 'border border-[#e1e4e8] bg-white text-slate-700'
+                                                            : 'bg-[#2f6fd0] text-white')
+                                                        }
+                                                      >
+                                                        {recorded ? (
+                                                          <>
+                                                            <FileText className="h-3.5 w-3.5" />
+                                                            ดูรายละเอียดที่บันทึก
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <FlaskConical className="h-3.5 w-3.5" />
+                                                            บันทึกผล
+                                                          </>
+                                                        )}
+                                                      </span>
                                                     </div>
                                                   </div>
-                                                  {/* Expanded round-by-round details + retest button */}
-                                                  {isExpanded && renderRecordedDetails(step, ipc)}
                                                 </div>
                                               );
                                             })}
@@ -1826,13 +1952,13 @@ export default function SOPExecutionPage() {
                             );
                             if (orphanIPCs.length === 0) return null;
                             return (
-                            <div className="mt-3 pt-3 border-t border-dashed border-emerald-200">
+                            <div className="mt-4 border-t border-[#eef0f2] pt-4">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 uppercase tracking-wide">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#bfbfbf]">
                                   <FlaskConical className="h-3.5 w-3.5" />
                                   IPC อื่นๆ (ไม่ผูกกับ sub-step ปัจจุบัน)
                                 </span>
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#f1f3f5] px-2 py-0.5 text-[11px] font-medium text-[#6b7280]">
                                   {orphanIPCs.length}
                                 </span>
                               </div>
@@ -1841,50 +1967,38 @@ export default function SOPExecutionPage() {
                                   return (
                                     <div
                                       key={ipc.id}
-                                      className="p-2 rounded-lg border border-emerald-100 bg-white flex items-start gap-2"
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() =>
+                                        ipc.recordedSamples?.length
+                                          ? toggleIPCCollapsed(ipc.id)
+                                          : setRecordDialog(toRecordable(ipc))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key !== 'Enter' && e.key !== ' ') return;
+                                        e.preventDefault();
+                                        if (ipc.recordedSamples?.length) toggleIPCCollapsed(ipc.id);
+                                        else setRecordDialog(toRecordable(ipc));
+                                      }}
+                                      className="flex cursor-pointer flex-wrap items-start gap-2 rounded-[12px] bg-[#f9fafb] p-3 text-left transition hover:bg-[#f1f3f5]"
                                     >
-                                      <FlaskConical className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                      {/* header body below; reading+chevron appended after content */}
+                                      <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                          <span className="rounded-md bg-[#e8effc] px-2 py-0.5 font-mono text-[11px] font-bold text-[#3559b0]">
                                             {ipc.criteriaCode}
                                           </span>
                                           <span className="text-sm font-medium text-gray-900 truncate">
                                             {ipc.criteriaNameTh || ipc.criteriaName}
                                           </span>
                                           {ipc.isCritical && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-[#fbeceb] px-1.5 py-0.5 text-[10px] font-semibold text-[#c0362c]">
                                               <AlertCircle className="h-2.5 w-2.5" />
                                               Critical
                                             </span>
                                           )}
-                                          {/* Status badge — clickable to expand
-                                              read-only sample details (Phase 6a). */}
-                                          {ipc.recordedTestId && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleExpandedRecorded(ipc.recordedTestId!);
-                                              }}
-                                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
-                                                ipc.recordedStatus === 'pass'
-                                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                  : ipc.recordedStatus === 'fail'
-                                                  ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                                                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                              }`}
-                                              title="คลิกเพื่อดูรายละเอียด samples"
-                                            >
-                                              <CheckCircle2 className="h-2.5 w-2.5" />
-                                              {ipc.recordedStatus === 'pass'
-                                                ? 'บันทึกแล้ว — ผ่าน'
-                                                : ipc.recordedStatus === 'fail'
-                                                ? 'บันทึกแล้ว — ไม่ผ่าน'
-                                                : 'บันทึกแล้ว'}
-                                              {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
-                                            </button>
-                                          )}
+                                          <IPCStatusPill ipc={ipc} />
                                         </div>
                                         <IPCSpecLines ipc={ipc} />
                                         {/* Per-IPC GMP document link. */}
@@ -1892,22 +2006,74 @@ export default function SOPExecutionPage() {
                                           <button
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); setPreviewDocId(ipc.gmpDocumentId!); }}
-                                            className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                                            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3 py-1 text-[11px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0]"
                                             title="ดูเอกสาร GMP ของ IPC"
                                           >
                                             <FileText className="h-3 w-3" />
                                             {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
                                           </button>
                                         )}
-                                        {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && renderRecordedDetails(step, ipc)}
+
+                                        {!ipc.recordedSamples?.length && (
+                                          <div className="mt-3">
+                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2f6fd0] px-3.5 py-1.5 text-[12px] font-medium text-white transition">
+                                              <FlaskConical className="h-3.5 w-3.5" />
+                                              บันทึกผล
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* The recorded rounds, on the card and open
+                                            by default — a result that exists should
+                                            be readable without a click. The card
+                                            folds it away and back. */}
                                       </div>
+
+                                      {/* The reading and the fold control, in the
+                                          corner the QC entry cards keep them. */}
+                                      {ipc.recordedSamples?.length ? (
+                                        <div className="flex flex-none items-start gap-2">
+                                          {(() => {
+                                            const read = latestReading(ipc);
+                                            return read ? (
+                                              <div className="text-right">
+                                                <div className="text-sm font-semibold text-black">{read.value}</div>
+                                                <div className="text-[11px] text-[#bfbfbf]">{read.sub}</div>
+                                              </div>
+                                            ) : null;
+                                          })()}
+                                          <span
+                                            className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full text-slate-400"
+                                            aria-hidden
+                                          >
+                                            {collapsedIPC.has(ipc.id) ? (
+                                              <ChevronDown className="h-4 w-4" />
+                                            ) : (
+                                              <ChevronUp className="h-4 w-4" />
+                                            )}
+                                          </span>
+                                        </div>
+                                      ) : null}
+
+                                      {/* The recorded rounds, across the whole
+                                          card — the table is the point of the
+                                          card once a result exists, and boxing
+                                          it into the text column wasted the
+                                          width the readings need. */}
+                                      {ipc.recordedSamples?.length && !collapsedIPC.has(ipc.id) ? (
+                                        <div
+                                          className="mt-1 w-full border-t border-[#e8eaee] pt-3"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <IPCRoundHistory
+                                            ipc={toRecordable(ipc).recorded!}
+                                            onStartRetest={() => setRecordDialog(toRecordable(ipc))}
+                                          />
+                                        </div>
+                                      ) : null}
                                     </div>
                                   );
                                 })}
                               </div>
-                              <p className="text-[11px] text-gray-500 mt-2 italic">
-                                บันทึกผล IPC ทั้งหมดในหน้า &quot;บันทึก SOP Step&quot; ของ step นี้
-                              </p>
                             </div>
                             );
                           })()}
@@ -1962,9 +2128,8 @@ export default function SOPExecutionPage() {
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end sm:flex-shrink-0">
+                      <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
                         {isBlockedByVerification && (
                           <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-medium">
                             <Clock className="h-3 w-3" />
@@ -1980,27 +2145,6 @@ export default function SOPExecutionPage() {
                             disabled={startStepMutation.isPending}
                           />
                         )}
-                        {/* Phase 8d — step-level "บันทึก IPC" only for orphan IPCs.
-                            IPCs linked to current sub-steps now have per-sub-step
-                            buttons inside the sub-step list. */}
-                        {(() => {
-                          if (!canComplete) return null;
-                          const subStepIds = new Set((step.templateSteps || []).map((s) => s.id));
-                          const orphanUnrecorded = (step.linkedIPC || []).filter(
-                            (ipc) => !subStepIds.has(ipc.procedureStepId) && !ipc.recordedTestId,
-                          );
-                          if (orphanUnrecorded.length === 0) return null;
-                          return (
-                            <DxButton
-                              text={`บันทึก IPC อื่น (${orphanUnrecorded.length})`}
-                              icon="testrun"
-                              type="default"
-                              stylingMode="outlined"
-                              onClick={() => handleOpenIPCDialog(step)}
-                              disabled={recordIPCOnlyMutation.isPending}
-                            />
-                          );
-                        })()}
                         {canComplete && (
                           <DxButton
                             text="Complete"
@@ -2019,7 +2163,6 @@ export default function SOPExecutionPage() {
                             disabled={verifyStepMutation.isPending}
                           />
                         )}
-                        {showAwaitingOtherVerifier && <AwaitingOtherVerifierBadge />}
                       </div>
                     </div>
                     </div>
@@ -2028,8 +2171,8 @@ export default function SOPExecutionPage() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Start Step Dialog */}
       <DxPopup
@@ -2125,7 +2268,18 @@ export default function SOPExecutionPage() {
       {/* Complete Step Dialog — body is scrollable, footer is sticky so the
           submit button is reachable even when many IPC inputs stretch the
           form below the fold. */}
+      <style>{`
+        .soft-popup .dx-overlay-content { border-radius: 24px; }
+        .soft-popup .dx-popup-title { border-bottom-color: #f1f3f5 !important; }
+        .soft-popup .dx-overlay-content:focus,
+        .soft-popup .dx-overlay-content:focus-visible,
+        .soft-popup .dx-overlay-content.dx-state-focused {
+          outline: none !important;
+          box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28) !important;
+        }
+      `}</style>
       <DxPopup
+        wrapperAttr={{ class: 'soft-popup' }}
         visible={showCompleteDialog}
         onHiding={() => {
           setShowCompleteDialog(false);
@@ -2136,46 +2290,52 @@ export default function SOPExecutionPage() {
           setIpcSampleResults({});
           setIpcText({});
         }}
-        title="บันทึก SOP Step"
+        title="ปิดขั้นตอนและบันทึกค่าที่ทำได้จริง"
         width={560}
-        height="90vh"
+        height="auto"
         showCloseButton
         dragEnabled={false}
       >
-        <div className="flex flex-col h-full">
-        <div className="p-5 space-y-4 overflow-y-auto flex-1">
-          <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${phaseTheme(selectedStep?.phase as SOPPhase).gradient} p-4 text-white shadow-md`}>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2),_transparent_60%)]" />
-            <div className="relative">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-1 inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3 w-3" />
-                Complete step
-              </div>
-              <h4 className="font-bold text-lg leading-snug">
-                {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}: {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
-              </h4>
-              {(() => {
-                const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
-                return instr ? <p className="text-sm text-white/90 mt-1.5 leading-relaxed">{instr}</p> : null;
-              })()}
+        <div className="-m-6 flex flex-col">
+        <div className="flex max-h-[60vh] flex-col gap-5 overflow-y-auto bg-white px-6 py-5">
+          {/* Say plainly what pressing the button will do — the old header was
+              a coloured banner repeating the step name and nothing else. */}
+          <div>
+            <p className="text-[11px] text-[#bfbfbf]">กำลังจะปิดขั้นตอน</p>
+            <p className="mt-1 text-[15px] font-bold text-slate-900">
+              {t('bomConfiguration.step', { sequence: displaySequenceFor(selectedStep) })}:{' '}
+              {locale === 'th' && selectedStep?.stepNameTh ? selectedStep.stepNameTh : selectedStep?.stepName}
+            </p>
+            {(() => {
+              const instr = locale === 'th' && selectedStep?.instructionsTh ? selectedStep.instructionsTh : selectedStep?.instructions;
+              return instr ? <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{instr}</p> : null;
+            })()}
+            <div className="mt-3 border-t border-[#eef0f2] pt-3">
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                ระบบจะบันทึกว่าขั้นตอนนี้เสร็จแล้ว พร้อมชื่อผู้ปฏิบัติงานและเวลา
+                จากนั้นสถานะจะเปลี่ยนเป็น <strong className="font-semibold">COMPLETED</strong> และขั้นตอนถัดไปจะเริ่มได้
+              </p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-[#bfbfbf]">
+                หน้านี้ไม่ใช่หน้าบันทึกผลตรวจ — ผล IPC บันทึกที่ปุ่ม “บันทึกผล” ของแต่ละหัวข้อ
+              </p>
             </div>
           </div>
 
-          {/* Actual Parameters Input */}
+          {/* Actual parameters — what the line really ran at. */}
           {(() => {
             const expected = parseJson<Record<string, number>>(selectedStep?.expectedParameters);
             if (!expected || Object.keys(expected).length === 0) return null;
             return (
-              <div className="space-y-3 bg-[#F6FCF9] border border-emerald-100 rounded-xl p-4">
-                <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                  <Gauge className="h-3.5 w-3.5" />
-                  Record Actual Parameters
-                </h5>
-                <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-black">
+                  <Gauge className="h-4 w-4 text-slate-400" />
+                  ค่าที่ทำได้จริง
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {Object.entries(expected).map(([key, expectedValue]) => (
                     <div key={key}>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
-                        {key} <span className="text-slate-400 font-normal">(expected: {expectedValue})</span>
+                      <label className="mb-1 block text-[11px] text-[#bfbfbf]">
+                        {key} <span className="text-[#d5d8dc]">· ตามแผน {expectedValue}</span>
                       </label>
                       <DxNumberBox
                         value={actualParams[key] ?? expectedValue}
@@ -2190,204 +2350,47 @@ export default function SOPExecutionPage() {
             );
           })()}
 
-          {/* Inline IPC recording — shared between Complete dialog (Phase 3)
-              and the standalone IPC dialog (Phase 4) via the same input state. */}
-          {selectedStep?.linkedIPC && selectedStep.linkedIPC.length > 0 && (
-            <div className="space-y-3">
-              <h5 className="text-sm font-medium text-emerald-800 flex items-center gap-1.5">
-                <FlaskConical className="h-4 w-4" />
-                IPC Test ({selectedStep.linkedIPC.length})
-              </h5>
-              {selectedStep.linkedIPC.map((ipc) => {
-                // New-type criteria route to the dedicated recorder panel
-                // (writes to ipc_recording_rounds, keyed by WO batchNumber).
-                if (isNewType(ipc.criteriaType) && workOrder?.batchNumber) {
-                  return (
-                    <NewTypeRecorderPanel
-                      key={ipc.id}
-                      criteria={{
-                        id: ipc.criteriaId,
-                        code: ipc.criteriaCode,
-                        name: ipc.criteriaName ?? '',
-                        nameTh: ipc.criteriaNameTh ?? null,
-                        unit: ipc.unit ?? null,
-                        criteriaType: ipc.criteriaType || 'numeric',
-                        specification: ipc.specification ?? null,
-                      }}
-                      batchNumber={workOrder.batchNumber}
-                      compact
-                    />
-                  );
-                }
-                return (
-                  <div
-                    key={ipc.id}
-                    className={`p-3 rounded-lg border ${
-                      ipc.isCritical ? 'border-rose-200 bg-rose-50/30' : 'border-emerald-200 bg-emerald-50/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                      <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                        {ipc.criteriaCode}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {ipc.criteriaNameTh || ipc.criteriaName}
-                      </span>
-                      {ipc.isCritical && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">
-                          <AlertCircle className="h-2.5 w-2.5" />
-                          Critical
-                        </span>
-                      )}
-                      {/* Phase 5/6a — clickable badge expands sample details. */}
-                      {ipc.recordedTestId && (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpandedRecorded(ipc.recordedTestId!)}
-                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
-                            ipc.recordedStatus === 'pass'
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                              : ipc.recordedStatus === 'fail'
-                              ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                          }`}
-                          title="คลิกเพื่อดูรายละเอียด samples"
-                        >
-                          <CheckCircle2 className="h-2.5 w-2.5" />
-                          {ipc.recordedStatus === 'pass'
-                            ? 'บันทึกแล้ว — ผ่าน'
-                            : ipc.recordedStatus === 'fail'
-                            ? 'บันทึกแล้ว — ไม่ผ่าน'
-                            : 'บันทึกแล้ว'}
-                          {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
-                        </button>
-                      )}
-                    </div>
-                    <div className="mb-2"><IPCSpecLines ipc={ipc} /></div>
-
-                    {/* Already saved — show passive notice + optional details. */}
-                    {ipc.recordedTestId ? (
-                      <>
-                        <div className="text-xs text-gray-500 italic px-2 py-1.5 rounded bg-white/60 border border-dashed border-emerald-200">
-                          IPC นี้บันทึกไว้แล้ว — กดปุ่ม &quot;บันทึก IPC&quot; ภายนอกถ้าต้องการแก้ค่า
-                        </div>
-                        {expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
-                      </>
-                    ) : (
-                      <>
-                        {/* Numeric — N number boxes */}
-                        {ipc.criteriaType === 'numeric' && (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {(ipcNumeric[ipc.criteriaId] || []).map((v, idx) => {
-                              const min = ipc.minValue != null ? Number(ipc.minValue) : null;
-                              const max = ipc.maxValue != null ? Number(ipc.maxValue) : null;
-                              const inSpec = v == null
-                                ? null
-                                : (min == null || v >= min) && (max == null || v <= max);
-                              return (
-                                <div key={idx}>
-                                  <label className="block text-[11px] text-gray-500 mb-0.5">#{idx + 1}</label>
-                                  <DxNumberBox
-                                    value={v ?? undefined}
-                                    onValueChanged={(e) => {
-                                      const next = [...(ipcNumeric[ipc.criteriaId] || [])];
-                                      next[idx] = e.value == null ? null : Number(e.value);
-                                      setIpcNumeric({ ...ipcNumeric, [ipc.criteriaId]: next });
-                                    }}
-                                    format="#0.00"
-                                    showSpinButtons={false}
-                                  />
-                                  {v != null && (
-                                    <div className={`mt-0.5 text-[10px] font-semibold ${inSpec ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                      {inSpec ? '✓ ในเกณฑ์' : '✗ นอกเกณฑ์'}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Pass/Fail / Visual / Checkbox — N toggle pairs */}
-                        {ipc.criteriaType !== 'numeric' && ipc.criteriaType !== 'text' && (
-                          <div className="space-y-1.5">
-                            {(ipcSampleResults[ipc.criteriaId] || []).map((r, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <span className="text-xs text-gray-600 w-8">#{idx + 1}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
-                                    next[idx] = 'pass';
-                                    setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
-                                  }}
-                                  className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                                    r === 'pass'
-                                      ? 'bg-emerald-600 text-white border-emerald-700'
-                                      : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
-                                  }`}
-                                >
-                                  ผ่าน
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...(ipcSampleResults[ipc.criteriaId] || [])];
-                                    next[idx] = 'fail';
-                                    setIpcSampleResults({ ...ipcSampleResults, [ipc.criteriaId]: next });
-                                  }}
-                                  className={`flex-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                                    r === 'fail'
-                                      ? 'bg-rose-600 text-white border-rose-700'
-                                      : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
-                                  }`}
-                                >
-                                  ไม่ผ่าน
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Text — single textarea */}
-                        {ipc.criteriaType === 'text' && (
-                          <DxTextArea
-                            value={ipcText[ipc.criteriaId] || ''}
-                            onValueChanged={(e) => setIpcText({ ...ipcText, [ipc.criteriaId]: e.value || '' })}
-                            placeholder="กรอกผลการตรวจ"
-                            height={60}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+          {/* IPC recording used to be duplicated here. Each IPC card now
+              carries its own record/view button, so closing a step is just
+              closing a step — parameters, notes, signature. */}
+          {selectedStep?.linkedIPC && selectedStep.linkedIPC.some((i) => !i.recordedTestId) && (
+            <div className="flex items-start gap-2 rounded-[16px] bg-[#fdf0e6] px-4 py-3">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b45309]" />
+              <p className="text-[11px] leading-relaxed text-[#8a5321]">
+                ยังมีหัวข้อ IPC ที่ยังไม่ได้บันทึกผลในขั้นตอนนี้ —
+                ปิดหน้านี้แล้วกดปุ่ม “บันทึกผล” ที่หัวข้อนั้นได้เลย
+              </p>
             </div>
           )}
 
-          <div className="bg-white border border-emerald-100 rounded-xl p-4">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-2">Notes</label>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-black">หมายเหตุ</label>
             <DxTextArea
               value={notes}
               onValueChanged={(e) => setNotes(e.value)}
-              placeholder="Any observations or remarks..."
+              placeholder="เช่น ปรับตั้งเครื่องระหว่างรอบ หรือพบสิ่งผิดปกติ"
               height={80}
             />
           </div>
-
         </div>
-        {/* Sticky footer — never scrolls, so the submit button is always
-            in reach even with long lists of IPC tests above. */}
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-emerald-100 bg-gradient-to-r from-[#F6FCF9] to-white shrink-0">
-          <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setShowCompleteDialog(false)} />
-          <DxButton
-            text={completeStepMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก SOP Step'}
-            icon="save"
-            type="success"
+
+        {/* Sticky footer — the commit stays in reach however long the form. */}
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#f1f3f5] bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={() => setShowCompleteDialog(false)}
+            className={SOFT_SECONDARY_BTN}
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
             onClick={handleCompleteStep}
             disabled={completeStepMutation.isPending}
-          />
+            className={SOFT_PRIMARY_BTN}
+          >
+            {completeStepMutation.isPending ? 'กำลังบันทึก…' : 'ปิดขั้นตอน'}
+          </button>
         </div>
         </div>
       </DxPopup>
@@ -2476,7 +2479,7 @@ export default function SOPExecutionPage() {
                         {ipc.recordedTestId && (
                           <button
                             type="button"
-                            onClick={() => toggleExpandedRecorded(ipc.recordedTestId!)}
+                            onClick={() => selectedStep && setRecordedModal({ step: selectedStep, ipc })}
                             className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
                               ipc.recordedStatus === 'pass'
                                 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
@@ -2492,7 +2495,6 @@ export default function SOPExecutionPage() {
                               : ipc.recordedStatus === 'fail'
                               ? 'บันทึกแล้ว — ไม่ผ่าน · กรอกใหม่จะ replace'
                               : 'บันทึกแล้ว · กรอกใหม่จะ replace'}
-                            {expandedRecordedIPC.has(ipc.recordedTestId!) ? ' ▴' : ' ▾'}
                           </button>
                         )}
                       </div>
@@ -2509,7 +2511,6 @@ export default function SOPExecutionPage() {
                           {docLabelMap?.[ipc.gmpDocumentId] ?? 'เอกสาร IPC'}
                         </button>
                       )}
-                      {ipc.recordedTestId && expandedRecordedIPC.has(ipc.recordedTestId) && selectedStep && renderRecordedDetails(selectedStep, ipc)}
 
                       {ipc.criteriaType === 'numeric' && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2871,11 +2872,64 @@ export default function SOPExecutionPage() {
       </DxPopup>
 
       {/* GMP document preview */}
+      {/* Recording — the criteria author's Live Preview, used for real. */}
+      <IPCRecordDialog
+        open={recordDialog != null}
+        onClose={() => setRecordDialog(null)}
+        criterion={recordDialog}
+        context={{
+          workOrderNumber: workOrder?.woNumber ?? '',
+          batchNumber: workOrder?.batchNumber ?? '',
+        }}
+        onSubmit={() => setRecordDialog(null)}
+      />
+
       <GmpDocumentPreviewDialog
         documentId={previewDocId}
         visible={previewDocId != null}
         onClose={() => setPreviewDocId(null)}
       />
+
+      {/* Recorded rounds — read-only, opened from the badge on a recorded IPC.
+          Same content as the old inline panel; it just no longer shoves the
+          step list around to show it. */}
+      <DxPopup
+        wrapperAttr={{ class: 'soft-popup' }}
+        visible={recordedModal != null}
+        onHiding={() => setRecordedModal(null)}
+        title="ผลที่บันทึกไว้แล้ว"
+        width={640}
+        showCloseButton
+        dragEnabled={false}
+      >
+        {recordedModal && (
+          <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-emerald-700">
+                {recordedModal.ipc.criteriaCode}
+              </span>
+              <span className="text-sm font-medium text-gray-900">
+                {recordedModal.ipc.criteriaNameTh || recordedModal.ipc.criteriaName}
+              </span>
+              {recordedModal.ipc.isCritical && (
+                <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
+                  Critical
+                </span>
+              )}
+            </div>
+            {recordedModal.ipc.recordedSamples?.length
+              ? renderRecordedDetails(recordedModal.step, recordedModal.ipc)
+              : (
+                // The test row exists but carries no samples yet. Inline this
+                // rendered as nothing, which was invisible; in a dialog it
+                // would be an empty box, so say what the state is.
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-4 text-sm text-gray-600">
+                  ยังไม่มีผลรายตัวอย่างสำหรับหัวข้อนี้ — เปิดรายการทดสอบไว้แล้ว แต่ยังไม่ได้บันทึกค่า
+                </div>
+              )}
+          </div>
+        )}
+      </DxPopup>
     </div>
   );
 }

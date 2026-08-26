@@ -30,6 +30,14 @@ export interface RecordedIPCCriterion {
   criteriaType: string;
   unit?: string | null;
   sampleSize: number;
+  /**
+   * Share of the samples in a round that may fail and the round still pass.
+   *
+   * Without it the history judged every round against a hard zero, so a
+   * criterion that allows 5% failures showed its passing round as ✗ while the
+   * card beside it read ผ่าน — the two disagreeing about the same result.
+   */
+  tolerancePercent?: number | null;
   isCriteriaCritical: boolean;
   recordedTestId?: number | null;
   recordedStatus?: 'pass' | 'fail' | 'pending' | null;
@@ -106,7 +114,9 @@ export function getNextRetestStage(
     return { nextRound: lastRound + 1, stage: nextStage, isMultiStage: true };
   }
 
-  if (lastFailCount === 0) return null;
+  const tolPct = Number(ipc.tolerancePercent) || 0;
+  const lastFailPct = lastSamples.length === 0 ? 0 : (lastFailCount / lastSamples.length) * 100;
+  if (lastFailPct <= tolPct) return null;
   const maxRetestRounds = ipc.isCriteriaCritical
     ? 0
     : ipc.maxRetestRounds == null
@@ -237,7 +247,7 @@ export function IPCRoundHistory({
         const passCount = rs.filter((s) => s.result === 'pass').length;
         const failCount = rs.filter((s) => s.result === 'fail').length;
         const stage = stages[roundNum - 1];
-        const tolPct = stage?.tolerancePercent ?? 0;
+        const tolPct = stage?.tolerancePercent ?? (Number(ipc.tolerancePercent) || 0);
         const failPct = rs.length === 0 ? 0 : (failCount / rs.length) * 100;
         const roundPass = failPct <= tolPct;
         return (
@@ -254,7 +264,9 @@ export function IPCRoundHistory({
                   : ''}
               </span>
               <span>
-                {passCount}/{rs.length} ผ่าน · {roundPass ? '✓' : '✗'}
+                {passCount}/{rs.length} ผ่าน
+                {tolPct > 0 ? ` · ยอมรับ ${formatNumber(tolPct)}%` : ''} ·{' '}
+                {roundPass ? '✓' : '✗'}
               </span>
             </div>
             <div className="p-2 pt-0">
