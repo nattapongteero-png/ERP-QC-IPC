@@ -7,6 +7,9 @@ import { cn } from '@/lib/utils/cn';
 const TooltipProvider = TooltipPrimitive.Provider;
 const Tooltip = TooltipPrimitive.Root;
 const TooltipTrigger = TooltipPrimitive.Trigger;
+// Escapes the nearest scroll container. Without it a tooltip raised inside a
+// dialog's overflow-y-auto body is clipped at the container edge.
+const TooltipPortal = TooltipPrimitive.Portal;
 
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
@@ -28,4 +31,4 @@ const TooltipContent = React.forwardRef<
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipPortal, TooltipProvider };

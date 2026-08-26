@@ -19,6 +19,13 @@ import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
 import { formatNumber } from '@/lib/utils/number-format';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipPortal,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   DOSAGE_FORM_OPTIONS,
   testsForStage,
   type CriteriaType,
@@ -228,6 +235,68 @@ function stats(values: number[]) {
 }
 
 // ── Primitives ─────────────────────────────────────────────────────
+/**
+ * A spec value that may not fit its box, with the whole of it on hover.
+ *
+ * The tooltip is raised only when the text is actually clipped — offering one
+ * on a value already fully readable is noise, and the reader learns to ignore
+ * it on the rows where it matters. Width is measured rather than guessed from
+ * character count, because the box narrows with the column layout.
+ */
+function TruncatedValue({ value }: { value: React.ReactNode }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const [clipped, setClipped] = React.useState(false);
+  const text = typeof value === 'string' ? value : null;
+
+  const measure = React.useCallback(() => {
+    const el = ref.current;
+    // The 1px slack absorbs sub-pixel rounding, which otherwise reports a
+    // perfectly fitting string as overflowing on fractional-scale displays.
+    if (el) setClipped(el.scrollWidth > el.clientWidth + 1);
+  }, []);
+
+  React.useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure, text]);
+
+  if (!text || !clipped) {
+    return (
+      <span ref={ref} className="truncate">
+        {value}
+      </span>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* Focusable so the full text is reachable by keyboard too, not only
+            by pointer. */}
+        <span ref={ref} tabIndex={0} className="truncate outline-none">
+          {value}
+        </span>
+      </TooltipTrigger>
+      <TooltipPortal>
+        <TooltipContent
+          side="top"
+          collisionPadding={12}
+          // Above the record dialog (z-1200): the tooltip portals to the body
+          // like the dialog does, so at the shared default it painted behind
+          // the dialog and looked like nothing had happened on hover.
+          className="z-[1300] max-w-[min(28rem,90vw)] whitespace-pre-wrap break-words text-[12px] leading-relaxed"
+        >
+          {text}
+        </TooltipContent>
+      </TooltipPortal>
+    </Tooltip>
+  );
+}
+
 function SpecField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     // Labels wrap rather than truncate — "± % Tolerance" does not fit one line
@@ -236,9 +305,7 @@ function SpecField({ label, value }: { label: string; value: React.ReactNode }) 
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       <p className="text-[11px] leading-tight text-[#bfbfbf]">{label}</p>
       <div className={FIELD_BOX}>
-        <span className="truncate" title={typeof value === 'string' ? value : undefined}>
-          {value}
-        </span>
+        <TruncatedValue value={value} />
       </div>
     </div>
   );
@@ -490,6 +557,9 @@ export function IPCLivePreviewCard({
   }, [stage, formData.dosageForm]);
 
   return (
+    // One provider for the whole card: the spec fields raise a tooltip when
+    // their value is clipped, and Radix requires a provider above them.
+    <TooltipProvider delayDuration={200} skipDelayDuration={300}>
     <div
       data-testid="live-preview-card"
       data-verdict={verdict === null ? 'none' : verdict ? 'pass' : 'fail'}
@@ -583,6 +653,7 @@ export function IPCLivePreviewCard({
         <p className="text-xs text-[#6b7280]">{footerNote}</p>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
