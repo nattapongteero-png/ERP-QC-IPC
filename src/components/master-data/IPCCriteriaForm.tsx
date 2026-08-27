@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -72,6 +73,23 @@ import {
 // Style constants — mirror the prototype's CSS classes via Tailwind
 // so the form looks identical to https://oommiemie.github.io/ipc-criteria-prototype/.
 // ────────────────────────────────────────────────────────────────────
+/**
+ * The criteria types this form can build, in the order the picker lists them.
+ *
+ * Narrower than the CriteriaType union on purpose: `text` and `calibration`
+ * exist in recorded data but are not offered here, and listing them would put
+ * two unbuildable choices in front of the author.
+ */
+const CRITERIA_TYPE_VALUES = [
+  'numeric',
+  'pass_fail',
+  'visual',
+  'multi_point',
+  'tare',
+  'calculated',
+  'custom_multi_field',
+] as const satisfies readonly CriteriaType[];
+
 const FIELD_INPUT =
   'w-full px-3 py-2.5 border border-slate-200 rounded-[10px] bg-white text-sm text-slate-900 transition outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15';
 const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
@@ -803,6 +821,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
 // Inner form
 // ────────────────────────────────────────────────────────────────────
 function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: Partial<IPCCriteria> }) {
+  const t = useTranslations('masterData.ipcCriteria');
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -1925,22 +1944,24 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <div className="flex max-w-[400px] flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">
-                    ประเภทเกณฑ์ (Criteria Type) <span className="text-[#e32727]">*</span>
+                    {t('criteriaType.label')} <span className="text-[#e32727]">*</span>
                   </h4>
-                  <p className="text-xs text-[#bfbfbf]">เลือกรูปแบบเกณฑ์</p>
+                  <p className="text-xs text-[#bfbfbf]">{t('criteriaType.hint')}</p>
                 </div>
                 <SearchableSelect
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
-                  options={[
-                    { value: 'numeric', label: 'ตัวเลข (Numeric) — ใส่ค่าวัด + เทียบ Min/Max' },
-                    { value: 'pass_fail', label: 'Pass/Fail — ผ่าน/ไม่ผ่าน' },
-                    { value: 'visual', label: 'Visual — ตรวจด้วยสายตา' },
-                    { value: 'multi_point', label: 'Multi-Point — วัดหลายจุด + aggregate (mean/rsd/all-pass)' },
-                    { value: 'tare', label: 'Tare — น้ำหนักภาชนะเปล่า (ใช้ reference โดย multi_point)' },
-                    { value: 'calculated', label: 'Calculated — คำนวณจาก criteria อื่น (Yield, %LOD)' },
-                    { value: 'custom_multi_field', label: 'Custom Multi-Field — หลายฟิลด์ผสม' },
-                  ]}
+                  /* Thai leads in Thai — the labels used to open with the
+                     English term, so the reader met the loanword first and the
+                     Thai only in the gloss. English terms that carry no meaning
+                     for a Thai reader mid-sentence (aggregate, reference,
+                     criteria, multi_point) are gone; the ones that are the
+                     industry's own names for the method are kept in brackets
+                     after the Thai. */
+                  options={CRITERIA_TYPE_VALUES.map((value) => ({
+                    value,
+                    label: t(`criteriaType.options.${value}`),
+                  }))}
                   showClear={false}
                 />
               </div>

@@ -297,6 +297,19 @@
     "disabledBody": "This criteria is already in use — it was deactivated instead of deleted",
     "deletedTitle": "Deleted",
     "deletedBody": "The QC / IPC criteria was deleted",
-    "errorTitle": "Something went wrong"
+    "errorTitle": "Something went wrong",
+    "criteriaType": {
+      "label": "Criteria Type",
+      "hint": "Select criteria type",
+      "options": {
+        "numeric": "Numeric — Record a measured value and compare against Min/Max",
+        "pass_fail": "Pass/Fail — Record the result as pass or fail",
+        "visual": "Visual — Inspect appearance visually",
+        "multi_point": "Multi-Point — Measure several points and aggregate (mean / %RSD / all-pass)",
+        "tare": "Tare — Empty container weight, used as reference for multi-point",
+        "calculated": "Calculated — Derived from other criteria, e.g. %Yield, %LOD",
+        "custom_multi_field": "Custom Multi-Field — Combine several fields into one criterion"
+      }
+    }
   }
 }
