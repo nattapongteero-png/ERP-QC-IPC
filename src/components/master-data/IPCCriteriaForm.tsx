@@ -2431,29 +2431,26 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <CustomFieldsSection payload={specPayload} onChange={setSpecPayload} />
               )}
               </div>
-            </div>
 
-            {/*
-              Accepted range — Figma node 46:3674. A footer bar, so it sits
-              flush against the card's left, right and bottom edges. It rounds
-              its own bottom corners: the card cannot clip them for it, because
-              a clip there would also swallow the select dropdowns above.
-            */}
-            {criteriaType === 'numeric' && calculatedMinMax && (
-              <div className="flex items-center gap-2 rounded-b-[24px] border-t border-[#e5e7eb] bg-[#f6fff1] px-6 py-4">
-                <p className="text-xs text-[#6b7280]">
-                  ช่วงที่ยอมรับ : <span className="font-bold text-[#80b45f]">{calculatedMinMax.min}</span>
-                  {' ≤ value ≤ '}
-                  <span className="font-bold text-[#80b45f]">{calculatedMinMax.max}</span>
-                  {' ('}
-                  <span className="font-medium text-[#80b45f]">
-                    {formData.specTarget} ± {formData.specTolerancePercent ?? 0}%
-                  </span>
-                  {')'}
-                </p>
-                <CheckRoundFill className="h-6 w-6 shrink-0 text-[#80b45f]" />
-              </div>
-            )}
+              {/* Inset and evenly rounded, like the fields it summarises. It
+                  was a footer flush to the card's edges with a rule along its
+                  top, back when it had a card to be the footer of. */}
+              {criteriaType === 'numeric' && calculatedMinMax && (
+                <div className="mt-5 flex items-center gap-2 rounded-[12px] bg-[#f6fff1] px-4 py-3">
+                  <p className="text-xs text-[#6b7280]">
+                    ช่วงที่ยอมรับ : <span className="font-bold text-[#80b45f]">{calculatedMinMax.min}</span>
+                    {' ≤ value ≤ '}
+                    <span className="font-bold text-[#80b45f]">{calculatedMinMax.max}</span>
+                    {' ('}
+                    <span className="font-medium text-[#80b45f]">
+                      {formData.specTarget} ± {formData.specTolerancePercent ?? 0}%
+                    </span>
+                    {')'}
+                  </p>
+                  <CheckRoundFill className="h-6 w-6 shrink-0 text-[#80b45f]" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── เกณฑ์การยอมรับแบบหลายขั้น — Figma node 60:5641 ─────────
