@@ -115,30 +115,25 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section data-testid={`form-section-${step}`} className="flex flex-col gap-4">
-      {/* Pinned to the top of the scrolling column: with five cards to a step,
-          the heading was off screen for most of the time spent inside one, so
-          "which step am I in" could not be answered by looking. Translucent
-          over a blur rather than a solid fill — the column sits on a gradient,
-          and a solid bar would only match it in one place. */}
-      <div className="sticky top-0 z-20 -mx-1 flex items-start gap-3 rounded-[14px] bg-white/85 px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm">
-        <span
-          aria-hidden
-          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#3559b0] text-[12px] font-bold text-white"
-        >
-          {step}
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>
-          <p className="text-[11px] leading-relaxed text-[#9aa3ad]">{hint}</p>
+    <section data-testid={`form-section-${step}`} className="flex flex-col gap-5">
+      {/* Typography and space do the grouping. The first attempt drew the
+          apparatus instead — a filled step medallion, an indented rail and a
+          floating pinned bar — which read as a wizard bolted onto a form that
+          is otherwise made of quiet cards. What separates the steps now is
+          the same thing that separates paragraphs: a clear head, a rule under
+          it, and much more room above a step than between the cards inside
+          one. */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <span className="text-[11px] font-semibold tracking-wide text-[#3559b0]">
+            ขั้นที่ {step}
+          </span>
+          <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
         </div>
+        <p className="text-[12px] leading-relaxed text-[#9aa3ad]">{hint}</p>
+        <div className="mt-1.5 h-px w-full bg-[#e6e9ef]" />
       </div>
-      {/* The rail ties the cards to the heading — it is the edge of the step,
-          so it has to be visible against the page without competing with the
-          cards standing on it. */}
-      <div className="flex flex-col gap-5 border-l-2 border-[#c8d2e4] pl-4 sm:pl-6">
-        {children}
-      </div>
+      <div className="flex flex-col gap-5">{children}</div>
     </section>
   );
 }
@@ -1839,7 +1834,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         {/* pr-1 keeps the card shadows off the scrollbar. */}
         <div
           data-testid="form-column"
-          className="xl:col-span-2 flex flex-col gap-9 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+          className="xl:col-span-2 flex flex-col gap-12 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
           <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง">
 
