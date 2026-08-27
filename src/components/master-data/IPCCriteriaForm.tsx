@@ -2007,6 +2007,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
                 <SearchableSelect
+                  triggerClassName="border-transparent bg-[#f1f3f5]"
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
                   /* Thai leads in Thai — the labels used to open with the
@@ -2098,7 +2099,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
             {otherContextOptions.length > 0 && (
-              <div className="border-t border-[#f1f3f5] pt-1">
+              <div className="pt-1">
                 <button
                   type="button"
                   data-testid="toggle-other-contexts"
@@ -2239,7 +2240,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   }}
                   options={SAMPLING_METHOD_OPTIONS}
                   placeholder="เลือกวิธีสุ่ม"
-                  triggerClassName={STAGE_FIELD}
+                  triggerClassName="border-transparent bg-[#f1f3f5]"
                 />
               </div>
             </div>
@@ -2454,6 +2455,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   {!multiStageEnabled && acceptanceMath && (
                     <div className="flex flex-wrap items-center gap-4">
                       <AcceptanceStat
+            surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-tested"
                         icon={<User className="h-4 w-4" />}
                         label="ทดสอบ"
@@ -2462,6 +2464,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                         color="#5682e9"
                       />
                       <AcceptanceStat
+            surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-allowed"
                         icon={<ClockAlert className="h-4 w-4" />}
                         label="ยอมเสียได้"
@@ -2470,6 +2473,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                         color="#fc9709"
                       />
                       <AcceptanceStat
+            surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-must-pass"
                         icon={<ScanFace className="h-4 w-4" />}
                         label="ต้องผ่าน"
@@ -3513,6 +3517,7 @@ function MultiPointSection({
               </button>
             </div>
             <SearchableSelect
+              triggerClassName="border-transparent bg-[#f1f3f5]"
               testId="tare-source"
               value={tareSourceId ? String(tareSourceId) : ''}
               onChange={(v) => {
