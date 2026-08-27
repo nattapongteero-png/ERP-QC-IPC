@@ -707,11 +707,24 @@ function SpecHeaderFields({
         <SpecField label="ตัวอย่าง" value={specPayload.example || dash} />
       </>
     );
-  } else if ((template === 'capsule_net' || template === 'tare_matched') && specPayload?.type === 'multi_point') {
+  } else if (
+    // bulk_weigh belongs here too. It was left out, so a Multi-Point
+    // criterion whose tare is weighed in bulk fell through to the numeric
+    // header and reported Target/Tolerance from formData — fields this
+    // criteria type never fills, so the author's own figures showed as "—".
+    (template === 'capsule_net' || template === 'tare_matched' || template === 'bulk_weigh')
+    && specPayload?.type === 'multi_point'
+  ) {
     fields = (
       <>
-        <SpecField label="จำนวนจุด" value={specPayload.pointCount || dash} />
-        <SpecField label="Target ต่อจุด" value={specPayload.perPointTarget || dash} />
+        <SpecField
+          label={template === 'bulk_weigh' ? 'จำนวนตัวอย่าง' : 'จำนวนจุด'}
+          value={specPayload.pointCount || dash}
+        />
+        <SpecField
+          label={`Target ${template === 'bulk_weigh' ? 'ต่อหน่วย' : 'ต่อจุด'}${unitSuffix}`}
+          value={specPayload.perPointTarget || dash}
+        />
         <SpecField label="± % Tolerance" value={specPayload.perPointTolerance || dash} />
       </>
     );
