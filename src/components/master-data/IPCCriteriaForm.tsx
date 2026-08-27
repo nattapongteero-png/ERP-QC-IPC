@@ -123,9 +123,6 @@ function FormSection({
       className="shrink-0 overflow-hidden rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
     >
       <div className="flex flex-col gap-1 border-b border-[#eef0f3] px-6 pb-4 pt-6">
-        <span className="text-[11px] font-semibold tracking-wide text-[#3559b0]">
-          ขั้นที่ {step}
-        </span>
         <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
         <p className="text-[12px] leading-relaxed text-[#9aa3ad]">{hint}</p>
       </div>
@@ -1836,14 +1833,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           data-testid="form-column"
           className="xl:col-span-2 flex flex-col gap-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
-          <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง">
+          {/* The filter panel is the page's own opening surface — it was never
+              a group inside a step, and wrapping it in a white card put a card
+              around a panel for no reason. */}
 
 
           {/*
             Stage + product form + test name — Figma "ข้อมูลพื้นฐาน" panel.
             Sits outside the white form card as its own surface, per the design.
           */}
-          <div className="px-6 py-5">
           <StageBasicsPanel
             stage={sharedExtras.stage}
             onStageChange={handleStageChange}
@@ -1864,12 +1862,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               { value: '__custom__', label: '➕ เพิ่มหัวข้อใหม่ (Add Custom)' },
             ]}
           />
-          </div>
 
           {/* The catalogue count moved up into the Stage panel as its
               description; only the transient auto-fill confirmation is left. */}
           {(autoFillNote || isCustomName) && (
-          <div className="px-6 py-5">
+            <div className="flex flex-col gap-3">
             {autoFillNote && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1911,10 +1908,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {/* Code is generated from the Test Name and shown in place of the
                   "Stage" caption on the panel above. Criteria Type moved into
                   its own card below (Figma node 42:2473). */}
-          </div>
+            </div>
           )}
 
-          </FormSection>
 
           <FormSection step={1} title="เอกสาร GMP" hint="เลือกเอกสารควบคุม เช่น วิธีทดสอบ/SOP — SOP · Version · Step # · Link">
           {/*
@@ -1951,7 +1947,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
             {/* SOP step reference */}
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 pt-5">
               {/* items-end keeps the four inputs on one line even when a
                   label wraps, as the SOP Code one does in Thai. */}
               <div className="grid grid-cols-1 items-end gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -2102,7 +2098,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
             {otherContextOptions.length > 0 && (
-              <div className="border-t border-[#f1f3f5] px-6 pb-6">
+              <div className="border-t border-[#f1f3f5] pt-1">
                 <button
                   type="button"
                   data-testid="toggle-other-contexts"
@@ -2308,7 +2304,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             data-testid="type-fields-card"
             className="px-6 py-5"
           >
-            <div className="pt-5">
+            <div>
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
