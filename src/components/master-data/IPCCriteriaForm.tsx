@@ -9,7 +9,7 @@ import { ResponsivePageHeader } from '@/components/shared';
 import { ConfirmDialog, useConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { SearchableSelect, type SearchableSelectOption } from '@/components/master-data/SearchableSelect';
 import { IPCLivePreviewCard } from '@/components/master-data/IPCLivePreviewCard';
-import { SECTION_HEADER, STAGE_THEME, type StageTheme } from '@/components/master-data/ipc-stage-theme';
+import { STAGE_THEME, type StageTheme } from '@/components/master-data/ipc-stage-theme';
 import { GmpDocumentSelect } from '@/components/documents';
 import { FlaskConical, Shield, Eye, FileText, Layers, Plus, User, ClockAlert, ScanFace, Info, CircleAlert, Power, Trash2, ArrowDown, TriangleAlert, Sparkles, Clock, Package, Target, Zap, RotateCcw, Calculator, X, ChevronDown, Lock, Check } from 'lucide-react';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
@@ -117,29 +117,23 @@ function FormSection({
   return (
     <section
       data-testid={`form-section-${step}`}
-      // shrink-0 matters: the column is a flex box with its own scroll, so a
-      // flex child is free to shrink below its content — and with
-      // overflow-hidden clipping the difference, the steps collapsed into each
-      // other instead of scrolling.
-      className="shrink-0 overflow-hidden rounded-[28px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+      // shrink-0: the column is a flex box with its own scroll, so a flex
+      // child is free to shrink below its content, and the steps would
+      // collapse into one another instead of scrolling.
+      className="shrink-0 overflow-hidden rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
     >
-      {/* The step is one card, and its head sits on the card's own white so
-          the title reads as the label of everything below it. */}
-      <div className="flex flex-col gap-1 px-6 pb-4 pt-6">
+      <div className="flex flex-col gap-1 border-b border-[#eef0f3] px-6 pb-4 pt-6">
         <span className="text-[11px] font-semibold tracking-wide text-[#3559b0]">
           ขั้นที่ {step}
         </span>
         <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
         <p className="text-[12px] leading-relaxed text-[#9aa3ad]">{hint}</p>
       </div>
-      {/* A well, not another card. The cards inside are white, so the body
-          they stand on has to be something other than white or they vanish
-          into it — which is exactly how the earlier card-inside-a-card looked.
-          Against this the boundary of the step is obvious without a rail, a
-          medallion or a pinned bar. */}
-      <div className="flex flex-col gap-4 border-t border-[#eef0f3] bg-[#f5f6f8] p-4 sm:p-5">
-        {children}
-      </div>
+      {/* One panel per step; the groups inside are separated by a rule rather
+          than each being a card of its own. Every earlier attempt put a
+          surface inside a surface — the thing that had no visible boundary and
+          read as clutter. A hairline says the same with nothing drawn. */}
+      <div className="flex flex-col divide-y divide-[#eef0f3]">{children}</div>
     </section>
   );
 }
@@ -1840,7 +1834,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         {/* pr-1 keeps the card shadows off the scrollbar. */}
         <div
           data-testid="form-column"
-          className="xl:col-span-2 flex flex-col gap-6 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+          className="xl:col-span-2 flex flex-col gap-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
           <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง">
 
@@ -1925,10 +1919,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           */}
           <div
             data-testid="gmp-document-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
             {/* Header on the pale stage-tinted surface */}
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   {/* No required marker: the field stays optional, as it was
@@ -2012,9 +2006,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
           <div
             data-testid="criteria-type-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">
@@ -2052,9 +2046,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               round. Scoped to production and to QC of product and raw material. */}
           <div
             data-testid="use-context-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">Use Context</h4>
@@ -2168,7 +2162,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               One card per trigger, exactly as the frame draws it. They are
               independent choices, not a single setting with five parts, so
               they get five surfaces rather than five rows in one. */}
-          <div data-testid="triggers-card" className="flex flex-col gap-5">
+          <div data-testid="triggers-card" className="flex flex-col gap-2.5 px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4 px-1">
               <div className="flex flex-col gap-2">
                 <h4 className="text-sm font-semibold text-black">ตรวจสอบเมื่อ</h4>
@@ -2225,9 +2219,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               earlier, and a lone 56px row here would stand out. */}
           <div
             data-testid="sampling-plan-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">
@@ -2273,7 +2267,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           {/* A4 — จำนวนตัวอย่าง. The only sample-count box in the form: the
               Multi-Point panel used to carry a second one of its own, and the
               acceptance card a third, so three fields described one number. */}
-          <div data-testid="sample-count-card" className="rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
+          <div data-testid="sample-count-card" className="px-6 py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h4 className="text-sm font-semibold text-black">จำนวนตัวอย่าง</h4>
@@ -2295,7 +2289,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
           {/* A5 — how the shell weight is obtained, and what the unit is called. */}
           {criteriaType === 'multi_point' && specPayload?.type === 'multi_point' && (
-            <div className="rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
+            <div className="px-6 py-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                 <MultiPointSection
                   section="sampling"
@@ -2318,7 +2312,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               floating on the page. */}
           <div
             data-testid="type-fields-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
             <div className="p-6">
               {/* Numeric — the layout the Figma frame specifies */}
@@ -2451,9 +2445,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               is what reveals it. */}
           <div
             data-testid="acceptance-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 flex-col gap-4">
                   <div className="flex flex-col gap-2">
@@ -2689,7 +2683,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               because it consumes its result: every unit is judged first, then
               this rule turns the round into one verdict for the batch. */}
           {criteriaType === 'multi_point' && specPayload?.type === 'multi_point' && (
-            <div className="rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
+            <div className="px-6 py-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                 <MultiPointSection
                   section="batch"
@@ -2710,7 +2704,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           {/* Same shape as ตรวจสอบเมื่อ and สถานะการใช้งาน: the toggle is
               the card, so the heading sits on the page rather than inside a
               second panel drawn around it. */}
-          <div data-testid="fail-route-card" className="flex flex-col gap-5">
+          <div data-testid="fail-route-card" className="flex flex-col gap-2.5 px-6 py-5">
             <div className="flex flex-col gap-2 px-1">
               <h4 className="text-sm font-semibold text-black">เมื่อไม่ผ่าน</h4>
               <p className="text-xs text-[#bfbfbf]">ผลตกแล้วไปทางไหนต่อ</p>
@@ -2851,7 +2845,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           {!derivedCalcUnlocked ? (
             <div
               data-testid="derived-calc-locked"
-              className="flex flex-col gap-3 rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+              className="flex flex-col gap-3 px-6 py-5"
             >
               <div className="flex items-start gap-3">
                 <span
@@ -2885,9 +2879,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           ) : (
           <div
             data-testid="derived-calc-card"
-            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="px-6 py-5"
           >
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
+            <div className="flex flex-col gap-4">
               {/* Action sits opposite the title, like the switch on the
                   acceptance card and the counter on the triggers list. */}
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2947,7 +2941,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               drew a white panel inside a white panel with nothing between
               them, so this follows ตรวจสอบเมื่อ: a heading on the page
               surface, and the toggle as the only card. */}
-          <div data-testid="settings-card" className="flex flex-col gap-5">
+          <div data-testid="settings-card" className="flex flex-col gap-2.5 px-6 py-5">
             <div className="flex flex-col gap-2 px-1">
               <h4 className="text-sm font-semibold text-black">สถานะการใช้งาน</h4>
               <p className="text-xs text-[#bfbfbf]">
@@ -3135,11 +3129,11 @@ function TriggerCard({ icon, title, desc, info, on, onToggle, testId, onColor = 
   return (
     <div
       data-testid={`${testId}-card`}
-      className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+      className="rounded-[14px] border border-[#e8ebf0] bg-white"
     >
       {/* The row is not one big button: the info tooltip is itself a control,
           and a button inside a button is invalid. The switch does the toggling. */}
-      <div className="flex items-center justify-between gap-4 p-4">
+      <div className="flex items-center justify-between gap-4 px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden
