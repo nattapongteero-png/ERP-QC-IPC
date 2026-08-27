@@ -69,6 +69,22 @@ export function SearchableSelect({
   const [search, setSearch] = React.useState('');
   const [hoveredIdx, setHoveredIdx] = React.useState(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
+  /**
+   * The panel is positioned against the trigger, so an ancestor that clips its
+   * overflow — a dialog with a scrolling body, say — cuts the options off, and
+   * a field near the bottom of one opens a list nobody can see. Asking the
+   * nearest scroller to bring the panel into view fixes that wherever this
+   * select is used, without moving it out of the flow.
+   */
+  React.useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      panelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
 
   const selected = options.find((o) => o.value === value);
   const q = search.trim().toLowerCase();
@@ -138,12 +154,17 @@ export function SearchableSelect({
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
-          'w-full px-3 py-2.5 border border-slate-200 rounded-[10px] bg-white text-sm transition outline-none',
+          // A field on these screens is a filled box, not an outlined one —
+          // the same rule the text inputs follow. An outlined trigger was
+          // white on white wherever the surface under it was also white, so
+          // the hairline was the only thing holding it and callers kept
+          // having to override it back to a fill one at a time.
+          'w-full px-3 py-2.5 border border-transparent rounded-[10px] bg-[#f1f3f5] text-sm transition outline-none',
           'flex items-center justify-between cursor-pointer',
-          'hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15',
+          'focus:ring-2 focus:ring-emerald-500/25',
           selected ? 'text-slate-900' : 'text-slate-400',
           disabled && 'opacity-50 cursor-not-allowed',
-          open && 'border-emerald-500 ring-2 ring-emerald-500/15',
+          open && 'ring-2 ring-emerald-500/25',
           triggerClassName,
         )}
       >
@@ -180,6 +201,7 @@ export function SearchableSelect({
 
       {open && (
         <div
+          ref={panelRef}
           data-testid={testId ? `${testId}-panel` : undefined}
           className="absolute z-30 mt-1.5 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
         >

@@ -157,8 +157,6 @@ function FormSection({
  */
 const FIELD_INPUT =
   'w-full px-3 py-2.5 rounded-[10px] bg-[#f1f3f5] text-sm text-slate-900 transition outline-none placeholder:text-[#bfbfbf] focus:ring-2 focus:ring-emerald-500/25';
-/** The same fill, for the dropdown trigger. */
-const SOFT_SELECT = 'border-transparent bg-[#f1f3f5] hover:border-transparent';
 const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
 const FIELD_HELPER = 'text-xs text-slate-500 mt-1.5';
 
@@ -621,8 +619,16 @@ function SoftField({
  * padding and type scale stay on SearchableSelect's default trigger so these
  * match the ordinary fields elsewhere on the page.
  */
+/**
+ * The fill a field takes on the Stage panel.
+ *
+ * Same rule as everywhere else — a fill, no border — but white, because white
+ * is what contrasts against the orange. It used to only strip the border and
+ * lean on the select's white default; once that default became the page's
+ * grey, these fields went grey on orange.
+ */
 const STAGE_FIELD =
-  'border-transparent hover:border-transparent focus:border-transparent focus:ring-0';
+  'border-transparent bg-white hover:border-transparent focus:border-transparent focus:ring-0';
 // 18px, not the Figma's 20px: the right column is narrower here than in the
 // mockup, and 20px wraps "หัวข้อการทดสอบ (Test Name)" onto a second line.
 const STAGE_HEADING = 'text-lg font-semibold text-white';
@@ -2029,7 +2035,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-4">
                 <SearchableSelect
-                  triggerClassName={SOFT_SELECT}
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
                   /* Thai leads in Thai — the labels used to open with the
@@ -2089,10 +2094,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     aria-pressed={active}
                     onClick={() => toggleUseContext(opt.value)}
                     className={cn(
-                      'flex items-start gap-3 rounded-[14px] border p-3 text-left transition-colors',
-                      active
-                        ? 'border-[#2f6fd0] bg-[#eef3fc]'
-                        : 'border-[#e1e4e8] bg-white hover:border-[#9db9e8]',
+                      'flex items-start gap-3 rounded-[14px] p-3 text-left transition-colors',
+                      active ? 'bg-[#e8effc]' : 'bg-[#f1f3f5] hover:bg-[#e9ecf0]',
                     )}
                   >
                     <span
@@ -2152,8 +2155,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                           aria-pressed={false}
                           onClick={() => toggleUseContext(opt.value)}
                           className={cn(
-                            'flex items-start gap-3 rounded-[14px] border border-dashed p-3 text-left transition-colors',
-                            'border-[#e1e4e8] bg-white hover:border-[#9db9e8]',
+                            'flex items-start gap-3 rounded-[14px] p-3 text-left transition-colors',
+                            'bg-[#f1f3f5] hover:bg-[#e9ecf0]',
                           )}
                         >
                           <span
@@ -2264,7 +2267,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   }}
                   options={SAMPLING_METHOD_OPTIONS}
                   placeholder="เลือกวิธีสุ่ม"
-                  triggerClassName={SOFT_SELECT}
                 />
               </div>
             </div>
@@ -3541,7 +3543,6 @@ function MultiPointSection({
               </button>
             </div>
             <SearchableSelect
-              triggerClassName={SOFT_SELECT}
               testId="tare-source"
               value={tareSourceId ? String(tareSourceId) : ''}
               onChange={(v) => {
