@@ -2318,7 +2318,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   payload={specPayload}
                   onChange={setSpecPayload}
                   tareSourceId={formData.tareSourceCriteriaId ?? null}
-                  onTareSourceIdChange={(tid) => setFormData((prev) => ({ ...prev, tareSourceCriteriaId: tid }))}
+                  onTareSourceIdChange={(tid, tareUnit) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tareSourceCriteriaId: tid,
+                      unit: tareUnit ?? prev.unit,
+                    }))
+                  }
                   currentId={id}
                 />
               </div>
@@ -2409,7 +2415,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   payload={specPayload}
                   onChange={setSpecPayload}
                   tareSourceId={formData.tareSourceCriteriaId ?? null}
-                  onTareSourceIdChange={(id) => setFormData((prev) => ({ ...prev, tareSourceCriteriaId: id }))}
+                  onTareSourceIdChange={(id, tareUnit) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tareSourceCriteriaId: id,
+                      unit: tareUnit ?? prev.unit,
+                    }))
+                  }
                   currentId={id}
                 />
               )}
@@ -2715,7 +2727,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   payload={specPayload}
                   onChange={setSpecPayload}
                   tareSourceId={formData.tareSourceCriteriaId ?? null}
-                  onTareSourceIdChange={(tid) => setFormData((prev) => ({ ...prev, tareSourceCriteriaId: tid }))}
+                  onTareSourceIdChange={(tid, tareUnit) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tareSourceCriteriaId: tid,
+                      unit: tareUnit ?? prev.unit,
+                    }))
+                  }
                   currentId={id}
                 />
               </div>
@@ -3356,7 +3374,16 @@ function MultiPointSection({
   payload: MultiPointPayload;
   onChange: (p: MultiPointPayload) => void;
   tareSourceId: number | null;
-  onTareSourceIdChange: (id: number | null) => void;
+  /**
+   * Reports the linked tare and the unit it is recorded in.
+   *
+   * Gross, tare and net are one subtraction, so they are one unit — a tare
+   * kept in mg cannot be taken off a gross weighed in g. The criterion
+   * therefore follows the tare it is linked to rather than keeping whatever
+   * unit was chosen before the link was made, which is how the preview came
+   * to report g against a tare of mg.
+   */
+  onTareSourceIdChange: (id: number | null, unit?: string | null) => void;
   currentId?: number;
   /**
    * Which half of the criterion this instance edits.
@@ -3474,7 +3501,7 @@ function MultiPointSection({
       // Link it straight away — the user asked for this tare in order to use
       // it, so making them pick it from the list afterwards is a wasted step.
       await refetch();
-      onTareSourceIdChange(created.id);
+      onTareSourceIdChange(created.id, newTare.unit || null);
       onChange({ ...payload, tareSourceCode: newTare.code.trim() });
       setNewTareOpen(false);
       setNewTare({ code: '', name: '', unit: 'g', storeAs: '', expireAfter: 'batch', min: '', max: '' });
@@ -3545,7 +3572,7 @@ function MultiPointSection({
                   onChange({ ...payload, tareSourceCode: '' });
                 } else {
                   const opt = tareList.find((t) => String(t.id) === v);
-                  onTareSourceIdChange(Number(v));
+                  onTareSourceIdChange(Number(v), opt?.unit ?? null);
                   onChange({ ...payload, tareSourceCode: opt?.code ?? '' });
                 }
               }}
