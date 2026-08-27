@@ -2931,45 +2931,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
-          {/* The finish line: the form ends where the criterion is switched
-              on and saved, so the last thing on the page is the last thing to do. */}
-          <div
-            data-testid="form-actions"
-            className="flex flex-col gap-3 rounded-[24px] bg-white p-4 shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
-          >
-            <div className="truncate text-xs text-slate-500">
-              {formData.name ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="truncate">
-                    พร้อมบันทึก:{' '}
-                    <span className="font-semibold text-slate-700">
-                      {formData.code || '(ยังไม่มี Code)'}
-                    </span>
-                  </span>
-                </span>
-              ) : (
-                <span className="text-amber-600">⚠ กรุณาเลือก Test Name ก่อน</span>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => router.push('/master-data/ipc-criteria')}
-                className="flex-1 rounded-[10px] border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                CANCEL
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saveMutation.isPending || !formData.name || !formData.code}
-                className="flex-1 rounded-[10px] bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saveMutation.isPending ? 'SAVING...' : mode === 'edit' ? 'UPDATE' : 'CREATE'}
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* ─── Live Preview column (1/3) ────────────────────────── */}
@@ -3011,6 +2972,45 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               specPayload={specPayload}
               stage={sharedExtras.stage}
             />
+
+            {/* Last card in the column, so it sticks along with the preview. */}
+            <div
+              data-testid="form-actions"
+              className="flex flex-col gap-3 rounded-[24px] bg-white p-4 shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            >
+              <div className="truncate text-xs text-slate-500">
+                {formData.name ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+                    <span className="truncate">
+                      พร้อมบันทึก:{' '}
+                      <span className="font-semibold text-slate-700">
+                        {formData.code || '(ยังไม่มี Code)'}
+                      </span>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-amber-600">⚠ กรุณาเลือก Test Name ก่อน</span>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push('/master-data/ipc-criteria')}
+                  className="flex-1 rounded-[10px] border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saveMutation.isPending || !formData.name || !formData.code}
+                  className="flex-1 rounded-[10px] bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saveMutation.isPending ? 'SAVING...' : mode === 'edit' ? 'UPDATE' : 'CREATE'}
+                </button>
+              </div>
+            </div>
 
           </div>
         </aside>
