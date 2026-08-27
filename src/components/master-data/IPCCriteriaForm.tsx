@@ -157,6 +157,8 @@ function FormSection({
  */
 const FIELD_INPUT =
   'w-full px-3 py-2.5 rounded-[10px] bg-[#f1f3f5] text-sm text-slate-900 transition outline-none placeholder:text-[#bfbfbf] focus:ring-2 focus:ring-emerald-500/25';
+/** For a field that sits on the grey rather than on white. */
+const SOFT_SELECT_ON_GREY = 'border-[#e0e4ea] bg-transparent hover:border-[#cdd4de]';
 const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
 const FIELD_HELPER = 'text-xs text-slate-500 mt-1.5';
 
@@ -3504,17 +3506,8 @@ function MultiPointSection({
 
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
-      <div className="flex items-center gap-2 mb-1">
-        <FlaskConical className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">
-          {section === 'sampling'
-            ? 'Multi-Point — การเก็บตัวอย่าง'
-            : section === 'per-unit'
-              ? 'Multi-Point — เกณฑ์รายชิ้น'
-              : 'Multi-Point — ตัดสินรายรุ่น'}
-        </h3>
-      </div>
-
+      {/* No heading of its own: every group below already names itself, and
+          the per-unit one carried the identical title twice over. */}
       {section === 'sampling' ? (
         <>
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
@@ -3530,19 +3523,20 @@ function MultiPointSection({
               settings below only appear when nothing is linked. */}
           <div className="flex flex-col gap-2 rounded-[12px] bg-[#f1f3f5] p-3">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-cyan-800">
+              <span className="text-[13px] font-semibold text-black">
                 ใช้ค่า Tare จากเกณฑ์อื่น (Tare Source)
               </span>
               <span className="text-[11px] text-slate-400">ไม่บังคับ</span>
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="ml-auto text-[11px] text-cyan-600 underline hover:text-cyan-800"
+                className="ml-auto text-[11px] text-[#3559b0] underline hover:text-[#2a4a95]"
               >
                 ⟳ refresh
               </button>
             </div>
             <SearchableSelect
+              triggerClassName={SOFT_SELECT_ON_GREY}
               testId="tare-source"
               value={tareSourceId ? String(tareSourceId) : ''}
               onChange={(v) => {
