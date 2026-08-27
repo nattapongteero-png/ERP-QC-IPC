@@ -91,30 +91,55 @@ const CRITERIA_TYPE_VALUES = [
 ] as const satisfies readonly CriteriaType[];
 
 /**
- * A step heading over a run of cards in the form column.
+ * One numbered step of the form, and the cards that answer it.
  *
- * The column is eleven cards deep and every one of them looked equally
- * important, so an author had no way to tell how far through the definition
- * they were, or which cards answered the same question. These label the five
- * things the form actually asks, in the order it has to ask them — the order
- * is not free: the spec panel follows from the type, acceptance is computed
- * from the sample size, and the derived-calculation card is unlocked by a
- * trigger, so each group depends on the one above it.
+ * These used to be bare headings between siblings, which left the reader to
+ * infer where a step ended — with eleven cards in one column and two steps
+ * holding five cards each, that guess was wrong as often as right. The cards
+ * are children now, held by a rail down the left, so a step is something you
+ * can see the edges of rather than something you have to count.
+ *
+ * The order is not free: the spec panel follows from the criteria type,
+ * acceptance is computed from the sample size, and the derived-calculation
+ * card is unlocked by a trigger, so each step depends on the one above it.
  */
-function FormSection({ step, title, hint }: { step: number; title: string; hint: string }) {
+function FormSection({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: number;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-baseline gap-3 px-1 pt-2 first:pt-0">
-      <span
-        aria-hidden
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8effc] text-[11px] font-bold text-[#3559b0]"
-      >
-        {step}
-      </span>
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h3 className="text-[13px] font-semibold text-slate-800">{title}</h3>
-        <p className="text-[11px] text-[#bfbfbf]">{hint}</p>
+    <section data-testid={`form-section-${step}`} className="flex flex-col gap-4">
+      {/* Pinned to the top of the scrolling column: with five cards to a step,
+          the heading was off screen for most of the time spent inside one, so
+          "which step am I in" could not be answered by looking. Translucent
+          over a blur rather than a solid fill — the column sits on a gradient,
+          and a solid bar would only match it in one place. */}
+      <div className="sticky top-0 z-20 -mx-1 flex items-start gap-3 rounded-[14px] bg-white/85 px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm">
+        <span
+          aria-hidden
+          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#3559b0] text-[12px] font-bold text-white"
+        >
+          {step}
+        </span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>
+          <p className="text-[11px] leading-relaxed text-[#9aa3ad]">{hint}</p>
+        </div>
       </div>
-    </div>
+      {/* The rail ties the cards to the heading — it is the edge of the step,
+          so it has to be visible against the page without competing with the
+          cards standing on it. */}
+      <div className="flex flex-col gap-5 border-l-2 border-[#c8d2e4] pl-4 sm:pl-6">
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -1814,9 +1839,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         {/* pr-1 keeps the card shadows off the scrollbar. */}
         <div
           data-testid="form-column"
-          className="xl:col-span-2 flex flex-col gap-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+          className="xl:col-span-2 flex flex-col gap-9 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
-          <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง" />
+          <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง">
 
 
           {/*
@@ -1890,10 +1915,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   its own card below (Figma node 42:2473). */}
           </div>
 
+          </FormSection>
+
+          <FormSection step={1} title="เอกสาร GMP" hint="SOP · Version · Step # · Link">
           {/*
-
-          <FormSection step={1} title="เอกสาร GMP" hint="SOP · Version · Step # · Link" />
-
             เอกสาร GMP + SOP step reference — Figma node 36:2441.
             Its own surface, deliberately outside the basic-information card.
           */}
@@ -1980,8 +2005,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               </div>
             </div>
           </div>
+          </FormSection>
 
-          <FormSection step={2} title="ประเภทเกณฑ์" hint="กำหนดว่าการ์ด A และ B จะกางช่องอะไรออกมา" />
+          <FormSection step={2} title="ประเภทเกณฑ์" hint="กำหนดว่าการ์ด A และ B จะกางช่องอะไรออกมา">
 
           <div
             data-testid="criteria-type-card"
@@ -2015,8 +2041,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
           </div>
+          </FormSection>
 
-          <FormSection step={3} title="การ์ด A — เก็บตัวอย่างยังไง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่ชิ้น · หัก Tare อย่างไร" />
+          <FormSection step={3} title="การ์ด A — เก็บตัวอย่างยังไง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่ชิ้น · หัก Tare อย่างไร">
 
           {/* ── Use Context — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
@@ -2280,8 +2307,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               </div>
             </div>
           )}
+          </FormSection>
 
-          <FormSection step={4} title="การ์ด B — ตัดสินยังไง" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ" />
+          <FormSection step={4} title="การ์ด B — ตัดสินยังไง" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
 
           {/* B1 — the spec for the chosen type. It kept the picker's card when
               the two were one section; now that the picker stands alone in
@@ -2910,8 +2938,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
 
           )}
+          </FormSection>
 
-          <FormSection step={5} title="สถานะการใช้งาน" hint="เปิดใช้เกณฑ์นี้กับ batch ใหม่หรือไม่" />
+          <FormSection step={5} title="สถานะการใช้งาน" hint="เปิดใช้เกณฑ์นี้กับ batch ใหม่หรือไม่">
 
           {/* A TriggerCard is already a card. Wrapping one in a second card
               drew a white panel inside a white panel with nothing between
@@ -2934,6 +2963,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
             />
           </div>
+          </FormSection>
 
         </div>
 
