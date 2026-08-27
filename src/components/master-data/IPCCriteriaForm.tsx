@@ -115,25 +115,31 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section data-testid={`form-section-${step}`} className="flex flex-col gap-5">
-      {/* Typography and space do the grouping. The first attempt drew the
-          apparatus instead — a filled step medallion, an indented rail and a
-          floating pinned bar — which read as a wizard bolted onto a form that
-          is otherwise made of quiet cards. What separates the steps now is
-          the same thing that separates paragraphs: a clear head, a rule under
-          it, and much more room above a step than between the cards inside
-          one. */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-          <span className="text-[11px] font-semibold tracking-wide text-[#3559b0]">
-            ขั้นที่ {step}
-          </span>
-          <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
-        </div>
+    <section
+      data-testid={`form-section-${step}`}
+      // shrink-0 matters: the column is a flex box with its own scroll, so a
+      // flex child is free to shrink below its content — and with
+      // overflow-hidden clipping the difference, the steps collapsed into each
+      // other instead of scrolling.
+      className="shrink-0 overflow-hidden rounded-[28px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+    >
+      {/* The step is one card, and its head sits on the card's own white so
+          the title reads as the label of everything below it. */}
+      <div className="flex flex-col gap-1 px-6 pb-4 pt-6">
+        <span className="text-[11px] font-semibold tracking-wide text-[#3559b0]">
+          ขั้นที่ {step}
+        </span>
+        <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
         <p className="text-[12px] leading-relaxed text-[#9aa3ad]">{hint}</p>
-        <div className="mt-1.5 h-px w-full bg-[#e6e9ef]" />
       </div>
-      <div className="flex flex-col gap-5">{children}</div>
+      {/* A well, not another card. The cards inside are white, so the body
+          they stand on has to be something other than white or they vanish
+          into it — which is exactly how the earlier card-inside-a-card looked.
+          Against this the boundary of the step is obvious without a rail, a
+          medallion or a pinned bar. */}
+      <div className="flex flex-col gap-4 border-t border-[#eef0f3] bg-[#f5f6f8] p-4 sm:p-5">
+        {children}
+      </div>
     </section>
   );
 }
@@ -1834,7 +1840,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
         {/* pr-1 keeps the card shadows off the scrollbar. */}
         <div
           data-testid="form-column"
-          className="xl:col-span-2 flex flex-col gap-12 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+          className="xl:col-span-2 flex flex-col gap-6 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
           <FormSection step={0} title="ตัวกรอง" hint="Stage · รูปแบบผลิตภัณฑ์ · หน่วย · หัวข้อทดสอบ — สี่ช่องนี้คุมทุกอย่างข้างล่าง">
 
