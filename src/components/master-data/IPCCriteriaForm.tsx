@@ -330,7 +330,7 @@ function CheckIntervalChips({
   // clearing it is a data change this UI work is not allowed to make.
   if (cadence.mode === 'per_batch') {
     return (
-      <div className="p-6">
+      <div className="pt-5">
         <div
           role="group"
           aria-label="แผนการเก็บตัวอย่าง"
@@ -351,7 +351,7 @@ function CheckIntervalChips({
   }
 
   return (
-    <div className="p-6">
+    <div className="pt-5">
       <div
         role="group"
         aria-label="Check Interval (min)"
@@ -1843,6 +1843,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             Stage + product form + test name — Figma "ข้อมูลพื้นฐาน" panel.
             Sits outside the white form card as its own surface, per the design.
           */}
+          <div className="px-6 py-5">
           <StageBasicsPanel
             stage={sharedExtras.stage}
             onStageChange={handleStageChange}
@@ -1863,10 +1864,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               { value: '__custom__', label: '➕ เพิ่มหัวข้อใหม่ (Add Custom)' },
             ]}
           />
+          </div>
 
           {/* The catalogue count moved up into the Stage panel as its
               description; only the transient auto-fill confirmation is left. */}
-          <div>
+          {(autoFillNote || isCustomName) && (
+          <div className="px-6 py-5">
             {autoFillNote && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1909,10 +1912,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   "Stage" caption on the panel above. Criteria Type moved into
                   its own card below (Figma node 42:2473). */}
           </div>
+          )}
 
           </FormSection>
 
-          <FormSection step={1} title="เอกสาร GMP" hint="SOP · Version · Step # · Link">
+          <FormSection step={1} title="เอกสาร GMP" hint="เลือกเอกสารควบคุม เช่น วิธีทดสอบ/SOP — SOP · Version · Step # · Link">
           {/*
             เอกสาร GMP + SOP step reference — Figma node 36:2441.
             Its own surface, deliberately outside the basic-information card.
@@ -1924,12 +1928,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             {/* Header on the pale stage-tinted surface */}
             <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  {/* No required marker: the field stays optional, as it was
-                      before. A "*" here would claim otherwise. */}
-                  <h4 className="text-sm font-semibold text-black">เอกสาร GMP</h4>
-                  <p className="text-xs text-[#bfbfbf]">เลือกเอกสารควบคุม เช่น วิธีทดสอบ/SOP</p>
-                </div>
+                {/* The step heading above already names this group; a second
+                    copy of the title inside it says nothing new. */}
                 {/*
                   DevExtreme's "filled" editor reserves ~15px of top padding for
                   a floating label, so at 40px the text sits low instead of
@@ -2002,7 +2002,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={2} title="ประเภทเกณฑ์" hint="กำหนดว่าการ์ด A และ B จะกางช่องอะไรออกมา">
+          <FormSection step={2} title="ประเภทเกณฑ์" hint="เลือกประเภทเกณฑ์ — กำหนดว่าขั้น A และ B จะกางช่องอะไรออกมา">
 
           <div
             data-testid="criteria-type-card"
@@ -2010,12 +2010,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           >
             <div className="flex flex-col gap-4">
               <div className="flex max-w-[400px] flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-semibold text-black">
-                    {t('criteriaType.label')} <span className="text-[#e32727]">*</span>
-                  </h4>
-                  <p className="text-xs text-[#bfbfbf]">{t('criteriaType.hint')}</p>
-                </div>
                 <SearchableSelect
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
@@ -2038,7 +2032,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={3} title="การ์ด A — เก็บตัวอย่างยังไง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่ชิ้น · หัก Tare อย่างไร">
+          <FormSection step={3} title="A · เก็บตัวอย่างอย่างไร" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่ชิ้น · หัก Tare อย่างไร">
 
           {/* ── Use Context — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
@@ -2065,7 +2059,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 p-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-2">
               {shownContextOptions.map((opt) => {
                 const active = sharedExtras.useContext.includes(opt.value);
                 return (
@@ -2163,7 +2157,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               independent choices, not a single setting with five parts, so
               they get five surfaces rather than five rows in one. */}
           <div data-testid="triggers-card" className="flex flex-col gap-2.5 px-6 py-5">
-            <div className="flex flex-wrap items-start justify-between gap-4 px-1">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <h4 className="text-sm font-semibold text-black">ตรวจสอบเมื่อ</h4>
                 <p className="text-xs text-[#bfbfbf]">
@@ -2304,7 +2298,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={4} title="การ์ด B — ตัดสินยังไง" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
+          <FormSection step={4} title="B · ตัดสินผลอย่างไร" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
 
           {/* B1 — the spec for the chosen type. It kept the picker's card when
               the two were one section; now that the picker stands alone in
@@ -2314,7 +2308,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             data-testid="type-fields-card"
             className="px-6 py-5"
           >
-            <div className="p-6">
+            <div className="pt-5">
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -2520,7 +2514,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="pt-5">
                 {multiStageEnabled && (
                   <>
                     <div className="mb-6 flex items-center gap-3 rounded-[14px] border-[1.5px] border-[#ffdeb0] bg-[#fff7ed] p-[14px]">
@@ -2659,8 +2653,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     of inputs that drives them. */}
                 {/* Sample Size is asked once, in card A — this card decides
                     what counts as a pass, not how much is taken. */}
+                {/* One column: Sample Size used to sit beside this and now
+                    lives in step A, which left the survivor stranded at half
+                    width while everything above it ran the full block. */}
                 {!multiStageEnabled && (
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-6">
                     <SoftLabel label="เกณฑ์การยอมรับ">
                       <div className="relative">
                         <NumberInput
@@ -2705,7 +2702,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               the card, so the heading sits on the page rather than inside a
               second panel drawn around it. */}
           <div data-testid="fail-route-card" className="flex flex-col gap-2.5 px-6 py-5">
-            <div className="flex flex-col gap-2 px-1">
+            <div className="flex flex-col gap-2">
               <h4 className="text-sm font-semibold text-black">เมื่อไม่ผ่าน</h4>
               <p className="text-xs text-[#bfbfbf]">ผลตกแล้วไปทางไหนต่อ</p>
             </div>
@@ -2935,19 +2932,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={5} title="สถานะการใช้งาน" hint="เปิดใช้เกณฑ์นี้กับ batch ใหม่หรือไม่">
+          <FormSection step={5} title="สถานะการใช้งาน" hint="Active แยกจาก Critical และ Retest เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล">
 
           {/* A TriggerCard is already a card. Wrapping one in a second card
               drew a white panel inside a white panel with nothing between
               them, so this follows ตรวจสอบเมื่อ: a heading on the page
               surface, and the toggle as the only card. */}
           <div data-testid="settings-card" className="flex flex-col gap-2.5 px-6 py-5">
-            <div className="flex flex-col gap-2 px-1">
-              <h4 className="text-sm font-semibold text-black">สถานะการใช้งาน</h4>
-              <p className="text-xs text-[#bfbfbf]">
-                Active แยกจาก Critical และ Retest เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล
-              </p>
-            </div>
             <TriggerCard
               testId="setting-active"
               icon={<Power className="h-4 w-4" />}
@@ -3548,7 +3539,7 @@ function MultiPointSection({
             {tareList.length === 0 && !newTareOpen && (
               <div
                 data-testid="tare-empty"
-                className="mt-2 flex flex-col gap-2 rounded-[12px] bg-white p-3"
+                className="mt-2 flex flex-col gap-2 rounded-[12px] bg-[#f6f7f9] p-3"
               >
                 <p className="text-[11px] leading-relaxed text-cyan-800">
                   ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
@@ -3570,7 +3561,7 @@ function MultiPointSection({
             {newTareOpen && (
               <div
                 data-testid="tare-create-panel"
-                className="mt-2 flex flex-col gap-3 rounded-[12px] bg-white p-3"
+                className="mt-2 flex flex-col gap-3 rounded-[12px] bg-[#f6f7f9] p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
@@ -3716,7 +3707,7 @@ function MultiPointSection({
                without opening it. */
             <div
               data-testid="tare-source-summary"
-              className="rounded-[12px] bg-white p-3"
+              className="rounded-[12px] bg-[#f6f7f9] p-3"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-md bg-cyan-100 px-2 py-0.5 font-mono text-[11px] font-bold text-cyan-800">
