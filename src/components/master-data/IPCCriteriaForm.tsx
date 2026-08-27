@@ -120,7 +120,13 @@ function FormSection({
       // shrink-0: the column is a flex box with its own scroll, so a flex
       // child is free to shrink below its content, and the steps would
       // collapse into one another instead of scrolling.
-      className="shrink-0 overflow-hidden rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+      // Clipped across, open down. A dropdown is positioned absolutely so it
+      // can float over what follows — overflow-hidden caught it and made
+      // opening one look like the card was being pushed apart. But the info
+      // bubbles on the toggle rows hang past the right edge on a phone, and
+      // with nothing clipping them the column scrolled sideways. clip-x with
+      // visible-y is the pair that allows both.
+      className="shrink-0 overflow-x-clip overflow-y-visible rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
     >
       <div className="flex flex-col gap-1 border-b border-[#eef0f3] px-6 pb-4 pt-6">
         <h3 className="text-[17px] font-semibold tracking-tight text-slate-900">{title}</h3>
@@ -135,8 +141,24 @@ function FormSection({
   );
 }
 
+/**
+ * A field on this page is a filled box, not an outlined one.
+ *
+ * The form carried both conventions at once — this one white with a hairline,
+ * SOFT_INPUT a grey fill with none — so whether a control looked like
+ * something you could type in depended on which half of the form it came
+ * from. Worse, once the cards became one white panel the outlined version had
+ * a white fill on a white ground and the hairline was the only thing left
+ * holding it, which is how the sampling dropdown ended up invisible.
+ *
+ * Fill wins: it survives whatever surface it lands on. The one place a field
+ * keeps a white fill is the Stage panel, where white is the contrast against
+ * orange — still a fill, still no border.
+ */
 const FIELD_INPUT =
-  'w-full px-3 py-2.5 border border-slate-200 rounded-[10px] bg-white text-sm text-slate-900 transition outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15';
+  'w-full px-3 py-2.5 rounded-[10px] bg-[#f1f3f5] text-sm text-slate-900 transition outline-none placeholder:text-[#bfbfbf] focus:ring-2 focus:ring-emerald-500/25';
+/** The same fill, for the dropdown trigger. */
+const SOFT_SELECT = 'border-transparent bg-[#f1f3f5] hover:border-transparent';
 const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
 const FIELD_HELPER = 'text-xs text-slate-500 mt-1.5';
 
@@ -1923,7 +1945,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           >
             {/* Header on the pale stage-tinted surface */}
             <div className="flex flex-col gap-4">
-              <div className="flex max-w-[400px] flex-col gap-4">
+              <div className="flex flex-col gap-4">
                 {/* The step heading above already names this group; a second
                     copy of the title inside it says nothing new. */}
                 {/*
@@ -2005,9 +2027,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             className="px-6 py-5"
           >
             <div className="flex flex-col gap-4">
-              <div className="flex max-w-[400px] flex-col gap-4">
+              <div className="flex flex-col gap-4">
                 <SearchableSelect
-                  triggerClassName="border-transparent bg-[#f1f3f5]"
+                  triggerClassName={SOFT_SELECT}
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
                   /* Thai leads in Thai — the labels used to open with the
@@ -2105,7 +2127,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   data-testid="toggle-other-contexts"
                   aria-expanded={showOtherContexts}
                   onClick={() => setShowOtherContexts((v) => !v)}
-                  className="flex items-center gap-2 py-4 text-[13px] font-medium text-[#6b7280] transition hover:text-[#2f6fd0]"
+                  // Filled like every other control on the page: as bare text it
+                  // read as a caption, with nothing to say it could be opened.
+                  className="flex w-full items-center gap-2 rounded-[10px] bg-[#f1f3f5] px-3 py-2.5 text-[13px] font-medium text-[#6b7280] transition hover:bg-[#e9ecf0] hover:text-[#2f6fd0]"
                 >
                   <ChevronDown
                     className={cn('h-4 w-4 transition-transform', showOtherContexts && 'rotate-180')}
@@ -2213,7 +2237,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             className="px-6 py-5"
           >
             <div className="flex flex-col gap-4">
-              <div className="flex max-w-[400px] flex-col gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">
                     แผนการสุ่ม <span className="text-[#e32727]">*</span>
@@ -2240,7 +2264,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   }}
                   options={SAMPLING_METHOD_OPTIONS}
                   placeholder="เลือกวิธีสุ่ม"
-                  triggerClassName="border-transparent bg-[#f1f3f5]"
+                  triggerClassName={SOFT_SELECT}
                 />
               </div>
             </div>
@@ -2264,7 +2288,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <h4 className="text-sm font-semibold text-black">จำนวนตัวอย่าง</h4>
                 <p className="text-xs text-[#bfbfbf]">หยิบมาตรวจกี่ชิ้นต่อหนึ่งรอบ</p>
               </div>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6">
                 <SoftLabel label="จำนวนตัวอย่างที่วัด (Sample Size)" required>
                   <NumberInput
                     className={SOFT_INPUT}
@@ -3517,7 +3541,7 @@ function MultiPointSection({
               </button>
             </div>
             <SearchableSelect
-              triggerClassName="border-transparent bg-[#f1f3f5]"
+              triggerClassName={SOFT_SELECT}
               testId="tare-source"
               value={tareSourceId ? String(tareSourceId) : ''}
               onChange={(v) => {
