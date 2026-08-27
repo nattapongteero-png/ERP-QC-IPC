@@ -445,7 +445,6 @@ export const UNIT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'g/mL', label: 'g/mL — กรัม/มิลลิลิตร' },
   { value: 'cfu/g', label: 'cfu/g — โคโลนีต่อกรัม' },
   { value: 'cfu/mL', label: 'cfu/mL — โคโลนีต่อมิลลิลิตร' },
-  { value: '', label: '— ไม่ระบุหน่วย —' },
 ];
 
 // ════════════════ DOSAGE FORM → UNIT SCOPE ════════════════

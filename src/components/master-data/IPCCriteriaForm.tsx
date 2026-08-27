@@ -774,7 +774,11 @@ function StageBasicsPanel({
                 value={unit}
                 onChange={onUnitChange}
                 options={unitOptions}
-                placeholder="Unit"
+                // "— ไม่ระบุหน่วย —" used to be an option in the list, so with
+                // no unit chosen the box showed that as though it were a
+                // choice already made, clear button and all. Having none is
+                // the empty state, which is what a placeholder is for.
+                placeholder="เลือกหน่วย (ถ้ามี)"
                 triggerClassName={STAGE_FIELD}
                 onAddNew={onAddUnit}
                 addNewLabel="＋ เพิ่มหน่วยใหม่"
