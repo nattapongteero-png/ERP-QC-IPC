@@ -2126,7 +2126,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
 
             {otherContextOptions.length > 0 && (
-              <div className="pt-1">
+              // Same 12px the tiles above are spaced by — it sat at 4, so the
+              // expander looked stuck to the last tile rather than being the
+              // next item in the same list.
+              <div className="pt-3">
                 <button
                   type="button"
                   data-testid="toggle-other-contexts"
@@ -2144,10 +2147,6 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
                 {showOtherContexts && (
                   <>
-                    <p className="mb-3 text-[11px] leading-relaxed text-[#bfbfbf]">
-                      การจัดกลุ่มตาม stage เป็นค่าแนะนำ ไม่ใช่ข้อบังคับ — แต่ละโรงงานตรวจไม่เหมือนกัน
-                      เลือกจากตรงนี้ได้ตามจริง
-                    </p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {otherContextOptions.map((opt) => (
                         <button

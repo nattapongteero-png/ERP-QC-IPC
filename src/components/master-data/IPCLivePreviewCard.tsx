@@ -36,7 +36,6 @@ import {
   type StageValue,
 } from '@/lib/master-data/ipc-spec-payload';
 import type { AcceptanceStage } from '@/lib/master-data/ipc-stages';
-import { STAGE_THEME, type StageTheme } from '@/components/master-data/ipc-stage-theme';
 
 // ── Figma tokens ───────────────────────────────────────────────────
 // Darkest at the bottom, white at the top. The white tiles and the record
@@ -447,65 +446,6 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
  * a full-size seal here would sit on top of the spec fields rather than
  * behind them.
  */
-/** Seal colours once the sample has been judged; before that it keeps the
- *  stage's own colour. */
-const SEAL_VERDICT = {
-  pass: { light: '#3ec46b', dark: '#12913f', ink: '#12913f' },
-  fail: { light: '#e07068', dark: '#c0362c', ink: '#c0362c' },
-} as const;
-
-function GmpSeal({ theme, verdict }: { theme: StageTheme; verdict: boolean | null }) {
-  const { light, dark, ink } =
-    verdict === null ? theme.seal : verdict ? SEAL_VERDICT.pass : SEAL_VERDICT.fail;
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute -right-11 -top-8 h-[152px] w-[152px] select-none"
-    >
-      {/*
-        The seal fades out toward the card with a mask, not with a coloured
-        overlay painted on top of it. An overlay has to know what colour is
-        behind it, and this card's background now changes with the pass/fail
-        verdict — the earlier white overlay showed up as a patch the moment the
-        surface stopped being white. A mask makes the pixels transparent, so it
-        is right against any background.
-      */}
-      <svg
-        viewBox="0 0 200 200"
-        className="h-full w-full"
-        style={{
-          maskImage: 'linear-gradient(to bottom left, #000 42%, transparent 88%)',
-          WebkitMaskImage: 'linear-gradient(to bottom left, #000 42%, transparent 88%)',
-        }}
-      >
-        <defs>
-          <path
-            id="gmp-seal-arc"
-            d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"
-            fill="none"
-          />
-          <radialGradient id="gmp-seal-fill" cx="50%" cy="32%">
-            <stop offset="0%" stopColor={light} />
-            <stop offset="100%" stopColor={dark} />
-          </radialGradient>
-        </defs>
-        <circle cx="100" cy="100" r="90" fill="none" stroke={ink} strokeOpacity="0.3" strokeWidth="1.5" />
-        <text fill={ink} fillOpacity="0.5" fontSize="14" fontWeight="700" letterSpacing="1.4">
-          <textPath href="#gmp-seal-arc" startOffset="6%">
-            Good Manufacturing Practice Certification
-          </textPath>
-        </text>
-        <circle cx="100" cy="100" r="60" fill="url(#gmp-seal-fill)" />
-        <text x="100" y="97" textAnchor="middle" fill="#ffffff" fontSize="33" fontWeight="800">
-          GMP
-        </text>
-        <text x="100" y="123" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="600">
-          Quality
-        </text>
-      </svg>
-    </div>
-  );
-}
 
 // ── Card ───────────────────────────────────────────────────────────
 export function IPCLivePreviewCard({
@@ -520,7 +460,6 @@ export function IPCLivePreviewCard({
   blank = false,
   onValuesChange,
 }: IPCLivePreviewCardProps) {
-  const theme = STAGE_THEME[stage];
   const unit = formData.unit ?? '';
 
 
@@ -574,7 +513,6 @@ export function IPCLivePreviewCard({
       {/* Washed in the selected stage's colour, like every other section
           header on the page, so the preview reads as part of that stage. */}
       <div className={cn(HEADER, 'relative overflow-hidden')}>
-        <GmpSeal theme={theme} verdict={verdict} />
         <div className="relative z-10 flex flex-col gap-4">
           {(formData.code || formData.isCritical || formData.isActive === false) && (
             <div className="flex flex-wrap items-center gap-1.5">
