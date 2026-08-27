@@ -90,6 +90,34 @@ const CRITERIA_TYPE_VALUES = [
   'custom_multi_field',
 ] as const satisfies readonly CriteriaType[];
 
+/**
+ * A step heading over a run of cards in the form column.
+ *
+ * The column is eleven cards deep and every one of them looked equally
+ * important, so an author had no way to tell how far through the definition
+ * they were, or which cards answered the same question. These label the five
+ * things the form actually asks, in the order it has to ask them — the order
+ * is not free: the spec panel follows from the type, acceptance is computed
+ * from the sample size, and the derived-calculation card is unlocked by a
+ * trigger, so each group depends on the one above it.
+ */
+function FormSection({ step, title, hint }: { step: number; title: string; hint: string }) {
+  return (
+    <div className="flex items-baseline gap-3 px-1 pt-2 first:pt-0">
+      <span
+        aria-hidden
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8effc] text-[11px] font-bold text-[#3559b0]"
+      >
+        {step}
+      </span>
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <h3 className="text-[13px] font-semibold text-slate-800">{title}</h3>
+        <p className="text-[11px] text-[#bfbfbf]">{hint}</p>
+      </div>
+    </div>
+  );
+}
+
 const FIELD_INPUT =
   'w-full px-3 py-2.5 border border-slate-200 rounded-[10px] bg-white text-sm text-slate-900 transition outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15';
 const FIELD_LABEL = 'block text-[13px] font-semibold text-slate-700 mb-1.5';
@@ -1774,6 +1802,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           data-testid="form-column"
           className="xl:col-span-2 flex flex-col gap-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
         >
+          <FormSection step={1} title="ข้อมูลหลัก" hint="เกณฑ์นี้คือหัวข้ออะไร ใช้กับอะไร อ้างอิงเอกสารใด" />
+
           {/*
             Stage + product form + test name — Figma "ข้อมูลพื้นฐาน" panel.
             Sits outside the white form card as its own surface, per the design.
@@ -1933,6 +1963,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
+          <FormSection step={2} title="วิธีวัดและเกณฑ์มาตรฐาน" hint="วัดแบบไหน และค่าที่ยอมรับได้คือเท่าไร" />
+
           {/* เกณฑ์มาตรฐาน — Figma node 42:2473. Same two-part card as the GMP
               one: the type picker on a tinted header, the fields for that type
               in the body below. */}
@@ -2089,6 +2121,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               </div>
             )}
           </div>
+
+          <FormSection step={3} title="การสุ่มและการยอมรับ" hint="สุ่มกี่ตัวอย่าง และตัดสินว่าผ่านเมื่อใด" />
 
           {/* ── แผนการสุ่ม — Figma node 57:3722 ────────────────────────
               Its own card, same two-part shape as เอกสาร GMP and ประเภทเกณฑ์:
@@ -2395,6 +2429,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
+          <FormSection step={4} title="เงื่อนไขการใช้งาน" hint="ตรวจไปเพื่ออะไร ตรวจเมื่อไร และสรุปค่าอะไรต่อ" />
+
           {/* ── Use Context — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
               comes first: the purpose decides the timing, not the other way
@@ -2658,6 +2694,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
 
           )}
+
+          <FormSection step={5} title="การตั้งค่า" hint="สถานะและระดับความสำคัญของเกณฑ์" />
 
           {/* ── การตั้งค่า — Figma node 73:10138 ──────────────────────
               Its own card. The two switches reuse the trigger row, so a toggle
