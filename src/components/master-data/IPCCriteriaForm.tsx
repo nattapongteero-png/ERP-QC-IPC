@@ -2147,7 +2147,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
                 {showOtherContexts && (
                   <>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* mt-3: the revealed options are the next rows of the same
+                        list, so they stand off the expander by the same 12px
+                        that separates every other tile — they were flush
+                        against it. */}
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {otherContextOptions.map((opt) => (
                         <button
                           type="button"
