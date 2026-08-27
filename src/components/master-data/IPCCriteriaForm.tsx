@@ -2289,8 +2289,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               floating on the page. */}
           <div
             data-testid="type-fields-card"
-            className="rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+            className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
           >
+            <div className="p-6">
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -2411,6 +2412,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <CheckRoundFill className="h-6 w-6 shrink-0 text-[#80b45f]" />
               </div>
             )}
+          </div>
 
           {/* ── เกณฑ์การยอมรับแบบหลายขั้น — Figma node 60:5641 ─────────
               Its own card, matching เอกสาร GMP / ประเภทเกณฑ์ / แผนการสุ่ม.
