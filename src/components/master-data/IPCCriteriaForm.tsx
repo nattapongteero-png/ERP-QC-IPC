@@ -2283,8 +2283,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
           <FormSection step={4} title="การ์ด B — ตัดสินยังไง" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ" />
 
-            {/* Fields for the selected type */}
-            <div className="p-6">
+          {/* B1 — the spec for the chosen type. It kept the picker's card when
+              the two were one section; now that the picker stands alone in
+              step 2, these fields need a surface of their own rather than
+              floating on the page. */}
+          <div
+            data-testid="type-fields-card"
+            className="rounded-[24px] bg-white p-6 shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+          >
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -2670,15 +2676,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               criterion is critical, and how many retests the plan allows. It
               belongs with the judgement, not with the on/off switch it used
               to share a card with. */}
-          <div data-testid="fail-route-card" className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-semibold text-black">เมื่อไม่ผ่าน</h4>
-                  <p className="text-xs text-[#bfbfbf]">ผลตกแล้วไปทางไหนต่อ</p>
-                </div>
-                <div className="grid grid-cols-1 items-start gap-4">
-              <TriggerCard
+          {/* Same shape as ตรวจสอบเมื่อ and สถานะการใช้งาน: the toggle is
+              the card, so the heading sits on the page rather than inside a
+              second panel drawn around it. */}
+          <div data-testid="fail-route-card" className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2 px-1">
+              <h4 className="text-sm font-semibold text-black">เมื่อไม่ผ่าน</h4>
+              <p className="text-xs text-[#bfbfbf]">ผลตกแล้วไปทางไหนต่อ</p>
+            </div>
+            <TriggerCard
                 testId="setting-critical"
                 icon={<Shield className="h-4 w-4" />}
                 title="Critical Test"
@@ -2797,16 +2803,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     )}
                   </div>
                 )}
-              </TriggerCard>
-                </div>
-              </div>
-            </div>
-          <div className="rounded-b-[24px] border-t-[1.5px] border-[#f1f3f5] bg-[#f9fafb] px-6 py-4">
-            <p className="text-xs text-[#6b7280]">
+            </TriggerCard>
+            {/* The standard behind the retest budget, as a caption on the
+                page — it was a card footer, which needed a card to be a
+                footer of. */}
+            <p className="px-1 text-xs text-[#bfbfbf]">
               ตามมาตรฐาน FDA OOS 2006: Justified retest (พบสาเหตุ) นับเป็นรอบเพิ่ม / Unjustified
               retest (ไม่มีเหตุผลชัดเจน) จะสร้าง Deviation ทันที
             </p>
-          </div>
           </div>
 
           {/* ── การคำนวณที่ได้จากผล — Figma node 71:7883 ───────────────
@@ -2907,28 +2911,26 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
           <FormSection step={5} title="สถานะการใช้งาน" hint="เปิดใช้เกณฑ์นี้กับ batch ใหม่หรือไม่" />
 
-          <div data-testid="settings-card" className="rounded-[24px] bg-white shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
-            <div className={cn('rounded-[24px] p-6', SECTION_HEADER)}>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-semibold text-black">สถานะการใช้งาน</h4>
-                  <p className="text-xs text-[#bfbfbf]">
-                    Active แยกจาก Critical และ Retest เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 items-start gap-4">
-                  <TriggerCard
-                    testId="setting-active"
-                    icon={<Power className="h-4 w-4" />}
-                    title="Active"
-                    desc="เปิดใช้กับ batch ใหม่"
-                    info="ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับ batch ที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ"
-                    on={formData.isActive !== false}
-                    onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
-                  />
-                </div>
-              </div>
+          {/* A TriggerCard is already a card. Wrapping one in a second card
+              drew a white panel inside a white panel with nothing between
+              them, so this follows ตรวจสอบเมื่อ: a heading on the page
+              surface, and the toggle as the only card. */}
+          <div data-testid="settings-card" className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2 px-1">
+              <h4 className="text-sm font-semibold text-black">สถานะการใช้งาน</h4>
+              <p className="text-xs text-[#bfbfbf]">
+                Active แยกจาก Critical และ Retest เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล
+              </p>
             </div>
+            <TriggerCard
+              testId="setting-active"
+              icon={<Power className="h-4 w-4" />}
+              title="Active"
+              desc="เปิดใช้กับ batch ใหม่"
+              info="ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับ batch ที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ"
+              on={formData.isActive !== false}
+              onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
+            />
           </div>
 
         </div>
@@ -3457,10 +3459,10 @@ function MultiPointSection({
   }, [payload, onChange]);
 
   return (
-    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50/30 p-5 mt-2 space-y-4">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
-        <FlaskConical className="w-4 h-4 text-teal-700" />
-        <h3 className="font-semibold text-teal-800 text-sm">
+        <FlaskConical className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">
           {section === 'sampling'
             ? 'Multi-Point — การเก็บตัวอย่าง'
             : section === 'per-unit'
@@ -3471,10 +3473,10 @@ function MultiPointSection({
 
       {section === 'sampling' ? (
         <>
-        <div className="rounded-xl border border-teal-200 bg-white/70 p-4 space-y-4">
+        <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-teal-700" />
-            <h4 className="text-sm font-semibold text-teal-800">วิธีบันทึกค่า Tare</h4>
+            <Layers className="h-4 w-4 text-[#6b7280]" />
+            <h4 className="text-sm font-semibold text-black">วิธีบันทึกค่า Tare</h4>
             <span className="text-[11px] text-slate-400">Tare Recording Method</span>
           </div>
 
@@ -3482,7 +3484,7 @@ function MultiPointSection({
               from that criterion, so there is nothing left to choose about how
               to weigh it here. The picker therefore comes first, and the manual
               settings below only appear when nothing is linked. */}
-          <div className="rounded-lg border border-cyan-200 bg-cyan-50/40 p-3 space-y-2">
+          <div className="flex flex-col gap-2 rounded-[12px] bg-[#f1f3f5] p-3">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold text-cyan-800">
                 ใช้ค่า Tare จากเกณฑ์อื่น (Tare Source)
@@ -3519,7 +3521,7 @@ function MultiPointSection({
             {tareList.length === 0 && !newTareOpen && (
               <div
                 data-testid="tare-empty"
-                className="mt-2 flex flex-col gap-2 rounded-lg border border-cyan-200 bg-white/70 p-3"
+                className="mt-2 flex flex-col gap-2 rounded-[12px] bg-white p-3"
               >
                 <p className="text-[11px] leading-relaxed text-cyan-800">
                   ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
@@ -3541,7 +3543,7 @@ function MultiPointSection({
             {newTareOpen && (
               <div
                 data-testid="tare-create-panel"
-                className="mt-2 flex flex-col gap-3 rounded-lg border border-cyan-300 bg-white p-3"
+                className="mt-2 flex flex-col gap-3 rounded-[12px] bg-white p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
@@ -3687,7 +3689,7 @@ function MultiPointSection({
                without opening it. */
             <div
               data-testid="tare-source-summary"
-              className="rounded-lg border border-cyan-300 bg-white p-3"
+              className="rounded-[12px] bg-white p-3"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-md bg-cyan-100 px-2 py-0.5 font-mono text-[11px] font-bold text-cyan-800">
@@ -3753,8 +3755,8 @@ function MultiPointSection({
                   className={cn(
                     'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors',
                     active
-                      ? 'border-teal-400 bg-teal-100 text-teal-900'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
+                      ? 'border-[#9db9e8] bg-[#e8effc] text-[#3559b0]'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-[#9db9e8]',
                   )}
                 >
                   <span className="text-sm font-semibold">{opt.title}</span>
@@ -3805,10 +3807,10 @@ function MultiPointSection({
           )}
 
         </div>
-        <div className="rounded-xl border border-teal-200 bg-white/70 p-4 space-y-4">
+        <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-teal-700" />
-            <h4 className="text-sm font-semibold text-teal-800">หน่วยที่ชั่ง</h4>
+            <Package className="h-4 w-4 text-[#6b7280]" />
+            <h4 className="text-sm font-semibold text-black">หน่วยที่ชั่ง</h4>
             <span className="text-[11px] text-slate-400">เรียกสิ่งที่หยิบมาชั่งว่าอะไร</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3828,10 +3830,10 @@ function MultiPointSection({
         </>
       ) : section === 'per-unit' ? (
         <>
-        <div className="rounded-xl border border-teal-200 bg-white/70 p-4 space-y-4">
+        <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-teal-700" />
-            <h4 className="text-sm font-semibold text-teal-800">เกณฑ์รายชิ้น</h4>
+            <Target className="h-4 w-4 text-[#6b7280]" />
+            <h4 className="text-sm font-semibold text-black">เกณฑ์รายชิ้น</h4>
             <span className="text-[11px] text-slate-400">ชิ้นหนึ่งควรหนักเท่าไร และเบี่ยงได้แค่ไหน</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3869,10 +3871,10 @@ function MultiPointSection({
         </>
       ) : (
         <>
-        <div className="rounded-xl border border-teal-200 bg-white/70 p-4 space-y-4">
+        <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-teal-700" />
-            <h4 className="text-sm font-semibold text-teal-800">การตั้งค่าการผลิต</h4>
+            <Layers className="h-4 w-4 text-[#6b7280]" />
+            <h4 className="text-sm font-semibold text-black">การตั้งค่าการผลิต</h4>
             <span className="text-[11px] text-slate-400">Aggregate / Batch Verdict</span>
           </div>
 
@@ -3894,8 +3896,8 @@ function MultiPointSection({
                   className={cn(
                     'flex flex-col items-center gap-1 px-3 py-3 rounded-xl border text-xs font-medium transition-colors',
                     active
-                      ? 'bg-teal-100 border-teal-400 text-teal-900'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-teal-300',
+                      ? 'bg-[#e8effc] border-[#9db9e8] text-[#3559b0]'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-[#9db9e8]',
                   )}
                 >
                   <span className="font-semibold">{opt.t}</span>
@@ -3940,10 +3942,10 @@ function MultiPointSection({
 // ── Tare section ───────────────────────────────────────────────────
 function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p: TarePayload) => void }) {
   return (
-    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-cyan-300 bg-cyan-50/30 p-5 mt-2 space-y-4">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
-        <Layers className="w-4 h-4 text-cyan-700" />
-        <h3 className="font-semibold text-cyan-800 text-sm">Tare Reference Specification</h3>
+        <Layers className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">Tare Reference Specification</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -4022,10 +4024,10 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
 // ── Calibration section ────────────────────────────────────────────
 function CalibrationSection({ payload, onChange }: { payload: CalibrationPayload; onChange: (p: CalibrationPayload) => void }) {
   return (
-    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50/30 p-5 mt-2 space-y-4">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
-        <FlaskConical className="w-4 h-4 text-purple-700" />
-        <h3 className="font-semibold text-purple-800 text-sm">Calibration Specification</h3>
+        <FlaskConical className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">Calibration Specification</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -4109,10 +4111,10 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
     onChange({ ...payload, inputs: payload.inputs.filter((i) => i.id !== id) });
 
   return (
-    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/30 p-5 mt-2 space-y-4">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
-        <Calculator className="w-4 h-4 text-indigo-700" />
-        <h3 className="font-semibold text-indigo-800 text-sm">Calculated Specification</h3>
+        <Calculator className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">Calculated Specification</h3>
       </div>
 
       <div>
@@ -4128,12 +4130,12 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
         <div className="flex items-center justify-between mb-2">
           <label className={FIELD_LABEL}>Inputs (ตัวแปรในสูตร)</label>
           <button type="button" onClick={addInput}
-            className="text-xs font-medium px-2.5 py-1 rounded-md border border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1">
+            className="flex items-center gap-1 rounded-full bg-[#e8effc] px-2.5 py-1 text-xs font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]">
             <Plus className="w-3 h-3" /> เพิ่ม input
           </button>
         </div>
         {payload.inputs.length === 0 ? (
-          <div className="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded">
+          <div className="rounded-[12px] bg-[#f9fafb] py-4 text-center text-xs text-[#bfbfbf]">
             ยังไม่มี input — กด "เพิ่ม input" เพื่อกำหนดตัวแปรในสูตร
           </div>
         ) : (
@@ -4234,22 +4236,22 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
     onChange({ ...payload, fields: payload.fields.filter((f) => f.id !== id) });
 
   return (
-    <div className="sm:col-span-2 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/30 p-5 mt-2 space-y-4">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
-        <Layers className="w-4 h-4 text-rose-700" />
-        <h3 className="font-semibold text-rose-800 text-sm">Custom Multi-Field Specification</h3>
+        <Layers className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">Custom Multi-Field Specification</h3>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className={FIELD_LABEL}>Fields ({payload.fields.length})</label>
           <button type="button" onClick={addField}
-            className="text-xs font-medium px-2.5 py-1 rounded-md border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 flex items-center gap-1">
+            className="flex items-center gap-1 rounded-full bg-[#e8effc] px-2.5 py-1 text-xs font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]">
             <Plus className="w-3 h-3" /> เพิ่มฟิลด์
           </button>
         </div>
         {payload.fields.length === 0 ? (
-          <div className="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded">
+          <div className="rounded-[12px] bg-[#f9fafb] py-4 text-center text-xs text-[#bfbfbf]">
             ยังไม่มีฟิลด์ — กด "เพิ่มฟิลด์" เพื่อกำหนด
           </div>
         ) : (
@@ -4340,10 +4342,10 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
 // ── Pass / Fail section ────────────────────────────────────────────
 function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onChange: (p: PassFailPayload) => void }) {
   return (
-    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/40">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
-        <Shield className="w-4 h-4 text-blue-700" />
-        <h3 className="font-semibold text-blue-800 text-sm">เกณฑ์การตัดสินใจ Pass / Fail</h3>
+        <Shield className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">เกณฑ์การตัดสินใจ Pass / Fail</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-4 border border-emerald-200">
@@ -4378,10 +4380,10 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
 // ── Visual section ─────────────────────────────────────────────────
 function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange: (p: VisualPayload) => void }) {
   return (
-    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/40">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
-        <Eye className="w-4 h-4 text-amber-700" />
-        <h3 className="font-semibold text-amber-800 text-sm">เกณฑ์การตรวจด้วยสายตา (Visual Inspection)</h3>
+        <Eye className="w-4 h-4 text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-black">เกณฑ์การตรวจด้วยสายตา (Visual Inspection)</h3>
       </div>
       <div className="mb-4">
         <label className={FIELD_LABEL}>คำอธิบายลักษณะที่ยอมรับ <span className="text-red-500">*</span></label>
@@ -4422,7 +4424,7 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
           <button
             type="button"
             onClick={() => onChange({ ...payload, checklist: [...payload.checklist, ''] })}
-            className="w-full py-2 rounded-lg border-2 border-dashed border-amber-300 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-all flex items-center justify-center gap-1"
+            className="flex w-full items-center justify-center gap-1 rounded-[12px] bg-[#e8effc] py-2 text-xs font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]"
           >
             <Plus className="w-3 h-3" /> เพิ่มรายการตรวจ
           </button>
@@ -4445,10 +4447,10 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
 // ── Text section ───────────────────────────────────────────────────
 function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p: TextPayload) => void }) {
   return (
-    <div className="sm:col-span-2 p-5 mt-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+    <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <FileText className="w-4 h-4 text-slate-700" />
-        <h3 className="font-semibold text-slate-800 text-sm">รูปแบบการบันทึกข้อความ</h3>
+        <h3 className="text-sm font-semibold text-black">รูปแบบการบันทึกข้อความ</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
         <div>
