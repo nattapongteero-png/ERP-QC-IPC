@@ -2062,7 +2062,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={3} title="A · เก็บตัวอย่างอย่างไร" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่ชิ้น · หัก Tare อย่างไร">
+          <FormSection step={3} title="การเก็บตัวอย่าง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่หน่วย · หัก Tare อย่างไร">
 
           {/* ── Use Context — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
