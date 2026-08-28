@@ -943,7 +943,6 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData }: Recordin
  */
 function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, unit }: RecordingProps) {
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
-  const tareRows = rowCount(mp?.tareCount, 10, 20);
   const sampleRows = rowCount(mp?.pointCount, sampleSize, 20);
   const noun = (mp?.pointLabel || 'หน่วย').trim();
   // Whatever the criterion calls this weighing — a shell, a lid, a tray. The
@@ -957,10 +956,16 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
   // not from the target — so no absolute min/max is needed here.
   const tol = Number(mp?.perPointTolerance ?? '') || formData.specTolerancePercent || 0;
 
+  /*
+   * Weighing one at a time means each shell belongs to the unit filled into
+   * it, so the two weighings share a row and the subtraction is done pair by
+   * pair. Averaging the shells here would throw away the very thing this mode
+   * is chosen for — knowing which unit's shell was the odd one.
+   */
   const shell = useDemoValues(
-    tareRows,
+    sampleRows,
     (i) => shellBase * (0.97 + jitter(i) * 0.06),
-    `shell|${tareRows}|${target}`,
+    `shell|${sampleRows}|${target}`,
     seeded,
   );
   const gross = useDemoValues(
@@ -970,13 +975,9 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
     seeded,
   );
 
-  const shellMean = shell.filled.length
-    ? shell.filled.reduce((a, b) => a + b, 0) / shell.filled.length
-    : 0;
-  const tareReady = shell.filled.length > 0;
-
-  const nets = gross.numbers.map((g) => g - shellMean);
-  const done = (i: number) => tareReady && gross.values[i].trim() !== '';
+  const nets = gross.numbers.map((g, i) => g - shell.numbers[i]);
+  const done = (i: number) =>
+    shell.values[i]?.trim() !== '' && gross.values[i].trim() !== '';
   const filledNets = nets.filter((_, i) => done(i));
   const { mean, sd, rsd } = stats(filledNets);
   const has = filledNets.length > 0;
@@ -1020,7 +1021,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
           }
         : { numericValue: null, result: null, textValue: null },
     ),
-    complete: tareReady && gross.values.every((v) => v.trim() !== ''),
+    complete: gross.values.every((v, i) => v.trim() !== '' && shell.values[i]?.trim() !== ''),
   }));
 
   const u = unit ? ` (${unit})` : '';
@@ -1035,44 +1036,34 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 
   return (
     <>
-      {/* ── ตาราง Tare ─────────────────────────────────────── */}
+      {/* One row per unit: its shell, its filled weight, and what the two
+          make. Two tables meant the operator carried a row number between
+          them and the pairing existed only in their head. */}
       <div className={RECORD_BOX}>
-        {step(1, `${tareTitle} — ${tareRows} ตัวอย่าง ก่อนบรรจุ`)}
-        {tareRows === 0 && <NoRows what="จำนวนเปลือกที่ชั่ง (Tare)" />}
-        <CellGrid>
-          {shell.values.map((v, i) => (
-            <Cell
-              key={i}
-              label={`เปล่า #${i + 1}`}
-              value={v}
-              onChange={(nv) => shell.set(i, nv)}
-            />
-          ))}
-        </CellGrid>
-        <div className="flex items-center justify-between rounded-[12px] bg-[#f9fafb] px-3 py-2">
-          <span className="text-[11px] text-[#bfbfbf]">เฉลี่ยเปลือกเปล่า (Tare){u}</span>
-          <span className="text-sm font-bold text-[#5682e9] tabular-nums">
-            {tareReady ? fmt(shellMean, 4) : '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* ── ตาราง Sample ───────────────────────────────────── */}
-      <div className={RECORD_BOX}>
-        {step(2, `ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง · ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
+        {step(1, `${tareTitle} + ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง`)}
         {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
-        <div className="grid grid-cols-[24px_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
+        <div className="grid grid-cols-[24px_1fr_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
+          <span>เปลือกเปล่า{u}</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>% ส่วนต่างจาก Target</span>
+          <span>
+            % ความคลาดเคลื่อน
+            <span className="block text-[10px] text-[#cfd6e0]">Weight Deviation %</span>
+          </span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
           const state = done(i) && tolPct != null ? (outOfSpec(i) ? 'fail' : 'pass') : null;
           return (
-            <div key={i} className="grid grid-cols-[24px_1fr_1fr_1fr] items-center gap-2">
+            <div key={i} className="grid grid-cols-[24px_1fr_1fr_1fr_1fr] items-center gap-2">
               <span className="text-[11px] text-[#bfbfbf]">{i + 1}</span>
+              <input
+                className={CELL_INPUT}
+                value={shell.values[i] ?? ''}
+                onChange={(e) => shell.set(i, e.target.value)}
+                aria-label={`เปลือกเปล่า #${i + 1}`}
+              />
               <input
                 className={CELL_INPUT}
                 value={g}
@@ -1104,7 +1095,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
         {target <= 0
-          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดส่วนต่างได้`
+          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดความคลาดเคลื่อนได้`
           : tolPct == null
             ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
             : !has
@@ -1367,7 +1358,10 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>% ส่วนต่างจาก Target</span>
+          <span>
+            % ความคลาดเคลื่อน
+            <span className="block text-[10px] text-[#cfd6e0]">Weight Deviation %</span>
+          </span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1406,7 +1400,7 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
         {target <= 0
-          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดส่วนต่างได้`
+          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดความคลาดเคลื่อนได้`
           : tolPct == null
             ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
             : `Tare ชั่งรวมครั้งเดียวแล้วเฉลี่ย — ส่วนแต่ละ${noun}ยังตัดสินรายตัวใน ±${fmt(tolPct, 1)}% ของ Target ${fmt(target, 4)}${unit ? ` ${unit}` : ''}`}

@@ -3873,27 +3873,26 @@ function MultiPointSection({
                 ชื่อที่ operator จะเห็นตอนบันทึกผล — เว้นว่างได้ ระบบจะใช้ &quot;ชั่งแคปซูลเปล่า&quot;
               </p>
             </div>
-            {/* Two counts, not one: the shells are weighed before filling, so
-                they are a different set of units from the capsules measured
-                afterwards. USP <905> weighs 10 shells against 20 capsules. */}
-            <div>
-              <label className={FIELD_LABEL}>
-                จำนวนเปลือกที่ชั่ง (Tare) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                className={FIELD_INPUT}
-                placeholder="10"
-                value={payload.tareCount}
-                onChange={(e) => onChange({ ...payload, tareCount: e.target.value })}
-              />
-              <p className={FIELD_HELPER}>
-                {payload.tareMode === 'bulk'
-                  ? 'ชั่งเปลือกเปล่าพร้อมกันกี่ชิ้น'
-                  : 'ชั่งเปลือกเปล่าทีละชิ้นกี่แถว — ใช้ค่าเฉลี่ยเป็น Tare'}
-              </p>
-            </div>
+            {/* Only the bulk weighing has a count of its own. Weighing one at
+                a time pairs each shell with the unit filled into it, so the
+                number of shells is the number of samples — asking for it twice
+                invited the two to disagree. */}
+            {payload.tareMode === 'bulk' && (
+              <div>
+                <label className={FIELD_LABEL}>
+                  จำนวนเปลือกที่ชั่ง (Tare) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  className={FIELD_INPUT}
+                  placeholder="10"
+                  value={payload.tareCount}
+                  onChange={(e) => onChange({ ...payload, tareCount: e.target.value })}
+                />
+                <p className={FIELD_HELPER}>ชั่งเปลือกเปล่าพร้อมกันกี่ชิ้น</p>
+              </div>
+            )}
           </div>
           </>
           )}
