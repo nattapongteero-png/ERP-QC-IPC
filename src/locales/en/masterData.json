@@ -301,6 +301,7 @@
     "criteriaType": {
       "label": "Criteria Type",
       "hint": "Select criteria type",
+      "placeholder": "Select criteria type",
       "options": {
         "numeric": "Numeric — Record a measured value and compare against Min/Max",
         "pass_fail": "Pass/Fail — Record the result as pass or fail",

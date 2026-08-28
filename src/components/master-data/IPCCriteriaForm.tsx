@@ -888,7 +888,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
     code: '', name: '', nameTh: '', testMethod: '', specification: '',
     minValue: null, maxValue: null, unit: '', sampleSize: 5,
     checkIntervalMinutes: 30, isCritical: false, isActive: true,
-    dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
+    dosageForm: null, criteriaType: '', tolerancePercent: 0,
     specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
     maxRetestRounds: 1, tareSourceCriteriaId: null, gmpDocumentId: null,
   };
@@ -934,7 +934,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     return false;
   });
 
-  const criteriaType = (formData.criteriaType || 'numeric') as CriteriaType;
+  /**
+   * Empty until picked, rather than defaulting to Numeric.
+   *
+   * The default meant a criterion the author had not classified still looked
+   * classified — the Numeric fields were open and the preview drew a numeric
+   * recorder, so a type could be saved that nobody had actually decided on.
+   */
+  const criteriaType = (formData.criteriaType || '') as CriteriaType | '';
 
   // When user switches criteria type, reset structured payload to defaults
   // for that type so the relevant section renders empty fields.
@@ -1024,7 +1031,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       name: '', nameTh: '', testMethod: '', specification: '',
       minValue: null, maxValue: null, unit: '', sampleSize: 5,
       checkIntervalMinutes: 30, isCritical: false, isActive: prev.isActive ?? true,
-      dosageForm: null, criteriaType: 'numeric', tolerancePercent: 0,
+      dosageForm: null, criteriaType: '', tolerancePercent: 0,
       specTarget: null, specTolerancePercent: 0, acceptanceStages: null,
       maxRetestRounds: 1, tareSourceCriteriaId: null, gmpDocumentId: null,
     }));
@@ -1215,6 +1222,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   });
 
   const handleSave = () => {
+    if (!criteriaType) {
+      toast.error('Validation', 'เลือก "ประเภทเกณฑ์" ก่อนบันทึก');
+      return;
+    }
     if (!formData.code || !formData.name) {
       toast.error('Validation', 'Code and Test Name are required.');
       return;
@@ -2032,7 +2043,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={2} title="ประเภทเกณฑ์" hint="เลือกประเภทเกณฑ์ — กำหนดว่าขั้น A และ B จะกางช่องอะไรออกมา">
+          <FormSection step={2} title="ประเภทเกณฑ์" hint="กำหนดว่าการเก็บตัวอย่างและเกณฑ์การพิจารณาจะกางช่องอะไรออกมา">
 
           <div
             data-testid="criteria-type-card"
@@ -2041,6 +2052,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-4">
                 <SearchableSelect
+                  // Says what is missing; the component's generic "เลือก..."
+                  // does not, and this is the one field the rest of the form
+                  // waits on.
+                  placeholder={t('criteriaType.placeholder')}
                   value={criteriaType}
                   onChange={(v) => handleCriteriaTypeChange(v as CriteriaType)}
                   /* Thai leads in Thai — the labels used to open with the
@@ -2342,6 +2357,13 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               the two were one section; now that the picker stands alone in
               step 2, these fields need a surface of their own rather than
               floating on the page. */}
+          {!criteriaType ? (
+            <div data-testid="type-fields-empty" className="px-6 py-5">
+              <p className="rounded-[12px] bg-[#f9fafb] px-4 py-5 text-center text-[13px] text-[#9aa3ad]">
+                เลือกประเภทเกณฑ์ก่อน — ช่องกรอกจะขึ้นตามประเภทที่เลือก
+              </p>
+            </div>
+          ) : (
           <div
             data-testid="type-fields-card"
             className="px-6 py-5"
@@ -2471,6 +2493,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               )}
             </div>
           </div>
+          )}
 
           {/* ── เกณฑ์การตัดสินแบบหลายขั้น — Figma node 60:5641 ─────────
               Its own card, matching เอกสาร GMP / ประเภทเกณฑ์ / แผนการสุ่ม.
@@ -3876,26 +3899,6 @@ function MultiPointSection({
           )}
 
         </div>
-        <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">หน่วยที่ชั่ง</h4>
-            <span className="text-[11px] text-slate-400">เรียกสิ่งที่หยิบมาชั่งว่าอะไร</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={FIELD_LABEL}>
-                ชื่อหน่วยที่ชั่ง
-              </label>
-              <input
-                className={FIELD_INPUT}
-                placeholder={payload.tareMode === 'bulk' ? 'เช่น "เม็ด"' : 'เช่น "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...'}
-                value={payload.pointLabel}
-                onChange={(e) => onChange({ ...payload, pointLabel: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
         </>
       ) : section === 'per-unit' ? (
         <>
@@ -3906,6 +3909,18 @@ function MultiPointSection({
             <span className="text-[11px] text-slate-400">หนึ่งหน่วยควรหนักเท่าไร และเบี่ยงได้แค่ไหน</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* What a หน่วย is, asked in the card whose every other label says
+                "ต่อหน่วย" — it used to sit in the sampling step, a scroll away
+                from the figures it names. */}
+            <div className="sm:col-span-2">
+              <label className={FIELD_LABEL}>ชื่อหน่วยที่ชั่ง</label>
+              <input
+                className={FIELD_INPUT}
+                placeholder={payload.tareMode === 'bulk' ? 'เช่น "เม็ด"' : 'เช่น "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...'}
+                value={payload.pointLabel}
+                onChange={(e) => onChange({ ...payload, pointLabel: e.target.value })}
+              />
+            </div>
             <div>
               <label className={FIELD_LABEL}>
                 Target ต่อหน่วย <span className="text-red-500">*</span>
@@ -4924,7 +4939,8 @@ function SummaryTile({
 // ── Live Preview Panel ─────────────────────────────────────────────
 interface LivePreviewProps {
   formData: Partial<IPCCriteria>;
-  criteriaType: CriteriaType;
+  /** Empty until the author picks one; the panel then shows what it needs. */
+  criteriaType: CriteriaType | '';
   calculatedMinMax: { min: number; max: number } | null;
   acceptanceMath: { sampleSize: number; allowedFail: number; mustPass: number } | null;
   multiStageEnabled: boolean;
@@ -4934,6 +4950,33 @@ interface LivePreviewProps {
 }
 
 function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload, stage }: LivePreviewProps) {
+  /*
+   * With no type picked there is nothing to preview.
+   *
+   * The panel's job is to show the operator's screen as the author builds it,
+   * and the type is what decides which screen that is — a numeric row, a
+   * checklist, a weighing table. Drawing one of them before the choice is made
+   * shows a screen nobody asked for, and the author reads it as a decision
+   * already taken. So the panel says what it is waiting for, keeps its own
+   * frame so the column does not jump when the answer arrives, and leaves the
+   * downstream cards out: an acceptance ladder and a summary of a criterion
+   * that has no type yet are both summaries of nothing.
+   */
+  if (!criteriaType) {
+    return (
+      <div
+        data-testid="preview-empty"
+        className="flex flex-col items-center gap-2 rounded-[24px] bg-white px-6 py-14 text-center shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
+      >
+        <FlaskConical className="h-6 w-6 text-[#cfd6e0]" aria-hidden />
+        <p className="text-[13px] font-medium text-slate-600">ยังไม่ได้เลือกประเภทเกณฑ์</p>
+        <p className="max-w-[300px] text-[12px] leading-relaxed text-[#9aa3ad]">
+          เลือกประเภทเกณฑ์ก่อน แล้วตรงนี้จะแสดงตัวอย่างหน้าจอที่ผู้ปฏิบัติงานจะเห็นตอนบันทึกผล
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Specification + recording mock — Figma node 8:4886 */}
