@@ -306,8 +306,10 @@
         "numeric": "Numeric — Record a measured value and compare against Min/Max",
         "pass_fail": "Pass/Fail — Record the result as pass or fail",
         "visual": "Visual — Inspect appearance visually",
+        "text": "Text — The inspector types what they observed",
         "multi_point": "Multi-Point — Measure several points and aggregate (mean / %RSD / all-pass)",
         "tare": "Tare — Empty container weight, used as reference for multi-point",
+        "calibration": "Calibration — Check a balance or instrument against a standard before use",
         "calculated": "Calculated — Derived from other criteria, e.g. %Yield, %LOD",
         "custom_multi_field": "Custom Multi-Field — Combine several fields into one criterion"
       }

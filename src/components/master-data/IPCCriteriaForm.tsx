@@ -74,18 +74,27 @@ import {
 // so the form looks identical to https://oommiemie.github.io/ipc-criteria-prototype/.
 // ────────────────────────────────────────────────────────────────────
 /**
- * The criteria types this form can build, in the order the picker lists them.
+ * Every criteria type this form can build, in the order the picker lists them.
  *
- * Narrower than the CriteriaType union on purpose: `text` and `calibration`
- * exist in recorded data but are not offered here, and listing them would put
- * two unbuildable choices in front of the author.
+ * All nine of the CriteriaType union. `text` and `calibration` were left out
+ * on the assumption that they were not buildable here — they are: both have a
+ * spec panel wired into the type dispatch, a default payload, a preview
+ * template and a recorder. Leaving them off the list made two finished kinds
+ * of criterion unreachable, so a free-text observation or an instrument check
+ * could not be written at all.
+ *
+ * Ordered by what the author is deciding: single-answer kinds first, then the
+ * ones that measure many units, then the two that reference something else,
+ * then the composites.
  */
 const CRITERIA_TYPE_VALUES = [
   'numeric',
   'pass_fail',
   'visual',
+  'text',
   'multi_point',
   'tare',
+  'calibration',
   'calculated',
   'custom_multi_field',
 ] as const satisfies readonly CriteriaType[];
