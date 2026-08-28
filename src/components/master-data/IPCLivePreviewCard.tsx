@@ -982,18 +982,28 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
   const has = filledNets.length > 0;
 
   /**
-   * Each capsule's variation from the sample mean, in percent — the figure
-   * USP <905> Weight Variation is actually written against. It is derived, so
-   * nobody types it: the mean it is measured from only exists once the whole
-   * sample is weighed.
+   * How far one unit sits from the target it was meant to hit, in percent.
+   *
+   *   (net − target) ÷ target × 100
+   *
+   * Measured against the Target the author entered, not against the mean of
+   * the sample. The mean is what USP <905> Weight Variation compares to, and
+   * it answers a different question — whether the units agree with each other.
+   * An in-process weight check has to answer whether they agree with the dose,
+   * and a batch that drifts off target together passes the mean test while
+   * every unit is wrong.
    */
   const deviation = (i: number) =>
-    has && mean !== 0 ? ((nets[i] - mean) / mean) * 100 : null;
+    target > 0 && done(i) ? ((nets[i] - target) / target) * 100 : null;
 
   const tolPct = tol > 0 ? tol : null;
   const outOfSpec = (i: number) => {
     const d = deviation(i);
-    return tolPct != null && d != null && Math.abs(d) > tolPct;
+    // The epsilon is not fussiness: (0.55 - 0.5) / 0.5 * 100 comes out as
+    // 10.000000000000009 in binary floating point, so a unit sitting exactly
+    // on +10% failed while the same unit at exactly -10% passed. A value on
+    // the limit is inside it, on both sides.
+    return tolPct != null && d != null && Math.abs(d) - tolPct > 1e-9;
   };
   const failCount = nets.filter((_, i) => done(i) && outOfSpec(i)).length;
   const pass = failCount <= allowedFail;
@@ -1055,7 +1065,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>ความแปรปรวน</span>
+          <span>ส่วนต่างจาก Target</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1093,11 +1103,13 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
       </StatRow>
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
-        {tolPct == null
-          ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินความแปรปรวนได้`
-          : !has
-            ? `ความแปรปรวนของแต่ละ${noun} วัดจากค่าเฉลี่ยของทั้งชุด ต้องไม่เกิน ±${fmt(tolPct, 1)}%`
-            : `ค่าเฉลี่ย ${fmt(mean, 4)}${unit ? ` ${unit}` : ''} — แต่ละ${noun}ต้องอยู่ใน ±${fmt(tolPct, 1)}% ของค่านี้ · หลุดเกณฑ์ ${failCount} จากที่ยอมได้ ${allowedFail}`}
+        {target <= 0
+          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดส่วนต่างได้`
+          : tolPct == null
+            ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
+            : !has
+              ? `แต่ละ${noun}ต้องต่างจาก Target ${fmt(target, 4)}${unit ? ` ${unit}` : ''} ไม่เกิน ±${fmt(tolPct, 1)}%`
+              : `Target ${fmt(target, 4)}${unit ? ` ${unit}` : ''} — แต่ละ${noun}ต้องอยู่ใน ±${fmt(tolPct, 1)}% ของค่านี้ · หลุดเกณฑ์ ${failCount} จากที่ยอมได้ ${allowedFail} · ค่าเฉลี่ยที่ชั่งได้ ${fmt(mean, 4)}`}
       </p>
     </>
   );
@@ -1274,13 +1286,29 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
   const { mean, sd, rsd } = stats(filledNets);
   const has = filledNets.length > 0;
 
+  /**
+   * How far one unit sits from the target it was meant to hit, in percent.
+   *
+   *   (net − target) ÷ target × 100
+   *
+   * Measured against the Target the author entered, not against the mean of
+   * the sample. The mean is what USP <905> Weight Variation compares to, and
+   * it answers a different question — whether the units agree with each other.
+   * An in-process weight check has to answer whether they agree with the dose,
+   * and a batch that drifts off target together passes the mean test while
+   * every unit is wrong.
+   */
   const deviation = (i: number) =>
-    has && mean !== 0 ? ((nets[i] - mean) / mean) * 100 : null;
+    target > 0 && done(i) ? ((nets[i] - target) / target) * 100 : null;
 
   const tolPct = tol > 0 ? tol : null;
   const outOfSpec = (i: number) => {
     const d = deviation(i);
-    return tolPct != null && d != null && Math.abs(d) > tolPct;
+    // The epsilon is not fussiness: (0.55 - 0.5) / 0.5 * 100 comes out as
+    // 10.000000000000009 in binary floating point, so a unit sitting exactly
+    // on +10% failed while the same unit at exactly -10% passed. A value on
+    // the limit is inside it, on both sides.
+    return tolPct != null && d != null && Math.abs(d) - tolPct > 1e-9;
   };
   const failCount = nets.filter((_, i) => done(i) && outOfSpec(i)).length;
   const pass = failCount <= allowedFail;
@@ -1339,7 +1367,7 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>ความแปรปรวน</span>
+          <span>ส่วนต่างจาก Target</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1377,9 +1405,11 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
       </StatRow>
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
-        {tolPct == null
-          ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินความแปรปรวนได้`
-          : `Tare ชั่งรวมครั้งเดียวแล้วเฉลี่ย — ส่วนแต่ละ${noun}ยังตัดสินรายตัวใน ±${fmt(tolPct, 1)}% ของค่าเฉลี่ย`}
+        {target <= 0
+          ? `กรอก Target ต่อ${noun} เพื่อให้ระบบคิดส่วนต่างได้`
+          : tolPct == null
+            ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
+            : `Tare ชั่งรวมครั้งเดียวแล้วเฉลี่ย — ส่วนแต่ละ${noun}ยังตัดสินรายตัวใน ±${fmt(tolPct, 1)}% ของ Target ${fmt(target, 4)}${unit ? ` ${unit}` : ''}`}
       </p>
     </>
   );
