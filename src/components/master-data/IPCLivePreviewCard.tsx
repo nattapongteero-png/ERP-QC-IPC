@@ -1036,16 +1036,17 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 
   return (
     <>
-      {/* One row per unit: its shell, its filled weight, and what the two
-          make. Two tables meant the operator carried a row number between
-          them and the pairing existed only in their head. */}
+      {/* One row per unit, ordered so the subtraction reads across it:
+          ยา + แคปซูล − เปลือกเปล่า = น้ำหนักยาสุทธิ. Two tables meant the
+          operator carried a row number between them and the pairing existed
+          only in their head. */}
       <div className={RECORD_BOX}>
         {step(1, `${tareTitle} + ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง`)}
         {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
         <div className="grid grid-cols-[24px_1fr_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
-          <span>เปลือกเปล่า{u}</span>
           <span>ยา + แคปซูล{u}</span>
+          <span>เปลือกเปล่า{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
           <span>% คลาดเคลื่อน</span>
         </div>
@@ -1057,15 +1058,15 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
               <span className="text-[11px] text-[#bfbfbf]">{i + 1}</span>
               <input
                 className={CELL_INPUT}
-                value={shell.values[i] ?? ''}
-                onChange={(e) => shell.set(i, e.target.value)}
-                aria-label={`เปลือกเปล่า #${i + 1}`}
-              />
-              <input
-                className={CELL_INPUT}
                 value={g}
                 onChange={(e) => gross.set(i, e.target.value)}
                 aria-label={`ยาและแคปซูล #${i + 1}`}
+              />
+              <input
+                className={CELL_INPUT}
+                value={shell.values[i] ?? ''}
+                onChange={(e) => shell.set(i, e.target.value)}
+                aria-label={`เปลือกเปล่า #${i + 1}`}
               />
               <div className={FIELD_BOX}>{done(i) ? fmt(nets[i], 4) : '—'}</div>
               <div
