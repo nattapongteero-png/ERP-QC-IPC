@@ -89,6 +89,7 @@ import {
  */
 const CRITERIA_TYPE_VALUES = [
   'numeric',
+  'max_limit',
   'pass_fail',
   'visual',
   'text',
@@ -2428,6 +2429,33 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {/* Every other type keeps its existing editor, wrapped in the grid
                   those editors expect (they use sm:col-span-2 internally). */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+              {/* Max limit — a ceiling and nothing else. No Target and no
+                  ±% Tolerance: this kind of criterion has neither, and asking
+                  for them would put two invented numbers in the record. */}
+              {criteriaType === 'max_limit' && specPayload?.type === 'max_limit' && (
+                <div className="sm:col-span-2 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <SoftLabel label={`Max Value${formData.unit ? ` (${formData.unit})` : ''}`} required>
+                    <input
+                      type="number"
+                      step="any"
+                      data-testid="max-limit-value"
+                      className={SOFT_INPUT}
+                      placeholder="เช่น 1000"
+                      value={specPayload.maxValue}
+                      onChange={(e) => setSpecPayload({ ...specPayload, maxValue: e.target.value })}
+                    />
+                  </SoftLabel>
+                  <SoftLabel label="ที่มาของเกณฑ์ (ถ้ามี)">
+                    <input
+                      className={SOFT_INPUT}
+                      placeholder="เช่น USP <61> · ประกาศกระทรวง"
+                      value={specPayload.note}
+                      onChange={(e) => setSpecPayload({ ...specPayload, note: e.target.value })}
+                    />
+                  </SoftLabel>
+                </div>
+              )}
+
               {/* Pass / Fail */}
               {criteriaType === 'pass_fail' && specPayload?.type === 'pass_fail' && (
                 <PassFailSection payload={specPayload} onChange={setSpecPayload} />

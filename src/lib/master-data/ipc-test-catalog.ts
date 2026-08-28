@@ -10,7 +10,7 @@
  */
 
 export type CriteriaType =
-  | 'numeric' | 'pass_fail' | 'visual' | 'text'
+  | 'numeric' | 'max_limit' | 'pass_fail' | 'visual' | 'text'
   | 'multi_point' | 'tare' | 'calibration' | 'calculated' | 'custom_multi_field';
 
 export interface TestNameEntry {
@@ -683,6 +683,12 @@ export const CRITERIA_TYPE_META: Record<CriteriaType, {
   numeric: {
     label: 'Numeric',
     desc: 'วัดเป็นตัวเลข เทียบกับ Min/Max',
+    bgColor: 'bg-emerald-50 border-emerald-200',
+    textColor: 'text-emerald-800',
+  },
+  max_limit: {
+    label: 'Max Limit',
+    desc: 'วัดเป็นตัวเลข ต้องไม่เกินค่าสูงสุด',
     bgColor: 'bg-emerald-50 border-emerald-200',
     textColor: 'text-emerald-800',
   },

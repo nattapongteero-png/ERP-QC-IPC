@@ -381,6 +381,23 @@ export interface VisualPayload {
   referenceImage: string;
 }
 
+/**
+ * A ceiling and nothing else.
+ *
+ * Plenty of criteria are written as "not more than" with no target to hit and
+ * no floor worth stating — microbial limits, heavy metals, loss on drying,
+ * friability. Expressing those as Target ± Tolerance forces the author to
+ * invent a target and a lower bound the specification never had, and the
+ * recorded result then reads as though someone had aimed for that number.
+ */
+export interface MaxLimitPayload {
+  type: 'max_limit';
+  /** The ceiling. Anything at or below it passes. */
+  maxValue: string;
+  /** Optional note — the method or the standard the ceiling comes from. */
+  note: string;
+}
+
 export interface TextPayload {
   type: 'text';
   format: string;
@@ -497,6 +514,7 @@ export interface CustomMultiFieldPayload {
 }
 
 export type SpecPayload =
+  | MaxLimitPayload
   | PassFailPayload | VisualPayload | TextPayload
   | MultiPointPayload | TarePayload
   | CalibrationPayload | CalculatedPayload | CustomMultiFieldPayload;
@@ -545,6 +563,9 @@ export function parseSpecPayload(
   if (criteriaType === 'text') {
     return { type: 'text', format: text, example: '', required: true };
   }
+  if (criteriaType === 'max_limit') {
+    return { type: 'max_limit', maxValue: '', note: text };
+  }
   if (
     criteriaType === 'multi_point' ||
     criteriaType === 'tare' ||
@@ -574,6 +595,13 @@ function validatePayload(obj: Record<string, unknown>): SpecPayload | null {
         ? obj.checklist.filter((x): x is string => typeof x === 'string')
         : [],
       referenceImage: typeof obj.referenceImage === 'string' ? obj.referenceImage : '',
+    };
+  }
+  if (obj.type === 'max_limit') {
+    return {
+      type: 'max_limit',
+      maxValue: typeof obj.maxValue === 'string' ? obj.maxValue : String(obj.maxValue ?? ''),
+      note: typeof obj.note === 'string' ? obj.note : '',
     };
   }
   if (obj.type === 'text') {
@@ -688,6 +716,9 @@ export function defaultPayload(criteriaType: string): SpecPayload | null {
   }
   if (criteriaType === 'text') {
     return { type: 'text', format: '', example: '', required: true };
+  }
+  if (criteriaType === 'max_limit') {
+    return { type: 'max_limit', maxValue: '', note: '' };
   }
   if (criteriaType === 'multi_point') {
     return {

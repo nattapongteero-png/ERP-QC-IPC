@@ -118,6 +118,7 @@ type Template =
   | 'aggregate'
   | 'friability'
   | 'microbial'
+  | 'max_limit'
   | 'pass_fail'
   | 'checklist'
   | 'text'
@@ -150,6 +151,8 @@ function resolveTemplate(
       if (/^cfu/i.test(formData.unit ?? '')) return 'microbial';
       return sampleSize > 1 ? 'per_unit' : 'aggregate';
     }
+    case 'max_limit':
+      return 'max_limit';
     case 'pass_fail':
       return 'pass_fail';
     case 'visual':
@@ -710,6 +713,13 @@ function SpecHeaderFields({
         <SpecField label="หมายเหตุ" value={specPayload.generalNote || dash} />
       </>
     );
+  } else if (template === 'max_limit' && specPayload?.type === 'max_limit') {
+    fields = (
+      <>
+        <SpecField label={`ค่าสูงสุด${unitSuffix}`} value={specPayload.maxValue || dash} />
+        <SpecField label="ที่มาของเกณฑ์" value={specPayload.note || dash} />
+      </>
+    );
   } else if (template === 'microbial') {
     fields = (
       <>
@@ -748,6 +758,8 @@ function RecordingArea(props: RecordingProps) {
       return <TareAverageRecorder {...props} />;
     case 'friability':
       return <FriabilityRecorder {...props} />;
+    case 'max_limit':
+      return <MaxLimitRecorder {...props} />;
     case 'pass_fail':
       return <PassFailRecorder {...props} />;
     case 'checklist':
@@ -1534,6 +1546,50 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
  * against; the verdict is then two explicit buttons per sample, neither of
  * them preselected.
  */
+/**
+ * One reading against a ceiling.
+ *
+ * There is no target to aim at and no floor to clear, so there is nothing to
+ * show but the number, the limit, and whether one is under the other. A
+ * reading exactly on the limit passes — "ไม่เกิน" includes the limit itself.
+ */
+function MaxLimitRecorder({ specPayload, unit }: RecordingProps) {
+  const ml = specPayload?.type === 'max_limit' ? specPayload : null;
+  const max = Number(ml?.maxValue ?? '');
+  const hasMax = Number.isFinite(max) && (ml?.maxValue ?? '').trim() !== '';
+  const { values, set, numbers } = useDemoValues(
+    1,
+    () => (hasMax ? max * 0.6 : 0),
+    `max|${ml?.maxValue ?? ''}`,
+    hasMax,
+  );
+  const has = values[0]?.trim() !== '';
+  const state = has && hasMax ? (numbers[0] <= max ? 'pass' : 'fail') : null;
+
+  useReportValues(() =>
+    numericSamples(values, numbers, (v) => (hasMax ? (v <= max ? 'pass' : 'fail') : null)),
+  );
+
+  const u = unit ? ` (${unit})` : '';
+  return (
+    <>
+      <div className={RECORD_BOX}>
+        <Cell label={`ค่าที่วัดได้${u}`} value={values[0]} onChange={(v) => set(0, v)} state={state} />
+      </div>
+      <StatRow>
+        <StatCard label="ค่าที่วัดได้" value={has ? fmt(numbers[0], 3) : '—'} />
+        <StatCard label="ต้องไม่เกิน" value={hasMax ? fmt(max, 3) : '—'} />
+      </StatRow>
+      <ResultBar pass={state === null ? null : state === 'pass'} />
+      <p className="text-xs text-[#6b7280]">
+        {!hasMax
+          ? 'กรอกค่าสูงสุด เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้'
+          : `ผ่านเมื่อค่าที่วัดได้ไม่เกิน ${fmt(max, 3)}${unit ? ` ${unit}` : ''} — เท่ากับพอดีถือว่าผ่าน${ml?.note ? ` · ${ml.note}` : ''}`}
+      </p>
+    </>
+  );
+}
+
 function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail }: RecordingProps) {
   const pf = specPayload?.type === 'pass_fail' ? specPayload : null;
   const count = Math.min(Math.max(sampleSize, 1), 20);
