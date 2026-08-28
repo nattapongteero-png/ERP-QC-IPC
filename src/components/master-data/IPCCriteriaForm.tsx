@@ -2336,7 +2336,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={4} title="B · ตัดสินผลอย่างไร" hint="รายชิ้น · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
+          <FormSection step={4} title="เกณฑ์การพิจารณา" hint="ต่อหน่วย · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
 
           {/* B1 — the spec for the chosen type. It kept the picker's card when
               the two were one section; now that the picker stands alone in
@@ -2472,7 +2472,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             </div>
           </div>
 
-          {/* ── เกณฑ์การยอมรับแบบหลายขั้น — Figma node 60:5641 ─────────
+          {/* ── เกณฑ์การตัดสินแบบหลายขั้น — Figma node 60:5641 ─────────
               Its own card, matching เอกสาร GMP / ประเภทเกณฑ์ / แผนการสุ่ม.
 
               The frame only draws the single-stage state, so the multi-stage
@@ -2486,9 +2486,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 flex-col gap-4">
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-sm font-semibold text-black">เกณฑ์การยอมรับแบบหลายขั้น</h4>
+                    <h4 className="text-sm font-semibold text-black">เกณฑ์การตัดสินแบบหลายขั้น</h4>
                     <p className="text-xs text-[#bfbfbf]">
-                      เกณฑ์การยอมรับแบบหลายขั้น (ตามหลัก GMP / USP &lt;711&gt;, &lt;905&gt;)
+                      เกณฑ์การตัดสินแบบหลายขั้น (ตามหลัก GMP / USP &lt;711&gt;, &lt;905&gt;)
                     </p>
                   </div>
 
@@ -3902,13 +3902,13 @@ function MultiPointSection({
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">เกณฑ์รายชิ้น</h4>
-            <span className="text-[11px] text-slate-400">ชิ้นหนึ่งควรหนักเท่าไร และเบี่ยงได้แค่ไหน</span>
+            <h4 className="text-sm font-semibold text-black">เกณฑ์ต่อหน่วย</h4>
+            <span className="text-[11px] text-slate-400">หนึ่งหน่วยควรหนักเท่าไร และเบี่ยงได้แค่ไหน</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={FIELD_LABEL}>
-                Target ต่อเม็ด <span className="text-red-500">*</span>
+                Target ต่อหน่วย <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -3921,7 +3921,7 @@ function MultiPointSection({
               />
             </div>
             <div>
-              <label className={FIELD_LABEL}>±% Tolerance ต่อเม็ด</label>
+              <label className={FIELD_LABEL}>±% Tolerance ต่อหน่วย</label>
               <div className="relative">
                 <input
                   type="number"
