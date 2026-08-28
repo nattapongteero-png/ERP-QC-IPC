@@ -656,11 +656,11 @@ function SpecHeaderFields({
     fields = (
       <>
         <SpecField
-          label={template === 'bulk_weigh' ? 'จำนวนตัวอย่าง' : 'จำนวนจุด'}
+          label="จำนวนตัวอย่าง"
           value={specPayload.pointCount || dash}
         />
         <SpecField
-          label={`Target ${template === 'bulk_weigh' ? 'ต่อหน่วย' : 'ต่อจุด'}${unitSuffix}`}
+          label={`Target ต่อหน่วย${unitSuffix}`}
           value={specPayload.perPointTarget || dash}
         />
         <SpecField label="± % Tolerance" value={specPayload.perPointTolerance || dash} />
@@ -945,7 +945,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
   const tareRows = rowCount(mp?.tareCount, 10, 20);
   const sampleRows = rowCount(mp?.pointCount, sampleSize, 20);
-  const noun = (mp?.pointLabel || 'เม็ด').trim();
+  const noun = (mp?.pointLabel || 'หน่วย').trim();
   // Whatever the criterion calls this weighing — a shell, a lid, a tray. The
   // recording screen has to say the same thing the criterion says.
   const tareTitle = (mp?.tareLabel || '').trim() || 'ชั่งแคปซูลเปล่า';
@@ -1115,7 +1115,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
   const sourceCode =
     specPayload?.type === 'multi_point' ? specPayload.tareSourceCode : '';
   const pointLabel =
-    (specPayload?.type === 'multi_point' && specPayload.pointLabel) || 'จุด';
+    (specPayload?.type === 'multi_point' && specPayload.pointLabel) || 'หน่วย';
 
   const seeded = formData.specTarget != null || bounds != null;
   const gross = useDemoValues(
@@ -1179,7 +1179,11 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
               data-testid="linked-tare-value"
             />
             <span className="text-[11px] text-[#bfbfbf]">
-              {formData.unit || 'g'} · บันทึกครั้งเดียวต่อรุ่น ไม่ต้องชั่งซ้ำทุกจุด
+              {/* No unit chosen means none — printing g invented a unit the
+                  author never picked, on the one figure the whole subtraction
+                  depends on. */}
+              {formData.unit ? `${formData.unit} · ` : ''}
+              บันทึกครั้งเดียวต่อรุ่น ไม่ต้องชั่งซ้ำทุกหน่วย
             </span>
           </div>
         </div>
@@ -1189,7 +1193,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
             2
           </span>
           <span className="text-[11px] font-medium text-slate-700">
-            ตารางการบันทึกผล — ชั่งรวมของแต่ละ{pointLabel} · ระบบหัก Tare ให้เป็น Net
+            ตารางการบันทึกผล — ชั่งรวมของแต่ละ{pointLabel} · ระบบหัก Tare ให้เป็นน้ำหนักสุทธิ
           </span>
         </div>
 
@@ -1243,7 +1247,7 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
   const tareBatch = rowCount(mp?.tareCount, 10, 999);
   const sampleRows = rowCount(mp?.pointCount, 10, 20);
-  const noun = (mp?.pointLabel || 'เม็ด').trim();
+  const noun = (mp?.pointLabel || 'หน่วย').trim();
   // Whatever the criterion calls this weighing — a shell, a lid, a tray. The
   // recording screen has to say the same thing the criterion says.
   const tareTitle = (mp?.tareLabel || '').trim() || 'ชั่งแคปซูลเปล่า';

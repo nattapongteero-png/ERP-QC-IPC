@@ -54,18 +54,18 @@ describe('Live Preview — the unit follows the criterion', () => {
   it('reports the linked tare unit, not a different one', () => {
     renderWith('mg');
     // The header labels its target with the unit in force.
-    expect(screen.getByText(/Target ต่อจุด \(mg\)/)).toBeInTheDocument();
-    expect(screen.queryByText(/Target ต่อจุด \(g\)/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Target ต่อหน่วย \(mg\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/Target ต่อหน่วย \(g\)/)).not.toBeInTheDocument();
   });
 
   it('changes with the unit rather than hard-coding one', () => {
     renderWith('g');
-    expect(screen.getByText(/Target ต่อจุด \(g\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Target ต่อหน่วย \(g\)/)).toBeInTheDocument();
   });
 
   it('omits the suffix when no unit is set', () => {
     renderWith(null);
-    expect(screen.getByText(/^Target ต่อจุด$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Target ต่อหน่วย$/)).toBeInTheDocument();
   });
 });
 

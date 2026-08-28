@@ -2,7 +2,7 @@
  * The spec header of the Live Preview, for a Multi-Point criterion whose tare
  * is weighed in bulk.
  *
- * Reported from the criteria screen: the author fills in Target ต่อเม็ด and
+ * Reported from the criteria screen: the author fills in the per-unit target and
  * ±% Tolerance ต่อเม็ด and the preview beside them keeps showing "—". The
  * header had branches for the two other Multi-Point shapes (capsule_net and
  * tare_matched) but none for bulk_weigh, so it fell through to the generic

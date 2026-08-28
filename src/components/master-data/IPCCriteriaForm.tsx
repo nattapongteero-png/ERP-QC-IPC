@@ -3802,15 +3802,15 @@ function MultiPointSection({
             {[
               {
                 v: 'per_unit' as const,
-                title: 'ชั่งทีละเม็ด',
-                sub: 'ชั่งเปลือกเปล่าทีละชิ้น เป็นตาราง 1 แถวต่อ 1 ชิ้น',
-                why: 'ตรวจสอบย้อนกลับได้ว่าเปลือกชิ้นไหนผิดปกติ',
+                title: 'ชั่งทีละหน่วย',
+                sub: 'ชั่งเปลือกเปล่าทีละหน่วย เป็นตาราง 1 แถวต่อ 1 หน่วย',
+                why: 'ตรวจสอบย้อนกลับได้ว่าเปลือกหน่วยไหนผิดปกติ',
               },
               {
                 v: 'bulk' as const,
                 title: 'ชั่งรวม',
                 sub: 'ชั่งเปลือกเปล่าพร้อมกัน กรอกน้ำหนักรวมครั้งเดียว',
-                why: 'เร็วกว่า — แคปซูลที่บรรจุแล้วยังชั่งทีละเม็ดเหมือนเดิม',
+                why: 'เร็วกว่า — หน่วยที่บรรจุแล้วยังชั่งทีละหน่วยเหมือนเดิม',
               },
             ].map((opt) => {
               const active = payload.tareMode === opt.v;
@@ -3885,7 +3885,7 @@ function MultiPointSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={FIELD_LABEL}>
-                {payload.tareMode === 'bulk' ? 'ชื่อหน่วยที่ชั่ง' : 'Label ของจุด (Point Label)'}
+                ชื่อหน่วยที่ชั่ง
               </label>
               <input
                 className={FIELD_INPUT}
@@ -3951,10 +3951,10 @@ function MultiPointSection({
           <label className={FIELD_LABEL}>Aggregate Rule <span className="text-red-500">*</span></label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { v: 'all_pass', t: 'ทุกจุดต้องผ่าน', d: 'All Pass' },
+              { v: 'all_pass', t: 'ทุกหน่วยต้องผ่าน', d: 'All Pass' },
               { v: 'mean', t: 'เฉลี่ยอยู่ในช่วง', d: 'Mean in range' },
               { v: 'rsd', t: 'ความเบี่ยงเบนต่ำ', d: 'RSD ≤ limit' },
-              { v: 'min_max', t: 'ทุกจุดอยู่ในช่วง', d: 'Min/Max bound' },
+              { v: 'min_max', t: 'ทุกหน่วยอยู่ในช่วง', d: 'Min/Max bound' },
             ].map((opt) => {
               const active = payload.aggregateRule === opt.v;
               return (
@@ -3996,7 +3996,7 @@ function MultiPointSection({
             {payload.aggregateRule === 'rsd'
               ? 'ระบุ RSD limit เป็น %'
               : payload.aggregateRule === 'all_pass'
-              ? 'ใช้ Target ± Tolerance ของแต่ละจุด'
+              ? 'ใช้ Target ± Tolerance ของแต่ละหน่วย'
               : 'คำนวณอัตโนมัติจาก Target ± Tolerance%'}
           </p>
         </div>

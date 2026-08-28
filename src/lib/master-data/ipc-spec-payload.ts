@@ -695,7 +695,7 @@ export function defaultPayload(criteriaType: string): SpecPayload | null {
       tareMode: 'per_unit',
       tareCount: '10',
       tareLabel: '',
-      pointCount: '20', pointLabel: 'จุด', perPointTarget: '', perPointTolerance: '',
+      pointCount: '20', pointLabel: 'หน่วย', perPointTarget: '', perPointTolerance: '',
       aggregateRule: 'all_pass', aggregateLimit: '', tareSourceCode: '',
     };
   }
