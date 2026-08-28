@@ -1065,7 +1065,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>ส่วนต่างจาก Target</span>
+          <span>% ส่วนต่างจาก Target</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1367,7 +1367,7 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>ส่วนต่างจาก Target</span>
+          <span>% ส่วนต่างจาก Target</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
