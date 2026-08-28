@@ -1553,38 +1553,65 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
  * show but the number, the limit, and whether one is under the other. A
  * reading exactly on the limit passes — "ไม่เกิน" includes the limit itself.
  */
-function MaxLimitRecorder({ specPayload, unit }: RecordingProps) {
+function MaxLimitRecorder({ sampleSize, allowedFail, specPayload, unit }: RecordingProps) {
   const ml = specPayload?.type === 'max_limit' ? specPayload : null;
   const max = Number(ml?.maxValue ?? '');
   const hasMax = Number.isFinite(max) && (ml?.maxValue ?? '').trim() !== '';
-  const { values, set, numbers } = useDemoValues(
-    1,
-    () => (hasMax ? max * 0.6 : 0),
-    `max|${ml?.maxValue ?? ''}`,
+  // One box per sample, like every other numeric kind — a ceiling says how a
+  // reading is judged, not how many readings there are.
+  const count = Math.min(Math.max(sampleSize, 0), 30);
+
+  const { values, set, numbers, filled } = useDemoValues(
+    count,
+    // The last one is seeded just over the limit so the fail/allowed count
+    // shows what it is for instead of always reading zero.
+    (i) => (hasMax ? (i === count - 1 ? max * 1.04 : max * (0.55 + jitter(i) * 0.3)) : 0),
+    `max|${count}|${ml?.maxValue ?? ''}`,
     hasMax,
   );
-  const has = values[0]?.trim() !== '';
-  const state = has && hasMax ? (numbers[0] <= max ? 'pass' : 'fail') : null;
 
-  useReportValues(() =>
-    numericSamples(values, numbers, (v) => (hasMax ? (v <= max ? 'pass' : 'fail') : null)),
-  );
+  const verdict = (v: number): 'pass' | 'fail' | null =>
+    hasMax ? (v <= max ? 'pass' : 'fail') : null;
+  const state = (i: number) => (values[i].trim() === '' ? null : verdict(numbers[i]));
+
+  useReportValues(() => numericSamples(values, numbers, verdict));
+
+  const has = filled.length > 0;
+  const failCount = values.filter((v, i) => v.trim() !== '' && verdict(numbers[i]) === 'fail').length;
+  const pass = failCount <= allowedFail;
+  const highest = has ? Math.max(...filled) : 0;
 
   const u = unit ? ` (${unit})` : '';
   return (
     <>
       <div className={RECORD_BOX}>
-        <Cell label={`ค่าที่วัดได้${u}`} value={values[0]} onChange={(v) => set(0, v)} state={state} />
+        {count === 0 && <NoRows what="จำนวนตัวอย่างที่วัด (Sample Size)" />}
+        <CellGrid>
+          {values.map((v, i) => (
+            <Cell
+              key={i}
+              label={`#${i + 1}${u}`}
+              value={v}
+              onChange={(nv) => set(i, nv)}
+              state={state(i)}
+            />
+          ))}
+        </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="ค่าที่วัดได้" value={has ? fmt(numbers[0], 3) : '—'} />
+        <StatCard label="ค่าสูงสุดที่วัดได้" value={has ? fmt(highest, 3) : '—'} />
         <StatCard label="ต้องไม่เกิน" value={hasMax ? fmt(max, 3) : '—'} />
+        <StatCard
+          label="fail / allowed"
+          value={`${failCount}/${allowedFail}`}
+          tone={hasMax && has ? (pass ? 'pass' : 'fail') : undefined}
+        />
       </StatRow>
-      <ResultBar pass={state === null ? null : state === 'pass'} />
+      <ResultBar pass={hasMax && has ? pass : null} />
       <p className="text-xs text-[#6b7280]">
         {!hasMax
           ? 'กรอกค่าสูงสุด เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้'
-          : `ผ่านเมื่อค่าที่วัดได้ไม่เกิน ${fmt(max, 3)}${unit ? ` ${unit}` : ''} — เท่ากับพอดีถือว่าผ่าน${ml?.note ? ` · ${ml.note}` : ''}`}
+          : `ทุกตัวอย่างต้องไม่เกิน ${fmt(max, 3)}${unit ? ` ${unit}` : ''} — เท่ากับพอดีถือว่าผ่าน · หลุดเกณฑ์ ${failCount} จากที่ยอมได้ ${allowedFail}${ml?.note ? ` · ${ml.note}` : ''}`}
       </p>
     </>
   );
