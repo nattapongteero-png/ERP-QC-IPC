@@ -66,9 +66,9 @@ describe('Live Preview — Multi-Point with a bulk-weighed tare', () => {
     // anywhere else on the card — the recorder below repeats the target, and
     // a loose text query would pass on that copy while the header still said
     // "—", which is exactly the bug.
-    expect(headerValue(/^จำนวนตัวอย่าง$/)).toBe('20');
-    expect(headerValue(/^ค่าเป้าหมายต่อหน่วย/)).toBe('0.5');
-    expect(headerValue(/^ค่าคลาดเคลื่อนที่ยอมรับได้ \(%\)$/)).toBe('7.5');
+    expect(headerValue(/^Sample size$/)).toBe('20');
+    expect(headerValue(/^Target per unit/)).toBe('0.5');
+    expect(headerValue(/^Tolerance \(%\)$/)).toBe('7.5');
   });
 
   /**
@@ -99,9 +99,9 @@ describe('Live Preview — Multi-Point with a bulk-weighed tare', () => {
       />,
     );
 
-    expect(headerValue(/^จำนวนตัวอย่าง$/)).toBe('20');
-    expect(headerValue(/^ค่าเป้าหมายต่อหน่วย/)).toBe('0.5');
-    expect(headerValue(/^ค่าคลาดเคลื่อนที่ยอมรับได้ \(%\)$/)).toBe('7.5');
+    expect(headerValue(/^Sample size$/)).toBe('20');
+    expect(headerValue(/^Target per unit/)).toBe('0.5');
+    expect(headerValue(/^Tolerance \(%\)$/)).toBe('7.5');
   });
 
   it('still falls back to a dash when the author has typed nothing', () => {

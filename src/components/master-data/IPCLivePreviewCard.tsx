@@ -17,6 +17,8 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils/cn';
+import { useLocale } from 'next-intl';
+import { useUiText } from '@/components/master-data/ipc-ui-text';
 import { formatNumber } from '@/lib/utils/number-format';
 import {
   Tooltip,
@@ -494,6 +496,8 @@ export function IPCLivePreviewCard({
   blank = false,
   onValuesChange,
 }: IPCLivePreviewCardProps) {
+  const inEnglishPreview = useLocale() === 'en';
+  const ui = useUiText();
   const unit = formData.unit ?? '';
 
 
@@ -542,13 +546,15 @@ export function IPCLivePreviewCard({
     : (acceptanceMath?.allowedFail
         ?? Math.floor((sampleSize * (formData.tolerancePercent ?? 0)) / 100));
 
-  const footerNote = React.useMemo(() => {
-    const stageMeta = STAGE_OPTIONS.find((s) => s.value === stage);
-    const count = testsForStage(stage).length;
-    const form = DOSAGE_FORM_OPTIONS.find((d) => d.value === formData.dosageForm)?.label;
-    const scope = form ? `${stageMeta?.titleTh} + ${form}` : stageMeta?.titleTh;
-    return `กรองจาก ${count} หัวข้อที่ใช้กับ ${scope}`;
-  }, [stage, formData.dosageForm]);
+  // Not memoised: it is three lookups and a join, and memoising it meant
+  // either listing `ui` — new on every render, so the memo never held — or
+  // leaving it out, which froze the line in whichever language it first read.
+  const stageMeta = STAGE_OPTIONS.find((s) => s.value === stage);
+  const dosage = DOSAGE_FORM_OPTIONS.find((d) => d.value === formData.dosageForm);
+  const stageTitle = inEnglishPreview ? stageMeta?.titleEn : stageMeta?.titleTh;
+  const dosageLabel = dosage && ((inEnglishPreview && dosage.labelEn) || dosage.label);
+  const scope = dosageLabel ? `${stageTitle} + ${dosageLabel}` : stageTitle;
+  const footerNote = `${ui('กรองจาก')} ${testsForStage(stage).length} ${ui('หัวข้อที่ใช้กับ')} ${scope}`;
 
   return (
     // One provider for the whole card: the spec fields raise a tooltip when
@@ -621,7 +627,7 @@ export function IPCLivePreviewCard({
           {/* Keeps the title clear of the seal — a heading running under the
               GMP mark reads as a rendering mistake, not as layering. */}
           <div className="flex flex-col gap-1 pr-[112px]">
-            <p className="text-sm font-semibold text-black">เกณฑ์มาตรฐาน</p>
+            <p className="text-sm font-semibold text-black">{ui('เกณฑ์มาตรฐาน')}</p>
             <p className="truncate text-xs text-[#bfbfbf]" title={formData.name || undefined}>
               {formData.name || 'ยังไม่ได้เลือกหัวข้อทดสอบ'}
             </p>
@@ -703,6 +709,7 @@ function SpecHeaderFields({
   calculatedMinMax: { min: number; max: number } | null;
   unitSuffix: string;
 }) {
+  const ui = useUiText();
   const dash = <span className="text-[#bfbfbf]">—</span>;
   const minMax = calculatedMinMax
     ? `${fmt(calculatedMinMax.min, 3)} – ${fmt(calculatedMinMax.max, 3)}`
@@ -711,8 +718,8 @@ function SpecHeaderFields({
   const numericFields = (
     <>
       <SpecField label={`Target${unitSuffix}`} value={formData.specTarget ?? dash} />
-      <SpecField label="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)" value={formData.specTolerancePercent ?? dash} />
-      <SpecField label="ช่วงต่ำสุด–สูงสุด (คำนวณให้)" value={minMax ?? dash} />
+      <SpecField label={ui('ค่าคลาดเคลื่อนที่ยอมรับได้ (%)')} value={formData.specTolerancePercent ?? dash} />
+      <SpecField label={ui('ช่วงต่ำสุด–สูงสุด (คำนวณให้)')} value={minMax ?? dash} />
     </>
   );
 
@@ -721,22 +728,22 @@ function SpecHeaderFields({
   if (template === 'pass_fail' && specPayload?.type === 'pass_fail') {
     fields = (
       <>
-        <SpecField label="ผ่าน คือ" value={specPayload.passDefinition || dash} />
-        <SpecField label="ไม่ผ่าน คือ" value={specPayload.failDefinition || dash} />
+        <SpecField label={ui('ผ่าน คือ')} value={specPayload.passDefinition || dash} />
+        <SpecField label={ui('ไม่ผ่าน คือ')} value={specPayload.failDefinition || dash} />
       </>
     );
   } else if (template === 'checklist' && specPayload?.type === 'visual') {
     fields = (
       <>
-        <SpecField label="จุดตรวจ" value={specPayload.checklist.filter(Boolean).length || dash} />
-        <SpecField label="รายละเอียด" value={specPayload.description || dash} />
+        <SpecField label={ui('จุดตรวจ')} value={specPayload.checklist.filter(Boolean).length || dash} />
+        <SpecField label={ui('รายละเอียด')} value={specPayload.description || dash} />
       </>
     );
   } else if (template === 'text' && specPayload?.type === 'text') {
     fields = (
       <>
-        <SpecField label="รูปแบบที่คาดหวัง" value={specPayload.format || dash} />
-        <SpecField label="ตัวอย่าง" value={specPayload.example || dash} />
+        <SpecField label={ui('รูปแบบที่คาดหวัง')} value={specPayload.format || dash} />
+        <SpecField label={ui('ตัวอย่าง')} value={specPayload.example || dash} />
       </>
     );
   } else if (
@@ -750,20 +757,20 @@ function SpecHeaderFields({
     fields = (
       <>
         <SpecField
-          label="จำนวนตัวอย่าง"
+          label={ui('จำนวนตัวอย่าง')}
           value={specPayload.pointCount || dash}
         />
         <SpecField
-          label={`ค่าเป้าหมายต่อหน่วย${unitSuffix}`}
+          label={`${ui('ค่าเป้าหมายต่อหน่วย')}${unitSuffix}`}
           value={specPayload.perPointTarget || dash}
         />
-        <SpecField label="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)" value={specPayload.perPointTolerance || dash} />
+        <SpecField label={ui('ค่าคลาดเคลื่อนที่ยอมรับได้ (%)')} value={specPayload.perPointTolerance || dash} />
       </>
     );
   } else if (template === 'tare_avg' && specPayload?.type === 'tare') {
     fields = (
       <>
-        <SpecField label={`หน่วย`} value={specPayload.referenceUnit || dash} />
+        <SpecField label={ui('หน่วย')} value={specPayload.referenceUnit || dash} />
         <SpecField label="Min" value={specPayload.acceptanceMin || dash} />
         <SpecField label="Max" value={specPayload.acceptanceMax || dash} />
       </>
@@ -772,23 +779,23 @@ function SpecHeaderFields({
     fields = (
       <>
         <SpecField
-          label={`ค่ามาตรฐาน${specPayload.standardUnit ? ` (${specPayload.standardUnit})` : ''}`}
+          label={`${ui('ค่ามาตรฐาน')}${specPayload.standardUnit ? ` (${specPayload.standardUnit})` : ''}`}
           value={specPayload.standardValue || dash}
         />
         <SpecField
           label={specPayload.toleranceType === 'percent' ? '± % Tolerance' : '± Tolerance'}
           value={specPayload.toleranceValue || dash}
         />
-        <SpecField label="ครบกำหนด" value={specPayload.nextDueDate || dash} />
+        <SpecField label={ui('ครบกำหนด')} value={specPayload.nextDueDate || dash} />
       </>
     );
   } else if (template === 'calculated' && specPayload?.type === 'calculated') {
     fields = (
       <>
-        <SpecField label="สูตร" value={specPayload.formula || dash} />
-        <SpecField label="หน่วยผลลัพธ์" value={specPayload.resultUnit || dash} />
+        <SpecField label={ui('สูตร')} value={specPayload.formula || dash} />
+        <SpecField label={ui('หน่วยผลลัพธ์')} value={specPayload.resultUnit || dash} />
         <SpecField
-          label="ช่วงต่ำสุด–สูงสุด"
+          label={ui('ช่วงต่ำสุด–สูงสุด')}
           value={
             specPayload.resultMin || specPayload.resultMax
               ? `${specPayload.resultMin || '—'} – ${specPayload.resultMax || '—'}`
@@ -800,23 +807,23 @@ function SpecHeaderFields({
   } else if (template === 'custom_fields' && specPayload?.type === 'custom_multi_field') {
     fields = (
       <>
-        <SpecField label="จำนวนฟิลด์" value={specPayload.fields.length || dash} />
-        <SpecField label="หมายเหตุ" value={specPayload.generalNote || dash} />
+        <SpecField label={ui('จำนวนฟิลด์')} value={specPayload.fields.length || dash} />
+        <SpecField label={ui('หมายเหตุ')} value={specPayload.generalNote || dash} />
       </>
     );
   } else if (template === 'max_limit' && specPayload?.type === 'max_limit') {
     fields = (
       <>
-        <SpecField label={`ค่าที่กำหนด${unitSuffix}`} value={specPayload.maxValue || dash} />
-        <SpecField label="ที่มาของเกณฑ์" value={specPayload.note || dash} />
+        <SpecField label={`${ui('ค่าที่กำหนด')}${unitSuffix}`} value={specPayload.maxValue || dash} />
+        <SpecField label={ui('ที่มาของเกณฑ์')} value={specPayload.note || dash} />
       </>
     );
   } else if (template === 'microbial') {
     fields = (
       <>
         <SpecField label={`Limit${unitSuffix}`} value={calculatedMinMax?.max ?? dash} />
-        <SpecField label="ค่าเป้าหมาย" value={formData.specTarget ?? dash} />
-        <SpecField label="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)" value={formData.specTolerancePercent ?? dash} />
+        <SpecField label={ui('ค่าเป้าหมาย')} value={formData.specTarget ?? dash} />
+        <SpecField label={ui('ค่าคลาดเคลื่อนที่ยอมรับได้ (%)')} value={formData.specTolerancePercent ?? dash} />
       </>
     );
   }
@@ -990,6 +997,7 @@ function judge(v: number, bounds: { lo: number; hi: number } | null): 'pass' | '
 
 // Per-unit grid — n samples, mean/SD/%RSD and the accept/reject count.
 function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const count = Math.min(Math.max(sampleSize, 0), 30);
   const base = bounds ? (bounds.lo + bounds.hi) / 2 : (formData.specTarget ?? 100);
   const spread = bounds ? (bounds.hi - bounds.lo) / 2 : base * 0.05;
@@ -1015,7 +1023,7 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData, pointLabel
   return (
     <>
       <div className={RECORD_BOX}>
-        {count === 0 && <NoRows what="จำนวนตัวอย่างที่วัด" />}
+        {count === 0 && <NoRows what={ui('จำนวนตัวอย่างที่วัด')} />}
         <CellGrid>
           {values.map((v, i) => (
             <Cell
@@ -1029,10 +1037,10 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData, pointLabel
         </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="ค่าเฉลี่ย" value={has ? fmt(mean) : '—'} />
+        <StatCard label={ui('ค่าเฉลี่ย')} value={has ? fmt(mean) : '—'} />
         <StatCard label="SD" value={has ? fmt(sd) : '—'} />
         <StatCard label="%RSD" value={has ? fmt(rsd, 1) : '—'} />
-        <StatCard label="ไม่ผ่าน / ยอมได้" value={`${failCount}/${allowedFail}`} />
+        <StatCard label={ui('ไม่ผ่าน / ยอมได้')} value={`${failCount}/${allowedFail}`} />
       </StatRow>
       <ResultBar pass={bounds && has ? pass : null} />
     </>
@@ -1052,6 +1060,7 @@ function PerUnitRecorder({ sampleSize, bounds, allowedFail, formData, pointLabel
  * the net: judging the gross would let a heavy shell pass for a correct dose.
  */
 function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, unit, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
   const sampleRows = rowCount(mp?.pointCount, sampleSize, 20);
   const noun = (mp?.pointLabel || 'หน่วย').trim();
@@ -1151,14 +1160,14 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
           operator carried a row number between them and the pairing existed
           only in their head. */}
       <div className={RECORD_BOX}>
-        {step(1, `${tareTitle} + ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง`)}
-        {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด" />}
+        {step(1, `${tareTitle} + ${ui('ตารางการบันทึกผล')} — ${sampleRows} ${ui('ตัวอย่าง')}`)}
+        {sampleRows === 0 && <NoRows what={ui('จำนวนตัวอย่างที่วัด')} />}
         <div className="grid grid-cols-[24px_1fr_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>เปลือกเปล่า{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>% คลาดเคลื่อน</span>
+          <span>{ui('% คลาดเคลื่อน')}</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1200,11 +1209,11 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
       </div>
 
       <StatRow>
-        <StatCard label="เฉลี่ยยาสุทธิ" value={has ? fmt(mean, 4) : '—'} />
+        <StatCard label={ui('เฉลี่ยยาสุทธิ')} value={has ? fmt(mean, 4) : '—'} />
         <StatCard label="SD" value={has ? fmt(sd, 4) : '—'} />
         <StatCard label="%RSD" value={has ? fmt(rsd, 1) : '—'} />
         <StatCard
-          label="ไม่ผ่าน / ยอมได้"
+          label={ui('ไม่ผ่าน / ยอมได้')}
           value={`${failCount}/${allowedFail}`}
           tone={tolPct != null && has ? (pass ? 'pass' : 'fail') : undefined}
         />
@@ -1212,11 +1221,11 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
         {target <= 0
-          ? `กรอกค่าเป้าหมายต่อ${noun} เพื่อให้ระบบคิดความคลาดเคลื่อนได้`
+          ? `${ui('กรอกค่าเป้าหมายต่อ')}${noun} ${ui('เพื่อให้ระบบคิดความคลาดเคลื่อนได้')}`
           : tolPct == null
-            ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
+            ? `${ui('กรอกค่าคลาดเคลื่อนที่ยอมรับได้ (%) ต่อ')}${noun} ${ui('เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้')}`
             : !has
-              ? `แต่ละ${noun}ต้องต่างจากค่าเป้าหมาย ${fmt(target, 4)}${unit ? ` ${unit}` : ''} ไม่เกิน ±${fmt(tolPct, 1)}%`
+              ? `${ui('แต่ละ')}${noun}${ui('ต้องต่างจากค่าเป้าหมาย')} ${fmt(target, 4)}${unit ? ` ${unit}` : ''} ${ui('ไม่เกิน')} ±${fmt(tolPct, 1)}%`
               : `ค่าเป้าหมาย ${fmt(target, 4)}${unit ? ` ${unit}` : ''} — แต่ละ${noun}ต้องอยู่ใน ±${fmt(tolPct, 1)}% ของค่านี้ · หลุดเกณฑ์ ${failCount} จากที่ยอมได้ ${allowedFail} · ค่าเฉลี่ยที่ชั่งได้ ${fmt(mean, 4)}`}
       </p>
     </>
@@ -1225,6 +1234,7 @@ function CapsuleNetRecorder({ sampleSize, allowedFail, formData, specPayload, un
 
 // Matched-pair tare — gross and tare weighed for the same unit; net is derived.
 function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPayload, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
   const count = rowCount(mp?.pointCount, sampleSize, 20);
   const target = formData.specTarget ?? (bounds ? (bounds.lo + bounds.hi) / 2 : 100);
@@ -1294,8 +1304,8 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
               className={cn(CELL_INPUT, 'w-28')}
               value={linkedTare}
               onChange={(e) => setLinkedTare(e.target.value)}
-              placeholder="ชั่งแล้วกรอก"
-              aria-label="น้ำหนักภาชนะ"
+              placeholder={ui('ชั่งแล้วกรอก')}
+              aria-label={ui('น้ำหนักภาชนะ')}
               data-testid="linked-tare-value"
             />
             <span className="text-[11px] text-[#bfbfbf]">
@@ -1317,11 +1327,11 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
           </span>
         </div>
 
-        {count === 0 && <NoRows what="จำนวนตัวอย่างที่วัด" />}
+        {count === 0 && <NoRows what={ui('จำนวนตัวอย่างที่วัด')} />}
         <div className="grid grid-cols-[28px_1fr_1fr] gap-2 px-1 text-[11px] text-[#bfbfbf]">
           <span>#</span>
-          <span className="truncate">น้ำหนักรวม</span>
-          <span className="truncate">น้ำหนักสุทธิ (รวม − ภาชนะ)</span>
+          <span className="truncate">{ui('น้ำหนักรวม')}</span>
+          <span className="truncate">{ui('น้ำหนักสุทธิ (รวม − ภาชนะ)')}</span>
         </div>
         {gross.values.map((g, i) => {
           const state = done(i) ? judge(nets[i], bounds) : null;
@@ -1350,10 +1360,10 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
         })}
       </div>
       <StatRow>
-        <StatCard label="ค่าเฉลี่ยยาสุทธิ" value={has ? fmt(mean, 3) : '—'} />
+        <StatCard label={ui('ค่าเฉลี่ยยาสุทธิ')} value={has ? fmt(mean, 3) : '—'} />
         <StatCard label="SD" value={has ? fmt(sd, 3) : '—'} />
         <StatCard label="%RSD" value={has ? fmt(rsd, 1) : '—'} />
-        <StatCard label="ไม่ผ่าน / ยอมได้" value={`${failCount}/${allowedFail}`} />
+        <StatCard label={ui('ไม่ผ่าน / ยอมได้')} value={`${failCount}/${allowedFail}`} />
       </StatRow>
       <ResultBar pass={bounds && has ? pass : null} />
     </>
@@ -1372,6 +1382,7 @@ function TareMatchedRecorder({ sampleSize, bounds, allowedFail, formData, specPa
  * weight-variation check: an average hides the one capsule that came out light.
  */
 function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: RecordingProps) {
+  const ui = useUiText();
   const mp = specPayload?.type === 'multi_point' ? specPayload : null;
   const tareBatch = rowCount(mp?.tareCount, 10, 999);
   const sampleRows = rowCount(mp?.pointCount, 10, 20);
@@ -1458,10 +1469,10 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
     <>
       {/* ── ① Tare รวม — ชั่งครั้งเดียว ─────────────────────── */}
       <div className={RECORD_BOX}>
-        {step(1, `${tareTitle} — ${tareBatch} ตัวอย่าง พร้อมกัน ก่อนบรรจุ`)}
-        {tareBatch === 0 && <NoRows what="จำนวนเปลือกที่ชั่ง" />}
+        {step(1, `${tareTitle} — ${tareBatch} ${ui('ตัวอย่าง พร้อมกัน ก่อนบรรจุ')}`)}
+        {tareBatch === 0 && <NoRows what={ui('จำนวนเปลือกที่ชั่ง')} />}
         <Cell
-          label={`น้ำหนักรวมแคปซูลเปล่า${u}`}
+          label={`${ui('น้ำหนักรวมแคปซูลเปล่า')}${u}`}
           value={shell.values[0] ?? ''}
           onChange={(v) => shell.set(0, v)}
         />
@@ -1477,13 +1488,13 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
 
       {/* ── ② ตาราง Sample — เหมือนโหมดชั่งทีละเม็ดทุกประการ ── */}
       <div className={RECORD_BOX}>
-        {step(2, `ตารางการบันทึกผล — ${sampleRows} ตัวอย่าง · ระบบหัก Tare ให้เป็นน้ำหนักยา`)}
-        {sampleRows === 0 && <NoRows what="จำนวนตัวอย่างที่วัด" />}
+        {step(2, `${ui('ตารางการบันทึกผล')} — ${sampleRows} ${ui('ตัวอย่าง · ระบบหักน้ำหนักภาชนะให้เป็นน้ำหนักยา')}`)}
+        {sampleRows === 0 && <NoRows what={ui('จำนวนตัวอย่างที่วัด')} />}
         <div className="grid grid-cols-[24px_1fr_1fr_1fr] gap-2 px-1 text-[11px] leading-tight text-[#bfbfbf]">
           <span>#</span>
           <span>ยา + แคปซูล{u}</span>
           <span>น้ำหนักยาสุทธิ{u}</span>
-          <span>% คลาดเคลื่อน</span>
+          <span>{ui('% คลาดเคลื่อน')}</span>
         </div>
         {gross.values.map((g, i) => {
           const d = done(i) ? deviation(i) : null;
@@ -1510,11 +1521,11 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
       </div>
 
       <StatRow>
-        <StatCard label="เฉลี่ยยาสุทธิ" value={has ? fmt(mean, 4) : '—'} />
+        <StatCard label={ui('เฉลี่ยยาสุทธิ')} value={has ? fmt(mean, 4) : '—'} />
         <StatCard label="SD" value={has ? fmt(sd, 4) : '—'} />
         <StatCard label="%RSD" value={has ? fmt(rsd, 1) : '—'} />
         <StatCard
-          label="ไม่ผ่าน / ยอมได้"
+          label={ui('ไม่ผ่าน / ยอมได้')}
           value={`${failCount}/${allowedFail}`}
           tone={tolPct != null && has ? (pass ? 'pass' : 'fail') : undefined}
         />
@@ -1522,9 +1533,9 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
       <ResultBar pass={tolPct != null && has ? pass : null} note="Weight Variation" />
       <p className="text-xs text-[#6b7280]">
         {target <= 0
-          ? `กรอกค่าเป้าหมายต่อ${noun} เพื่อให้ระบบคิดความคลาดเคลื่อนได้`
+          ? `${ui('กรอกค่าเป้าหมายต่อ')}${noun} ${ui('เพื่อให้ระบบคิดความคลาดเคลื่อนได้')}`
           : tolPct == null
-            ? `กรอก ±% Tolerance ต่อ${noun} เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้`
+            ? `${ui('กรอกค่าคลาดเคลื่อนที่ยอมรับได้ (%) ต่อ')}${noun} ${ui('เพื่อให้ระบบตัดสินผ่าน/ไม่ผ่านได้')}`
             : `ชั่งภาชนะรวมครั้งเดียวแล้วเฉลี่ย — ส่วนแต่ละ${noun}ยังตัดสินรายตัวใน ±${fmt(tolPct, 1)}% ของค่าเป้าหมาย ${fmt(target, 4)}${unit ? ` ${unit}` : ''}`}
       </p>
     </>
@@ -1534,6 +1545,7 @@ function BulkWeighRecorder({ allowedFail, formData, specPayload, unit }: Recordi
 // Average tare — empty containers weighed once, then every filled unit has the
 // mean shell weight subtracted. Used when the shells are interchangeable.
 function TareAverageRecorder({ specPayload, sampleSize, unit }: RecordingProps) {
+  const ui = useUiText();
   const tare = specPayload?.type === 'tare' ? specPayload : null;
   const lo = tare?.acceptanceMin ? Number(tare.acceptanceMin) : null;
   const hi = tare?.acceptanceMax ? Number(tare.acceptanceMax) : null;
@@ -1571,10 +1583,10 @@ function TareAverageRecorder({ specPayload, sampleSize, unit }: RecordingProps) 
         </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="ค่าเฉลี่ยเปลือก" value={fmt(mean, 3)} />
+        <StatCard label={ui('ค่าเฉลี่ยเปลือก')} value={fmt(mean, 3)} />
         <StatCard label="SD" value={fmt(sd, 3)} />
         <StatCard label="%RSD" value={fmt(rsd, 1)} />
-        <StatCard label="นอกช่วง" value={String(failCount)} />
+        <StatCard label={ui('นอกช่วง')} value={String(failCount)} />
       </StatRow>
       <p className="text-xs text-[#6b7280]">
         ค่าเฉลี่ยนี้จะถูกหักออกจากน้ำหนักรวมของทุกชิ้นที่ผูกกับเกณฑ์นี้
@@ -1587,6 +1599,7 @@ function TareAverageRecorder({ specPayload, sampleSize, unit }: RecordingProps) 
 
 // Friability — one weighing before tumbling, one after; the loss is the result.
 function FriabilityRecorder({ bounds }: RecordingProps) {
+  const ui = useUiText();
   const [before, setBefore] = React.useState('6.500');
   const [after, setAfter] = React.useState('6.445');
   const b = Number(before) || 0;
@@ -1599,13 +1612,13 @@ function FriabilityRecorder({ bounds }: RecordingProps) {
     <>
       <div className={RECORD_BOX}>
         <div className="grid grid-cols-2 gap-4">
-          <Cell label="น้ำหนักก่อน (กรัม)" value={before} onChange={setBefore} />
-          <Cell label="น้ำหนักหลัง (กรัม)" value={after} onChange={setAfter} />
+          <Cell label={ui('น้ำหนักก่อน (กรัม)')} value={before} onChange={setBefore} />
+          <Cell label={ui('น้ำหนักหลัง (กรัม)')} value={after} onChange={setAfter} />
         </div>
       </div>
       <StatRow>
-        <StatCard label="น้ำหนักที่หายไป (%)" value={`${fmt(loss)}%`} />
-        <StatCard label="ไม่เกิน" value={`≤ ${fmt(limit)}%`} />
+        <StatCard label={ui('น้ำหนักที่หายไป (%)')} value={`${fmt(loss)}%`} />
+        <StatCard label={ui('ไม่เกิน')} value={`≤ ${fmt(limit)}%`} />
       </StatRow>
       <ResultBar pass={pass} />
     </>
@@ -1614,6 +1627,7 @@ function FriabilityRecorder({ bounds }: RecordingProps) {
 
 // One number for the whole batch — pH, viscosity, assay, microbial count.
 function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps) {
+  const ui = useUiText();
   const seed = bounds ? (bounds.lo + bounds.hi) / 2 : (formData.specTarget ?? 0);
   const { values, set, numbers } = useDemoValues(1, () => seed, `agg|${seed}`, bounds != null);
   const has = values[0]?.trim() !== '';
@@ -1632,9 +1646,9 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
         />
       </div>
       <StatRow>
-        <StatCard label="ค่าที่วัดได้" value={has ? fmt(numbers[0], 3) : '—'} />
+        <StatCard label={ui('ค่าที่วัดได้')} value={has ? fmt(numbers[0], 3) : '—'} />
         <StatCard
-          label="ช่วงที่ยอมรับ"
+          label={ui('ช่วงที่ยอมรับ')}
           value={bounds ? `${fmt(bounds.lo, 3)} – ${fmt(bounds.hi, 3)}` : '—'}
         />
       </StatRow>
@@ -1669,6 +1683,7 @@ function AggregateRecorder({ bounds, unit, formData, template }: RecordingProps)
  * reading exactly on the limit passes — "ไม่เกิน" includes the limit itself.
  */
 function MaxLimitRecorder({ sampleSize, allowedFail, specPayload, unit, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const ml = specPayload?.type === 'max_limit' ? specPayload : null;
   const max = Number(ml?.maxValue ?? '');
   const hasMax = Number.isFinite(max) && (ml?.maxValue ?? '').trim() !== '';
@@ -1700,7 +1715,7 @@ function MaxLimitRecorder({ sampleSize, allowedFail, specPayload, unit, pointLab
   return (
     <>
       <div className={RECORD_BOX}>
-        {count === 0 && <NoRows what="จำนวนตัวอย่างที่วัด" />}
+        {count === 0 && <NoRows what={ui('จำนวนตัวอย่างที่วัด')} />}
         <CellGrid>
           {values.map((v, i) => (
             <Cell
@@ -1714,10 +1729,10 @@ function MaxLimitRecorder({ sampleSize, allowedFail, specPayload, unit, pointLab
         </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="ค่าสูงสุดที่วัดได้" value={has ? fmt(highest, 3) : '—'} />
-        <StatCard label="ต้องไม่เกิน" value={hasMax ? fmt(max, 3) : '—'} />
+        <StatCard label={ui('ค่าสูงสุดที่วัดได้')} value={has ? fmt(highest, 3) : '—'} />
+        <StatCard label={ui('ต้องไม่เกิน')} value={hasMax ? fmt(max, 3) : '—'} />
         <StatCard
-          label="ไม่ผ่าน / ยอมได้"
+          label={ui('ไม่ผ่าน / ยอมได้')}
           value={`${failCount}/${allowedFail}`}
           tone={hasMax && has ? (pass ? 'pass' : 'fail') : undefined}
         />
@@ -1733,6 +1748,7 @@ function MaxLimitRecorder({ sampleSize, allowedFail, specPayload, unit, pointLab
 }
 
 function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const pf = specPayload?.type === 'pass_fail' ? specPayload : null;
   const count = Math.min(Math.max(sampleSize, 1), 20);
   const [verdicts, setVerdicts] = React.useState<(boolean | null)[]>(() =>
@@ -1787,10 +1803,10 @@ function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail, poin
     <>
       {/* What the operator is judging against. */}
       <div className={RECORD_BOX} data-testid="pass-fail-definitions">
-        <p className="text-[11px] font-medium text-slate-700">เทียบกับเกณฑ์นี้</p>
+        <p className="text-[11px] font-medium text-slate-700">{ui('เทียบกับเกณฑ์นี้')}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Definition tone="pass" title="ผ่าน" text={pf?.passDefinition ?? ''} />
-          <Definition tone="fail" title="ไม่ผ่าน" text={pf?.failDefinition ?? ''} />
+          <Definition tone="pass" title={ui('ผ่าน')} text={pf?.passDefinition ?? ''} />
+          <Definition tone="fail" title={ui('ไม่ผ่าน')} text={pf?.failDefinition ?? ''} />
         </div>
       </div>
 
@@ -1833,14 +1849,14 @@ function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail, poin
       </div>
 
       <StatRow>
-        <StatCard label="ผ่าน" value={String(passCount)} />
-        <StatCard label="ไม่ผ่าน" value={String(failCount)} />
+        <StatCard label={ui('ผ่าน')} value={String(passCount)} />
+        <StatCard label={ui('ไม่ผ่าน')} value={String(failCount)} />
         <StatCard
-          label="เสียได้"
+          label={ui('เสียได้')}
           value={String(allowedFail)}
           hint={`ยอมรับ ${formatNumber(formData.tolerancePercent ?? 0)}%`}
         />
-        <StatCard label="ยังไม่ตัดสิน" value={String(count - judged)} />
+        <StatCard label={ui('ยังไม่ตัดสิน')} value={String(count - judged)} />
       </StatRow>
       {/* No verdict until every sample has one — a batch cannot be passed on
           the strength of the samples nobody looked at. */}
@@ -1850,6 +1866,7 @@ function PassFailRecorder({ formData, specPayload, sampleSize, allowedFail, poin
 }
 
 function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowedFail, pointLabels }: RecordingProps) {
+  const ui = useUiText();
   const blank = React.useContext(BlankContext);
   const items = React.useMemo(() => {
     if (template === 'checklist' && specPayload?.type === 'visual') {
@@ -1897,11 +1914,11 @@ function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowe
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={reference}
-            alt="รูปอ้างอิง"
+            alt={ui('รูปอ้างอิง')}
             className="h-14 w-14 shrink-0 rounded-[8px] border border-[#eef0f3] object-cover"
           />
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-[#495057]">รูปอ้างอิง</p>
+            <p className="text-[11px] font-semibold text-[#495057]">{ui('รูปอ้างอิง')}</p>
             <a
               href={reference}
               target="_blank"
@@ -1947,10 +1964,10 @@ function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowe
         ))}
       </div>
       <StatRow>
-        <StatCard label="ผ่าน" value={String(passCount)} />
-        <StatCard label="ไม่ผ่าน" value={String(failCount)} />
+        <StatCard label={ui('ผ่าน')} value={String(passCount)} />
+        <StatCard label={ui('ไม่ผ่าน')} value={String(failCount)} />
         <StatCard
-          label="เสียได้"
+          label={ui('เสียได้')}
           value={String(limit)}
           hint={
             template === 'checklist'
@@ -1958,7 +1975,7 @@ function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowe
               : `ยอมรับ ${formatNumber(formData.tolerancePercent ?? 0)}%`
           }
         />
-        <StatCard label="ยังไม่ตัดสิน" value={String(verdicts.length - judged)} />
+        <StatCard label={ui('ยังไม่ตัดสิน')} value={String(verdicts.length - judged)} />
       </StatRow>
       <ResultBar pass={done ? pass : null} note={done ? undefined : 'ตัดสินให้ครบทุกหัวข้อก่อน'} />
     </>
@@ -1967,6 +1984,7 @@ function ChecklistRecorder({ template, formData, specPayload, sampleSize, allowe
 
 // Free-text result — the operator types what they observed.
 function TextRecorder({ specPayload }: RecordingProps) {
+  const ui = useUiText();
   const text = specPayload?.type === 'text' ? specPayload : null;
   const [value, setValue] = React.useState('');
 
@@ -1987,13 +2005,13 @@ function TextRecorder({ specPayload }: RecordingProps) {
             onChange={(e) => setValue(e.target.value)}
             placeholder={text?.example ? `เช่น ${text.example}` : 'พิมพ์ผลที่บันทึก'}
             className="w-full resize-none rounded-[16px] bg-white p-3 text-sm text-slate-900 outline-none placeholder:text-[#bfbfbf] focus:ring-2 focus:ring-[#5682e9]/30"
-            aria-label="ผลตรวจ"
+            aria-label={ui('ผลตรวจ')}
           />
         </div>
       </div>
       <StatRow>
-        <StatCard label="ความยาว" value={String(value.length)} />
-        <StatCard label="รูปแบบที่คาดหวัง" value={text?.format || '—'} />
+        <StatCard label={ui('ความยาว')} value={String(value.length)} />
+        <StatCard label={ui('รูปแบบที่คาดหวัง')} value={text?.format || '—'} />
       </StatRow>
       <ResultBar
         pass={!(text?.required && value.trim() === '')}
@@ -2005,6 +2023,7 @@ function TextRecorder({ specPayload }: RecordingProps) {
 
 // Calibration — one reading of a certified standard before real measuring.
 function CalibrationRecorder({ specPayload }: RecordingProps) {
+  const ui = useUiText();
   const cal = specPayload?.type === 'calibration' ? specPayload : null;
   const standard = Number(cal?.standardValue ?? '') || 0;
   const tolValue = Number(cal?.toleranceValue ?? '') || 0;
@@ -2018,7 +2037,7 @@ function CalibrationRecorder({ specPayload }: RecordingProps) {
   const deviation = r - standard;
   const pass = Math.abs(deviation) <= allowance;
 
-  if (!cal) return <EmptyNote>ยังไม่ได้ตั้งค่าเครื่องมือและค่ามาตรฐาน</EmptyNote>;
+  if (!cal) return <EmptyNote>{ui('ยังไม่ได้ตั้งค่าเครื่องมือและค่ามาตรฐาน')}</EmptyNote>;
 
   return (
     <>
@@ -2034,7 +2053,7 @@ function CalibrationRecorder({ specPayload }: RecordingProps) {
             readOnly
           />
           <Cell
-            label="ค่าที่อ่านได้"
+            label={ui('ค่าที่อ่านได้')}
             value={reading}
             onChange={setReading}
             state={pass ? 'pass' : 'fail'}
@@ -2042,12 +2061,12 @@ function CalibrationRecorder({ specPayload }: RecordingProps) {
         </div>
       </div>
       <StatRow>
-        <StatCard label="ผลต่าง" value={fmt(deviation, 3)} />
-        <StatCard label="ยอมรับได้" value={`± ${fmt(allowance, 3)}`} />
+        <StatCard label={ui('ผลต่าง')} value={fmt(deviation, 3)} />
+        <StatCard label={ui('ยอมรับได้')} value={`± ${fmt(allowance, 3)}`} />
       </StatRow>
       <ResultBar pass={pass} />
       {cal.requiresPriorPass && (
-        <p className="text-xs text-[#6b7280]">ต้องผ่านข้อนี้ก่อน จึงจะบันทึกผลทดสอบอื่นได้</p>
+        <p className="text-xs text-[#6b7280]">{ui('ต้องผ่านข้อนี้ก่อน จึงจะบันทึกผลทดสอบอื่นได้')}</p>
       )}
     </>
   );
@@ -2055,6 +2074,7 @@ function CalibrationRecorder({ specPayload }: RecordingProps) {
 
 // Calculated — the operator supplies the inputs, the formula gives the result.
 function CalculatedRecorder({ specPayload }: RecordingProps) {
+  const ui = useUiText();
   const calc = specPayload?.type === 'calculated' ? specPayload : null;
   const inputs = calc?.inputs ?? [];
   const decimals = Number(calc?.displayDecimals ?? '2') || 2;
@@ -2066,7 +2086,7 @@ function CalculatedRecorder({ specPayload }: RecordingProps) {
   );
 
   if (!calc || inputs.length === 0) {
-    return <EmptyNote>ยังไม่ได้กำหนดตัวแปรของสูตรคำนวณ</EmptyNote>;
+    return <EmptyNote>{ui('ยังไม่ได้กำหนดตัวแปรของสูตรคำนวณ')}</EmptyNote>;
   }
 
   // Purely illustrative: the real evaluation happens in the recording service.
@@ -2098,7 +2118,7 @@ function CalculatedRecorder({ specPayload }: RecordingProps) {
           label={`ผลลัพธ์${calc.resultUnit ? ` (${calc.resultUnit})` : ''}`}
           value={fmt(result, decimals)}
         />
-        <StatCard label="ช่วงที่ยอมรับ" value={bounds ? `${fmt(bounds.lo)} – ${fmt(bounds.hi)}` : '—'} />
+        <StatCard label={ui('ช่วงที่ยอมรับ')} value={bounds ? `${fmt(bounds.lo)} – ${fmt(bounds.hi)}` : '—'} />
       </StatRow>
       <ResultBar pass={state === null ? null : state === 'pass'} />
       <p className="text-xs text-[#6b7280]">
@@ -2127,6 +2147,7 @@ function NamedFieldsRecorder({
   bounds: { lo: number; hi: number } | null;
   unitSuffix: string;
 }) {
+  const ui = useUiText();
   const mid = bounds ? (bounds.lo + bounds.hi) / 2 : 0;
   const spread = bounds ? (bounds.hi - bounds.lo) / 2 : 0;
   const { values, set, numbers, filled } = useDemoValues(
@@ -2150,7 +2171,7 @@ function NamedFieldsRecorder({
     <>
       {caption ? <p className="text-[11px] text-[#9aa3ad]">{caption}</p> : null}
       <div className={RECORD_BOX}>
-        {labels.length === 0 && <NoRows what="ช่องกรอกผล" />}
+        {labels.length === 0 && <NoRows what={ui('ช่องกรอกผล')} />}
         <CellGrid>
           {labels.map((label, i) => (
             <Cell
@@ -2164,11 +2185,11 @@ function NamedFieldsRecorder({
         </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="กรอกแล้ว" value={`${filled.length}/${labels.length}`} />
-        <StatCard label="ค่าเฉลี่ย" value={has ? fmt(mean) : '—'} />
+        <StatCard label={ui('กรอกแล้ว')} value={`${filled.length}/${labels.length}`} />
+        <StatCard label={ui('ค่าเฉลี่ย')} value={has ? fmt(mean) : '—'} />
         <StatCard label="SD" value={has ? fmt(sd) : '—'} />
         <StatCard label="%RSD" value={has ? fmt(rsd, 1) : '—'} />
-        <StatCard label="ไม่ผ่าน" value={String(failCount)} />
+        <StatCard label={ui('ไม่ผ่าน')} value={String(failCount)} />
       </StatRow>
       <ResultBar pass={decided ? failCount === 0 : null} />
     </>
@@ -2176,10 +2197,11 @@ function NamedFieldsRecorder({
 }
 
 function CustomFieldsRecorder({ specPayload }: RecordingProps) {
+  const ui = useUiText();
   const custom = specPayload?.type === 'custom_multi_field' ? specPayload : null;
   const fields = custom?.fields ?? [];
 
-  if (fields.length === 0) return <EmptyNote>ยังไม่ได้เพิ่มฟิลด์</EmptyNote>;
+  if (fields.length === 0) return <EmptyNote>{ui('ยังไม่ได้เพิ่มฟิลด์')}</EmptyNote>;
 
   return (
     <>
@@ -2196,10 +2218,10 @@ function CustomFieldsRecorder({ specPayload }: RecordingProps) {
         </CellGrid>
       </div>
       <StatRow>
-        <StatCard label="ฟิลด์ทั้งหมด" value={String(fields.length)} />
-        <StatCard label="บังคับกรอก" value={String(fields.filter((f) => f.required).length)} />
-        <StatCard label="ตัวเลข" value={String(fields.filter((f) => f.fieldType === 'number').length)} />
-        <StatCard label="ตัวเลือก" value={String(fields.filter((f) => f.fieldType === 'select').length)} />
+        <StatCard label={ui('ฟิลด์ทั้งหมด')} value={String(fields.length)} />
+        <StatCard label={ui('บังคับกรอก')} value={String(fields.filter((f) => f.required).length)} />
+        <StatCard label={ui('ตัวเลข')} value={String(fields.filter((f) => f.fieldType === 'number').length)} />
+        <StatCard label={ui('ตัวเลือก')} value={String(fields.filter((f) => f.fieldType === 'select').length)} />
       </StatRow>
       {custom?.generalNote && <p className="text-xs text-[#6b7280]">{custom.generalNote}</p>}
     </>

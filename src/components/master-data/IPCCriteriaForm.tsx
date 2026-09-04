@@ -15,6 +15,7 @@ import { FlaskConical, Shield, Eye, FileText, Layers, Plus, User, ClockAlert, Sc
 import { sqrtPlusOneSampleSize, usesSqrtSampling } from '@/lib/master-data/ipc-sqrt-sampling';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
+import { useUiText } from '@/components/master-data/ipc-ui-text';
 import {
   IPC_TEST_CATALOG,
   testsForStage,
@@ -352,6 +353,7 @@ function CheckIntervalChips({
   points: SamplingPoint[];
   onPointsChange: (points: SamplingPoint[]) => void;
 }) {
+  const ui = useUiText();
   const presets = cadence.presets;
   const isPreset = value != null && presets.includes(value);
   // A saved criterion may hold a value outside this method's presets — either
@@ -376,7 +378,7 @@ function CheckIntervalChips({
         <div className="pt-5">
           <div
             role="group"
-            aria-label="แผนการเก็บตัวอย่าง"
+            aria-label={ui('แผนการเก็บตัวอย่าง')}
             className="flex flex-wrap items-center gap-4 sm:gap-6"
           >
             {cadence.points.map((point) => (
@@ -411,7 +413,7 @@ function CheckIntervalChips({
       <div className="flex flex-col gap-3 pt-5">
         <div
           role="group"
-          aria-label="แผนการเก็บตัวอย่าง"
+          aria-label={ui('แผนการเก็บตัวอย่าง')}
           className="flex flex-wrap items-center gap-3"
         >
           {list.map((point, index) => (
@@ -475,7 +477,7 @@ function CheckIntervalChips({
     <div className="pt-5">
       <div
         role="group"
-        aria-label="รอบการตรวจ (นาที)"
+        aria-label={ui('รอบการตรวจ (นาที)')}
         className="flex flex-wrap items-center gap-4 sm:gap-6"
       >
         {presets.map((minutes) => {
@@ -497,7 +499,7 @@ function CheckIntervalChips({
             >
               <span className={cn('text-base font-bold', theme.chip.text)}>{minutes}</span>
               <span className="text-[10px] text-black/40">
-                {cadence.mode === 'interval' ? (unit || 'หน่วย') : 'นาที'}
+                {cadence.mode === 'interval' ? (unit || ui('หน่วย')) : ui('นาที')}
               </span>
             </button>
           );
@@ -512,7 +514,7 @@ function CheckIntervalChips({
           >
             <NumberInput
               autoFocus
-              ariaLabel="รอบการตรวจ (นาที)"
+              ariaLabel={ui('รอบการตรวจ (นาที)')}
               min={1}
               value={value}
               onChange={onChange}
@@ -528,7 +530,7 @@ function CheckIntervalChips({
               placeholder="—"
             />
             <span className="text-[10px] text-black/40">
-              {cadence.mode === 'interval' ? (unit || 'หน่วย') : 'นาที'}
+              {cadence.mode === 'interval' ? (unit || ui('หน่วย')) : ui('นาที')}
             </span>
           </div>
         ) : (
@@ -543,7 +545,7 @@ function CheckIntervalChips({
             className={cn(INTERVAL_CHIP, INTERVAL_CHIP_OFF)}
           >
             <span className="text-[13px] text-[#bfbfbf]">
-              {cadence.mode === 'interval' ? 'ระบุระยะเอง' : 'ระบุเวลาเอง'}
+              {cadence.mode === 'interval' ? ui('ระบุระยะเอง') : ui('ระบุเวลาเอง')}
             </span>
           </button>
         )}
@@ -558,7 +560,7 @@ function CheckIntervalChips({
               หน่วย <span className="text-[#e32727]">*</span>
             </span>
             <select
-              aria-label="หน่วยของระยะ"
+              aria-label={ui('หน่วยของระยะ')}
               data-testid="sampling-unit"
               disabled={value == null}
               value={unit}
@@ -571,7 +573,7 @@ function CheckIntervalChips({
                 value == null && 'cursor-not-allowed opacity-50',
               )}
             >
-              <option value="">เลือกหน่วย…</option>
+              <option value="">{ui('เลือกหน่วย…')}</option>
               {(cadence.units ?? []).map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -770,14 +772,15 @@ function StageBasicsPanel({
   onTestNameChange,
   testOptions,
 }: StageBasicsPanelProps) {
+  const ui = useUiText();
   const theme = STAGE_THEME[stage];
   const inEnglish = useLocale() === 'en';
   // Raw material is crude drug — it has no dosage form yet, and the picker only
   // offers powder/other there, so asking for a "รูปแบบยา" contradicts itself.
   const productForm =
     stage === 'raw_material'
-      ? { heading: 'ลักษณะวัตถุดิบ', placeholder: 'เลือกลักษณะวัตถุดิบ' }
-      : { heading: 'รูปแบบผลิตภัณฑ์', placeholder: 'เลือกรูปแบบยา' };
+      ? { heading: ui('ลักษณะวัตถุดิบ'), placeholder: ui('เลือกลักษณะวัตถุดิบ') }
+      : { heading: ui('รูปแบบผลิตภัณฑ์'), placeholder: ui('เลือกรูปแบบยา') };
   return (
     // No fixed height any more: the stage options used to be tall cards that
     // had to be clipped to a 336px surface, and the panel was sized to that
@@ -807,7 +810,7 @@ function StageBasicsPanel({
         */}
         <div className="px-6 pb-6 pt-6">
           <h3 className={STAGE_HEADING} data-testid="stage-code">
-            ขั้นตอนการตรวจ
+            {ui('ขั้นตอนการตรวจ')}
           </h3>
           {/* Stacked, not three across: at one field's height the tiles are a
               single line of text, and "In Process Control" does not fit a third
@@ -885,7 +888,7 @@ function StageBasicsPanel({
                 // no unit chosen the box showed that as though it were a
                 // choice already made, clear button and all. Having none is
                 // the empty state, which is what a placeholder is for.
-                placeholder="เลือกหน่วย (ถ้ามี)"
+                placeholder={ui('เลือกหน่วย (ถ้ามี)')}
                 triggerClassName={STAGE_FIELD}
                 onAddNew={onAddUnit}
                 addNewLabel="＋ เพิ่มหน่วยใหม่"
@@ -893,13 +896,13 @@ function StageBasicsPanel({
             </div>
           </div>
           <div className="flex flex-col gap-4">
-            <h3 className={STAGE_HEADING}>หัวข้อการทดสอบ</h3>
+            <h3 className={STAGE_HEADING}>{ui('หัวข้อการทดสอบ')}</h3>
             <SearchableSelect
               testId="stage-test-name"
               value={testName}
               onChange={onTestNameChange}
               options={testOptions}
-              placeholder="เลือกหัวข้อทดสอบ"
+              placeholder={ui('เลือกหัวข้อทดสอบ')}
               triggerClassName={STAGE_FIELD}
             />
           </div>
@@ -975,6 +978,7 @@ function normalizeRecord(raw: IPCCriteria | undefined): IPCCriteria | undefined 
 // Outer wrapper — fetches existing record in edit mode
 // ────────────────────────────────────────────────────────────────────
 export function IPCCriteriaForm({ mode, id }: Props) {
+  const ui = useUiText();
   const { data: existing, isLoading } = useQuery<IPCCriteria>({
     queryKey: ['ipc-criteria', id],
     queryFn: async () => {
@@ -987,7 +991,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
   });
 
   if (mode === 'edit' && (isLoading || !existing)) {
-    return <div className="flex items-center justify-center h-64"><div className="text-gray-500">กำลังโหลด…</div></div>;
+    return <div className="flex items-center justify-center h-64"><div className="text-gray-500">{ui('กำลังโหลด…')}</div></div>;
   }
 
   const normalized = normalizeRecord(existing);
@@ -1007,6 +1011,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
 // Inner form
 // ────────────────────────────────────────────────────────────────────
 function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: Partial<IPCCriteria> }) {
+  const ui = useUiText();
   const t = useTranslations('masterData.ipcCriteria');
   /**
    * Option lists carry both names — `label` in Thai, `labelEn` in English —
@@ -1309,7 +1314,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
    * loose units and hides the fact that the plan already said where each one
    * comes from.
    */
-  const sampleUnitWord = cadence.editablePoints ? 'จุด' : 'ชิ้น';
+  const sampleUnitWord = cadence.editablePoints ? ui('จุด') : ui('ชิ้น');
 
   /**
    * √n + 1 settles its sample size against the lot, not against the criterion.
@@ -1436,7 +1441,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       }
 
       setAutoFilled(filled);
-      setAutoFillNote(labels.length > 0 ? `เติมให้อัตโนมัติ: ${labels.join(' · ')}` : '');
+      setAutoFillNote(labels.length > 0 ? `${ui('เติมให้อัตโนมัติ')}: ${labels.join(' · ')}` : '');
 
       // Reset spec payload to default for the new criteria type
       setSpecPayload(test.defaultCriteriaType === 'numeric' ? null : defaultPayload(test.defaultCriteriaType));
@@ -1807,9 +1812,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('time')}
           testId="trigger-time"
           icon={<Clock className="h-4 w-4" />}
-          title="ตามช่วงเวลา"
-          desc="ทุกกี่นาที"
-          info="ระบบเตือนให้เก็บตัวอย่างตามรอบเวลา เช่น ทุก 30 นาที ตลอดการผลิต — ใช้ค่าจากการ์ด แผนการสุ่ม"
+          title={ui('ตามช่วงเวลา')}
+          desc={ui('ทุกกี่นาที')}
+          info={ui('ระบบเตือนให้เก็บตัวอย่างตามรอบเวลา เช่น ทุก 30 นาที ตลอดการผลิต — ใช้ค่าจากการ์ด แผนการสุ่ม')}
           on={sharedExtras.triggers.time.on}
           onToggle={() => updateTriggers((t) => ({ ...t, time: { ...t.time, on: !t.time.on } }))}
         >
@@ -1821,11 +1826,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             part of the Excel import template); this only mirrors it.
           */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-slate-500">ทุก</span>
+            <span className="text-xs text-slate-500">{ui('ทุก')}</span>
             <span className="rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700">
               {formData.checkIntervalMinutes ?? 30}
             </span>
-            <span className="text-xs text-slate-500">นาที</span>
+            <span className="text-xs text-slate-500">{ui('นาที')}</span>
             <span className="text-[11px] text-slate-400">
               — แก้ค่าที่การ์ด แผนการสุ่ม
             </span>
@@ -1840,9 +1845,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('quantity')}
           testId="trigger-quantity"
           icon={<Package className="h-4 w-4" />}
-          title="ตามจำนวนผลิต"
-          desc="ทุกกี่หน่วย หรือกี่ % ของรุ่นผลิต"
-          info="เตือนตามจำนวนที่ผลิตได้ เช่น ทุก 1,000 หน่วย หรือทุก 25% ของรุ่นผลิต เหมาะกับรุ่นที่ใช้เวลาผลิตไม่แน่นอน"
+          title={ui('ตามจำนวนผลิต')}
+          desc={ui('ทุกกี่หน่วย หรือกี่ % ของรุ่นผลิต')}
+          info={ui('เตือนตามจำนวนที่ผลิตได้ เช่น ทุก 1,000 หน่วย หรือทุก 25% ของรุ่นผลิต เหมาะกับรุ่นที่ใช้เวลาผลิตไม่แน่นอน')}
           on={sharedExtras.triggers.quantity.on}
           onToggle={() => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, on: !t.quantity.on } }))}
         >
@@ -1893,23 +1898,23 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
 
                 {q.mode === 'fixed' ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <SoftLabel label="ตรวจทุกกี่หน่วย">
+                    <SoftLabel label={ui('ตรวจทุกกี่หน่วย')}>
                       <input
                         type="number"
                         min={1}
                         className={SOFT_INPUT}
                         placeholder="1000"
-                        aria-label="ตรวจทุกกี่หน่วย"
+                        aria-label={ui('ตรวจทุกกี่หน่วย')}
                         data-testid="quantity-every"
                         value={q.every}
                         onChange={(e) => setQ({ every: e.target.value })}
                       />
                     </SoftLabel>
-                    <SoftLabel label="หน่วยนับ">
+                    <SoftLabel label={ui('หน่วยนับ')}>
                       <input
                         className={SOFT_INPUT}
-                        placeholder="เช่น เม็ด, ขวด, กก."
-                        aria-label="หน่วยนับ"
+                        placeholder={ui('เช่น เม็ด, ขวด, กก.')}
+                        aria-label={ui('หน่วยนับ')}
                         data-testid="quantity-unit"
                         value={q.unit}
                         onChange={(e) => setQ({ unit: e.target.value })}
@@ -1920,7 +1925,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   // Same grid as the fixed mode, so switching between the two
                   // does not move the field or stretch it across the card.
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <SoftLabel label="ตรวจทุกกี่ % ของรุ่นผลิต">
+                    <SoftLabel label={ui('ตรวจทุกกี่ % ของรุ่นผลิต')}>
                       <div className="relative">
                         <input
                           type="number"
@@ -1934,7 +1939,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             '[&::-webkit-outer-spin-button]:appearance-none',
                           )}
                           placeholder="25"
-                          aria-label="ตรวจทุกกี่ % ของรุ่นผลิต"
+                          aria-label={ui('ตรวจทุกกี่ % ของรุ่นผลิต')}
                           data-testid="quantity-percent"
                           value={q.percent}
                           onChange={(e) => setQ({ percent: e.target.value })}
@@ -1961,7 +1966,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>
                       {q.mode === 'fixed'
-                        ? `ผลิตครบทุก ${q.every} ${unitName} → เตือนให้เก็บตัวอย่าง 1 ครั้ง`
+                        ? `${ui('ผลิตครบทุก')} ${q.every} ${unitName} → ${ui('เตือนให้เก็บตัวอย่าง 1 ครั้ง')}`
                         : `ผลิตได้ทุก ${q.percent}% ของรุ่น → เตือนให้เก็บตัวอย่าง 1 ครั้ง (รุ่นละ ${
                             Number(q.percent) > 0 ? Math.floor(100 / Number(q.percent)) : 0
                           } ครั้ง)`}
@@ -1981,9 +1986,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('milestone')}
           testId="trigger-milestone"
           icon={<Target className="h-4 w-4" />}
-          title="ตามจังหวะการผลิต"
-          desc="ตามขั้นตอนสำคัญในรุ่นผลิต"
-          info="เตือนที่ขั้นตอนสำคัญของรุ่นผลิต เช่น เริ่มผลิต กลางรุ่น ก่อนปิดรุ่น — ผูกกับความคืบหน้า ไม่ใช่เวลา"
+          title={ui('ตามจังหวะการผลิต')}
+          desc={ui('ตามขั้นตอนสำคัญในรุ่นผลิต')}
+          info={ui('เตือนที่ขั้นตอนสำคัญของรุ่นผลิต เช่น เริ่มผลิต กลางรุ่น ก่อนปิดรุ่น — ผูกกับความคืบหน้า ไม่ใช่เวลา')}
           on={sharedExtras.triggers.milestone.on}
           onToggle={() => updateTriggers((t) => ({ ...t, milestone: { ...t.milestone, on: !t.milestone.on } }))}
         >
@@ -2014,9 +2019,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('event')}
           testId="trigger-event"
           icon={<Zap className="h-4 w-4" />}
-          title="เมื่อมีเหตุการณ์"
-          desc="เปลี่ยนรุ่น · เปลี่ยนล็อตวัตถุดิบ · ล้างเครื่อง · ปรับค่าเครื่อง · ซ่อมบำรุง"
-          info="เตือนเมื่อเกิดเหตุการณ์ที่อาจกระทบคุณภาพ เช่น เปลี่ยนล็อตวัตถุดิบ ทำความสะอาดเครื่อง ปรับพารามิเตอร์ ซ่อมบำรุง"
+          title={ui('เมื่อมีเหตุการณ์')}
+          desc={ui('เปลี่ยนรุ่น · เปลี่ยนล็อตวัตถุดิบ · ล้างเครื่อง · ปรับค่าเครื่อง · ซ่อมบำรุง')}
+          info={ui('เตือนเมื่อเกิดเหตุการณ์ที่อาจกระทบคุณภาพ เช่น เปลี่ยนล็อตวัตถุดิบ ทำความสะอาดเครื่อง ปรับพารามิเตอร์ ซ่อมบำรุง')}
           on={sharedExtras.triggers.event.on}
           onToggle={() => updateTriggers((t) => ({ ...t, event: { ...t.event, on: !t.event.on } }))}
         >
@@ -2047,9 +2052,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('oncePerBatch')}
           testId="trigger-once"
           icon={<RotateCcw className="h-4 w-4" />}
-          title="ครั้งเดียวต่อรุ่นผลิต"
-          desc="บันทึกเพียงครั้งเดียวตลอดรุ่นผลิต"
-          info="บันทึกผลเพียงครั้งเดียวต่อรุ่นผลิต ไม่ต้องเก็บซ้ำระหว่างทาง — ใช้กับหัวข้อที่วัดได้ครั้งเดียวต่อรุ่น เช่น ผลเพาะเชื้อ"
+          title={ui('ครั้งเดียวต่อรุ่นผลิต')}
+          desc={ui('บันทึกเพียงครั้งเดียวตลอดรุ่นผลิต')}
+          info={ui('บันทึกผลเพียงครั้งเดียวต่อรุ่นผลิต ไม่ต้องเก็บซ้ำระหว่างทาง — ใช้กับหัวข้อที่วัดได้ครั้งเดียวต่อรุ่น เช่น ผลเพาะเชื้อ')}
           on={sharedExtras.triggers.oncePerBatch.on}
           onToggle={() => updateTriggers((t) => ({ ...t, oncePerBatch: { on: !t.oncePerBatch.on } }))}
         />
@@ -2125,15 +2130,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       style={{ fontFamily: 'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif' }}
     >
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'แก้ไขเกณฑ์ QC / IPC' : 'สร้างเกณฑ์ QC / IPC'}
-        subtitle={mode === 'edit' ? `กำลังแก้ไข ${initialData.name || ''}` : 'สร้างเกณฑ์การควบคุมคุณภาพการผลิต'}
+        title={mode === 'edit' ? ui('แก้ไขเกณฑ์ QC / IPC') : ui('สร้างเกณฑ์ QC / IPC')}
+        subtitle={mode === 'edit' ? `${ui('กำลังแก้ไข')} ${initialData.name || ''}` : ui('สร้างเกณฑ์การควบคุมคุณภาพการผลิต')}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         breadcrumbs={[
-          { label: 'ข้อมูลหลัก', href: '/master-data' },
-          { label: 'เกณฑ์ QC / IPC', href: '/master-data/ipc-criteria' },
-          { label: mode === 'edit' ? 'แก้ไข' : 'สร้างใหม่' },
+          { label: ui('ข้อมูลหลัก'), href: '/master-data' },
+          { label: ui('เกณฑ์ QC / IPC'), href: '/master-data/ipc-criteria' },
+          { label: mode === 'edit' ? ui('แก้ไข') : ui('สร้างใหม่') },
         ]}
       />
 
@@ -2196,19 +2201,19 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {isCustomName && (
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <div>
-                    <label className={FIELD_LABEL}>ชื่อภาษาอังกฤษ <span className="text-red-500">*</span></label>
+                    <label className={FIELD_LABEL}>{ui('ชื่อภาษาอังกฤษ')} <span className="text-red-500">*</span></label>
                     <input
                       className={FIELD_INPUT}
-                      placeholder="เช่น ความกร่อนของเม็ดยา"
+                      placeholder={ui('เช่น ความกร่อนของเม็ดยา')}
                       value={formData.name || ''}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>ชื่อภาษาไทย</label>
+                    <label className={FIELD_LABEL}>{ui('ชื่อภาษาไทย')}</label>
                     <input
                       className={FIELD_INPUT}
-                      placeholder="เช่น ความเปราะของเม็ดยา"
+                      placeholder={ui('เช่น ความเปราะของเม็ดยา')}
                       value={formData.nameTh || ''}
                       onChange={(e) => setFormData({ ...formData, nameTh: e.target.value })}
                     />
@@ -2223,7 +2228,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
 
 
-          <FormSection step={1} title="เอกสาร GMP" hint="เลือกเอกสารควบคุม เช่น วิธีทดสอบหรือ SOP — รหัส · ฉบับที่ · ขั้นตอนที่ · ลิงก์">
+          <FormSection step={1} title={ui('เอกสาร GMP')} hint={ui('เลือกเอกสารควบคุม เช่น วิธีทดสอบหรือ SOP — รหัส · ฉบับที่ · ขั้นตอนที่ · ลิงก์')}>
           {/*
             เอกสาร GMP + SOP step reference — Figma node 36:2441.
             Its own surface, deliberately outside the basic-information card.
@@ -2248,7 +2253,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     value={formData.gmpDocumentId ?? null}
                     onValueChange={(docId) => setFormData({ ...formData, gmpDocumentId: docId })}
                     onDocumentChange={applyGmpDocument}
-                    placeholder="เลือกเอกสาร"
+                    placeholder={ui('เลือกเอกสาร')}
                     // DevExtreme's own editor height is 50px; 40 lines it up
                     // with the plain inputs below it.
                     height={40}
@@ -2263,8 +2268,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   label wraps, as the รหัส SOP one does in Thai. */}
               <div className="grid grid-cols-1 items-end gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <SoftField
-                  label="รหัส SOP"
-                  placeholder="เช่น SOP-PRD-001"
+                  label={ui('รหัส SOP')}
+                  placeholder={ui('เช่น SOP-PRD-001')}
                   value={sharedExtras.sopStepRef.sopCode}
                   onChange={(v) => updateSopStepRef('sopCode', v)}
                   autoFilled={gmpAutoFields.has('sopCode')}
@@ -2272,18 +2277,18 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 {/* No auto value: the document list carries a version *id*,
                     not the printed version number. */}
                 <SoftField
-                  label="ฉบับที่"
-                  placeholder="เช่น 1.0"
+                  label={ui('ฉบับที่')}
+                  placeholder={ui('เช่น 1.0')}
                   value={sharedExtras.sopStepRef.sopVersion}
                   onChange={(v) => updateSopStepRef('sopVersion', v)}
                 />
                 <SoftField
-                  label="ขั้นตอนที่"
+                  label={ui('ขั้นตอนที่')}
                   value={sharedExtras.sopStepRef.stepNumber}
                   onChange={(v) => updateSopStepRef('stepNumber', v)}
                 />
                 <SoftField
-                  label="ลิงก์"
+                  label={ui('ลิงก์')}
                   value={sharedExtras.sopStepRef.link}
                   onChange={(v) => updateSopStepRef('link', v)}
                   autoFilled={gmpAutoFields.has('link')}
@@ -2298,8 +2303,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 )}
                 <input
                   className={SOFT_INPUT}
-                  placeholder="คำอธิบายขั้นตอน"
-                  aria-label="คำอธิบายขั้นตอน"
+                  placeholder={ui('คำอธิบายขั้นตอน')}
+                  aria-label={ui('คำอธิบายขั้นตอน')}
                   data-testid="sop-step-description"
                   value={sharedExtras.sopStepRef.stepDescription}
                   onChange={(e) => updateSopStepRef('stepDescription', e.target.value)}
@@ -2309,7 +2314,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={2} title="ประเภทเกณฑ์" hint="กำหนดว่าการเก็บตัวอย่างและเกณฑ์การพิจารณาจะกางช่องอะไรออกมา">
+          <FormSection step={2} title={ui('ประเภทเกณฑ์')} hint={ui('กำหนดว่าการเก็บตัวอย่างและเกณฑ์การพิจารณาจะกางช่องอะไรออกมา')}>
 
           <div
             data-testid="criteria-type-card"
@@ -2343,7 +2348,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={3} title="การเก็บตัวอย่าง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่หน่วย · หักน้ำหนักภาชนะอย่างไร">
+          <FormSection step={3} title={ui('การเก็บตัวอย่าง')} hint={ui('ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่หน่วย · หักน้ำหนักภาชนะอย่างไร')}>
 
           {/* ── ใช้ในกรณีไหน — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
@@ -2356,16 +2361,16 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-semibold text-black">ใช้ในกรณีไหน</h4>
+                  <h4 className="text-sm font-semibold text-black">{ui('ใช้ในกรณีไหน')}</h4>
                   <p className="text-xs text-[#bfbfbf]">
-                    เลือกได้หลายข้อ — ระบบจะเปิด &quot;ตรวจสอบเมื่อ&quot; ที่เข้ากับกรณีนั้นให้
+                    {ui('เลือกได้หลายข้อ — ระบบจะเปิดหัวข้อ ตรวจสอบเมื่อ ที่เข้ากับกรณีนั้นให้')}
                   </p>
                 </div>
                 <span
                   data-testid="use-context-count-pill"
                   className="rounded-full bg-white px-3 py-1 text-xs text-black shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
                 >
-                  เลือก {sharedExtras.useContext.length}/{USE_CONTEXT_OPTIONS.length}
+                  {ui('เลือก')} {sharedExtras.useContext.length}/{USE_CONTEXT_OPTIONS.length}
                 </span>
               </div>
             </div>
@@ -2427,7 +2432,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <ChevronDown
                     className={cn('h-4 w-4 transition-transform', showOtherContexts && 'rotate-180')}
                   />
-                  ตัวเลือกอื่นที่ไม่ค่อยใช้กับขั้นตอนนี้ ({otherContextOptions.length})
+                  {ui('ตัวเลือกอื่นที่ไม่ค่อยใช้กับขั้นตอนนี้')} ({otherContextOptions.length})
                 </button>
 
                 {showOtherContexts && (
@@ -2473,11 +2478,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           <div data-testid="triggers-card" className="flex flex-col gap-2.5 px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
-                <h4 className="text-sm font-semibold text-black">ตรวจสอบเมื่อ</h4>
+                <h4 className="text-sm font-semibold text-black">{ui('ตรวจสอบเมื่อ')}</h4>
                 <p className="text-xs text-[#bfbfbf]">
                   {contextChosen
-                    ? 'แสดงเฉพาะที่เข้ากับกรณีที่เลือก — ตัวอื่นกดกางดูได้'
-                    : 'เลือกได้หลายแบบ — เปิดสวิตช์เพื่อตั้งรายละเอียด'}
+                    ? ui('แสดงเฉพาะที่เข้ากับกรณีที่เลือก — ตัวอื่นกดกางดูได้')
+                    : ui('เลือกได้หลายแบบ — เปิดสวิตช์เพื่อตั้งรายละเอียด')}
                 </p>
               </div>
               {/* Counts all five however many are on screen, so folding a card
@@ -2486,7 +2491,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 data-testid="trigger-count-pill"
                 className="rounded-full bg-white px-3 py-1 text-xs text-black shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
               >
-                เปิด {activeTriggerCount}/5
+                {ui('เปิด')} {activeTriggerCount}/5
               </span>
             </div>
 
@@ -2506,7 +2511,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <ChevronDown
                     className={cn('h-4 w-4 transition-transform', showOtherTriggers && 'rotate-180')}
                   />
-                  ตัวเลือกอื่นที่ไม่ค่อยใช้กับกรณีนี้ ({foldedTriggers.length})
+                  {ui('ตัวเลือกอื่นที่ไม่ค่อยใช้กับกรณีนี้')} ({foldedTriggers.length})
                 </button>
                 {showOtherTriggers &&
                   foldedTriggers.map((c) => (
@@ -2533,9 +2538,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <h4 className="text-sm font-semibold text-black">
-                    แผนการสุ่ม <span className="text-[#e32727]">*</span>
+                    {ui('แผนการสุ่ม')} <span className="text-[#e32727]">*</span>
                   </h4>
-                  <p className="text-xs text-[#bfbfbf]">อ้างอิงมาตรฐาน GMP / USP</p>
+                  <p className="text-xs text-[#bfbfbf]">{ui('อ้างอิงมาตรฐาน GMP / USP')}</p>
                 </div>
                 <SearchableSelect
                   testId="sampling-method"
@@ -2556,7 +2561,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     if (before !== after) setSharedExtras((prev) => ({ ...prev, samplingUnit: '' }));
                   }}
                   options={SAMPLING_METHOD_OPTIONS.map((o) => ({ value: o.value, label: optionLabel(o) ?? o.value }))}
-                  placeholder="เลือกวิธีสุ่ม"
+                  placeholder={ui('เลือกวิธีสุ่ม')}
                 />
               </div>
             </div>
@@ -2584,12 +2589,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           <div data-testid="sample-count-card" className="px-6 py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <h4 className="text-sm font-semibold text-black">จำนวนตัวอย่าง</h4>
+                <h4 className="text-sm font-semibold text-black">{ui('จำนวนตัวอย่าง')}</h4>
                 <p className="text-xs text-[#bfbfbf]">
                   {lotDrivenSampling
                     ? 'คำนวณตอนบันทึกผล จากยอดผลิตของแต่ละรุ่น'
                     : pointSampleSize == null
-                      ? 'หยิบมาตรวจกี่ชิ้นต่อหนึ่งรอบ'
+                      ? ui('หยิบมาตรวจกี่ชิ้นต่อหนึ่งรอบ')
                       : 'นับจากจุดสุ่มที่เปิดไว้ในแผนการสุ่ม'}
                 </p>
               </div>
@@ -2631,7 +2636,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     className="flex flex-col gap-2 border-t border-[#eef0f3] pt-3"
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h5 className="text-[13px] font-semibold text-black">ช่องกรอกผล</h5>
+                      <h5 className="text-[13px] font-semibold text-black">{ui('ช่องกรอกผล')}</h5>
                       <span className="text-[11px] text-[#bfbfbf]">
                         {sqrtResultFields.length} ช่อง
                       </span>
@@ -2708,10 +2713,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 </div>
               ) : pointSampleSize == null ? (
                 <div className="grid grid-cols-1 gap-6">
-                  <SoftLabel label="จำนวนตัวอย่างที่วัด" required>
+                  <SoftLabel label={ui('จำนวนตัวอย่างที่วัด')} required>
                     <NumberInput
                       className={SOFT_INPUT}
-                      ariaLabel="จำนวนตัวอย่างที่วัด"
+                      ariaLabel={ui('จำนวนตัวอย่างที่วัด')}
                       min={1}
                       value={formData.sampleSize}
                       onChange={(v) => setFormData({ ...formData, sampleSize: v })}
@@ -2725,7 +2730,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 >
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-[#3559b0]">{pointSampleSize}</span>
-                    <span className="text-[13px] text-[#6b7684]">ตัวอย่างต่อหนึ่งรอบ</span>
+                    <span className="text-[13px] text-[#6b7684]">{ui('ตัวอย่างต่อหนึ่งรอบ')}</span>
                   </div>
                   {pointSampleSize > 0 ? (
                     <p className="text-[12px] text-[#9aa3ad]">
@@ -2766,7 +2771,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={4} title="เกณฑ์การพิจารณา" hint="ต่อหน่วย · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ">
+          <FormSection step={4} title={ui('เกณฑ์การพิจารณา')} hint={ui('ต่อหน่วย · รายรอบ · หลายขั้น · รายรุ่น · เมื่อไม่ผ่าน · ค่าที่คำนวณต่อ')}>
 
           {/* B1 — the spec for the chosen type. It kept the picker's card when
               the two were one section; now that the picker stands alone in
@@ -2775,7 +2780,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           {!criteriaType ? (
             <div data-testid="type-fields-empty" className="px-6 py-5">
               <p className="rounded-[12px] bg-[#f9fafb] px-4 py-5 text-center text-[13px] text-[#9aa3ad]">
-                เลือกประเภทเกณฑ์ก่อน — ช่องกรอกจะขึ้นตามประเภทที่เลือก
+                {ui('เลือกประเภทเกณฑ์ก่อน — ช่องกรอกจะขึ้นตามประเภทที่เลือก')}
               </p>
             </div>
           ) : (
@@ -2787,21 +2792,21 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <SoftLabel label="ค่าเป้าหมาย" required>
+                  <SoftLabel label={ui('ค่าเป้าหมาย')} required>
                     <input
                       type="number"
                       className={SOFT_INPUT}
-                      placeholder="เช่น 300"
+                      placeholder={ui('เช่น 300')}
                       value={formData.specTarget ?? ''}
                       onChange={(e) => setFormData({ ...formData, specTarget: e.target.value === '' ? null : Number(e.target.value) })}
                     />
                   </SoftLabel>
-                  <SoftLabel label="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)">
+                  <SoftLabel label={ui('ค่าคลาดเคลื่อนที่ยอมรับได้ (%)')}>
                     <div className="relative">
                       <NumberInput
                         className={cn(SOFT_INPUT, 'pr-8')}
                         placeholder="0"
-                        ariaLabel="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)"
+                        ariaLabel={ui('ค่าคลาดเคลื่อนที่ยอมรับได้ (%)')}
                         min={0}
                         max={100}
                         value={formData.specTolerancePercent}
@@ -2810,19 +2815,19 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
                     </div>
                   </SoftLabel>
-                  <SoftLabel label="ค่าต่ำสุด">
+                  <SoftLabel label={ui('ค่าต่ำสุด')}>
                     <input
                       readOnly
-                      aria-label="ค่าต่ำสุด"
+                      aria-label={ui('ค่าต่ำสุด')}
                       className={cn(SOFT_INPUT, 'cursor-not-allowed font-semibold')}
                       placeholder="—"
                       value={calculatedMinMax?.min ?? ''}
                     />
                   </SoftLabel>
-                  <SoftLabel label="ค่าสูงสุด">
+                  <SoftLabel label={ui('ค่าสูงสุด')}>
                     <input
                       readOnly
-                      aria-label="ค่าสูงสุด"
+                      aria-label={ui('ค่าสูงสุด')}
                       className={cn(SOFT_INPUT, 'cursor-not-allowed font-semibold')}
                       placeholder="—"
                       value={calculatedMinMax?.max ?? ''}
@@ -2845,15 +2850,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       step="any"
                       data-testid="max-limit-value"
                       className={SOFT_INPUT}
-                      placeholder="เช่น 1000"
+                      placeholder={ui('เช่น 1000')}
                       value={specPayload.maxValue}
                       onChange={(e) => setSpecPayload({ ...specPayload, maxValue: e.target.value })}
                     />
                   </SoftLabel>
-                  <SoftLabel label="ที่มาของเกณฑ์ (ถ้ามี)">
+                  <SoftLabel label={ui('ที่มาของเกณฑ์ (ถ้ามี)')}>
                     <input
                       className={SOFT_INPUT}
-                      placeholder="เช่น USP <61> · ประกาศกระทรวง"
+                      placeholder={ui('เช่น USP <61> · ประกาศกระทรวง')}
                       value={specPayload.note}
                       onChange={(e) => setSpecPayload({ ...specPayload, note: e.target.value })}
                     />
@@ -2951,9 +2956,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 flex-col gap-4">
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-sm font-semibold text-black">เกณฑ์การตัดสินแบบหลายขั้น</h4>
+                    <h4 className="text-sm font-semibold text-black">{ui('เกณฑ์การตัดสินแบบหลายขั้น')}</h4>
                     <p className="text-xs text-[#bfbfbf]">
-                      เกณฑ์การตัดสินแบบหลายขั้น (ตามหลัก GMP / USP &lt;711&gt;, &lt;905&gt;)
+                      {ui('เกณฑ์การตัดสินแบบหลายขั้น')} (GMP / USP &lt;711&gt;, &lt;905&gt;)
                     </p>
                   </div>
 
@@ -2967,7 +2972,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-tested"
                         icon={<User className="h-4 w-4" />}
-                        label="ทดสอบ"
+                        label={ui('ทดสอบ')}
                         value={acceptanceMath.sampleSize}
                         unit={sampleUnitWord}
                         color="#5682e9"
@@ -2976,18 +2981,18 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-allowed"
                         icon={<ClockAlert className="h-4 w-4" />}
-                        label="ยอมเสียได้"
+                        label={ui('ยอมเสียได้')}
                         value={acceptanceMath.allowedFail}
-                        unit={`ไม่เกินกี่${sampleUnitWord}`}
+                        unit={`${ui('ไม่เกินกี่')}${sampleUnitWord}`}
                         color="#fc9709"
                       />
                       <AcceptanceStat
             surface="bg-[#f1f3f5]"
                         testId="acceptance-stat-must-pass"
                         icon={<ScanFace className="h-4 w-4" />}
-                        label="ต้องผ่าน"
+                        label={ui('ต้องผ่าน')}
                         value={acceptanceMath.mustPass}
-                        unit="ขั้นต่ำ"
+                        unit={ui('ขั้นต่ำ')}
                         color="#27ae60"
                       />
                     </div>
@@ -2998,7 +3003,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <HeaderSwitch
                     testId="multi-stage-switch"
                     checked={multiStageEnabled}
-                    label="ตัดสินหลายขั้น"
+                    label={ui('ตัดสินหลายขั้น')}
                     onChange={() => {
                       if (multiStageEnabled) {
                         setMultiStageEnabled(false);
@@ -3041,7 +3046,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     data-testid="stage-count-pill"
                     className="rounded-full bg-white px-3 py-1 text-xs text-black shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
                   >
-                    {stageCount} ขั้น
+                    {stageCount} {ui('ขั้น')}
                   </span>
                 </div>
               </div>
@@ -3053,8 +3058,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     <div className="mb-6 flex items-center gap-3 rounded-[14px] border-[1.5px] border-[#ffdeb0] bg-[#fff7ed] p-[14px]">
                       <Info className="h-[18px] w-[18px] shrink-0 text-[#c2410c]" />
                       <p className="text-xs font-medium text-[#c2410c]">
-                        หากการทดสอบขั้นที่ 1 ไม่ผ่าน ให้สุ่มตัวอย่างเพิ่มเพื่อทดสอบขั้นที่ 2
-                        โดยใช้เกณฑ์ที่เข้มขึ้น (รวมจำนวนทั้งหมด) ก่อนตัดสินปฏิเสธรุ่นผลิต
+                        {ui('หากการทดสอบขั้นที่ 1 ไม่ผ่าน ให้สุ่มตัวอย่างเพิ่มเพื่อทดสอบขั้นที่ 2 โดยใช้เกณฑ์ที่เข้มขึ้น (รวมจำนวนทั้งหมด) ก่อนตัดสินปฏิเสธรุ่นผลิต')}
                       </p>
                     </div>
 
@@ -3064,7 +3068,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                         whether the stages below came from a standard or were
                         typed by hand. */}
                     <div className="mb-6 flex flex-col gap-4">
-                      <p className="text-[13px] font-semibold text-slate-700">แผนมาตรฐานตามตำรายา</p>
+                      <p className="text-[13px] font-semibold text-slate-700">{ui('แผนมาตรฐานตามตำรายา')}</p>
                       <div className="flex flex-col gap-6 sm:flex-row">
                         <PresetButton
                           testId="preset-usp-711"
@@ -3126,10 +3130,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                   <h5 className="text-sm font-semibold leading-8 text-black">
-                                    ขั้นที่ {idx + 1}
+                                    {ui('ขั้นที่')} {idx + 1}
                                   </h5>
                                   <p className="mt-1 text-[11px] text-[#bfbfbf]">
-                                    สุ่ม {stage.sampleSize} {sampleUnitWord} · รวมทดสอบทั้งหมด {cumulative[idx] ?? 0} {sampleUnitWord}
+                                    {ui('สุ่ม')} {stage.sampleSize} {sampleUnitWord} · {ui('รวมทดสอบทั้งหมด')} {cumulative[idx] ?? 0} {sampleUnitWord}
                                   </p>
                                 </div>
                                 {/* Stage 1 always runs, so only later stages can go. */}
@@ -3175,7 +3179,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             className={cn(DASH, 'flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-[12px] border-[#e1e4e8] text-[13px] text-[#bfbfbf] transition hover:bg-[#f8f9fa]')}
                           >
                             <Plus className="h-4 w-4" />
-                            เพิ่มขั้น {stages.length + 1} (ทดสอบซ้ำ)
+                            {ui('เพิ่มขั้น')} {stages.length + 1} ({ui('ทดสอบซ้ำ')})
                           </button>
                         </li>
                       )}
@@ -3192,11 +3196,11 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     width while everything above it ran the full block. */}
                 {!multiStageEnabled && (
                   <div className="grid grid-cols-1 gap-6">
-                    <SoftLabel label="เกณฑ์การยอมรับ">
+                    <SoftLabel label={ui('เกณฑ์การยอมรับ')}>
                       <div className="relative">
                         <NumberInput
                           className={cn(SOFT_INPUT, 'pr-8')}
-                          ariaLabel="เกณฑ์การยอมรับ"
+                          ariaLabel={ui('เกณฑ์การยอมรับ')}
                           min={0}
                           max={100}
                           value={formData.tolerancePercent}
@@ -3243,15 +3247,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               second panel drawn around it. */}
           <div data-testid="fail-route-card" className="flex flex-col gap-2.5 px-6 py-5">
             <div className="flex flex-col gap-2">
-              <h4 className="text-sm font-semibold text-black">เมื่อไม่ผ่าน</h4>
-              <p className="text-xs text-[#bfbfbf]">ผลตกแล้วไปทางไหนต่อ</p>
+              <h4 className="text-sm font-semibold text-black">{ui('เมื่อไม่ผ่าน')}</h4>
+              <p className="text-xs text-[#bfbfbf]">{ui('ผลตกแล้วไปทางไหนต่อ')}</p>
             </div>
             <TriggerCard
                 testId="setting-critical"
                 icon={<Shield className="h-4 w-4" />}
-                title="เกณฑ์วิกฤต"
-                desc="ถ้าไม่ผ่านจะระงับรุ่นผลิตทันที"
-                info="เกณฑ์วิกฤต — ถ้าผลไม่ผ่านจะหยุดรุ่นผลิตทันที ไม่มีสิทธิ์ทดสอบซ้ำ และจำนวนครั้งที่ทดสอบซ้ำได้จะถูกบังคับเป็น 0"
+                title={ui('เกณฑ์วิกฤต')}
+                desc={ui('ถ้าไม่ผ่านจะระงับรุ่นผลิตทันที')}
+                info={ui('เกณฑ์วิกฤต — ถ้าผลไม่ผ่านจะหยุดรุ่นผลิตทันที ไม่มีสิทธิ์ทดสอบซ้ำ และจำนวนครั้งที่ทดสอบซ้ำได้จะถูกบังคับเป็น 0')}
                 onColor="#c0362c"
                 autoFilled={isAutoFilled('isCritical')}
                 on={!!formData.isCritical}
@@ -3264,10 +3268,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <div className="flex items-start gap-2 text-[#c0362c]">
                     <Lock className="mt-0.5 h-4 w-4 shrink-0" />
                     <p className="text-xs font-medium leading-relaxed">
-                      ทดสอบซ้ำไม่ได้ — ไม่ผ่านรอบแรกจะเปิดบันทึกความเบี่ยงเบนทันที
+                      {ui('ทดสอบซ้ำไม่ได้ — ไม่ผ่านรอบแรกจะเปิดบันทึกความเบี่ยงเบนทันที')}
                       <br />
                       <span className="font-normal text-[#9aa3ad]">
-                        แก้ค่านี้ไม่ได้เมื่อเปิดเกณฑ์วิกฤต
+                        {ui('แก้ค่านี้ไม่ได้เมื่อเปิดเกณฑ์วิกฤต')}
                       </span>
                     </p>
                   </div>
@@ -3275,14 +3279,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <div className="flex flex-col gap-3" data-testid="retest-choices">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-[#bfbfbf]">
-                        จำนวนครั้งที่ทดสอบซ้ำได้ <span className="text-[#e32727]">*</span>
+                        {ui('จำนวนครั้งที่ทดสอบซ้ำได้')} <span className="text-[#e32727]">*</span>
                       </span>
                       {retestMissing && (
                         <span
                           data-testid="retest-unset-badge"
                           className="rounded-full bg-[#fdf3e7] px-2 py-0.5 text-[10px] font-medium text-[#c2410c]"
                         >
-                          ยังไม่ได้เลือก
+                          {ui('ยังไม่ได้เลือก')}
                         </span>
                       )}
                     </div>
@@ -3322,12 +3326,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             : 'border-[#e1e4e8] bg-white text-slate-700 hover:border-[#9db9e8]',
                         )}
                       >
-                        กำหนดเอง
+                        {ui('กำหนดเอง')}
                       </button>
                       {retestCustom && (
                         <NumberInput
                           className={cn(SOFT_INPUT, 'w-24')}
-                          ariaLabel="จำนวนครั้งที่ทดสอบซ้ำได้ กำหนดเอง"
+                          ariaLabel={ui('จำนวนครั้งที่ทดสอบซ้ำได้ กำหนดเอง')}
                           min={1}
                           max={5}
                           value={retestChosen ? (formData.maxRetestRounds ?? 0) : null}
@@ -3345,7 +3349,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     {retestMissingShown && retestMissing ? (
                       <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-[#c2410c]">
                         <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span>ต้องเลือกจำนวนครั้งที่ทดสอบซ้ำได้ก่อนบันทึก — ไม่มีค่าเริ่มต้นให้</span>
+                        <span>{ui('ต้องเลือกจำนวนครั้งที่ทดสอบซ้ำได้ก่อนบันทึก — ไม่มีค่าเริ่มต้นให้')}</span>
                       </p>
                     ) : retestChosen ? (
                       <p
@@ -3360,7 +3364,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       </p>
                     ) : (
                       <p className="text-[11px] text-[#bfbfbf]">
-                        เลือก 1 ปุ่มเพื่อยืนยันจำนวนรอบ — ถ้าไม่ให้ทดสอบซ้ำเลย ให้เปิดเกณฑ์วิกฤตแทน
+                        {ui('เลือก 1 ปุ่มเพื่อยืนยันจำนวนรอบ — ถ้าไม่ให้ทดสอบซ้ำเลย ให้เปิดเกณฑ์วิกฤตแทน')}
                       </p>
                     )}
                   </div>
@@ -3370,8 +3374,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 page — it was a card footer, which needed a card to be a
                 footer of. */}
             <p className="px-1 text-xs text-[#bfbfbf]">
-              ตามแนวปฏิบัติสากลเรื่องผลตรวจผิดปกติ: ทดสอบซ้ำโดยพบสาเหตุ นับเป็นรอบเพิ่มได้
-              ส่วนทดสอบซ้ำโดยไม่พบสาเหตุชัดเจน จะเปิดบันทึกความเบี่ยงเบนทันที
+              {ui('ตามแนวปฏิบัติสากลเรื่องผลตรวจผิดปกติ: ทดสอบซ้ำโดยพบสาเหตุ นับเป็นรอบเพิ่มได้ ส่วนทดสอบซ้ำโดยไม่พบสาเหตุชัดเจน จะเปิดบันทึกความเบี่ยงเบนทันที')}
             </p>
           </div>
 
@@ -3392,12 +3395,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <Lock className="h-4 w-4" />
                 </span>
                 <div className="flex flex-col gap-1">
-                  <h4 className="text-sm font-semibold text-[#6b7280]">การคำนวณที่ได้จากผล</h4>
+                  <h4 className="text-sm font-semibold text-[#6b7280]">{ui('การคำนวณที่ได้จากผล')}</h4>
                   {/* Says which switch brings it back — a card that just
                       vanishes leaves the user with nothing to act on. */}
                   <p className="text-xs text-[#bfbfbf]">
-                    ใช้ได้เมื่อเปิด &quot;ครั้งเดียวต่อรุ่นผลิต&quot; หรือ &quot;ตามจังหวะการผลิต&quot; ในหัวข้อ ตรวจสอบเมื่อ
-                    — สูตรอย่างผลผลิตที่ได้ สรุปได้ตอนจบรุ่นเท่านั้น
+                    {ui('ใช้ได้เมื่อเปิด ครั้งเดียวต่อรุ่นผลิต หรือ ตามจังหวะการผลิต ในหัวข้อ ตรวจสอบเมื่อ')}
+                    {ui('— สูตรอย่างผลผลิตที่ได้ สรุปได้ตอนจบรุ่นเท่านั้น')}
                   </p>
                 </div>
               </div>
@@ -3472,7 +3475,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={5} title="สถานะการใช้งาน" hint="สถานะเปิดใช้งานแยกจากเกณฑ์วิกฤตและการทดสอบซ้ำ เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล">
+          <FormSection step={5} title={ui('สถานะการใช้งาน')} hint={ui('สถานะเปิดใช้งานแยกจากเกณฑ์วิกฤตและการทดสอบซ้ำ เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล')}>
 
           {/* A TriggerCard is already a card. Wrapping one in a second card
               drew a white panel inside a white panel with nothing between
@@ -3482,9 +3485,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <TriggerCard
               testId="setting-active"
               icon={<Power className="h-4 w-4" />}
-              title="เปิดใช้งาน"
-              desc="เปิดใช้กับรุ่นผลิตใหม่"
-              info="ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับรุ่นผลิตที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ"
+              title={ui('เปิดใช้งาน')}
+              desc={ui('เปิดใช้กับรุ่นผลิตใหม่')}
+              info={ui('ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับรุ่นผลิตที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ')}
               on={formData.isActive !== false}
               onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
             />
@@ -3539,7 +3542,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 lotDrivenSampling
                   ? {
                       labels: sqrtResultFields,
-                      caption: `สุ่มตัวอย่างตามยอดผลิต (เช่น รุ่น ${lotExamples[0].lot.toLocaleString('en-US')} ชิ้น → ${lotExamples[0].size} ตัวอย่าง) แล้วแบ่งมาทดสอบ`,
+                      caption: `${ui('สุ่มตัวอย่างตามยอดผลิต (เช่น รุ่น')} ${lotExamples[0].lot.toLocaleString('en-US')} ${ui('ชิ้น →')} ${lotExamples[0].size} ${ui('ตัวอย่าง) แล้วแบ่งมาทดสอบ')}`,
                     }
                   : undefined
               }
@@ -3562,7 +3565,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     </span>
                   </span>
                 ) : (
-                  <span className="text-amber-600">⚠ กรุณาเลือกหัวข้อการทดสอบก่อน</span>
+                  <span className="text-amber-600">{ui('⚠ กรุณาเลือกหัวข้อการทดสอบก่อน')}</span>
                 )}
               </div>
               <div className="flex gap-3">
@@ -3571,7 +3574,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   onClick={() => router.push('/master-data/ipc-criteria')}
                   className="flex-1 rounded-[10px] border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
-                  ยกเลิก
+                  {ui('ยกเลิก')}
                 </button>
                 <button
                   type="button"
@@ -3579,7 +3582,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   disabled={saveMutation.isPending || !formData.name || !formData.code}
                   className="flex-1 rounded-[10px] bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saveMutation.isPending ? 'กำลังบันทึก…' : mode === 'edit' ? 'บันทึกการแก้ไข' : 'สร้างเกณฑ์'}
+                  {saveMutation.isPending ? ui('กำลังบันทึก…') : mode === 'edit' ? ui('บันทึกการแก้ไข') : ui('สร้างเกณฑ์')}
                 </button>
               </div>
             </div>
@@ -3740,6 +3743,7 @@ interface DerivedCalcCardProps {
 }
 
 function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps) {
+  const ui = useUiText();
   return (
     <div
       data-testid={`derived-calc-${idx}`}
@@ -3761,16 +3765,16 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <SoftLabel label="ชื่อสูตร">
+        <SoftLabel label={ui('ชื่อสูตร')}>
           <input
             className={SOFT_INPUT}
             aria-label={`ชื่อสูตร ${idx + 1}`}
-            placeholder="เช่น ผลผลิตที่ได้"
+            placeholder={ui('เช่น ผลผลิตที่ได้')}
             value={calc.label}
             onChange={(e) => onChange({ label: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="สูตรคำนวณ">
+        <SoftLabel label={ui('สูตรคำนวณ')}>
           <input
             className={cn(SOFT_INPUT, 'font-mono')}
             aria-label={`สูตรคำนวณ ${idx + 1}`}
@@ -3780,7 +3784,7 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
           />
         </SoftLabel>
 
-        <SoftLabel label="ที่มาของค่า">
+        <SoftLabel label={ui('ที่มาของค่า')}>
           <input
             className={SOFT_INPUT}
             aria-label={`ที่มาของค่า ${idx + 1}`}
@@ -3789,7 +3793,7 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
             onChange={(e) => onChange({ sources: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="หน่วยของผลลัพธ์">
+        <SoftLabel label={ui('หน่วยของผลลัพธ์')}>
           <input
             className={SOFT_INPUT}
             aria-label={`หน่วยของผลลัพธ์ ${idx + 1}`}
@@ -3799,29 +3803,29 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
           />
         </SoftLabel>
 
-        <SoftLabel label="คำนวณเมื่อไหร่">
+        <SoftLabel label={ui('คำนวณเมื่อไหร่')}>
           <input
             className={SOFT_INPUT}
             aria-label={`คำนวณเมื่อไหร่ ${idx + 1}`}
-            placeholder="เช่น ปิดรุ่นผลิต หรือหลังคำนวณสูตรอื่น"
+            placeholder={ui('เช่น ปิดรุ่นผลิต หรือหลังคำนวณสูตรอื่น')}
             value={calc.triggerWhen}
             onChange={(e) => onChange({ triggerWhen: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="เมื่อไม่ผ่าน">
+        <SoftLabel label={ui('เมื่อไม่ผ่าน')}>
           <select
             className={cn(SOFT_INPUT, 'appearance-none pr-9')}
             aria-label={`เมื่อไม่ผ่าน ${idx + 1}`}
             value={calc.onFail}
             onChange={(e) => onChange({ onFail: e.target.value as DerivedCalc['onFail'] })}
           >
-            <option value="reject">ปฏิเสธรุ่นผลิต</option>
-            <option value="deviation">บันทึกความเบี่ยงเบน</option>
-            <option value="note">บันทึกหมายเหตุเท่านั้น</option>
+            <option value="reject">{ui('ปฏิเสธรุ่นผลิต')}</option>
+            <option value="deviation">{ui('บันทึกความเบี่ยงเบน')}</option>
+            <option value="note">{ui('บันทึกหมายเหตุเท่านั้น')}</option>
           </select>
         </SoftLabel>
 
-        <SoftLabel label="ค่าต่ำสุดที่ยอมรับได้">
+        <SoftLabel label={ui('ค่าต่ำสุดที่ยอมรับได้')}>
           <input
             className={SOFT_INPUT}
             aria-label={`ค่าต่ำสุดที่ยอมรับได้ ${idx + 1}`}
@@ -3830,7 +3834,7 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
             onChange={(e) => onChange({ acceptanceMin: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="ค่าสูงสุดที่ยอมรับได้">
+        <SoftLabel label={ui('ค่าสูงสุดที่ยอมรับได้')}>
           <input
             className={SOFT_INPUT}
             aria-label={`ค่าสูงสุดที่ยอมรับได้ ${idx + 1}`}
@@ -3841,11 +3845,11 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
         </SoftLabel>
 
         <div className="sm:col-span-2">
-          <SoftLabel label="หมายเหตุ">
+          <SoftLabel label={ui('หมายเหตุ')}>
             <input
               className={SOFT_INPUT}
               aria-label={`Note ${idx + 1}`}
-              placeholder="หมายเหตุ"
+              placeholder={ui('หมายเหตุ')}
               value={calc.note}
               onChange={(e) => onChange({ note: e.target.value })}
             />
@@ -3903,6 +3907,7 @@ function MultiPointSection({
    */
   section: 'sampling' | 'per-unit' | 'batch';
 }) {
+  const ui = useUiText();
   // Fetch list of tare criteria for cross-reference dropdown
   const { data: tareList = [], refetch } = useQuery<TareCriteriaOption[]>({
     queryKey: ['ipc-criteria-tare-list'],
@@ -4046,8 +4051,8 @@ function MultiPointSection({
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">วิธีบันทึกน้ำหนักภาชนะ</h4>
-            <span className="text-[11px] text-slate-400">วิธีบันทึกน้ำหนักภาชนะ</span>
+            <h4 className="text-sm font-semibold text-black">{ui('วิธีบันทึกน้ำหนักภาชนะ')}</h4>
+            <span className="text-[11px] text-slate-400">{ui('วิธีบันทึกน้ำหนักภาชนะ')}</span>
           </div>
 
           {/* Linking a tare answers the whole question: the shell weight comes
@@ -4059,7 +4064,7 @@ function MultiPointSection({
               <span className="text-[13px] font-semibold text-black">
                 ใช้ค่า Tare จากเกณฑ์อื่น (Tare Source)
               </span>
-              <span className="text-[11px] text-slate-400">ไม่บังคับ</span>
+              <span className="text-[11px] text-slate-400">{ui('ไม่บังคับ')}</span>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -4083,7 +4088,7 @@ function MultiPointSection({
                 }
               }}
               options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
-              placeholder="— ไม่หักน้ำหนักภาชนะ —"
+              placeholder={ui('— ไม่หักน้ำหนักภาชนะ —')}
               onAddNew={(text) => openNewTare(text)}
               addNewLabel="＋ สร้างเกณฑ์น้ำหนักภาชนะใหม่"
             />
@@ -4095,7 +4100,7 @@ function MultiPointSection({
                 className="mt-2 flex flex-col gap-2 rounded-[12px] bg-[#f6f7f9] p-3"
               >
                 <p className="text-[11px] leading-relaxed text-cyan-800">
-                  ยังไม่มี Tare criteria ในระบบ — <b>ไม่เลือกก็ได้</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
+                  ยังไม่มี Tare criteria ในระบบ — <b>{ui('ไม่เลือกก็ได้')}</b> หัวข้อนี้จะให้ชั่งเปลือกเปล่าเองตามวิธีที่ตั้งไว้ด้านบน
                   <br />
                   เลือกสร้างไว้ก็ต่อเมื่ออยากให้ค่า Tare ใช้ร่วมกันหลายหัวข้อ หรือชั่งไว้ล่วงหน้าครั้งเดียวต่อรุ่น
                 </p>
@@ -4117,10 +4122,10 @@ function MultiPointSection({
                 className="mt-2 flex flex-col gap-3 rounded-[12px] bg-[#f6f7f9] p-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h5 className="text-[13px] font-semibold text-cyan-800">สร้างเกณฑ์น้ำหนักภาชนะใหม่</h5>
+                  <h5 className="text-[13px] font-semibold text-cyan-800">{ui('สร้างเกณฑ์น้ำหนักภาชนะใหม่')}</h5>
                   <button
                     type="button"
-                    aria-label="ปิด"
+                    aria-label={ui('ปิด')}
                     onClick={() => { setNewTareOpen(false); setNewTareError(''); }}
                     className="text-slate-400 transition hover:text-slate-600"
                   >
@@ -4135,12 +4140,12 @@ function MultiPointSection({
                     </label>
                     <input
                       className={FIELD_INPUT}
-                      placeholder="เช่น IPC-TARE-101"
+                      placeholder={ui('เช่น IPC-TARE-101')}
                       data-testid="tare-new-code"
                       value={newTare.code}
                       onChange={(e) => setNewTare({ ...newTare, code: e.target.value })}
                     />
-                    <p className={FIELD_HELPER}>ระบบสร้างให้แล้ว แก้ได้</p>
+                    <p className={FIELD_HELPER}>{ui('ระบบสร้างให้แล้ว แก้ได้')}</p>
                   </div>
                   <div>
                     <label className={FIELD_LABEL}>
@@ -4148,14 +4153,14 @@ function MultiPointSection({
                     </label>
                     <input
                       className={FIELD_INPUT}
-                      placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 1"
+                      placeholder={ui('เช่น น้ำหนักแคปซูลเปล่า เบอร์ 1')}
                       data-testid="tare-new-name"
                       value={newTare.name}
                       onChange={(e) => setNewTare({ ...newTare, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>หน่วยอ้างอิง</label>
+                    <label className={FIELD_LABEL}>{ui('หน่วยอ้างอิง')}</label>
                     <input
                       className={FIELD_INPUT}
                       placeholder="g"
@@ -4170,7 +4175,7 @@ function MultiPointSection({
                     <label className={cn(FIELD_LABEL, 'flex items-center gap-1')}>
                       Store As (symbol)
                       <InfoTip
-                        text="ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน"
+                        text={ui('ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน')}
                         testId="tare-new-store-as-info"
                       />
                     </label>
@@ -4181,34 +4186,34 @@ function MultiPointSection({
                       value={newTare.storeAs}
                       onChange={(e) => setNewTare({ ...newTare, storeAs: e.target.value })}
                     />
-                    <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ — เว้นว่างได้ ระบบจะใช้รหัสเกณฑ์แทน</p>
+                    <p className={FIELD_HELPER}>{ui('ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ — เว้นว่างได้ ระบบจะใช้รหัสเกณฑ์แทน')}</p>
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>อายุการใช้งาน</label>
+                    <label className={FIELD_LABEL}>{ui('อายุการใช้งาน')}</label>
                     <select
                       className={FIELD_INPUT}
-                      aria-label="อายุการใช้งาน"
+                      aria-label={ui('อายุการใช้งาน')}
                       data-testid="tare-new-expire"
                       value={newTare.expireAfter}
                       onChange={(e) =>
                         setNewTare({ ...newTare, expireAfter: e.target.value as TarePayload['expireAfter'] })
                       }
                     >
-                      <option value="batch">หมดอายุเมื่อจบรุ่นผลิต</option>
-                      <option value="shift">หมดอายุเมื่อจบกะ</option>
-                      <option value="permanent">ใช้ได้ตลอด</option>
+                      <option value="batch">{ui('หมดอายุเมื่อจบรุ่นผลิต')}</option>
+                      <option value="shift">{ui('หมดอายุเมื่อจบกะ')}</option>
+                      <option value="permanent">{ui('ใช้ได้ตลอด')}</option>
                     </select>
-                    <p className={FIELD_HELPER}>ต้องชั่งเปลือกใหม่เมื่อไร</p>
+                    <p className={FIELD_HELPER}>{ui('ต้องชั่งเปลือกใหม่เมื่อไร')}</p>
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>ช่วงที่ยอมรับได้</label>
+                    <label className={FIELD_LABEL}>{ui('ช่วงที่ยอมรับได้')}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
                         step="any"
                         className={FIELD_INPUT}
                         placeholder="0.0900"
-                        aria-label="ค่าต่ำสุดที่ยอมรับได้"
+                        aria-label={ui('ค่าต่ำสุดที่ยอมรับได้')}
                         data-testid="tare-new-min"
                         value={newTare.min}
                         onChange={(e) => setNewTare({ ...newTare, min: e.target.value })}
@@ -4219,13 +4224,13 @@ function MultiPointSection({
                         step="any"
                         className={FIELD_INPUT}
                         placeholder="0.1100"
-                        aria-label="ค่าสูงสุดที่ยอมรับได้"
+                        aria-label={ui('ค่าสูงสุดที่ยอมรับได้')}
                         data-testid="tare-new-max"
                         value={newTare.max}
                         onChange={(e) => setNewTare({ ...newTare, max: e.target.value })}
                       />
                     </div>
-                    <p className={FIELD_HELPER}>ไม่บังคับ — ใช้เตือนเมื่อเปลือกผิดน้ำหนัก</p>
+                    <p className={FIELD_HELPER}>{ui('ไม่บังคับ — ใช้เตือนเมื่อเปลือกผิดน้ำหนัก')}</p>
                   </div>
                 </div>
 
@@ -4340,10 +4345,10 @@ function MultiPointSection({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className={FIELD_LABEL}>ชื่อหัวข้อการบันทึก</label>
+              <label className={FIELD_LABEL}>{ui('ชื่อหัวข้อการบันทึก')}</label>
               <input
                 className={FIELD_INPUT}
-                placeholder="เช่น น้ำหนักแคปซูลเปล่า เบอร์ 0"
+                placeholder={ui('เช่น น้ำหนักแคปซูลเปล่า เบอร์ 0')}
                 data-testid="mp-tare-label"
                 value={payload.tareLabel}
                 onChange={(e) => onChange({ ...payload, tareLabel: e.target.value })}
@@ -4369,7 +4374,7 @@ function MultiPointSection({
                   value={payload.tareCount}
                   onChange={(e) => onChange({ ...payload, tareCount: e.target.value })}
                 />
-                <p className={FIELD_HELPER}>ชั่งเปลือกเปล่าพร้อมกันกี่ชิ้น</p>
+                <p className={FIELD_HELPER}>{ui('ชั่งเปลือกเปล่าพร้อมกันกี่ชิ้น')}</p>
               </div>
             )}
           </div>
@@ -4383,15 +4388,15 @@ function MultiPointSection({
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">เกณฑ์ต่อหน่วย</h4>
-            <span className="text-[11px] text-slate-400">หนึ่งหน่วยควรหนักเท่าไร และเบี่ยงได้แค่ไหน</span>
+            <h4 className="text-sm font-semibold text-black">{ui('เกณฑ์ต่อหน่วย')}</h4>
+            <span className="text-[11px] text-slate-400">{ui('หนึ่งหน่วยควรหนักเท่าไร และเบี่ยงได้แค่ไหน')}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* What a หน่วย is, asked in the card whose every other label says
                 "ต่อหน่วย" — it used to sit in the sampling step, a scroll away
                 from the figures it names. */}
             <div className="sm:col-span-2">
-              <label className={FIELD_LABEL}>ชื่อหน่วยที่ชั่ง</label>
+              <label className={FIELD_LABEL}>{ui('ชื่อหน่วยที่ชั่ง')}</label>
               <input
                 className={FIELD_INPUT}
                 placeholder={payload.tareMode === 'bulk' ? 'เช่น "เม็ด"' : 'เช่น "หัวตอก" → "หัวตอก 1", "หัวตอก 2"...'}
@@ -4414,7 +4419,7 @@ function MultiPointSection({
               />
             </div>
             <div>
-              <label className={FIELD_LABEL}>ค่าคลาดเคลื่อนที่ยอมรับได้ต่อหน่วย (%)</label>
+              <label className={FIELD_LABEL}>{ui('ค่าคลาดเคลื่อนที่ยอมรับได้ต่อหน่วย (%)')}</label>
               <div className="relative">
                 <input
                   type="number"
@@ -4436,12 +4441,12 @@ function MultiPointSection({
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">การตั้งค่าการผลิต</h4>
-            <span className="text-[11px] text-slate-400">การตัดสินรวมทั้งรุ่น</span>
+            <h4 className="text-sm font-semibold text-black">{ui('การตั้งค่าการผลิต')}</h4>
+            <span className="text-[11px] text-slate-400">{ui('การตัดสินรวมทั้งรุ่น')}</span>
           </div>
 
         <div>
-          <label className={FIELD_LABEL}>วิธีตัดสินรวม <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>{ui('วิธีตัดสินรวม')} <span className="text-red-500">*</span></label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { v: 'all_pass', t: 'ทุกหน่วยต้องผ่าน', d: 'All Pass' },
@@ -4503,24 +4508,25 @@ function MultiPointSection({
 
 // ── Tare section ───────────────────────────────────────────────────
 function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p: TarePayload) => void }) {
+  const ui = useUiText();
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Layers className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์อ้างอิงน้ำหนักภาชนะ</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์อ้างอิงน้ำหนักภาชนะ')}</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={FIELD_LABEL}>ชื่ออ้างอิง <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>{ui('ชื่ออ้างอิง')} <span className="text-red-500">*</span></label>
           <input
             className={FIELD_INPUT}
-            placeholder="น้ำหนักภาชนะเปล่า"
+            placeholder={ui('น้ำหนักภาชนะเปล่า')}
             value={payload.referenceLabel}
             onChange={(e) => onChange({ ...payload, referenceLabel: e.target.value })}
           />
         </div>
         <div>
-          <label className={FIELD_LABEL}>หน่วยอ้างอิง</label>
+          <label className={FIELD_LABEL}>{ui('หน่วยอ้างอิง')}</label>
           <input
             className={FIELD_INPUT}
             placeholder="g"
@@ -4532,7 +4538,7 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
           <label className={cn(FIELD_LABEL, 'flex items-center gap-1')}>
             Store As (symbol)
             <InfoTip
-              text="ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน"
+              text={ui('ชื่อย่อที่ใช้เรียกค่า Tare นี้ในสูตรคำนวณ — ตั้งเป็น tare_empty_cap แล้วในการ์ด การคำนวณที่ได้จากผล เขียนสูตรได้เลยว่า (gross − tare_empty_cap) โดยไม่ต้องพิมพ์ Code ยาว ๆ · ใช้ตัวอักษรอังกฤษพิมพ์เล็กกับ _ เท่านั้น ถ้าเว้นว่าง ระบบจะใช้ Code ของเกณฑ์นี้แทน')}
               testId="tare-store-as-info"
             />
           </label>
@@ -4542,22 +4548,22 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
             value={payload.storeAs}
             onChange={(e) => onChange({ ...payload, storeAs: e.target.value })}
           />
-          <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ</p>
+          <p className={FIELD_HELPER}>{ui('ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ')}</p>
         </div>
         <div>
-          <label className={FIELD_LABEL}>อายุการใช้งาน</label>
+          <label className={FIELD_LABEL}>{ui('อายุการใช้งาน')}</label>
           <select
             className={FIELD_INPUT}
             value={payload.expireAfter}
             onChange={(e) => onChange({ ...payload, expireAfter: e.target.value as TarePayload['expireAfter'] })}
           >
-            <option value="batch">หมดอายุเมื่อจบรุ่นผลิต</option>
-            <option value="shift">หมดอายุเมื่อจบกะ</option>
-            <option value="permanent">ใช้ได้ตลอด</option>
+            <option value="batch">{ui('หมดอายุเมื่อจบรุ่นผลิต')}</option>
+            <option value="shift">{ui('หมดอายุเมื่อจบกะ')}</option>
+            <option value="permanent">{ui('ใช้ได้ตลอด')}</option>
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL}>ค่าต่ำสุดที่ยอมรับได้</label>
+          <label className={FIELD_LABEL}>{ui('ค่าต่ำสุดที่ยอมรับได้')}</label>
           <input
             type="number"
             step="any"
@@ -4568,7 +4574,7 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
           />
         </div>
         <div>
-          <label className={FIELD_LABEL}>ค่าสูงสุดที่ยอมรับได้</label>
+          <label className={FIELD_LABEL}>{ui('ค่าสูงสุดที่ยอมรับได้')}</label>
           <input
             type="number"
             step="any"
@@ -4585,60 +4591,61 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
 
 // ── Calibration section ────────────────────────────────────────────
 function CalibrationSection({ payload, onChange }: { payload: CalibrationPayload; onChange: (p: CalibrationPayload) => void }) {
+  const ui = useUiText();
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <FlaskConical className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์การสอบเทียบเครื่องมือ</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์การสอบเทียบเครื่องมือ')}</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={FIELD_LABEL}>ชื่อเครื่องมือ <span className="text-red-500">*</span></label>
-          <input className={FIELD_INPUT} placeholder="เช่น เวอร์เนียร์ดิจิทัล"
+          <label className={FIELD_LABEL}>{ui('ชื่อเครื่องมือ')} <span className="text-red-500">*</span></label>
+          <input className={FIELD_INPUT} placeholder={ui('เช่น เวอร์เนียร์ดิจิทัล')}
             value={payload.instrumentName}
             onChange={(e) => onChange({ ...payload, instrumentName: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>รหัสเครื่องมือ</label>
+          <label className={FIELD_LABEL}>{ui('รหัสเครื่องมือ')}</label>
           <input className={FIELD_INPUT} placeholder="INS-001"
             value={payload.instrumentId}
             onChange={(e) => onChange({ ...payload, instrumentId: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>ค่ามาตรฐาน <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>{ui('ค่ามาตรฐาน')} <span className="text-red-500">*</span></label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="100.000"
             value={payload.standardValue}
             onChange={(e) => onChange({ ...payload, standardValue: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>หน่วยของค่ามาตรฐาน</label>
+          <label className={FIELD_LABEL}>{ui('หน่วยของค่ามาตรฐาน')}</label>
           <input className={FIELD_INPUT} placeholder="mm"
             value={payload.standardUnit}
             onChange={(e) => onChange({ ...payload, standardUnit: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>รูปแบบค่าคลาดเคลื่อน</label>
+          <label className={FIELD_LABEL}>{ui('รูปแบบค่าคลาดเคลื่อน')}</label>
           <select className={FIELD_INPUT}
             value={payload.toleranceType}
             onChange={(e) => onChange({ ...payload, toleranceType: e.target.value as CalibrationPayload['toleranceType'] })}>
-            <option value="percent">ร้อยละ (%)</option>
-            <option value="absolute">ค่าสัมบูรณ์ (ตามหน่วย)</option>
+            <option value="percent">{ui('ร้อยละ (%)')}</option>
+            <option value="absolute">{ui('ค่าสัมบูรณ์ (ตามหน่วย)')}</option>
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL}>ค่าคลาดเคลื่อนที่ยอมรับได้</label>
+          <label className={FIELD_LABEL}>{ui('ค่าคลาดเคลื่อนที่ยอมรับได้')}</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder={payload.toleranceType === 'percent' ? '5' : '0.05'}
             value={payload.toleranceValue}
             onChange={(e) => onChange({ ...payload, toleranceValue: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>วันที่สอบเทียบล่าสุด</label>
+          <label className={FIELD_LABEL}>{ui('วันที่สอบเทียบล่าสุด')}</label>
           <input type="date" className={FIELD_INPUT}
             value={payload.lastCalibrationDate}
             onChange={(e) => onChange({ ...payload, lastCalibrationDate: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>กำหนดสอบเทียบครั้งถัดไป</label>
+          <label className={FIELD_LABEL}>{ui('กำหนดสอบเทียบครั้งถัดไป')}</label>
           <input type="date" className={FIELD_INPUT}
             value={payload.nextDueDate}
             onChange={(e) => onChange({ ...payload, nextDueDate: e.target.value })} />
@@ -4657,6 +4664,7 @@ function CalibrationSection({ payload, onChange }: { payload: CalibrationPayload
 
 // ── Calculated section ─────────────────────────────────────────────
 function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; onChange: (p: CalculatedPayload) => void }) {
+  const ui = useUiText();
   const addInput = () => onChange({
     ...payload,
     inputs: [
@@ -4676,21 +4684,21 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Calculator className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์ค่าที่คำนวณ</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์ค่าที่คำนวณ')}</h3>
       </div>
 
       <div>
-        <label className={FIELD_LABEL}>สูตรคำนวณ <span className="text-red-500">*</span></label>
+        <label className={FIELD_LABEL}>{ui('สูตรคำนวณ')} <span className="text-red-500">*</span></label>
         <input className={cn(FIELD_INPUT, 'font-mono text-sm')}
           placeholder="(gross - tare) / batch_size * 100"
           value={payload.formula}
           onChange={(e) => onChange({ ...payload, formula: e.target.value })} />
-        <p className={FIELD_HELPER}>ตัวแปรในสูตรต้องตรงกับชื่อตัวแปรด้านล่าง — ตัวอย่าง: <code>ผลผลิต = ผลได้ / ป้อนเข้า * 100</code>, <code>%ความชื้น = (ก่อนอบ - หลังอบ) / ก่อนอบ * 100</code></p>
+        <p className={FIELD_HELPER}>{ui('ตัวแปรในสูตรต้องตรงกับชื่อตัวแปรด้านล่าง — ตัวอย่าง:')} <code>{ui('ผลผลิต = ผลได้ / ป้อนเข้า * 100')}</code>, <code>{ui('%ความชื้น = (ก่อนอบ - หลังอบ) / ก่อนอบ * 100')}</code></p>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className={FIELD_LABEL}>ตัวแปรในสูตร</label>
+          <label className={FIELD_LABEL}>{ui('ตัวแปรในสูตร')}</label>
           <button type="button" onClick={addInput}
             className="flex items-center gap-1 rounded-full bg-[#e8effc] px-2.5 py-1 text-xs font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]">
             <Plus className="w-3 h-3" /> เพิ่ม input
@@ -4705,32 +4713,32 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
             {payload.inputs.map((inp) => (
               <div key={inp.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end p-2 rounded-lg bg-white border border-slate-200">
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] text-slate-500">ชื่อตัวแปรในสูตร</label>
+                  <label className="text-[10px] text-slate-500">{ui('ชื่อตัวแปรในสูตร')}</label>
                   <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
                     placeholder="gross" value={inp.name}
                     onChange={(e) => updateInput(inp.id, { name: e.target.value })} />
                 </div>
                 <div className="sm:col-span-3">
-                  <label className="text-[10px] text-slate-500">ที่มาของค่า</label>
+                  <label className="text-[10px] text-slate-500">{ui('ที่มาของค่า')}</label>
                   <select className={cn(FIELD_INPUT, 'text-xs')}
                     value={inp.source}
                     onChange={(e) => updateInput(inp.id, { source: e.target.value as CalculatedInput['source'] })}>
-                    <option value="derived">จากรหัสเกณฑ์อื่น</option>
-                    <option value="this_step">จากขั้นตอนนี้</option>
-                    <option value="constant">ค่าคงที่</option>
+                    <option value="derived">{ui('จากรหัสเกณฑ์อื่น')}</option>
+                    <option value="this_step">{ui('จากขั้นตอนนี้')}</option>
+                    <option value="constant">{ui('ค่าคงที่')}</option>
                   </select>
                 </div>
                 <div className="sm:col-span-6">
                   {inp.source === 'constant' ? (
                     <>
-                      <label className="text-[10px] text-slate-500">ค่าคงที่</label>
+                      <label className="text-[10px] text-slate-500">{ui('ค่าคงที่')}</label>
                       <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs font-mono')}
                         placeholder="100" value={inp.constantValue}
                         onChange={(e) => updateInput(inp.id, { constantValue: e.target.value })} />
                     </>
                   ) : (
                     <>
-                      <label className="text-[10px] text-slate-500">รหัสเกณฑ์</label>
+                      <label className="text-[10px] text-slate-500">{ui('รหัสเกณฑ์')}</label>
                       <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
                         placeholder="IPC-WV-001" value={inp.criteriaCode}
                         onChange={(e) => updateInput(inp.id, { criteriaCode: e.target.value })} />
@@ -4751,25 +4759,25 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div>
-          <label className={FIELD_LABEL}>หน่วยของผลลัพธ์</label>
+          <label className={FIELD_LABEL}>{ui('หน่วยของผลลัพธ์')}</label>
           <input className={FIELD_INPUT} placeholder="%"
             value={payload.resultUnit}
             onChange={(e) => onChange({ ...payload, resultUnit: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>ผลลัพธ์ต่ำสุด</label>
+          <label className={FIELD_LABEL}>{ui('ผลลัพธ์ต่ำสุด')}</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="90"
             value={payload.resultMin}
             onChange={(e) => onChange({ ...payload, resultMin: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>ผลลัพธ์สูงสุด</label>
+          <label className={FIELD_LABEL}>{ui('ผลลัพธ์สูงสุด')}</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="105"
             value={payload.resultMax}
             onChange={(e) => onChange({ ...payload, resultMax: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>ทศนิยม</label>
+          <label className={FIELD_LABEL}>{ui('ทศนิยม')}</label>
           <input type="number" min={0} max={6} className={FIELD_INPUT}
             value={payload.displayDecimals}
             onChange={(e) => onChange({ ...payload, displayDecimals: e.target.value })} />
@@ -4781,6 +4789,7 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
 
 // ── Custom Multi-Field section ─────────────────────────────────────
 function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldPayload; onChange: (p: CustomMultiFieldPayload) => void }) {
+  const ui = useUiText();
   const addField = () => onChange({
     ...payload,
     fields: [
@@ -4801,7 +4810,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Layers className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์แบบกำหนดฟิลด์เอง</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์แบบกำหนดฟิลด์เอง')}</h3>
       </div>
 
       <div>
@@ -4822,23 +4831,23 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
               <div key={f.id} className="rounded-lg border border-slate-200 bg-white p-3">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-3">
-                    <label className="text-[10px] text-slate-500">ชื่อฟิลด์</label>
+                    <label className="text-[10px] text-slate-500">{ui('ชื่อฟิลด์')}</label>
                     <input className={cn(FIELD_INPUT, 'text-xs')}
-                      placeholder="ความหนา" value={f.label}
+                      placeholder={ui('ความหนา')} value={f.label}
                       onChange={(e) => updateField(f.id, { label: e.target.value })} />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] text-slate-500">ชนิดข้อมูล</label>
+                    <label className="text-[10px] text-slate-500">{ui('ชนิดข้อมูล')}</label>
                     <select className={cn(FIELD_INPUT, 'text-xs')}
                       value={f.fieldType}
                       onChange={(e) => updateField(f.id, { fieldType: e.target.value as CustomField['fieldType'] })}>
-                      <option value="number">ตัวเลข</option>
-                      <option value="text">ข้อความ</option>
-                      <option value="select">ตัวเลือก</option>
+                      <option value="number">{ui('ตัวเลข')}</option>
+                      <option value="text">{ui('ข้อความ')}</option>
+                      <option value="select">{ui('ตัวเลือก')}</option>
                     </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] text-slate-500">หน่วย</label>
+                    <label className="text-[10px] text-slate-500">{ui('หน่วย')}</label>
                     <input className={cn(FIELD_INPUT, 'text-xs')}
                       placeholder="mm" value={f.unit}
                       onChange={(e) => updateField(f.id, { unit: e.target.value })} />
@@ -4846,7 +4855,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                   {f.fieldType === 'number' && (
                     <>
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-slate-500">ค่าเป้าหมาย</label>
+                        <label className="text-[10px] text-slate-500">{ui('ค่าเป้าหมาย')}</label>
                         <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs')}
                           value={f.target}
                           onChange={(e) => updateField(f.id, { target: e.target.value })} />
@@ -4861,9 +4870,9 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                   )}
                   {f.fieldType === 'select' && (
                     <div className="sm:col-span-4">
-                      <label className="text-[10px] text-slate-500">ตัวเลือก (คั่นด้วยจุลภาค)</label>
+                      <label className="text-[10px] text-slate-500">{ui('ตัวเลือก (คั่นด้วยจุลภาค)')}</label>
                       <input className={cn(FIELD_INPUT, 'text-xs')}
-                        placeholder="ตัวเลือก 1, ตัวเลือก 2, ตัวเลือก 3" value={f.options}
+                        placeholder={ui('ตัวเลือก 1, ตัวเลือก 2, ตัวเลือก 3')} value={f.options}
                         onChange={(e) => updateField(f.id, { options: e.target.value })} />
                     </div>
                   )}
@@ -4881,7 +4890,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                     required
                   </label>
                   <input className={cn(FIELD_INPUT, 'text-xs flex-1 ml-3')}
-                    placeholder="หมายเหตุ (ไม่บังคับ)" value={f.note}
+                    placeholder={ui('หมายเหตุ (ไม่บังคับ)')} value={f.note}
                     onChange={(e) => updateField(f.id, { note: e.target.value })} />
                 </div>
               </div>
@@ -4891,9 +4900,9 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
       </div>
 
       <div>
-        <label className={FIELD_LABEL}>หมายเหตุทั่วไป</label>
+        <label className={FIELD_LABEL}>{ui('หมายเหตุทั่วไป')}</label>
         <textarea className={cn(FIELD_INPUT, 'min-h-[60px]')}
-          placeholder="หมายเหตุทั่วไป"
+          placeholder={ui('หมายเหตุทั่วไป')}
           value={payload.generalNote}
           onChange={(e) => onChange({ ...payload, generalNote: e.target.value })} />
       </div>
@@ -4903,11 +4912,12 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
 
 // ── Pass / Fail section ────────────────────────────────────────────
 function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onChange: (p: PassFailPayload) => void }) {
+  const ui = useUiText();
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์การตัดสินผ่าน / ไม่ผ่าน</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์การตัดสินผ่าน / ไม่ผ่าน')}</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-4 border border-emerald-200">
@@ -4917,7 +4927,7 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
           </div>
           <textarea
             className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
-            placeholder="เช่น ฉลากติดถูกต้อง ครบถ้วน ไม่บิดเบี้ยว"
+            placeholder={ui('เช่น ฉลากติดถูกต้อง ครบถ้วน ไม่บิดเบี้ยว')}
             value={payload.passDefinition}
             onChange={(e) => onChange({ ...payload, passDefinition: e.target.value })}
           />
@@ -4929,7 +4939,7 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
           </div>
           <textarea
             className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
-            placeholder="เช่น ฉลากบิด ฉีกขาด หรือพิมพ์ไม่ชัด"
+            placeholder={ui('เช่น ฉลากบิด ฉีกขาด หรือพิมพ์ไม่ชัด')}
             value={payload.failDefinition}
             onChange={(e) => onChange({ ...payload, failDefinition: e.target.value })}
           />
@@ -4941,23 +4951,24 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
 
 // ── Visual section ─────────────────────────────────────────────────
 function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange: (p: VisualPayload) => void }) {
+  const ui = useUiText();
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <Eye className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์การตรวจด้วยสายตา</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('เกณฑ์การตรวจด้วยสายตา')}</h3>
       </div>
       <div className="mb-4">
-        <label className={FIELD_LABEL}>คำอธิบายลักษณะที่ยอมรับ <span className="text-red-500">*</span></label>
+        <label className={FIELD_LABEL}>{ui('คำอธิบายลักษณะที่ยอมรับ')} <span className="text-red-500">*</span></label>
         <textarea
           className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
-          placeholder="เช่น เม็ดยาสีน้ำตาลอ่อน ผิวเรียบ ไม่มีรอยร้าว ไม่มีจุดดำ"
+          placeholder={ui('เช่น เม็ดยาสีน้ำตาลอ่อน ผิวเรียบ ไม่มีรอยร้าว ไม่มีจุดดำ')}
           value={payload.description}
           onChange={(e) => onChange({ ...payload, description: e.target.value })}
         />
       </div>
       <div className="mb-4">
-        <label className={FIELD_LABEL}>รายการที่ต้องตรวจ</label>
+        <label className={FIELD_LABEL}>{ui('รายการที่ต้องตรวจ')}</label>
         <div className="space-y-2">
           {payload.checklist.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2">
@@ -4966,7 +4977,7 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
               </span>
               <input
                 className={cn(FIELD_INPUT, 'flex-1')}
-                placeholder="ระบุจุดที่ต้องตรวจ"
+                placeholder={ui('ระบุจุดที่ต้องตรวจ')}
                 value={item}
                 onChange={(e) => {
                   const next = [...payload.checklist];
@@ -4993,8 +5004,8 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
         </div>
       </div>
       <ImageUploadField
-        label="รูปอ้างอิง"
-        helper="รูปตัวอย่างที่ผู้ปฏิบัติงานใช้เปรียบเทียบตอนตรวจ"
+        label={ui('รูปอ้างอิง')}
+        helper={ui('รูปตัวอย่างที่ผู้ปฏิบัติงานใช้เปรียบเทียบตอนตรวจ')}
         testId="visual-reference-image"
         value={payload.referenceImage}
         onChange={(url) => onChange({ ...payload, referenceImage: url })}
@@ -5032,6 +5043,7 @@ function ImageUploadField({
   value: string;
   onChange: (url: string) => void;
 }) {
+  const ui = useUiText();
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -5149,7 +5161,7 @@ function ImageUploadField({
           <span className="text-[12px] font-medium text-[#6b7684]">
             {busy ? 'กำลังอัปโหลด…' : 'เลือกไฟล์รูป หรือลากไฟล์มาวาง'}
           </span>
-          <span className="text-[10px] text-[#bfbfbf]">PNG · JPG · WEBP · ไม่เกิน 5 MB</span>
+          <span className="text-[10px] text-[#bfbfbf]">{ui('PNG · JPG · WEBP · ไม่เกิน 5 MB')}</span>
         </button>
       )}
 
@@ -5165,39 +5177,40 @@ function ImageUploadField({
 
 // ── Text section ───────────────────────────────────────────────────
 function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p: TextPayload) => void }) {
+  const ui = useUiText();
   return (
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <FileText className="w-4 h-4 text-slate-700" />
-        <h3 className="text-sm font-semibold text-black">รูปแบบการบันทึกข้อความ</h3>
+        <h3 className="text-sm font-semibold text-black">{ui('รูปแบบการบันทึกข้อความ')}</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
         <div>
-          <label className={FIELD_LABEL}>รูปแบบที่คาดหวัง</label>
+          <label className={FIELD_LABEL}>{ui('รูปแบบที่คาดหวัง')}</label>
           <input
             className={FIELD_INPUT}
-            placeholder="เช่น ล็อต ปปปป-ดด-วว-ลำดับ"
+            placeholder={ui('เช่น ล็อต ปปปป-ดด-วว-ลำดับ')}
             value={payload.format}
             onChange={(e) => onChange({ ...payload, format: e.target.value })}
           />
-          <p className={FIELD_HELPER}>รูปแบบข้อความที่ต้องบันทึก</p>
+          <p className={FIELD_HELPER}>{ui('รูปแบบข้อความที่ต้องบันทึก')}</p>
         </div>
         <div>
-          <label className={FIELD_LABEL}>ตัวอย่าง</label>
+          <label className={FIELD_LABEL}>{ui('ตัวอย่าง')}</label>
           <input
             className={FIELD_INPUT}
-            placeholder="เช่น ล็อต 2025-11-25-001"
+            placeholder={ui('เช่น ล็อต 2025-11-25-001')}
             value={payload.example}
             onChange={(e) => onChange({ ...payload, example: e.target.value })}
           />
-          <p className={FIELD_HELPER}>ตัวอย่างค่าที่ถูกต้อง</p>
+          <p className={FIELD_HELPER}>{ui('ตัวอย่างค่าที่ถูกต้อง')}</p>
         </div>
         <div className="sm:col-span-2">
           <label className="inline-flex items-center gap-2 cursor-pointer select-none">
             <span className={cn('relative w-10 h-6 rounded-full transition-colors', payload.required ? 'bg-emerald-500' : 'bg-slate-300')}>
               <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform', payload.required ? 'translate-x-4' : 'translate-x-0')} />
             </span>
-            <span className="text-sm font-medium text-slate-700">บังคับให้กรอก</span>
+            <span className="text-sm font-medium text-slate-700">{ui('บังคับให้กรอก')}</span>
             <input type="checkbox" className="sr-only" checked={payload.required} onChange={(e) => onChange({ ...payload, required: e.target.checked })} />
           </label>
         </div>
@@ -5285,6 +5298,7 @@ interface StageCardProps {
 }
 
 function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
+  const ui = useUiText();
   const math = calcStageAcceptance(stage);
 
   return (
@@ -5301,20 +5315,20 @@ function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
           {/* The only English label left in this panel; its neighbour reads
               เกณฑ์การยอมรับ, and one Thai field beside one English one for the
               same kind of number reads as an oversight, which it was. */}
-          <SoftLabel label="จำนวนตัวอย่าง">
+          <SoftLabel label={ui('จำนวนตัวอย่าง')}>
             <NumberInput
               className={SOFT_INPUT}
-              ariaLabel={`จำนวนตัวอย่าง — Stage ${idx + 1}`}
+              ariaLabel={`${ui('จำนวนตัวอย่าง')} — ${idx + 1}`}
               min={1}
               value={stage.sampleSize}
               onChange={(v) => onChange({ sampleSize: v ?? 1 })}
             />
           </SoftLabel>
-          <SoftLabel label="เกณฑ์การยอมรับ">
+          <SoftLabel label={ui('เกณฑ์การยอมรับ')}>
             <div className="relative">
               <NumberInput
                 className={cn(SOFT_INPUT, 'pr-8')}
-                ariaLabel={`เกณฑ์การยอมรับ — Stage ${idx + 1}`}
+                ariaLabel={`${ui('เกณฑ์การยอมรับ')} — ${idx + 1}`}
                 min={0}
                 max={100}
                 value={stage.tolerancePercent}
@@ -5330,7 +5344,7 @@ function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
             testId={`stage-${idx}-stat-tested`}
             surface="bg-[#fbfbfb]"
             icon={<User className="h-4 w-4" />}
-            label="ทดสอบ"
+            label={ui('ทดสอบ')}
             value={math.sampleSize}
             unit={unitWord}
             color="#5682e9"
@@ -5339,42 +5353,42 @@ function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
             testId={`stage-${idx}-stat-allowed`}
             surface="bg-[#fbfbfb]"
             icon={<ClockAlert className="h-4 w-4" />}
-            label="ยอมเสียได้"
+            label={ui('ยอมเสียได้')}
             value={math.allowedFail}
-            unit="ไม่เกินกี่ชิ้น"
+            unit={ui('ไม่เกินกี่ชิ้น')}
             color="#fc9709"
           />
           <AcceptanceStat
             testId={`stage-${idx}-stat-must-pass`}
             surface="bg-[#fbfbfb]"
             icon={<ScanFace className="h-4 w-4" />}
-            label="ต้องผ่าน"
+            label={ui('ต้องผ่าน')}
             value={math.mustPass}
-            unit="ขั้นต่ำ"
+            unit={ui('ขั้นต่ำ')}
             color="#27ae60"
           />
         </div>
 
         <div className="flex flex-col gap-4">
-          <p className="text-[13px] font-semibold text-slate-700">เมื่อขั้นนี้ไม่ผ่าน</p>
+          <p className="text-[13px] font-semibold text-slate-700">{ui('เมื่อขั้นนี้ไม่ผ่าน')}</p>
           <div className="flex flex-col gap-6 sm:flex-row">
             <OnFailButton
               active={stage.onFail === 'next_stage'}
               disabled={isLast}
               onClick={() => onChange({ onFail: 'next_stage' })}
-              label="ทดสอบขั้นถัดไป"
+              label={ui('ทดสอบขั้นถัดไป')}
               activeStyle={ON_FAIL_META.next_stage.button}
             />
             <OnFailButton
               active={stage.onFail === 'reject_batch'}
               onClick={() => onChange({ onFail: 'reject_batch' })}
-              label="ปฏิเสธรุ่นผลิต"
+              label={ui('ปฏิเสธรุ่นผลิต')}
               activeStyle={ON_FAIL_META.reject_batch.button}
             />
             <OnFailButton
               active={stage.onFail === 'deviation'}
               onClick={() => onChange({ onFail: 'deviation' })}
-              label="บันทึกความเบี่ยงเบน"
+              label={ui('บันทึกความเบี่ยงเบน')}
               activeStyle={ON_FAIL_META.deviation.button}
             />
           </div>
@@ -5401,16 +5415,16 @@ function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
               </span>
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="ประเภท" value="คุณภาพ / IPC ไม่ผ่าน" />
-              <DevField label="ระดับความรุนแรง" value="เล็กน้อย → ต้องสอบสวน" />
+              <DevField label={ui('ประเภท')} value="คุณภาพ / IPC ไม่ผ่าน" />
+              <DevField label={ui('ระดับความรุนแรง')} value="เล็กน้อย → ต้องสอบสวน" />
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="ที่มา" value={`ขั้นที่ ${idx + 1}`} />
-              <DevField label="สถานะ" value="รอการสอบสวน" valueColor="text-[#fc9709]" />
+              <DevField label={ui('ที่มา')} value={`${ui('ขั้นที่')} ${idx + 1}`} />
+              <DevField label={ui('สถานะ')} value="รอการสอบสวน" valueColor="text-[#fc9709]" />
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="ผู้รับผิดชอบ" value="ผู้จัดการฝ่ายประกันคุณภาพ" />
-              <DevField label="กำหนดเวลา" value="24 ชม." />
+              <DevField label={ui('ผู้รับผิดชอบ')} value="ผู้จัดการฝ่ายประกันคุณภาพ" />
+              <DevField label={ui('กำหนดเวลา')} value="24 ชม." />
             </div>
           </div>
           <div className="border-t-[1.5px] border-[#ffdeb0] px-6 py-4">
@@ -5523,6 +5537,7 @@ function AcceptanceStep({
   /** Present only for multi-stage; drives the dashed outline. */
   onFail?: AcceptanceStage['onFail'];
 }) {
+  const ui = useUiText();
   return (
     <div
       data-testid={`acceptance-step-${index}`}
@@ -5538,13 +5553,13 @@ function AcceptanceStep({
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="truncate text-[13px] font-semibold">
-          <span className="font-normal text-[#bfbfbf]">สุ่ม </span>
+          <span className="font-normal text-[#bfbfbf]">{ui('สุ่ม')} </span>
           <span className="text-[#80b45f]">{sampleSize}</span>
           <span className="font-normal text-[#bfbfbf]"> {unitWord} · เสียได้ </span>
           <span className="text-[#f84f4f]">{allowedFail}</span>
         </p>
         <p className="text-[11px]">
-          <span className="text-[#bfbfbf]">ค่าที่ยอมได้ : </span>
+          <span className="text-[#bfbfbf]">{ui('ค่าที่ยอมได้ :')} </span>
           <span className="font-bold text-[#80b45f]">{tolerancePercent}%</span>
           {onFail && (
             <span className="text-[#bfbfbf]"> · {ON_FAIL_META[onFail].label.replace('ไม่ผ่าน → ', 'ไม่ผ่าน → ')}</span>
@@ -5603,6 +5618,7 @@ interface LivePreviewProps {
 }
 
 function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload, stage, pointLabels, unitWord, samplingUnit, eventTags, fixedResultFields }: LivePreviewProps) {
+  const ui = useUiText();
   const cadence = cadenceForSamplingMethod(formData.testMethod);
   // Its own read: this panel is a sibling of the form, not a child.
   const previewLocale = useLocale();
@@ -5627,9 +5643,9 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
         className="flex flex-col items-center gap-2 rounded-[24px] bg-white px-6 py-14 text-center shadow-[0_4px_4px_rgba(0,0,0,0.1)]"
       >
         <FlaskConical className="h-6 w-6 text-[#cfd6e0]" aria-hidden />
-        <p className="text-[13px] font-medium text-slate-600">ยังไม่ได้เลือกประเภทเกณฑ์</p>
+        <p className="text-[13px] font-medium text-slate-600">{ui('ยังไม่ได้เลือกประเภทเกณฑ์')}</p>
         <p className="max-w-[300px] text-[12px] leading-relaxed text-[#9aa3ad]">
-          เลือกประเภทเกณฑ์ก่อน แล้วตรงนี้จะแสดงตัวอย่างหน้าจอที่ผู้ปฏิบัติงานจะเห็นตอนบันทึกผล
+          {ui('เลือกประเภทเกณฑ์ก่อน แล้วตรงนี้จะแสดงตัวอย่างหน้าจอที่ผู้ปฏิบัติงานจะเห็นตอนบันทึกผล')}
         </p>
       </div>
     );
@@ -5665,8 +5681,8 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
       {multiStageEnabled && stages.length > 1 && (
         <div className={SIDE_CARD} data-testid="acceptance-flow-card">
           <div className="flex flex-col gap-1 p-4 pb-0">
-            <h4 className="text-sm font-semibold text-black">ถ้าขั้นที่ 1 ไม่ผ่าน</h4>
-            <p className="text-[11px] text-[#bfbfbf]">ขั้นที่ 1 คือหน้าจอบันทึกผลด้านบน</p>
+            <h4 className="text-sm font-semibold text-black">{ui('ถ้าขั้นที่ 1 ไม่ผ่าน')}</h4>
+            <p className="text-[11px] text-[#bfbfbf]">{ui('ขั้นที่ 1 คือหน้าจอบันทึกผลด้านบน')}</p>
           </div>
 
           <div className="flex flex-col gap-3 p-4">
@@ -5688,7 +5704,7 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
       {/* ── สรุปผล — Figma node 79:10605 ───────────────────────── */}
       <div className={SIDE_CARD} data-testid="summary-card">
         <div className="p-4 pb-0">
-          <h4 className="text-sm font-semibold text-black">สรุปผล</h4>
+          <h4 className="text-sm font-semibold text-black">{ui('สรุปผล')}</h4>
         </div>
 
         <div className="flex flex-col gap-3 p-4">
@@ -5707,13 +5723,13 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
             <>
               <div className="flex items-stretch gap-3">
                 <SummaryTile
-                  label="ช่องกรอกผล"
+                  label={ui('ช่องกรอกผล')}
                   value={String(fixedResultFields.labels.length)}
-                  unit="ช่อง"
+                  unit={ui('ช่อง')}
                   color="#5682e9"
                 />
                 <SummaryTile
-                  label="จำนวนตัวอย่าง"
+                  label={ui('จำนวนตัวอย่าง')}
                   value="ตามยอดผลิต"
                   unit=""
                   color="#fc9709"
@@ -5729,10 +5745,10 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
           ) : multiStageEnabled && stages.length > 0 ? (
             <div data-testid="summary-per-stage" className="overflow-hidden rounded-[16px] bg-[#fbfbfb]">
               <div className="grid grid-cols-[36px_1fr_1fr_1fr] gap-1 px-3 pt-2.5 text-[10px] font-medium text-black/60">
-                <span>ขั้น</span>
-                <span className="text-right">สุ่ม</span>
-                <span className="text-right">รวมสะสม</span>
-                <span className="text-right">เสียได้</span>
+                <span>{ui('ขั้น')}</span>
+                <span className="text-right">{ui('สุ่ม')}</span>
+                <span className="text-right">{ui('รวมสะสม')}</span>
+                <span className="text-right">{ui('เสียได้')}</span>
               </div>
               <div className="flex flex-col divide-y divide-[#eef0f3] px-3 pb-1">
                 {stages.map((st, i) => {
@@ -5769,7 +5785,7 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
           <div className="flex items-stretch gap-3">
             {!multiStageEnabled && !fixedResultFields && (
               <SummaryTile
-                label="จำนวนตัวอย่าง"
+                label={ui('จำนวนตัวอย่าง')}
                 value={String(formData.sampleSize ?? 0)}
                 unit={unitWord}
                 color="#fc9709"
@@ -5782,7 +5798,7 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
                 reason: "ทุก 30 เม็ด" was being reported as "30 นาที". */}
             {cadence.mode !== 'per_batch' && (
               <SummaryTile
-                label="รอบการตรวจ"
+                label={ui('รอบการตรวจ')}
                 value={String(formData.checkIntervalMinutes ?? 30)}
                 unit={cadence.mode === 'interval' ? (samplingUnit || 'หน่วย') : 'นาที'}
                 color="#27ae60"
@@ -5793,7 +5809,7 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
           {/* Full width of its own: the method is a phrase, not a number, and
               squeezing it into a quarter tile truncated every option. */}
           <div className="flex flex-col items-center gap-1.5 rounded-[16px] bg-[#fbfbfb] px-3 py-2.5">
-            <span className="text-[10px] font-medium text-black/60">วิธีสุ่ม</span>
+            <span className="text-[10px] font-medium text-black/60">{ui('วิธีสุ่ม')}</span>
             <span className="max-w-full truncate text-base font-bold text-[#5682e9]">
               {methodLabel?.split(' —')[0] ||
                 '—'}
