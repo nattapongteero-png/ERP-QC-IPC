@@ -27,9 +27,9 @@ const effectivePoints = (stored: SamplingPoint[], method: string) =>
 describe('stratified sampling points', () => {
   it('is offered without naming a fixed number of points', () => {
     const option = SAMPLING_METHOD_OPTIONS.find((o) => o.value === 'stratified');
-    expect(option?.label).toBe('Stratified — สุ่มแบ่งชั้นระบุตามจุด');
+    expect(option?.label).toBe('สุ่มแบ่งชั้น — ระบุตามจุด');
     // The old wording pinned the method to the clock and to a count of three.
-    expect(option?.label).not.toMatch(/ต้น|ปลาย|3 จุด|SOP\)/);
+    expect(option?.label).not.toMatch(/ต้น|ปลาย|3 จุด|SOP\)|Stratified/);
   });
 
   it('hands its points to the author, unlike √n + 1', () => {

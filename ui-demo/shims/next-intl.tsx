@@ -1,12 +1,4 @@
 import * as React from 'react';
-import thQuality from '@/locales/th/quality.json';
-import thCommon from '@/locales/th/common.json';
-import thProduction from '@/locales/th/production.json';
-import thMasterData from '@/locales/th/masterData.json';
-import enQuality from '@/locales/en/quality.json';
-import enCommon from '@/locales/en/common.json';
-import enProduction from '@/locales/en/production.json';
-import enMasterData from '@/locales/en/masterData.json';
 
 /**
  * Demo stand-in for next-intl.
@@ -23,10 +15,38 @@ import enMasterData from '@/locales/en/masterData.json';
  */
 type Locale = 'th' | 'en';
 
-const BUNDLES: Record<Locale, Record<string, unknown>> = {
-  th: { quality: thQuality, common: thCommon, production: thProduction, masterData: thMasterData },
-  en: { quality: enQuality, common: enCommon, production: enProduction, masterData: enMasterData },
-};
+/**
+ * Every namespace, not a hand-picked four.
+ *
+ * The list used to be written out by hand — quality, common, production,
+ * masterData — and the app shell asks for `navigation`, which was not on it.
+ * So the sidebar fell through to its keys in both languages and the switcher
+ * looked broken: pressing it changed the one word inside the button and
+ * nothing else on screen.
+ *
+ * Globbed instead, so a namespace added to the app arrives here without anyone
+ * remembering to add it.
+ */
+// import.meta.glob is Vite's, and the app's tsconfig does not pull in
+// vite/client — declaring it here keeps the project typecheck at its baseline
+// without adding a global type for one demo file.
+declare global {
+  interface ImportMeta {
+    glob: (pattern: string, options?: { eager?: boolean }) => Record<string, unknown>;
+  }
+}
+
+const FILES = import.meta.glob('@/locales/*/*.json', { eager: true }) as unknown as Record<
+  string,
+  { default: Record<string, unknown> }
+>;
+
+const BUNDLES: Record<Locale, Record<string, unknown>> = { th: {}, en: {} };
+for (const [path, mod] of Object.entries(FILES)) {
+  const m = path.match(/\/locales\/(th|en)\/([^/]+)\.json$/);
+  if (!m) continue;
+  BUNDLES[m[1] as Locale][m[2]] = mod.default;
+}
 
 /**
  * The active locale, held outside React so the shimmed switcher can set it
