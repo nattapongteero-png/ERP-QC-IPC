@@ -22,7 +22,7 @@
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { X, ShieldAlert, Lock } from 'lucide-react';
+import { X, ShieldAlert, Lock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { SOFT_PRIMARY_BTN, SOFT_SECONDARY_BTN } from '@/components/shared/soft-form';
 import {
@@ -30,7 +30,7 @@ import {
   type PreviewCriteria,
 } from '@/components/master-data/IPCLivePreviewCard';
 import type { CriteriaType } from '@/lib/master-data/ipc-test-catalog';
-import type { SpecPayload, StageValue } from '@/lib/master-data/ipc-spec-payload';
+import type { SpecPayload, StageValue, TriggerOption } from '@/lib/master-data/ipc-spec-payload';
 import type { AcceptanceStage } from '@/lib/master-data/ipc-stages';
 import {
   IPCRoundHistory,
@@ -52,6 +52,26 @@ export interface RecordableCriterion {
   stages: AcceptanceStage[];
   /** Rounds already on file, in the shape IPCRoundHistory reads. */
   recorded?: RecordedIPCCriterion;
+  /**
+   * Events the criterion says can call for an unscheduled round — "หลัง
+   * changeover", "หลัง equipment cleaning" and the rest, as switched on in the
+   * criterion's trigger settings.
+   *
+   * Only the ones switched on arrive here; a criterion with none gets no
+   * buttons rather than a row of greyed-out ones.
+   */
+  events?: TriggerOption[];
+  /**
+   * Boxes the criterion names, when the count of readings is not the count of
+   * units drawn.
+   *
+   * √n + 1 is the case: the plan draws 201 units from a 40,000-unit lot, the
+   * plant tests a portion of them, and three readings come back. Without this
+   * the dialog fell back to one box per unit drawn and put thirty numbered
+   * boxes in front of the operator — a screen that does not match the one the
+   * criterion was written on.
+   */
+  resultFields?: { labels: string[]; caption?: string };
 }
 
 export interface IPCRecordDialogProps {
@@ -91,7 +111,25 @@ export function IPCRecordDialog({
     };
   }, [open, onClose]);
 
+  /*
+   * Which event the operator says prompted this round.
+   *
+   * Local to the dialog and cleared each time it opens: nothing is written
+   * anywhere yet, so this is what the button does and all it does. Wiring it
+   * to the saved round means a column to put it in, which is a schema change.
+   */
+  const [eventId, setEventId] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (open) setEventId(null);
+  }, [open, criterion?.criteriaId]);
+
   if (!open || !criterion || typeof document === 'undefined') return null;
+
+  // Only the events the criterion actually switched on, and the label for the
+  // one the operator picked — that label is what the preview badge shows.
+  const activeEvents = (criterion.events ?? []).filter((ev) => ev.on);
+  const pickedEvent = activeEvents.find((ev) => ev.id === eventId);
+  const eventTags = pickedEvent ? [pickedEvent.label ?? pickedEvent.id] : undefined;
 
   const recorded = criterion.recorded;
   const hasRounds = !!recorded?.recordedTestId && !!recorded?.recordedSamples?.length;
@@ -104,8 +142,11 @@ export function IPCRecordDialog({
   const round = hasRounds ? (retestNext?.nextRound ?? null) : 1;
   const canRecord = round !== null;
 
+  // Named boxes are the round: the header must count what the operator is
+  // actually going to fill in, not the units the plan drew from the lot.
   const planSampleSize =
-    retestNext?.stage.sampleSize
+    criterion.resultFields?.labels.length
+    ?? retestNext?.stage.sampleSize
     ?? criterion.acceptanceMath?.sampleSize
     ?? criterion.formData.sampleSize
     ?? 1;
@@ -176,7 +217,7 @@ export function IPCRecordDialog({
             <div className="flex items-start gap-2 rounded-[12px] border border-[#f3c7c2] bg-[#fbeceb] px-3 py-2.5">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#c0362c]" />
               <p className="text-[11px] leading-relaxed text-[#8f2b23]">
-                <strong className="font-semibold">เกณฑ์วิกฤต (Critical)</strong> — ไม่มีสิทธิ์ทดสอบซ้ำ
+                <strong className="font-semibold">เกณฑ์วิกฤต</strong> — ไม่มีสิทธิ์ทดสอบซ้ำ
                 หากผลไม่ผ่านต้องเปิด Deviation ทันที
               </p>
             </div>
@@ -243,6 +284,49 @@ export function IPCRecordDialog({
             </div>
           )}
 
+          {/* Events — why this round is being taken, when it is not the clock.
+              A round drawn after a changeover is read differently from a
+              routine one, and until now the screen had nowhere to say so. */}
+          {canRecord && activeEvents.length > 0 && (
+            <div
+              data-testid="record-event-picker"
+              className="flex flex-col gap-2 rounded-[12px] border border-[#ffe1bf] bg-[#fffaf3] px-3 py-3"
+            >
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 shrink-0 text-[#c2410c]" />
+                <span className="text-[11px] font-semibold text-[#c2410c]">
+                  ตรวจรอบนี้เพราะมีเหตุการณ์
+                </span>
+                <span className="text-[11px] text-[#c2410c]/60">(ถ้ามี)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeEvents.map((ev) => {
+                  const on = eventId === ev.id;
+                  return (
+                    <button
+                      type="button"
+                      key={ev.id}
+                      aria-pressed={on}
+                      data-testid={`record-event-${ev.id}`}
+                      // Pressing the chosen one again clears it: the operator
+                      // may have tapped the wrong row, and a picker with no way
+                      // back forces them to cancel the whole dialog.
+                      onClick={() => setEventId(on ? null : ev.id)}
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-[12px] font-medium transition',
+                        on
+                          ? 'bg-[#c2410c] text-white'
+                          : 'border border-[#ffd9b0] bg-white text-[#8a5324] hover:border-[#f0a860]',
+                      )}
+                    >
+                      {ev.label ?? ev.id}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {canRecord ? (
             /* The criteria author's Live Preview, now being used for real. */
             <IPCLivePreviewCard
@@ -254,6 +338,8 @@ export function IPCRecordDialog({
               stages={criterion.stages}
               specPayload={criterion.specPayload}
               stage={criterion.stage}
+              eventTags={eventTags}
+              fixedResultFields={criterion.resultFields}
               blank
             />
           ) : (

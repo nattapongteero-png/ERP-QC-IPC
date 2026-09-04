@@ -23,7 +23,7 @@ export interface AcceptanceStage {
 
 const ON_FAIL_LABEL: Record<OnFailAction, string> = {
   next_stage: 'ไปยัง Stage ถัดไป',
-  reject_batch: 'Reject Batch',
+  reject_batch: 'ปฏิเสธรุ่นผลิต',
   deviation: 'บันทึก Deviation',
 };
 

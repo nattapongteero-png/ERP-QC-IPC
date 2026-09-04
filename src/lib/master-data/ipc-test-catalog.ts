@@ -605,18 +605,18 @@ export const DOSAGE_FORM_OPTIONS: Array<{ value: string; label: string }> = [
 export const SAMPLING_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'random', label: 'Random — สุ่มทั่วไป (เหมาะกับ batch ที่เป็นเนื้อเดียว)' },
   { value: 'systematic', label: 'Systematic — สุ่มตามช่วงเวลา/ลำดับ (ทุก N units)' },
-  { value: 'stratified', label: 'Stratified — สุ่มแบ่งชั้น (ต้น/กลาง/ปลาย batch)' },
+  { value: 'stratified', label: 'Stratified — สุ่มแบ่งชั้นระบุตามจุด' },
   { value: 'square_root', label: '√n + 1 — ตามมาตรฐานเภสัชกรรม' },
 ];
 
 /**
  * How often each sampling method draws a sample.
  *
- * Two of the four methods are not clock-driven at all: Stratified samples at
- * three points of the batch's progress, and √n + 1 is a sample-*size* rule with
- * a single draw per batch. Offering "every N minutes" there invites a plan that
- * cannot be followed — a 20-minute batch on a 30-minute interval yields one
- * point where the method requires three.
+ * Two of the four methods are not clock-driven at all: Stratified draws from
+ * named strata of the lot, and √n + 1 is a sample-*size* rule with a single
+ * draw per batch. Offering "every N minutes" there invites a plan that cannot
+ * be followed — a 20-minute batch on a 30-minute interval yields one point
+ * where the method requires several.
  *
  * The minute presets are drafts from general GMP practice, not from a site SOP.
  * QA should confirm them before this is used to write real criteria.
@@ -630,8 +630,22 @@ export interface SamplingCadence {
   mode: 'minutes' | 'interval' | 'per_batch';
   /** Numbers offered as chips, for 'minutes' and 'interval'. */
   presets: number[];
-  /** Fixed sampling points shown in place of chips, when mode is 'per_batch'. */
+  /**
+   * Sampling points shown in place of chips, when mode is 'per_batch'.
+   *
+   * When `editablePoints` is set these are only the starting draft: the author
+   * owns the real list, and it is stored on the criterion.
+   */
   points: string[];
+  /**
+   * Whether the author may add, remove and switch off individual points.
+   *
+   * True only for Stratified, where how many strata there are and which ones
+   * this criterion actually samples are decisions the SOP makes, not the
+   * method. √n + 1 stays fixed: "once per batch" is a statement about the
+   * formula, and there is nothing there for an author to choose.
+   */
+  editablePoints?: boolean;
   /** Units offered after a number is chosen, when mode is 'interval'. */
   units?: string[];
 }
@@ -658,11 +672,25 @@ export const SAMPLING_CADENCE: Record<string, SamplingCadence> = {
     points: [],
     units: ['ชิ้น', 'เม็ด', 'ขวด', 'ซอง', 'กล่อง', 'พาเลท', 'นาที'],
   },
-  // Three points of batch progress — a clock interval cannot express this.
+  /**
+   * Strata named by the SOP rather than here, and counted by it too.
+   *
+   * The points used to read "ต้น / กลาง / ปลาย batch", which fixed the method
+   * to one reading of it — strata spread across the run, for catching drift
+   * while a machine works. The same method is just as often used across a
+   * static lot: top, middle and bottom of a drum of powder, to see whether
+   * what is in it is uniform before any of it is used.
+   *
+   * Three is only where the author starts. A tall silo sampled at five depths
+   * and a tablet press sampled at three time points are both stratified
+   * sampling; nothing about the method says how many strata a lot has. So the
+   * list below is a draft, and `editablePoints` hands it over to the author.
+   */
   stratified: {
     mode: 'per_batch',
     presets: [],
-    points: ['ต้น batch', 'กลาง batch', 'ปลาย batch'],
+    points: ['จุดที่ 1', 'จุดที่ 2', 'จุดที่ 3'],
+    editablePoints: true,
   },
   // A sample-size formula with a single draw per batch, not a cadence at all.
   square_root: { mode: 'per_batch', presets: [], points: ['ครั้งเดียวต่อรุ่น'] },
@@ -687,8 +715,11 @@ export const CRITERIA_TYPE_META: Record<CriteriaType, {
     textColor: 'text-emerald-800',
   },
   max_limit: {
-    label: 'Max Limit',
-    desc: 'วัดเป็นตัวเลข ต้องไม่เกินค่าสูงสุด',
+    // The symbol the rest of the app already prints for a spec with only a
+    // ceiling — see the spec list and the QC entry screen, both of which
+    // render "≤ 1000 mg" for exactly the criteria this type produces.
+    label: '≤ Maximum value',
+    desc: 'วัดเป็นตัวเลข ต้องไม่เกินค่าที่กำหนด',
     bgColor: 'bg-emerald-50 border-emerald-200',
     textColor: 'text-emerald-800',
   },

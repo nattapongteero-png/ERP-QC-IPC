@@ -3,7 +3,7 @@
  * is weighed in bulk.
  *
  * Reported from the criteria screen: the author fills in the per-unit target and
- * ±% Tolerance ต่อเม็ด and the preview beside them keeps showing "—". The
+ * ค่าคลาดเคลื่อนที่ยอมรับได้ต่อเม็ด and the preview beside them keeps showing "—". The
  * header had branches for the two other Multi-Point shapes (capsule_net and
  * tare_matched) but none for bulk_weigh, so it fell through to the generic
  * numeric header — which reads formData.specTarget, a field this criteria
@@ -67,8 +67,8 @@ describe('Live Preview — Multi-Point with a bulk-weighed tare', () => {
     // a loose text query would pass on that copy while the header still said
     // "—", which is exactly the bug.
     expect(headerValue(/^จำนวนตัวอย่าง$/)).toBe('20');
-    expect(headerValue(/^Target ต่อหน่วย/)).toBe('0.5');
-    expect(headerValue(/^± % Tolerance$/)).toBe('7.5');
+    expect(headerValue(/^ค่าเป้าหมายต่อหน่วย/)).toBe('0.5');
+    expect(headerValue(/^ค่าคลาดเคลื่อนที่ยอมรับได้ \(%\)$/)).toBe('7.5');
   });
 
   /**
@@ -100,8 +100,8 @@ describe('Live Preview — Multi-Point with a bulk-weighed tare', () => {
     );
 
     expect(headerValue(/^จำนวนตัวอย่าง$/)).toBe('20');
-    expect(headerValue(/^Target ต่อหน่วย/)).toBe('0.5');
-    expect(headerValue(/^± % Tolerance$/)).toBe('7.5');
+    expect(headerValue(/^ค่าเป้าหมายต่อหน่วย/)).toBe('0.5');
+    expect(headerValue(/^ค่าคลาดเคลื่อนที่ยอมรับได้ \(%\)$/)).toBe('7.5');
   });
 
   it('still falls back to a dash when the author has typed nothing', () => {

@@ -304,7 +304,7 @@
       "placeholder": "Select criteria type",
       "options": {
         "numeric": "Numeric — Record a measured value and compare against Min/Max",
-        "max_limit": "Max Limit — Record a measured value that must not exceed a ceiling (no target, no minimum)",
+        "max_limit": "≤ Maximum value — Record a measured value that must not exceed the limit",
         "pass_fail": "Pass/Fail — Record the result as pass or fail",
         "visual": "Visual — Inspect appearance visually",
         "text": "Text — The inspector types what they observed",

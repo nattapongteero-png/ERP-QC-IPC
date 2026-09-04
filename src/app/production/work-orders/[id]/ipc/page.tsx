@@ -38,7 +38,9 @@ import {
 } from 'lucide-react';
 import { GmpDocumentPreviewDialog } from '@/components/documents';
 import { parseAcceptanceStages, calcStageAcceptance, type AcceptanceStage } from '@/lib/master-data/ipc-stages';
-import { formatSpecSummary, parseSpecPayload, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { formatSpecSummary, parseSpecPayload, parseSharedExtras, type SpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { sqrtPlusOneSampleSize, usesSqrtSampling } from '@/lib/master-data/ipc-sqrt-sampling';
+import { effectiveSqrtResultFields } from '@/lib/master-data/ipc-spec-payload';
 import {
   IPCRecordDialog,
   type RecordableCriterion,
@@ -93,7 +95,7 @@ function StageInfoBanner({ test, round }: { test: IPCTest; round: number }) {
   const onFailLabel = stage.onFail === 'next_stage'
     ? `→ ทดสอบ Stage ${round + 1} ถ้าไม่ผ่าน`
     : stage.onFail === 'reject_batch'
-    ? '✕ Reject Batch ถ้าไม่ผ่าน'
+    ? '✕ ปฏิเสธรุ่นผลิตถ้าไม่ผ่าน'
     : '⚠ บันทึก Deviation ถ้าไม่ผ่าน';
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs">
@@ -221,6 +223,14 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
+  /**
+   * The batch yield, which √n + 1 needs as its n.
+   *
+   * Both already arrive from /detail — the execution header reads them — and
+   * are only named here so this screen can use them too.
+   */
+  plannedQuantity?: number | null;
+  actualQuantity?: number | null;
 }
 
 /** The latest recorded reading, in the corner the QC entry cards keep it. */
@@ -413,8 +423,23 @@ export default function IPCPage() {
   });
   const sopRecordedMap = sopBoard?.recorded;
 
+  /**
+   * √n + 1 worked out against this work order's own yield.
+   *
+   * MOCKUP: nothing is written anywhere. The figure is derived on screen each
+   * time from the work order's quantity, and a criterion using this method
+   * still carries whatever sample size it was saved with — that stored number
+   * is what the plan would need to stop carrying, and changing what gets saved
+   * is not a screen change.
+   */
+  /** The size a test should record against, once the method is taken into account. */
+  const effectiveSampleSize = (test: IPCTest): number => {
+    if (usesSqrtSampling(samplingMethodOf(test)) && sqrtPlan) return sqrtPlan.sampleSize;
+    return Number(test.sampleSize) || 1;
+  };
+
   const toRecordable = (test: IPCTest): RecordableCriterion => {
-    const sampleSize = Number(test.sampleSize) || 1;
+    const sampleSize = effectiveSampleSize(test);
     const tolPct = Number(test.tolerancePercent) || 0;
     const min = test.specMinValue == null ? null : Number(test.specMinValue);
     const max = test.specMaxValue == null ? null : Number(test.specMaxValue);
@@ -441,6 +466,22 @@ export default function IPCPage() {
         isActive: true,
       },
       specPayload: parseSpecPayload(criteriaType, test.specSpecification ?? null),
+      // The event triggers travel in the same JSON envelope as the spec, so
+      // they come from the criterion the operator is recording rather than
+      // from a list this screen keeps of its own.
+      events: parseSharedExtras(test.specSpecification ?? null).triggers.event.options,
+      // Under √n + 1 the operator records the readings the criterion named,
+      // not one box per unit drawn — the same boxes the criteria screen shows.
+      resultFields: usesSqrtSampling(samplingMethodOf(test))
+        ? {
+            labels: effectiveSqrtResultFields(
+              parseSharedExtras(test.specSpecification ?? null).sqrtResultFields,
+            ),
+            caption: sqrtPlan
+              ? `สุ่มตัวอย่างตามยอดผลิต ${sqrtPlan.lotSize.toLocaleString('en-US')} ชิ้น → ${sqrtPlan.sampleSize} ตัวอย่าง แล้วแบ่งมาทดสอบ`
+              : 'สุ่มตัวอย่างตามยอดผลิตของรุ่นนี้ แล้วแบ่งมาทดสอบ',
+          }
+        : undefined,
       calculatedMinMax:
         min != null && max != null && Number.isFinite(min) && Number.isFinite(max)
           ? { min, max }
@@ -487,6 +528,11 @@ export default function IPCPage() {
     },
   });
 
+  const sqrtPlan = useMemo(
+    () => sqrtPlusOneSampleSize(workOrder?.plannedQuantity, workOrder?.actualQuantity),
+    [workOrder?.plannedQuantity, workOrder?.actualQuantity],
+  );
+
   // Fetch BOM IPC config
   const { data: bomConfig } = useQuery<BOMIPCConfig[]>({
     queryKey: ['wo-ipc-bom-config', workOrderId],
@@ -525,6 +571,30 @@ export default function IPCPage() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  /**
+   * Sampling method, by criterion.
+   *
+   * The `testMethod` on an IPC test row comes from the quality *spec* it was
+   * created against, which is a different field with a different meaning — the
+   * analytical method, not how samples are drawn. The sampling plan is set on
+   * the criterion, so that is where it is read from.
+   */
+  const criteriaMethodMap = useQuery<Record<number, string | null>>({
+    queryKey: ['ipc-criteria-methods'],
+    queryFn: async () => {
+      const res = await fetch('/api/master-data/ipc-criteria');
+      const json = await res.json();
+      const map: Record<number, string | null> = {};
+      for (const c of json?.data ?? []) map[Number(c.id)] = c.testMethod ?? null;
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+  }).data;
+
+  /** The sampling plan this test was written under, if the criterion is known. */
+  const samplingMethodOf = (test: IPCTest): string | null =>
+    test.ipcCriteriaId != null ? (criteriaMethodMap?.[test.ipcCriteriaId] ?? null) : null;
 
   const { data: criteriaDocMap } = useQuery<Record<number, { docId: number; label: string }>>({
     queryKey: ['ipc-criteria-docmap'],
@@ -1069,6 +1139,68 @@ export default function IPCPage() {
 
                     <IPCSpecLines test={test} />
 
+                    {/* √n + 1 — the one sampling method whose sample size is
+                        not a property of the criterion at all.
+                        MOCKUP: worked out on screen from this work order's
+                        yield; nothing is saved, and the criterion still holds
+                        whatever size it was written with. */}
+                    {usesSqrtSampling(samplingMethodOf(test)) && (
+                      <div
+                        data-testid={`sqrt-plan-${test.id}`}
+                        className="mt-2 rounded-[12px] border border-[#cfe0f7] bg-[#f4f8fe] px-3 py-2.5"
+                      >
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="rounded-md bg-[#e8effc] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#3559b0]">
+                            √n + 1
+                          </span>
+                          <span className="rounded-md bg-[#fff4e6] px-1.5 py-0.5 text-[10px] font-bold text-[#c2410c]">
+                            MOCKUP
+                          </span>
+                          <span className="text-[11px] text-[#6b7684]">
+                            จำนวนตัวอย่างคิดจากยอดผลิตของใบสั่งผลิตนี้
+                          </span>
+                        </div>
+                        {sqrtPlan ? (
+                          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <span className="text-[11px] text-[#6b7684]">
+                              n = {sqrtPlan.lotSize.toLocaleString('en-US')}
+                              <span className="ml-1 text-[10px] text-[#9aa3ad]">
+                                ({sqrtPlan.source === 'actual' ? 'ยอดผลิตจริง' : 'ยอดผลิตตามแผน'})
+                              </span>
+                            </span>
+                            <span className="text-[#d5d8dc]">·</span>
+                            <span className="font-mono text-[11px] text-[#6b7684]">
+                              {sqrtPlan.workings}
+                            </span>
+                            <span className="text-[#d5d8dc]">·</span>
+                            <span className="text-[13px] font-bold text-[#3559b0]">
+                              {sqrtPlan.sampleSize}
+                              <span className="ml-1 text-[10px] font-normal text-[#9aa3ad]">
+                                ตัวอย่าง
+                              </span>
+                            </span>
+                          </div>
+                        ) : (
+                          /* No yield means no n. Saying so beats printing a
+                             sample size the formula could not have produced. */
+                          <p className="mt-1.5 text-[11px] font-medium text-[#c2410c]">
+                            ใบสั่งผลิตนี้ยังไม่มียอดผลิต — คำนวณจำนวนตัวอย่างไม่ได้
+                          </p>
+                        )}
+                        {sqrtPlan && Number(test.sampleSize) > 0
+                          && Number(test.sampleSize) !== sqrtPlan.sampleSize && (
+                          /* The stored number is left visible rather than
+                             quietly overwritten: it is what is on file, and a
+                             reviewer comparing the record to the screen has to
+                             be able to see why the two differ. */
+                          <p className="mt-1 text-[10px] text-[#9aa3ad]">
+                            ค่าที่บันทึกไว้ในเกณฑ์คือ {test.sampleSize} ตัวอย่าง —
+                            หน้าจอนี้ใช้ค่าที่คำนวณได้แทน
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {(test.testedByName || test.approvedByName || test.sopRecordedByName) && (
                       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-[#bfbfbf]">
                         {(test.testedByName || test.sopRecordedByName) && (
@@ -1258,12 +1390,25 @@ function SpecInfoCard({ test }: { test: IPCTest }) {
           {payload.description || <span className="italic text-amber-600/60">— ไม่ระบุ —</span>}
         </div>
         {payload.referenceImage && (
-          <div className="text-[11px] text-amber-700 mb-1">
-            Reference: <a href={payload.referenceImage} target="_blank" rel="noreferrer" className="underline">ดูรูป</a>
+          <div className="mb-2 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={payload.referenceImage}
+              alt="รูปอ้างอิง"
+              className="h-12 w-12 shrink-0 rounded-[6px] border border-amber-200 object-cover"
+            />
+            <a
+              href={payload.referenceImage}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] text-amber-700 underline"
+            >
+              เปิดดูรูปอ้างอิงเต็มรูป
+            </a>
           </div>
         )}
         <div className="text-[11px] text-amber-700">
-          Checklist: {payload.checklist.filter(Boolean).length} จุดตรวจ
+          รายการที่ต้องตรวจ: {payload.checklist.filter(Boolean).length} จุดตรวจ
         </div>
       </div>
     );

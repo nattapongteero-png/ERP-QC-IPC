@@ -23,7 +23,7 @@ import {
   type RecordableCriterion,
 } from '@/components/ipc-recording/IPCRecordDialog';
 import { IPCRoundHistory } from '@/components/ipc-recording/IPCRoundHistory';
-import { formatSpecSummary, parseSpecPayload } from '@/lib/master-data/ipc-spec-payload';
+import { formatSpecSummary, parseSpecPayload, parseSharedExtras } from '@/lib/master-data/ipc-spec-payload';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
@@ -378,6 +378,8 @@ export default function SOPExecutionPage() {
         isActive: true,
       },
       specPayload: parseSpecPayload(ipc.criteriaType ?? 'numeric', ipc.specification ?? null),
+      // Same envelope as the spec — the criterion carries its own event list.
+      events: parseSharedExtras(ipc.specification ?? null).triggers.event.options,
       calculatedMinMax:
         min != null && max != null && Number.isFinite(min) && Number.isFinite(max)
           ? { min, max }

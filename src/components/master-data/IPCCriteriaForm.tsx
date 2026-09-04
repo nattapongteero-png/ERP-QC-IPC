@@ -11,7 +11,8 @@ import { SearchableSelect, type SearchableSelectOption } from '@/components/mast
 import { IPCLivePreviewCard } from '@/components/master-data/IPCLivePreviewCard';
 import { STAGE_THEME, type StageTheme } from '@/components/master-data/ipc-stage-theme';
 import { GmpDocumentSelect } from '@/components/documents';
-import { FlaskConical, Shield, Eye, FileText, Layers, Plus, User, ClockAlert, ScanFace, Info, CircleAlert, Power, Trash2, ArrowDown, TriangleAlert, Sparkles, Clock, Package, Target, Zap, RotateCcw, Calculator, X, ChevronDown, Lock, Check } from 'lucide-react';
+import { FlaskConical, Shield, Eye, FileText, Layers, Plus, User, ClockAlert, ScanFace, Info, CircleAlert, Power, Trash2, ArrowDown, TriangleAlert, Sparkles, Clock, Package, Target, Zap, RotateCcw, Calculator, X, ChevronDown, Lock, Check, Upload } from 'lucide-react';
+import { sqrtPlusOneSampleSize, usesSqrtSampling } from '@/lib/master-data/ipc-sqrt-sampling';
 import { calculateMinMax, validateSpecInputs } from '@/lib/utils/ipc-criteria-calc';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -47,7 +48,12 @@ import {
   defaultSharedExtras,
   serializeSpecification,
   STAGE_OPTIONS,
+  effectiveSamplingPoints,
+  effectiveSqrtResultFields,
+  pointDrivenSampleSize,
+  SQRT_RESULT_FIELD_DEFAULTS,
   type StageValue,
+  type SamplingPoint,
   type SpecPayload,
   type PassFailPayload,
   type VisualPayload,
@@ -330,6 +336,8 @@ function CheckIntervalChips({
   cadence,
   unit,
   onUnitChange,
+  points,
+  onPointsChange,
 }: {
   value: number | null;
   onChange: (value: number | null) => void;
@@ -340,6 +348,9 @@ function CheckIntervalChips({
   /** What the interval counts, for methods that do not count minutes. */
   unit: string;
   onUnitChange: (unit: string) => void;
+  /** Author's own point list for a per-batch plan; empty falls back to the method's draft. */
+  points: SamplingPoint[];
+  onPointsChange: (points: SamplingPoint[]) => void;
 }) {
   const presets = cadence.presets;
   const isPreset = value != null && presets.includes(value);
@@ -358,23 +369,104 @@ function CheckIntervalChips({
   // checkIntervalMinutes is left untouched — nothing schedules from it, and
   // clearing it is a data change this UI work is not allowed to make.
   if (cadence.mode === 'per_batch') {
+    // A method whose points the author does not own — √n + 1's "once per
+    // batch" is a fact about the formula, so it is stated, not offered.
+    if (!cadence.editablePoints) {
+      return (
+        <div className="pt-5">
+          <div
+            role="group"
+            aria-label="แผนการเก็บตัวอย่าง"
+            className="flex flex-wrap items-center gap-4 sm:gap-6"
+          >
+            {cadence.points.map((point) => (
+              <div
+                key={point}
+                data-testid={`interval-point-${point}`}
+                className={cn(INTERVAL_CHIP, 'ring-2', theme.chip.on)}
+              >
+                <span className={cn('text-[13px] font-semibold', theme.chip.text)}>{point}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Nothing stored yet: show the method's draft rather than an empty row, and
+    // only write a list once the author actually changes something. That keeps
+    // an untouched criterion free of a copy of the defaults.
+    const list: SamplingPoint[] =
+      points.length > 0 ? points : cadence.points.map((label) => ({ label, on: true }));
+
+    const replace = (index: number, next: Partial<SamplingPoint>) =>
+      onPointsChange(list.map((p, i) => (i === index ? { ...p, ...next } : p)));
+
+    // Numbered off the length so a fresh point never collides with an existing
+    // name; the author renames it to whatever the SOP calls that stratum.
+    const addPoint = () =>
+      onPointsChange([...list, { label: `จุดที่ ${list.length + 1}`, on: true }]);
+
     return (
-      <div className="pt-5">
+      <div className="flex flex-col gap-3 pt-5">
         <div
           role="group"
           aria-label="แผนการเก็บตัวอย่าง"
-          className="flex flex-wrap items-center gap-4 sm:gap-6"
+          className="flex flex-wrap items-center gap-3"
         >
-          {cadence.points.map((point) => (
+          {list.map((point, index) => (
             <div
-              key={point}
-              data-testid={`interval-point-${point}`}
-              className={cn(INTERVAL_CHIP, 'ring-2', theme.chip.on)}
+              key={index}
+              data-testid={`interval-point-${point.label}`}
+              className={cn(
+                INTERVAL_CHIP,
+                'group gap-1 pl-4 pr-2',
+                point.on ? cn('ring-2', theme.chip.on) : INTERVAL_CHIP_OFF,
+              )}
             >
-              <span className={cn('text-[13px] font-semibold', theme.chip.text)}>{point}</span>
+              <button
+                type="button"
+                aria-pressed={point.on}
+                aria-label={`จุดสุ่ม ${point.label}`}
+                data-testid={`interval-point-toggle-${index}`}
+                onClick={() => replace(index, { on: !point.on })}
+                className={cn(
+                  'text-[13px] font-semibold focus-visible:outline-none',
+                  point.on ? theme.chip.text : 'text-[#9aa3ad]',
+                )}
+              >
+                {point.label}
+              </button>
+              <button
+                type="button"
+                aria-label={`ลบจุดสุ่ม ${point.label}`}
+                data-testid={`interval-point-remove-${index}`}
+                onClick={() => onPointsChange(list.filter((_, i) => i !== index))}
+                className="rounded-full p-1 text-[#9aa3ad] transition hover:bg-black/5 hover:text-[#495057]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
           ))}
+
+          <button
+            type="button"
+            data-testid="interval-point-add"
+            onClick={addPoint}
+            className={cn(
+              INTERVAL_CHIP,
+              'gap-1.5 border-[1.5px] border-dashed border-[#d4d9e0] px-4 text-[13px]',
+              'font-medium text-[#6b7684] hover:border-[#adb5bd] hover:text-[#495057]',
+            )}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            เพิ่มจุด
+          </button>
         </div>
+
+        <p className="text-[12px] text-[#9aa3ad]">
+          กดที่ชื่อจุดเพื่อเปิด/ปิดการเก็บตัวอย่างจุดนั้น · เพิ่มหรือลบจุดได้ตามที่ SOP กำหนด
+        </p>
       </div>
     );
   }
@@ -383,7 +475,7 @@ function CheckIntervalChips({
     <div className="pt-5">
       <div
         role="group"
-        aria-label="Check Interval (min)"
+        aria-label="รอบการตรวจ (นาที)"
         className="flex flex-wrap items-center gap-4 sm:gap-6"
       >
         {presets.map((minutes) => {
@@ -420,7 +512,7 @@ function CheckIntervalChips({
           >
             <NumberInput
               autoFocus
-              ariaLabel="Check Interval (min)"
+              ariaLabel="รอบการตรวจ (นาที)"
               min={1}
               value={value}
               onChange={onChange}
@@ -642,7 +734,7 @@ function SoftField({
 const STAGE_FIELD =
   'border-transparent bg-white hover:border-transparent focus:border-transparent focus:ring-0';
 // 18px, not the Figma's 20px: the right column is narrower here than in the
-// mockup, and 20px wraps "หัวข้อการทดสอบ (Test Name)" onto a second line.
+// mockup, and 20px wraps "หัวข้อการทดสอบ" onto a second line.
 const STAGE_HEADING = 'text-lg font-semibold text-white';
 
 interface StageBasicsPanelProps {
@@ -714,7 +806,7 @@ function StageBasicsPanel({
         */}
         <div className="px-6 pb-6 pt-6">
           <h3 className={STAGE_HEADING} data-testid="stage-code">
-            Stage
+            ขั้นตอนการตรวจ
           </h3>
           {/* Stacked, not three across: at one field's height the tiles are a
               single line of text, and "In Process Control" does not fit a third
@@ -728,13 +820,17 @@ function StageBasicsPanel({
                   key={opt.value}
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`Stage: ${opt.titleEn} (${opt.titleTh})`}
+                  aria-label={`ขั้นตอน: ${opt.titleTh}`}
                   onClick={() => onStageChange(opt.value)}
                   // 42px — the height of the pickers in the next column, so
                   // the whole panel sits on one rhythm. That is a single line
-                  // of text, which is why the Thai name is a tooltip below
-                  // rather than a second row.
-                  title={opt.titleTh}
+                  // of text, which is why only one of the two names is shown.
+                  //
+                  // It shows the Thai one. The English name was on the button
+                  // and the Thai one hidden in a tooltip, which put English on
+                  // a Thai screen and hid the readable name behind a hover no
+                  // touch device has.
+                  title={opt.titleEn}
                   className={cn(
                     'flex h-[42px] items-center gap-2.5 rounded-[12px] px-3 text-left',
                     'shadow-[-2px_2px_8px_rgba(0,0,0,0.1)] outline-none transition-colors',
@@ -755,7 +851,7 @@ function StageBasicsPanel({
                     />
                   )}
                   <span className="truncate text-[13px] font-semibold leading-tight text-black">
-                    {opt.titleEn}
+                    {opt.titleTh}
                   </span>
                 </button>
               );
@@ -796,7 +892,7 @@ function StageBasicsPanel({
             </div>
           </div>
           <div className="flex flex-col gap-4">
-            <h3 className={STAGE_HEADING}>หัวข้อการทดสอบ (Test Name)</h3>
+            <h3 className={STAGE_HEADING}>หัวข้อการทดสอบ</h3>
             <SearchableSelect
               testId="stage-test-name"
               value={testName}
@@ -890,7 +986,7 @@ export function IPCCriteriaForm({ mode, id }: Props) {
   });
 
   if (mode === 'edit' && (isLoading || !existing)) {
-    return <div className="flex items-center justify-center h-64"><div className="text-gray-500">Loading...</div></div>;
+    return <div className="flex items-center justify-center h-64"><div className="text-gray-500">กำลังโหลด…</div></div>;
   }
 
   const normalized = normalizeRecord(existing);
@@ -1077,7 +1173,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     if (nextStage === sharedExtras.stage) return;
     if (hasEnteredData()) {
       const confirmed = await showConfirm(
-        'เปลี่ยน Stage จะล้างข้อมูลที่กรอกไว้ทั้งหมด<br/>เพราะแต่ละ Stage ใช้หัวข้อทดสอบและค่าตั้งต้นคนละชุด<br/><br/>ต้องการเปลี่ยนหรือไม่?',
+        'เปลี่ยน Stage จะล้างข้อมูลที่กรอกไว้ทั้งหมด<br/>เพราะแต่ละขั้นใช้หัวข้อทดสอบและค่าตั้งต้นคนละชุด<br/><br/>ต้องการเปลี่ยนหรือไม่?',
         'เปลี่ยน Stage',
         'stage-change',
       );
@@ -1119,6 +1215,74 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     );
   }, [criteriaType, formData.sampleSize]);
 
+  /**
+   * Sampling points the plan actually draws from, and the sample size that
+   * falls out of them.
+   *
+   * `pointSampleSize` is null for every method that leaves the count to the
+   * author; only Stratified fills it in.
+   */
+  const samplingPoints = React.useMemo(
+    () => effectiveSamplingPoints(formData.testMethod, sharedExtras.samplingPoints),
+    [formData.testMethod, sharedExtras.samplingPoints],
+  );
+  const pointSampleSize = pointDrivenSampleSize(
+    formData.testMethod,
+    sharedExtras.samplingPoints,
+  );
+  /** Names for the preview's rows, so a row reads "กลางถุง" and not "#2". */
+  const activePointLabels = React.useMemo(
+    () => (pointSampleSize == null ? undefined : samplingPoints.filter((pt) => pt.on).map((pt) => pt.label)),
+    [pointSampleSize, samplingPoints],
+  );
+
+  /**
+   * A plan that names its points owns the sample count, so the stored number
+   * follows the points rather than sitting beside them going stale. Writing it
+   * into formData rather than only into the preview is deliberate: the saved
+   * criterion has to say the same thing the screen said.
+   */
+  React.useEffect(() => {
+    if (pointSampleSize == null) return;
+    setFormData((prev) =>
+      prev.sampleSize === pointSampleSize ? prev : { ...prev, sampleSize: pointSampleSize },
+    );
+  }, [pointSampleSize]);
+
+  /**
+   * Keep a stage's count in step with the plan for as long as it is still the
+   * plan's own number.
+   *
+   * ตัดสินหลายขั้น seeds each stage from the point count, and without this the
+   * seed froze there: adding a fifth point left stage 1 reading 4, so the
+   * preview kept drawing four boxes and the plan and the stage quietly said
+   * different things.
+   *
+   * A stage the author has typed over is left alone — that is what "เปลี่ยน
+   * เองได้" has to mean. The old count is the test for which is which: a stage
+   * still holding it never had a figure of its own.
+   */
+  const lastPointSampleSize = React.useRef<number | null>(pointSampleSize);
+  React.useEffect(() => {
+    const before = lastPointSampleSize.current;
+    lastPointSampleSize.current = pointSampleSize;
+    if (pointSampleSize == null || pointSampleSize === 0) return;
+    if (before === pointSampleSize) return;
+    setStages((prev) => {
+      // The plan has only just started dictating a count — the author turned
+      // ตัดสินหลายขั้น on first and picked Stratified afterwards. Whatever the
+      // stages hold came from the drafts used before any plan existed (5 and
+      // 20), so every stage is reseeded rather than left to disagree with the
+      // points from the moment the plan is chosen.
+      if (before == null) {
+        return prev.map((st) => ({ ...st, sampleSize: pointSampleSize, tolerancePercent: 0 }));
+      }
+      return prev.some((st) => st.sampleSize === before)
+        ? prev.map((st) => (st.sampleSize === before ? { ...st, sampleSize: pointSampleSize } : st))
+        : prev;
+    });
+  }, [pointSampleSize]);
+
   const acceptanceMath = React.useMemo(() => {
     const n = Number(formData.sampleSize) || 0;
     const tol = Number(formData.tolerancePercent) || 0;
@@ -1126,6 +1290,61 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
     const allowed = Math.floor((n * tol) / 100);
     return { sampleSize: n, allowedFail: allowed, mustPass: n - allowed };
   }, [formData.sampleSize, formData.tolerancePercent]);
+
+  /**
+   * What one sample is called.
+   *
+   * A stratified plan draws one sample per named point, so the thing being
+   * counted is a point — "สุ่ม 4 ชิ้น" under a four-point plan reads as four
+   * loose units and hides the fact that the plan already said where each one
+   * comes from.
+   */
+  const sampleUnitWord = cadence.editablePoints ? 'จุด' : 'ชิ้น';
+
+  /**
+   * √n + 1 settles its sample size against the lot, not against the criterion.
+   *
+   * n is the batch yield, so the number changes with every work order the
+   * criterion is used on: 4,200 units asks for 66 samples, 10,000 asks for
+   * 101. A box here could only hold a figure that is wrong from the first
+   * batch onwards — the work order screen already computes the real one and
+   * says on the card that it is ignoring what was stored.
+   */
+  const lotDrivenSampling = usesSqrtSampling(formData.testMethod);
+  /** Worked examples, from the same function the recording screen uses. */
+  /**
+   * Boxes the operator gets for the readings this plan produces.
+   *
+   * Not the same count as the sample: the plan draws 201 units, the plant takes
+   * a couple of grams off them, and that gives a handful of readings. Asking
+   * for 201 readings would be asking for something nobody measures.
+   */
+  const sqrtResultFields = effectiveSqrtResultFields(sharedExtras.sqrtResultFields);
+  const setSqrtResultFields = (fields: string[]) =>
+    setSharedExtras((prev) => ({ ...prev, sqrtResultFields: fields }));
+
+  const lotExamples = React.useMemo(
+    () =>
+      [4200, 10000].map((lot) => ({
+        lot,
+        size: sqrtPlusOneSampleSize(lot, null)?.sampleSize ?? 0,
+      })),
+    [],
+  );
+
+  /**
+   * Events this criterion says can call for an unscheduled round.
+   *
+   * The preview shows them as a corner badge so the author can see the shape
+   * of the screen the operator will get — the badge is the same one the record
+   * dialog lights up when the operator says which event prompted the round.
+   */
+  const activeEventLabels = React.useMemo(() => {
+    const { on, options } = sharedExtras.triggers.event;
+    if (!on) return undefined;
+    const labels = options.filter((o) => o.on).map((o) => o.label ?? o.id);
+    return labels.length > 0 ? labels : undefined;
+  }, [sharedExtras.triggers.event]);
 
   const stageCount = multiStageEnabled ? stages.length : 1;
 
@@ -1197,7 +1416,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       if (test.defaultCritical && !prev.isCritical) {
         next.isCritical = true;
         filled.add('isCritical');
-        labels.push('Critical');
+        labels.push('เกณฑ์วิกฤต');
       }
 
       setAutoFilled(filled);
@@ -1236,6 +1455,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       toast.error('Validation', 'เลือก "ประเภทเกณฑ์" ก่อนบันทึก');
       return;
     }
+    // A plan whose points are all switched off measures nothing; there is no
+    // sample-size box left to catch this, so it is caught here.
+    if (pointSampleSize === 0) {
+      toast.error('Validation', 'เปิดจุดสุ่มอย่างน้อย 1 จุดในแผนการสุ่มก่อนบันทึก');
+      return;
+    }
     if (!formData.code || !formData.name) {
       toast.error('Validation', 'Code and Test Name are required.');
       return;
@@ -1251,14 +1476,14 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       }
     }
     if (multiStageEnabled && stages.length === 0) {
-      toast.error('Validation', 'Multi-Stage โหมด ต้องมี Stage อย่างน้อย 1 ขั้น');
+      toast.error('Validation', 'ตัดสินหลายขั้น โหมด ต้องมี Stage อย่างน้อย 1 ขั้น');
       return;
     }
     // No silent default: saving without a chosen retest budget is the exact
     // failure this control exists to prevent.
     if (retestMissing) {
       setRetestMissingShown(true);
-      toast.error('Validation', 'ต้องเลือก "จำนวน Retest สูงสุด" ในหัวข้อ เมื่อไม่ผ่าน ก่อนบันทึก');
+      toast.error('Validation', 'ต้องเลือก "จำนวนครั้งที่ทดสอบซ้ำได้" ในหัวข้อ เมื่อไม่ผ่าน ก่อนบันทึก');
       document
         .querySelector('[data-testid="retest-choices"]')
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1302,8 +1527,23 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   };
 
   // ── Stage helpers ────────────────────────────────────────────────
+  /**
+   * What a newly added stage starts at.
+   *
+   * Under a plan that names its points, the count it dictates is the obvious
+   * opening figure — the author has already said how many samples a round
+   * takes. It is only a starting value: a later stage that draws twenty more
+   * is a normal acceptance chain, and the stage's own box stays editable.
+   * Acceptance opens at 0% either way, so a stage never quietly permits
+   * failures the author did not ask for.
+   */
+  const newStage = (): AcceptanceStage =>
+    pointSampleSize == null || pointSampleSize === 0
+      ? emptyStage()
+      : { ...emptyStage(), sampleSize: pointSampleSize, tolerancePercent: 0 };
+
   const addStage = () => setStages((prev) => {
-    const next = [...prev, { ...emptyStage() }];
+    const next = [...prev, { ...newStage() }];
     // Last stage in chain should reject by default; previous stages advance
     return next.map((s, i) => ({
       ...s,
@@ -1472,7 +1712,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
    * Derived values (Yield, %LOD) are summed up once the batch is finished, so
    * the card only makes sense when the criterion is actually recorded at that
    * point — once per batch, or at a milestone. Tied to the triggers alone and
-   * not to the Use Context: a hidden card must have one reason, not two.
+   * not to the ใช้ในกรณีไหน: a hidden card must have one reason, not two.
    */
   const derivedCalcUnlocked =
     sharedExtras.triggers.oncePerBatch.on || sharedExtras.triggers.milestone.on;
@@ -1551,8 +1791,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('time')}
           testId="trigger-time"
           icon={<Clock className="h-4 w-4" />}
-          title="ตามช่วงเวลา (Time)"
-          desc="ทุก N นาที"
+          title="ตามช่วงเวลา"
+          desc="ทุกกี่นาที"
           info="ระบบเตือนให้เก็บตัวอย่างตามรอบเวลา เช่น ทุก 30 นาที ตลอดการผลิต — ใช้ค่าจากการ์ด แผนการสุ่ม"
           on={sharedExtras.triggers.time.on}
           onToggle={() => updateTriggers((t) => ({ ...t, time: { ...t.time, on: !t.time.on } }))}
@@ -1584,9 +1824,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('quantity')}
           testId="trigger-quantity"
           icon={<Package className="h-4 w-4" />}
-          title="ตามจำนวนผลิต (Quantity)"
-          desc="ทุก N หน่วย / % ของ batch"
-          info="เตือนตามจำนวนที่ผลิตได้ เช่น ทุก 1,000 หน่วย หรือทุก 25% ของ batch เหมาะกับรุ่นที่ใช้เวลาผลิตไม่แน่นอน"
+          title="ตามจำนวนผลิต"
+          desc="ทุกกี่หน่วย หรือกี่ % ของรุ่นผลิต"
+          info="เตือนตามจำนวนที่ผลิตได้ เช่น ทุก 1,000 หน่วย หรือทุก 25% ของรุ่นผลิต เหมาะกับรุ่นที่ใช้เวลาผลิตไม่แน่นอน"
           on={sharedExtras.triggers.quantity.on}
           onToggle={() => updateTriggers((t) => ({ ...t, quantity: { ...t.quantity, on: !t.quantity.on } }))}
         >
@@ -1664,7 +1904,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   // Same grid as the fixed mode, so switching between the two
                   // does not move the field or stretch it across the card.
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <SoftLabel label="ตรวจทุกกี่ % ของ batch">
+                    <SoftLabel label="ตรวจทุกกี่ % ของรุ่นผลิต">
                       <div className="relative">
                         <input
                           type="number"
@@ -1678,7 +1918,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             '[&::-webkit-outer-spin-button]:appearance-none',
                           )}
                           placeholder="25"
-                          aria-label="ตรวจทุกกี่ % ของ batch"
+                          aria-label="ตรวจทุกกี่ % ของรุ่นผลิต"
                           data-testid="quantity-percent"
                           value={q.percent}
                           onChange={(e) => setQ({ percent: e.target.value })}
@@ -1725,8 +1965,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('milestone')}
           testId="trigger-milestone"
           icon={<Target className="h-4 w-4" />}
-          title="ที่ milestone"
-          desc="ตามขั้นตอนสำคัญใน batch"
+          title="ตามจังหวะการผลิต"
+          desc="ตามขั้นตอนสำคัญในรุ่นผลิต"
           info="เตือนที่ขั้นตอนสำคัญของรุ่นผลิต เช่น เริ่มผลิต กลางรุ่น ก่อนปิดรุ่น — ผูกกับความคืบหน้า ไม่ใช่เวลา"
           on={sharedExtras.triggers.milestone.on}
           onToggle={() => updateTriggers((t) => ({ ...t, milestone: { ...t.milestone, on: !t.milestone.on } }))}
@@ -1758,8 +1998,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('event')}
           testId="trigger-event"
           icon={<Zap className="h-4 w-4" />}
-          title="เมื่อมีเหตุการณ์ (Event)"
-          desc="changeover / lot change / cleaning / parameter / maintenance"
+          title="เมื่อมีเหตุการณ์"
+          desc="เปลี่ยนรุ่น · เปลี่ยนล็อตวัตถุดิบ · ล้างเครื่อง · ปรับค่าเครื่อง · ซ่อมบำรุง"
           info="เตือนเมื่อเกิดเหตุการณ์ที่อาจกระทบคุณภาพ เช่น เปลี่ยนล็อตวัตถุดิบ ทำความสะอาดเครื่อง ปรับพารามิเตอร์ ซ่อมบำรุง"
           on={sharedExtras.triggers.event.on}
           onToggle={() => updateTriggers((t) => ({ ...t, event: { ...t.event, on: !t.event.on } }))}
@@ -1791,8 +2031,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           recommended={recommendedTriggers.has('oncePerBatch')}
           testId="trigger-once"
           icon={<RotateCcw className="h-4 w-4" />}
-          title="ครั้งเดียวต่อ batch"
-          desc="บันทึกเพียง 1 ครั้งตลอด batch"
+          title="ครั้งเดียวต่อรุ่นผลิต"
+          desc="บันทึกเพียงครั้งเดียวตลอดรุ่นผลิต"
           info="บันทึกผลเพียงครั้งเดียวต่อรุ่นผลิต ไม่ต้องเก็บซ้ำระหว่างทาง — ใช้กับหัวข้อที่วัดได้ครั้งเดียวต่อรุ่น เช่น ผลเพาะเชื้อ"
           on={sharedExtras.triggers.oncePerBatch.on}
           onToggle={() => updateTriggers((t) => ({ ...t, oncePerBatch: { on: !t.oncePerBatch.on } }))}
@@ -1869,15 +2109,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
       style={{ fontFamily: 'var(--font-inter), var(--font-sarabun), system-ui, -apple-system, sans-serif' }}
     >
       <ResponsivePageHeader
-        title={mode === 'edit' ? 'Edit QC & IPC Criteria' : 'New QC & IPC Criteria'}
-        subtitle={mode === 'edit' ? `Editing ${initialData.name || ''}` : 'สร้างเกณฑ์การควบคุมคุณภาพการผลิต'}
+        title={mode === 'edit' ? 'แก้ไขเกณฑ์ QC / IPC' : 'สร้างเกณฑ์ QC / IPC'}
+        subtitle={mode === 'edit' ? `กำลังแก้ไข ${initialData.name || ''}` : 'สร้างเกณฑ์การควบคุมคุณภาพการผลิต'}
         icon={FlaskConical}
         iconBgColor="bg-emerald-100"
         iconColor="text-emerald-600"
         breadcrumbs={[
-          { label: 'Master Data', href: '/master-data' },
-          { label: 'QC & IPC Criteria', href: '/master-data/ipc-criteria' },
-          { label: mode === 'edit' ? 'Edit' : 'New' },
+          { label: 'ข้อมูลหลัก', href: '/master-data' },
+          { label: 'เกณฑ์ QC / IPC', href: '/master-data/ipc-criteria' },
+          { label: mode === 'edit' ? 'แก้ไข' : 'สร้างใหม่' },
         ]}
       />
 
@@ -1940,16 +2180,16 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {isCustomName && (
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <div>
-                    <label className={FIELD_LABEL}>Name (EN) <span className="text-red-500">*</span></label>
+                    <label className={FIELD_LABEL}>ชื่อภาษาอังกฤษ <span className="text-red-500">*</span></label>
                     <input
                       className={FIELD_INPUT}
-                      placeholder="เช่น Tablet Friability"
+                      placeholder="เช่น ความกร่อนของเม็ดยา"
                       value={formData.name || ''}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>ชื่อ (TH)</label>
+                    <label className={FIELD_LABEL}>ชื่อภาษาไทย</label>
                     <input
                       className={FIELD_INPUT}
                       placeholder="เช่น ความเปราะของเม็ดยา"
@@ -1967,7 +2207,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
 
 
-          <FormSection step={1} title="เอกสาร GMP" hint="เลือกเอกสารควบคุม เช่น วิธีทดสอบ/SOP — SOP · Version · Step # · Link">
+          <FormSection step={1} title="เอกสาร GMP" hint="เลือกเอกสารควบคุม เช่น วิธีทดสอบหรือ SOP — รหัส · ฉบับที่ · ขั้นตอนที่ · ลิงก์">
           {/*
             เอกสาร GMP + SOP step reference — Figma node 36:2441.
             Its own surface, deliberately outside the basic-information card.
@@ -2004,10 +2244,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             {/* SOP step reference */}
             <div className="flex flex-col gap-6 pt-5">
               {/* items-end keeps the four inputs on one line even when a
-                  label wraps, as the SOP Code one does in Thai. */}
+                  label wraps, as the รหัส SOP one does in Thai. */}
               <div className="grid grid-cols-1 items-end gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <SoftField
-                  label="SOP Code"
+                  label="รหัส SOP"
                   placeholder="เช่น SOP-PRD-001"
                   value={sharedExtras.sopStepRef.sopCode}
                   onChange={(v) => updateSopStepRef('sopCode', v)}
@@ -2016,18 +2256,18 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 {/* No auto value: the document list carries a version *id*,
                     not the printed version number. */}
                 <SoftField
-                  label="Version"
+                  label="ฉบับที่"
                   placeholder="เช่น 1.0"
                   value={sharedExtras.sopStepRef.sopVersion}
                   onChange={(v) => updateSopStepRef('sopVersion', v)}
                 />
                 <SoftField
-                  label="Step #"
+                  label="ขั้นตอนที่"
                   value={sharedExtras.sopStepRef.stepNumber}
                   onChange={(v) => updateSopStepRef('stepNumber', v)}
                 />
                 <SoftField
-                  label="Link (URL)"
+                  label="ลิงก์"
                   value={sharedExtras.sopStepRef.link}
                   onChange={(v) => updateSopStepRef('link', v)}
                   autoFilled={gmpAutoFields.has('link')}
@@ -2087,9 +2327,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           </div>
           </FormSection>
 
-          <FormSection step={3} title="การเก็บตัวอย่าง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่หน่วย · หัก Tare อย่างไร">
+          <FormSection step={3} title="การเก็บตัวอย่าง" hint="ใช้กรณีไหน · จังหวะไหน · หยิบอย่างไร · กี่หน่วย · หักน้ำหนักภาชนะอย่างไร">
 
-          {/* ── Use Context — ตรวจไปเพื่ออะไร ─────────────────────────
+          {/* ── ใช้ในกรณีไหน — ตรวจไปเพื่ออะไร ─────────────────────────
               Placed above "ตรวจสอบเมื่อ" because it answers the question that
               comes first: the purpose decides the timing, not the other way
               round. Scoped to production and to QC of product and raw material. */}
@@ -2100,7 +2340,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-semibold text-black">Use Context</h4>
+                  <h4 className="text-sm font-semibold text-black">ใช้ในกรณีไหน</h4>
                   <p className="text-xs text-[#bfbfbf]">
                     เลือกได้หลายข้อ — ระบบจะเปิด &quot;ตรวจสอบเมื่อ&quot; ที่เข้ากับกรณีนั้นให้
                   </p>
@@ -2171,7 +2411,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <ChevronDown
                     className={cn('h-4 w-4 transition-transform', showOtherContexts && 'rotate-180')}
                   />
-                  ตัวเลือกอื่นที่ไม่ค่อยใช้กับ stage นี้ ({otherContextOptions.length})
+                  ตัวเลือกอื่นที่ไม่ค่อยใช้กับขั้นตอนนี้ ({otherContextOptions.length})
                 </button>
 
                 {showOtherContexts && (
@@ -2221,7 +2461,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 <p className="text-xs text-[#bfbfbf]">
                   {contextChosen
                     ? 'แสดงเฉพาะที่เข้ากับกรณีที่เลือก — ตัวอื่นกดกางดูได้'
-                    : 'เลือกได้หลายแบบ — เปิด toggle เพื่อตั้งรายละเอียด'}
+                    : 'เลือกได้หลายแบบ — เปิดสวิตช์เพื่อตั้งรายละเอียด'}
                 </p>
               </div>
               {/* Counts all five however many are on screen, so folding a card
@@ -2279,7 +2519,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <h4 className="text-sm font-semibold text-black">
                     แผนการสุ่ม <span className="text-[#e32727]">*</span>
                   </h4>
-                  <p className="text-xs text-[#bfbfbf]">GMP / USP Standard</p>
+                  <p className="text-xs text-[#bfbfbf]">อ้างอิงมาตรฐาน GMP / USP</p>
                 </div>
                 <SearchableSelect
                   testId="sampling-method"
@@ -2312,29 +2552,178 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               cadence={cadence}
               unit={sharedExtras.samplingUnit}
               onUnitChange={(u) => setSharedExtras((prev) => ({ ...prev, samplingUnit: u }))}
+              points={sharedExtras.samplingPoints}
+              onPointsChange={(pts) =>
+                setSharedExtras((prev) => ({ ...prev, samplingPoints: pts }))
+              }
             />
           </div>
 
           {/* A4 — จำนวนตัวอย่าง. The only sample-count box in the form: the
               Multi-Point panel used to carry a second one of its own, and the
-              acceptance card a third, so three fields described one number. */}
+              acceptance card a third, so three fields described one number.
+              Under a plan that names its points there is no box at all — the
+              points are the count, and a box beside them could only disagree
+              with them. */}
           <div data-testid="sample-count-card" className="px-6 py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h4 className="text-sm font-semibold text-black">จำนวนตัวอย่าง</h4>
-                <p className="text-xs text-[#bfbfbf]">หยิบมาตรวจกี่ชิ้นต่อหนึ่งรอบ</p>
+                <p className="text-xs text-[#bfbfbf]">
+                  {lotDrivenSampling
+                    ? 'คำนวณตอนบันทึกผล จากยอดผลิตของแต่ละรุ่น'
+                    : pointSampleSize == null
+                      ? 'หยิบมาตรวจกี่ชิ้นต่อหนึ่งรอบ'
+                      : 'นับจากจุดสุ่มที่เปิดไว้ในแผนการสุ่ม'}
+                </p>
               </div>
-              <div className="grid grid-cols-1 gap-6">
-                <SoftLabel label="จำนวนตัวอย่างที่วัด (Sample Size)" required>
-                  <NumberInput
-                    className={SOFT_INPUT}
-                    ariaLabel="จำนวนตัวอย่างที่วัด (Sample Size)"
-                    min={1}
-                    value={formData.sampleSize}
-                    onChange={(v) => setFormData({ ...formData, sampleSize: v })}
-                  />
-                </SoftLabel>
-              </div>
+              {lotDrivenSampling ? (
+                <div
+                  data-testid="sample-count-from-lot"
+                  className="flex flex-col gap-2.5 rounded-[12px] bg-[#f9fafb] px-4 py-3.5"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="rounded-md bg-[#e8effc] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#3559b0]">
+                      √n + 1
+                    </span>
+                    <span className="text-[13px] text-[#495057]">
+                      n = ยอดผลิตของใบสั่งผลิต
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#9aa3ad]">
+                    ใช้ยอดผลิตจริง ถ้ายังไม่มีใช้ยอดผลิตตามแผน
+                  </p>
+                  {/* Two worked examples rather than the formula alone: "ขึ้นกับ
+                      ยอดผลิต" does not say how fast the sample grows, and the
+                      whole point of this rule is that it grows far slower than
+                      the lot does. */}
+                  <div className="flex flex-col gap-1 border-t border-[#eef0f3] pt-2.5">
+                    {lotExamples.map((ex) => (
+                      <p key={ex.lot} className="text-[11px] text-[#6b7684] tabular-nums">
+                        รุ่น {ex.lot.toLocaleString('en-US')} ชิ้น →{' '}
+                        <strong className="font-bold text-[#3559b0]">{ex.size}</strong> ตัวอย่าง
+                      </p>
+                    ))}
+                  </div>
+
+                  {/* The readings the test itself produces.
+                      The sample and the readings are different counts: the plan
+                      draws 201 units, the plant takes a couple of grams off
+                      them, and that yields a handful of numbers. */}
+                  <div
+                    data-testid="sqrt-result-fields"
+                    className="flex flex-col gap-2 border-t border-[#eef0f3] pt-3"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h5 className="text-[13px] font-semibold text-black">ช่องกรอกผล</h5>
+                      <span className="text-[11px] text-[#bfbfbf]">
+                        {sqrtResultFields.length} ช่อง
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#9aa3ad]">
+                      ผลที่ได้จากตัวอย่างที่โรงงานแบ่งมาทดสอบ — คนละจำนวนกับตัวอย่างที่สุ่ม
+                    </p>
+
+                    {sqrtResultFields.map((label, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-5 shrink-0 text-center text-[11px] font-semibold text-[#9aa3ad]">
+                          {i + 1}
+                        </span>
+                        <input
+                          type="text"
+                          aria-label={`ชื่อช่องผลที่ ${i + 1}`}
+                          data-testid={`sqrt-result-field-${i}`}
+                          className={cn(FIELD_INPUT, 'flex-1')}
+                          value={label}
+                          onChange={(e) =>
+                            setSqrtResultFields(
+                              sqrtResultFields.map((f, j) => (j === i ? e.target.value : f)),
+                            )
+                          }
+                        />
+                        {/* The last box stays: a plan with nowhere to write the
+                            result is not a plan. */}
+                        <button
+                          type="button"
+                          aria-label={`ลบช่องผลที่ ${i + 1}`}
+                          data-testid={`sqrt-result-remove-${i}`}
+                          disabled={sqrtResultFields.length <= 1}
+                          onClick={() =>
+                            setSqrtResultFields(sqrtResultFields.filter((_, j) => j !== i))
+                          }
+                          className={cn(
+                            'rounded-full p-1.5 transition',
+                            sqrtResultFields.length <= 1
+                              ? 'cursor-not-allowed text-[#e1e4e8]'
+                              : 'text-[#9aa3ad] hover:bg-black/5 hover:text-[#495057]',
+                          )}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      data-testid="sqrt-result-add"
+                      onClick={() =>
+                        setSqrtResultFields([
+                          ...sqrtResultFields,
+                          `ผลที่ ${sqrtResultFields.length + 1}`,
+                        ])
+                      }
+                      className={cn(
+                        'ml-7 flex h-9 items-center justify-center gap-1.5 rounded-[10px]',
+                        'border-[1.5px] border-dashed border-[#d4d9e0] text-[12px] font-medium',
+                        'text-[#6b7684] transition hover:border-[#adb5bd] hover:text-[#495057]',
+                      )}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      เพิ่มช่องผล
+                    </button>
+
+                    {sqrtResultFields.length !== SQRT_RESULT_FIELD_DEFAULTS.length && (
+                      <p className="ml-7 text-[11px] text-[#9aa3ad]">
+                        ปกติใช้ {SQRT_RESULT_FIELD_DEFAULTS.length} ช่อง — ตั้งไว้{' '}
+                        {sqrtResultFields.length} ช่องตาม SOP
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : pointSampleSize == null ? (
+                <div className="grid grid-cols-1 gap-6">
+                  <SoftLabel label="จำนวนตัวอย่างที่วัด" required>
+                    <NumberInput
+                      className={SOFT_INPUT}
+                      ariaLabel="จำนวนตัวอย่างที่วัด"
+                      min={1}
+                      value={formData.sampleSize}
+                      onChange={(v) => setFormData({ ...formData, sampleSize: v })}
+                    />
+                  </SoftLabel>
+                </div>
+              ) : (
+                <div
+                  data-testid="sample-count-from-points"
+                  className="flex flex-col gap-2 rounded-[12px] bg-[#f9fafb] px-4 py-3.5"
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-[#3559b0]">{pointSampleSize}</span>
+                    <span className="text-[13px] text-[#6b7684]">ตัวอย่างต่อหนึ่งรอบ</span>
+                  </div>
+                  {pointSampleSize > 0 ? (
+                    <p className="text-[12px] text-[#9aa3ad]">
+                      {samplingPoints.filter((pt) => pt.on).map((pt) => pt.label).join(' · ')}
+                    </p>
+                  ) : (
+                    // Every point switched off is not a plan; say so here rather
+                    // than letting a criterion save with nothing to measure.
+                    <p className="text-[12px] font-medium text-[#e32727]">
+                      ยังไม่ได้เปิดจุดสุ่มไว้เลย — เปิดอย่างน้อย 1 จุดในแผนการสุ่ม
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -2382,7 +2771,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               {/* Numeric — the layout the Figma frame specifies */}
               {criteriaType === 'numeric' && (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <SoftLabel label="Target (Specification)" required>
+                  <SoftLabel label="ค่าเป้าหมาย" required>
                     <input
                       type="number"
                       className={SOFT_INPUT}
@@ -2391,12 +2780,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       onChange={(e) => setFormData({ ...formData, specTarget: e.target.value === '' ? null : Number(e.target.value) })}
                     />
                   </SoftLabel>
-                  <SoftLabel label="±% Tolerance (Spec Range)">
+                  <SoftLabel label="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)">
                     <div className="relative">
                       <NumberInput
                         className={cn(SOFT_INPUT, 'pr-8')}
                         placeholder="0"
-                        ariaLabel="±% Tolerance (Spec Range)"
+                        ariaLabel="ค่าคลาดเคลื่อนที่ยอมรับได้ (%)"
                         min={0}
                         max={100}
                         value={formData.specTolerancePercent}
@@ -2405,19 +2794,19 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
                     </div>
                   </SoftLabel>
-                  <SoftLabel label="Min Value">
+                  <SoftLabel label="ค่าต่ำสุด">
                     <input
                       readOnly
-                      aria-label="Min Value"
+                      aria-label="ค่าต่ำสุด"
                       className={cn(SOFT_INPUT, 'cursor-not-allowed font-semibold')}
                       placeholder="—"
                       value={calculatedMinMax?.min ?? ''}
                     />
                   </SoftLabel>
-                  <SoftLabel label="Max Value">
+                  <SoftLabel label="ค่าสูงสุด">
                     <input
                       readOnly
-                      aria-label="Max Value"
+                      aria-label="ค่าสูงสุด"
                       className={cn(SOFT_INPUT, 'cursor-not-allowed font-semibold')}
                       placeholder="—"
                       value={calculatedMinMax?.max ?? ''}
@@ -2434,7 +2823,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   for them would put two invented numbers in the record. */}
               {criteriaType === 'max_limit' && specPayload?.type === 'max_limit' && (
                 <div className="sm:col-span-2 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <SoftLabel label={`Max Value${formData.unit ? ` (${formData.unit})` : ''}`} required>
+                  <SoftLabel label={`≤ Maximum value${formData.unit ? ` (${formData.unit})` : ''}`} required>
                     <input
                       type="number"
                       step="any"
@@ -2564,7 +2953,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                         icon={<User className="h-4 w-4" />}
                         label="ทดสอบ"
                         value={acceptanceMath.sampleSize}
-                        unit="ชิ้น"
+                        unit={sampleUnitWord}
                         color="#5682e9"
                       />
                       <AcceptanceStat
@@ -2573,7 +2962,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                         icon={<ClockAlert className="h-4 w-4" />}
                         label="ยอมเสียได้"
                         value={acceptanceMath.allowedFail}
-                        unit="ไม่เกินกี่ชิ้น"
+                        unit={`ไม่เกินกี่${sampleUnitWord}`}
                         color="#fc9709"
                       />
                       <AcceptanceStat
@@ -2593,18 +2982,42 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <HeaderSwitch
                     testId="multi-stage-switch"
                     checked={multiStageEnabled}
-                    label="Multi-Stage"
+                    label="ตัดสินหลายขั้น"
                     onChange={() => {
                       if (multiStageEnabled) {
                         setMultiStageEnabled(false);
                       } else {
                         setMultiStageEnabled(true);
-                        if (stages.length === 0) {
-                          setStages([
-                            { sampleSize: formData.sampleSize ?? 10, tolerancePercent: formData.tolerancePercent ?? 0, onFail: 'next_stage' },
-                            { sampleSize: 20, tolerancePercent: 10, onFail: 'reject_batch' },
-                          ]);
-                        }
+                        /*
+                         * Stage 1 is the round the operator already had in
+                         * front of them with ตัดสินหลายขั้น off, so it opens on
+                         * exactly the figures that were on screen a moment ago.
+                         *
+                         * This used to run only when there were no stages yet,
+                         * which meant the second time it was switched on the
+                         * old stage 1 came back and quietly contradicted the
+                         * numbers just entered beside it. Later stages are left
+                         * as they were — only the first one has a single-stage
+                         * counterpart to agree with.
+                         */
+                        const firstStage: AcceptanceStage = {
+                          sampleSize: pointSampleSize || formData.sampleSize || 10,
+                          tolerancePercent: formData.tolerancePercent ?? 0,
+                          onFail: 'next_stage',
+                        };
+                        setStages((prev) =>
+                          prev.length === 0
+                            ? [
+                                firstStage,
+                                // The follow-up round: under a plan that names
+                                // its points it repeats the same points, and
+                                // otherwise falls back to the old wider draft.
+                                pointSampleSize
+                                  ? { sampleSize: pointSampleSize, tolerancePercent: 0, onFail: 'reject_batch' }
+                                  : { sampleSize: 20, tolerancePercent: 10, onFail: 'reject_batch' },
+                              ]
+                            : prev.map((st, i) => (i === 0 ? { ...firstStage, onFail: st.onFail } : st)),
+                        );
                       }
                     }}
                   />
@@ -2612,7 +3025,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     data-testid="stage-count-pill"
                     className="rounded-full bg-white px-3 py-1 text-xs text-black shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
                   >
-                    {stageCount} Stage{stageCount > 1 ? 's' : ''}
+                    {stageCount} ขั้น
                   </span>
                 </div>
               </div>
@@ -2624,8 +3037,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     <div className="mb-6 flex items-center gap-3 rounded-[14px] border-[1.5px] border-[#ffdeb0] bg-[#fff7ed] p-[14px]">
                       <Info className="h-[18px] w-[18px] shrink-0 text-[#c2410c]" />
                       <p className="text-xs font-medium text-[#c2410c]">
-                        หากการทดสอบครั้งแรก (Stage 1) ไม่ผ่าน ให้สุ่มตัวอย่างเพิ่มเพื่อทดสอบครั้งที่ 2
-                        โดยใช้เกณฑ์ที่เข้มขึ้น (รวมจำนวนทั้งหมด) ก่อนตัดสิน Reject batch
+                        หากการทดสอบขั้นที่ 1 ไม่ผ่าน ให้สุ่มตัวอย่างเพิ่มเพื่อทดสอบขั้นที่ 2
+                        โดยใช้เกณฑ์ที่เข้มขึ้น (รวมจำนวนทั้งหมด) ก่อนตัดสินปฏิเสธรุ่นผลิต
                       </p>
                     </div>
 
@@ -2697,10 +3110,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                   <h5 className="text-sm font-semibold leading-8 text-black">
-                                    Stage {idx + 1}
+                                    ขั้นที่ {idx + 1}
                                   </h5>
                                   <p className="mt-1 text-[11px] text-[#bfbfbf]">
-                                    สุ่ม {stage.sampleSize} units · รวมทดสอบทั้งหมด {cumulative[idx] ?? 0} units
+                                    สุ่ม {stage.sampleSize} {sampleUnitWord} · รวมทดสอบทั้งหมด {cumulative[idx] ?? 0} {sampleUnitWord}
                                   </p>
                                 </div>
                                 {/* Stage 1 always runs, so only later stages can go. */}
@@ -2723,6 +3136,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                                   isLast={last}
                                   stage={stage}
                                   onChange={(patch) => updateStage(idx, patch)}
+                                  unitWord={sampleUnitWord}
                                 />
                               </div>
 
@@ -2745,7 +3159,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             className={cn(DASH, 'flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-[12px] border-[#e1e4e8] text-[13px] text-[#bfbfbf] transition hover:bg-[#f8f9fa]')}
                           >
                             <Plus className="h-4 w-4" />
-                            เพิ่ม Stage {stages.length + 1} (Retest)
+                            เพิ่มขั้น {stages.length + 1} (ทดสอบซ้ำ)
                           </button>
                         </li>
                       )}
@@ -2819,9 +3233,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <TriggerCard
                 testId="setting-critical"
                 icon={<Shield className="h-4 w-4" />}
-                title="Critical Test"
-                desc="ถ้า fail จะ block batch ทันที"
-                info="เกณฑ์วิกฤต — ถ้าผลไม่ผ่านจะหยุด batch ทันที ไม่มีสิทธิ์ทดสอบซ้ำ และ Retest สูงสุดจะถูกบังคับเป็น 0"
+                title="เกณฑ์วิกฤต"
+                desc="ถ้าไม่ผ่านจะระงับรุ่นผลิตทันที"
+                info="เกณฑ์วิกฤต — ถ้าผลไม่ผ่านจะหยุดรุ่นผลิตทันที ไม่มีสิทธิ์ทดสอบซ้ำ และจำนวนครั้งที่ทดสอบซ้ำได้จะถูกบังคับเป็น 0"
                 onColor="#c0362c"
                 autoFilled={isAutoFilled('isCritical')}
                 on={!!formData.isCritical}
@@ -2834,10 +3248,10 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <div className="flex items-start gap-2 text-[#c0362c]">
                     <Lock className="mt-0.5 h-4 w-4 shrink-0" />
                     <p className="text-xs font-medium leading-relaxed">
-                      Retest = 0 — fail รอบแรกสร้าง Deviation ทันที
+                      ทดสอบซ้ำไม่ได้ — ไม่ผ่านรอบแรกจะเปิดบันทึกความเบี่ยงเบนทันที
                       <br />
                       <span className="font-normal text-[#9aa3ad]">
-                        แก้ค่านี้ไม่ได้เมื่อเปิด Critical
+                        แก้ค่านี้ไม่ได้เมื่อเปิดเกณฑ์วิกฤต
                       </span>
                     </p>
                   </div>
@@ -2845,7 +3259,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   <div className="flex flex-col gap-3" data-testid="retest-choices">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-[#bfbfbf]">
-                        จำนวน Retest สูงสุด <span className="text-[#e32727]">*</span>
+                        จำนวนครั้งที่ทดสอบซ้ำได้ <span className="text-[#e32727]">*</span>
                       </span>
                       {retestMissing && (
                         <span
@@ -2866,7 +3280,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             key={n}
                             data-testid={`retest-${n}`}
                             aria-pressed={active}
-                            aria-label={`Retest ${n} รอบ`}
+                            aria-label={`ทดสอบซ้ำได้ ${n} รอบ`}
                             onClick={() => chooseRetest(n)}
                             className={cn(
                               'h-10 w-12 rounded-[12px] border text-sm font-semibold transition-colors',
@@ -2897,7 +3311,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       {retestCustom && (
                         <NumberInput
                           className={cn(SOFT_INPUT, 'w-24')}
-                          ariaLabel="จำนวน Retest กำหนดเอง"
+                          ariaLabel="จำนวนครั้งที่ทดสอบซ้ำได้ กำหนดเอง"
                           min={1}
                           max={5}
                           value={retestChosen ? (formData.maxRetestRounds ?? 0) : null}
@@ -2915,7 +3329,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     {retestMissingShown && retestMissing ? (
                       <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-[#c2410c]">
                         <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span>ต้องเลือกจำนวน Retest ก่อนบันทึก — ไม่มีค่าเริ่มต้นให้</span>
+                        <span>ต้องเลือกจำนวนครั้งที่ทดสอบซ้ำได้ก่อนบันทึก — ไม่มีค่าเริ่มต้นให้</span>
                       </p>
                     ) : retestChosen ? (
                       <p
@@ -2930,7 +3344,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                       </p>
                     ) : (
                       <p className="text-[11px] text-[#bfbfbf]">
-                        เลือก 1 ปุ่มเพื่อยืนยันจำนวนรอบ — ถ้าไม่ให้ทดสอบซ้ำเลย ให้เปิด Critical แทน
+                        เลือก 1 ปุ่มเพื่อยืนยันจำนวนรอบ — ถ้าไม่ให้ทดสอบซ้ำเลย ให้เปิดเกณฑ์วิกฤตแทน
                       </p>
                     )}
                   </div>
@@ -2940,8 +3354,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                 page — it was a card footer, which needed a card to be a
                 footer of. */}
             <p className="px-1 text-xs text-[#bfbfbf]">
-              ตามมาตรฐาน FDA OOS 2006: Justified retest (พบสาเหตุ) นับเป็นรอบเพิ่ม / Unjustified
-              retest (ไม่มีเหตุผลชัดเจน) จะสร้าง Deviation ทันที
+              ตามแนวปฏิบัติสากลเรื่องผลตรวจผิดปกติ: ทดสอบซ้ำโดยพบสาเหตุ นับเป็นรอบเพิ่มได้
+              ส่วนทดสอบซ้ำโดยไม่พบสาเหตุชัดเจน จะเปิดบันทึกความเบี่ยงเบนทันที
             </p>
           </div>
 
@@ -2966,12 +3380,12 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   {/* Says which switch brings it back — a card that just
                       vanishes leaves the user with nothing to act on. */}
                   <p className="text-xs text-[#bfbfbf]">
-                    ใช้ได้เมื่อเปิด &quot;ครั้งเดียวต่อ batch&quot; หรือ &quot;ที่ milestone&quot; ในหัวข้อ ตรวจสอบเมื่อ
-                    — สูตรอย่าง Yield สรุปได้ตอนจบรุ่นเท่านั้น
+                    ใช้ได้เมื่อเปิด &quot;ครั้งเดียวต่อรุ่นผลิต&quot; หรือ &quot;ตามจังหวะการผลิต&quot; ในหัวข้อ ตรวจสอบเมื่อ
+                    — สูตรอย่างผลผลิตที่ได้ สรุปได้ตอนจบรุ่นเท่านั้น
                   </p>
                 </div>
               </div>
-              {/* Formulas already entered stay in the payload, so they are
+              {/* สูตรคำนวณs already entered stay in the payload, so they are
                   declared here rather than left saved but invisible. */}
               {sharedExtras.derivedCalcs.length > 0 && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
@@ -2997,7 +3411,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     การคำนวณที่ได้จากผล <span className="text-[#e32727]">*</span>
                   </h4>
                   <p className="text-xs text-[#bfbfbf]">
-                    คำนวณข้ามขั้นตอน เช่น Yield = output / input, %LOD = (wet − dry) / wet × 100
+                    คำนวณข้ามขั้นตอน เช่น ผลผลิตที่ได้ = ผลได้ / ป้อนเข้า, %ความชื้น = (ก่อนอบ − หลังอบ) / ก่อนอบ × 100
                   </p>
                 </div>
                 {/* Filled rather than outlined: it is the only action in this
@@ -3042,7 +3456,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
           )}
           </FormSection>
 
-          <FormSection step={5} title="สถานะการใช้งาน" hint="Active แยกจาก Critical และ Retest เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล">
+          <FormSection step={5} title="สถานะการใช้งาน" hint="สถานะเปิดใช้งานแยกจากเกณฑ์วิกฤตและการทดสอบซ้ำ เพราะเป็นสถานะของเกณฑ์ ไม่ใช่วิธีตัดสินผล">
 
           {/* A TriggerCard is already a card. Wrapping one in a second card
               drew a white panel inside a white panel with nothing between
@@ -3052,9 +3466,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
             <TriggerCard
               testId="setting-active"
               icon={<Power className="h-4 w-4" />}
-              title="Active"
-              desc="เปิดใช้กับ batch ใหม่"
-              info="ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับ batch ที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ"
+              title="เปิดใช้งาน"
+              desc="เปิดใช้กับรุ่นผลิตใหม่"
+              info="ปิดไว้ = เกณฑ์นี้จะไม่ถูกนำไปใช้กับรุ่นผลิตที่เปิดใหม่ แต่ข้อมูลเดิมที่บันทึกไว้ยังอยู่ครบ"
               on={formData.isActive !== false}
               onToggle={() => setFormData({ ...formData, isActive: !(formData.isActive !== false) })}
             />
@@ -3101,6 +3515,18 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
               stages={stages}
               specPayload={specPayload}
               stage={sharedExtras.stage}
+              pointLabels={activePointLabels}
+              unitWord={sampleUnitWord}
+              samplingUnit={sharedExtras.samplingUnit}
+              eventTags={activeEventLabels}
+              fixedResultFields={
+                lotDrivenSampling
+                  ? {
+                      labels: sqrtResultFields,
+                      caption: `สุ่มตัวอย่างตามยอดผลิต (เช่น รุ่น ${lotExamples[0].lot.toLocaleString('en-US')} ชิ้น → ${lotExamples[0].size} ตัวอย่าง) แล้วแบ่งมาทดสอบ`,
+                    }
+                  : undefined
+              }
             />
 
             {/* Last card in the column, so it sticks along with the preview. */}
@@ -3120,7 +3546,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     </span>
                   </span>
                 ) : (
-                  <span className="text-amber-600">⚠ กรุณาเลือก Test Name ก่อน</span>
+                  <span className="text-amber-600">⚠ กรุณาเลือกหัวข้อการทดสอบก่อน</span>
                 )}
               </div>
               <div className="flex gap-3">
@@ -3129,7 +3555,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   onClick={() => router.push('/master-data/ipc-criteria')}
                   className="flex-1 rounded-[10px] border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
-                  CANCEL
+                  ยกเลิก
                 </button>
                 <button
                   type="button"
@@ -3137,7 +3563,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                   disabled={saveMutation.isPending || !formData.name || !formData.code}
                   className="flex-1 rounded-[10px] bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saveMutation.isPending ? 'SAVING...' : mode === 'edit' ? 'UPDATE' : 'CREATE'}
+                  {saveMutation.isPending ? 'กำลังบันทึก…' : mode === 'edit' ? 'บันทึกการแก้ไข' : 'สร้างเกณฑ์'}
                 </button>
               </div>
             </div>
@@ -3189,7 +3615,7 @@ interface TriggerCardProps {
   onColor?: string;
   /** Marks a value the test catalog filled in, as the old toggle card did. */
   autoFilled?: boolean;
-  /** This trigger suits the chosen Use Context. */
+  /** This trigger suits the chosen ใช้ในกรณีไหน. */
   recommended?: boolean;
   /**
    * Keep the body visible while the switch is off. Critical needs it: its body
@@ -3323,75 +3749,75 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
           <input
             className={SOFT_INPUT}
             aria-label={`ชื่อสูตร ${idx + 1}`}
-            placeholder="เช่น Yield"
+            placeholder="เช่น ผลผลิตที่ได้"
             value={calc.label}
             onChange={(e) => onChange({ label: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="Formula">
+        <SoftLabel label="สูตรคำนวณ">
           <input
             className={cn(SOFT_INPUT, 'font-mono')}
-            aria-label={`Formula ${idx + 1}`}
+            aria-label={`สูตรคำนวณ ${idx + 1}`}
             placeholder="(output - waste) / input * 100"
             value={calc.formula}
             onChange={(e) => onChange({ formula: e.target.value })}
           />
         </SoftLabel>
 
-        <SoftLabel label="Sources">
+        <SoftLabel label="ที่มาของค่า">
           <input
             className={SOFT_INPUT}
-            aria-label={`Sources ${idx + 1}`}
+            aria-label={`ที่มาของค่า ${idx + 1}`}
             placeholder="IPC-WV-001, IPC-LOD-001"
             value={calc.sources}
             onChange={(e) => onChange({ sources: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="Result Unit">
+        <SoftLabel label="หน่วยของผลลัพธ์">
           <input
             className={SOFT_INPUT}
-            aria-label={`Result Unit ${idx + 1}`}
+            aria-label={`หน่วยของผลลัพธ์ ${idx + 1}`}
             placeholder="%"
             value={calc.resultUnit}
             onChange={(e) => onChange({ resultUnit: e.target.value })}
           />
         </SoftLabel>
 
-        <SoftLabel label="Trigger When">
+        <SoftLabel label="คำนวณเมื่อไหร่">
           <input
             className={SOFT_INPUT}
-            aria-label={`Trigger When ${idx + 1}`}
-            placeholder="ปิด batch / หลังสูตร X"
+            aria-label={`คำนวณเมื่อไหร่ ${idx + 1}`}
+            placeholder="เช่น ปิดรุ่นผลิต หรือหลังคำนวณสูตรอื่น"
             value={calc.triggerWhen}
             onChange={(e) => onChange({ triggerWhen: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="On Fail">
+        <SoftLabel label="เมื่อไม่ผ่าน">
           <select
             className={cn(SOFT_INPUT, 'appearance-none pr-9')}
-            aria-label={`On Fail ${idx + 1}`}
+            aria-label={`เมื่อไม่ผ่าน ${idx + 1}`}
             value={calc.onFail}
             onChange={(e) => onChange({ onFail: e.target.value as DerivedCalc['onFail'] })}
           >
-            <option value="reject">Reject Batch</option>
-            <option value="deviation">Create Deviation</option>
-            <option value="note">Note only</option>
+            <option value="reject">ปฏิเสธรุ่นผลิต</option>
+            <option value="deviation">บันทึกความเบี่ยงเบน</option>
+            <option value="note">บันทึกหมายเหตุเท่านั้น</option>
           </select>
         </SoftLabel>
 
-        <SoftLabel label="Acceptance Min">
+        <SoftLabel label="ค่าต่ำสุดที่ยอมรับได้">
           <input
             className={SOFT_INPUT}
-            aria-label={`Acceptance Min ${idx + 1}`}
+            aria-label={`ค่าต่ำสุดที่ยอมรับได้ ${idx + 1}`}
             placeholder="90"
             value={calc.acceptanceMin}
             onChange={(e) => onChange({ acceptanceMin: e.target.value })}
           />
         </SoftLabel>
-        <SoftLabel label="Acceptance Max">
+        <SoftLabel label="ค่าสูงสุดที่ยอมรับได้">
           <input
             className={SOFT_INPUT}
-            aria-label={`Acceptance Max ${idx + 1}`}
+            aria-label={`ค่าสูงสุดที่ยอมรับได้ ${idx + 1}`}
             placeholder="105"
             value={calc.acceptanceMax}
             onChange={(e) => onChange({ acceptanceMax: e.target.value })}
@@ -3399,7 +3825,7 @@ function DerivedCalcCard({ idx, calc, onChange, onRemove }: DerivedCalcCardProps
         </SoftLabel>
 
         <div className="sm:col-span-2">
-          <SoftLabel label="Note">
+          <SoftLabel label="หมายเหตุ">
             <input
               className={SOFT_INPUT}
               aria-label={`Note ${idx + 1}`}
@@ -3604,8 +4030,8 @@ function MultiPointSection({
         <div className="flex flex-col gap-4 rounded-[16px] bg-[#f9fafb] p-4">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-[#6b7280]" />
-            <h4 className="text-sm font-semibold text-black">วิธีบันทึกค่า Tare</h4>
-            <span className="text-[11px] text-slate-400">Tare Recording Method</span>
+            <h4 className="text-sm font-semibold text-black">วิธีบันทึกน้ำหนักภาชนะ</h4>
+            <span className="text-[11px] text-slate-400">วิธีบันทึกน้ำหนักภาชนะ</span>
           </div>
 
           {/* Linking a tare answers the whole question: the shell weight comes
@@ -3641,9 +4067,9 @@ function MultiPointSection({
                 }
               }}
               options={tareList.map((t) => ({ value: String(t.id), label: `${t.code} — ${t.name}` }))}
-              placeholder="— ไม่ใช้ tare —"
+              placeholder="— ไม่หักน้ำหนักภาชนะ —"
               onAddNew={(text) => openNewTare(text)}
-              addNewLabel="＋ สร้าง Tare criteria ใหม่"
+              addNewLabel="＋ สร้างเกณฑ์น้ำหนักภาชนะใหม่"
             />
 
             {/* Empty list is not a dead end — say so, and offer the way out. */}
@@ -3664,7 +4090,7 @@ function MultiPointSection({
                   className="flex w-fit items-center gap-2 rounded-full bg-cyan-700 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-cyan-800"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  สร้าง Tare criteria ใหม่
+                  สร้างเกณฑ์น้ำหนักภาชนะใหม่
                 </button>
               </div>
             )}
@@ -3675,7 +4101,7 @@ function MultiPointSection({
                 className="mt-2 flex flex-col gap-3 rounded-[12px] bg-[#f6f7f9] p-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h5 className="text-[13px] font-semibold text-cyan-800">สร้าง Tare criteria ใหม่</h5>
+                  <h5 className="text-[13px] font-semibold text-cyan-800">สร้างเกณฑ์น้ำหนักภาชนะใหม่</h5>
                   <button
                     type="button"
                     aria-label="ปิด"
@@ -3702,7 +4128,7 @@ function MultiPointSection({
                   </div>
                   <div>
                     <label className={FIELD_LABEL}>
-                      ชื่อ / Reference Label <span className="text-red-500">*</span>
+                      ชื่อ / ชื่ออ้างอิง <span className="text-red-500">*</span>
                     </label>
                     <input
                       className={FIELD_INPUT}
@@ -3713,7 +4139,7 @@ function MultiPointSection({
                     />
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>หน่วย (Reference Unit)</label>
+                    <label className={FIELD_LABEL}>หน่วยอ้างอิง</label>
                     <input
                       className={FIELD_INPUT}
                       placeholder="g"
@@ -3739,34 +4165,34 @@ function MultiPointSection({
                       value={newTare.storeAs}
                       onChange={(e) => setNewTare({ ...newTare, storeAs: e.target.value })}
                     />
-                    <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated — เว้นว่างได้ ระบบใช้ Code แทน</p>
+                    <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ — เว้นว่างได้ ระบบจะใช้รหัสเกณฑ์แทน</p>
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>Expire After</label>
+                    <label className={FIELD_LABEL}>อายุการใช้งาน</label>
                     <select
                       className={FIELD_INPUT}
-                      aria-label="Expire After"
+                      aria-label="อายุการใช้งาน"
                       data-testid="tare-new-expire"
                       value={newTare.expireAfter}
                       onChange={(e) =>
                         setNewTare({ ...newTare, expireAfter: e.target.value as TarePayload['expireAfter'] })
                       }
                     >
-                      <option value="batch">หมดอายุเมื่อจบ batch</option>
+                      <option value="batch">หมดอายุเมื่อจบรุ่นผลิต</option>
                       <option value="shift">หมดอายุเมื่อจบกะ</option>
-                      <option value="permanent">ใช้ได้ตลอด (permanent)</option>
+                      <option value="permanent">ใช้ได้ตลอด</option>
                     </select>
                     <p className={FIELD_HELPER}>ต้องชั่งเปลือกใหม่เมื่อไร</p>
                   </div>
                   <div>
-                    <label className={FIELD_LABEL}>Acceptance Min – Max</label>
+                    <label className={FIELD_LABEL}>ช่วงที่ยอมรับได้</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
                         step="any"
                         className={FIELD_INPUT}
                         placeholder="0.0900"
-                        aria-label="Acceptance Min"
+                        aria-label="ค่าต่ำสุดที่ยอมรับได้"
                         data-testid="tare-new-min"
                         value={newTare.min}
                         onChange={(e) => setNewTare({ ...newTare, min: e.target.value })}
@@ -3777,7 +4203,7 @@ function MultiPointSection({
                         step="any"
                         className={FIELD_INPUT}
                         placeholder="0.1100"
-                        aria-label="Acceptance Max"
+                        aria-label="ค่าสูงสุดที่ยอมรับได้"
                         data-testid="tare-new-max"
                         value={newTare.max}
                         onChange={(e) => setNewTare({ ...newTare, max: e.target.value })}
@@ -3959,7 +4385,7 @@ function MultiPointSection({
             </div>
             <div>
               <label className={FIELD_LABEL}>
-                Target ต่อหน่วย <span className="text-red-500">*</span>
+                ค่าเป้าหมายต่อหน่วย <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -3972,7 +4398,7 @@ function MultiPointSection({
               />
             </div>
             <div>
-              <label className={FIELD_LABEL}>±% Tolerance ต่อหน่วย</label>
+              <label className={FIELD_LABEL}>ค่าคลาดเคลื่อนที่ยอมรับได้ต่อหน่วย (%)</label>
               <div className="relative">
                 <input
                   type="number"
@@ -3995,11 +4421,11 @@ function MultiPointSection({
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-[#6b7280]" />
             <h4 className="text-sm font-semibold text-black">การตั้งค่าการผลิต</h4>
-            <span className="text-[11px] text-slate-400">Aggregate / Batch Verdict</span>
+            <span className="text-[11px] text-slate-400">การตัดสินรวมทั้งรุ่น</span>
           </div>
 
         <div>
-          <label className={FIELD_LABEL}>Aggregate Rule <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>วิธีตัดสินรวม <span className="text-red-500">*</span></label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { v: 'all_pass', t: 'ทุกหน่วยต้องผ่าน', d: 'All Pass' },
@@ -4047,8 +4473,8 @@ function MultiPointSection({
             {payload.aggregateRule === 'rsd'
               ? 'ระบุ RSD limit เป็น %'
               : payload.aggregateRule === 'all_pass'
-              ? 'ใช้ Target ± Tolerance ของแต่ละหน่วย'
-              : 'คำนวณอัตโนมัติจาก Target ± Tolerance%'}
+              ? 'ใช้ค่าเป้าหมาย ± ค่าคลาดเคลื่อนของแต่ละหน่วย'
+              : 'คำนวณอัตโนมัติจากค่าเป้าหมาย ± ค่าคลาดเคลื่อน %'}
           </p>
         </div>
         </div>
@@ -4065,11 +4491,11 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Layers className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">Tare Reference Specification</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์อ้างอิงน้ำหนักภาชนะ</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={FIELD_LABEL}>Reference Label <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>ชื่ออ้างอิง <span className="text-red-500">*</span></label>
           <input
             className={FIELD_INPUT}
             placeholder="น้ำหนักภาชนะเปล่า"
@@ -4078,7 +4504,7 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
           />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Reference Unit</label>
+          <label className={FIELD_LABEL}>หน่วยอ้างอิง</label>
           <input
             className={FIELD_INPUT}
             placeholder="g"
@@ -4100,22 +4526,22 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
             value={payload.storeAs}
             onChange={(e) => onChange({ ...payload, storeAs: e.target.value })}
           />
-          <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตร calculated</p>
+          <p className={FIELD_HELPER}>ชื่อย่อสำหรับอ้างอิงในสูตรคำนวณ</p>
         </div>
         <div>
-          <label className={FIELD_LABEL}>Expire After</label>
+          <label className={FIELD_LABEL}>อายุการใช้งาน</label>
           <select
             className={FIELD_INPUT}
             value={payload.expireAfter}
             onChange={(e) => onChange({ ...payload, expireAfter: e.target.value as TarePayload['expireAfter'] })}
           >
-            <option value="batch">หมดอายุเมื่อจบ batch</option>
+            <option value="batch">หมดอายุเมื่อจบรุ่นผลิต</option>
             <option value="shift">หมดอายุเมื่อจบกะ</option>
-            <option value="permanent">ใช้ได้ตลอด (permanent)</option>
+            <option value="permanent">ใช้ได้ตลอด</option>
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL}>Acceptance Min</label>
+          <label className={FIELD_LABEL}>ค่าต่ำสุดที่ยอมรับได้</label>
           <input
             type="number"
             step="any"
@@ -4126,7 +4552,7 @@ function TareSection({ payload, onChange }: { payload: TarePayload; onChange: (p
           />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Acceptance Max</label>
+          <label className={FIELD_LABEL}>ค่าสูงสุดที่ยอมรับได้</label>
           <input
             type="number"
             step="any"
@@ -4147,56 +4573,56 @@ function CalibrationSection({ payload, onChange }: { payload: CalibrationPayload
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <FlaskConical className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">Calibration Specification</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์การสอบเทียบเครื่องมือ</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={FIELD_LABEL}>Instrument Name <span className="text-red-500">*</span></label>
-          <input className={FIELD_INPUT} placeholder="เช่น Digital Caliper"
+          <label className={FIELD_LABEL}>ชื่อเครื่องมือ <span className="text-red-500">*</span></label>
+          <input className={FIELD_INPUT} placeholder="เช่น เวอร์เนียร์ดิจิทัล"
             value={payload.instrumentName}
             onChange={(e) => onChange({ ...payload, instrumentName: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Instrument ID</label>
+          <label className={FIELD_LABEL}>รหัสเครื่องมือ</label>
           <input className={FIELD_INPUT} placeholder="INS-001"
             value={payload.instrumentId}
             onChange={(e) => onChange({ ...payload, instrumentId: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Standard Value <span className="text-red-500">*</span></label>
+          <label className={FIELD_LABEL}>ค่ามาตรฐาน <span className="text-red-500">*</span></label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="100.000"
             value={payload.standardValue}
             onChange={(e) => onChange({ ...payload, standardValue: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Standard Unit</label>
+          <label className={FIELD_LABEL}>หน่วยของค่ามาตรฐาน</label>
           <input className={FIELD_INPUT} placeholder="mm"
             value={payload.standardUnit}
             onChange={(e) => onChange({ ...payload, standardUnit: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Tolerance Type</label>
+          <label className={FIELD_LABEL}>รูปแบบค่าคลาดเคลื่อน</label>
           <select className={FIELD_INPUT}
             value={payload.toleranceType}
             onChange={(e) => onChange({ ...payload, toleranceType: e.target.value as CalibrationPayload['toleranceType'] })}>
-            <option value="percent">Percent (%)</option>
-            <option value="absolute">Absolute (unit)</option>
+            <option value="percent">ร้อยละ (%)</option>
+            <option value="absolute">ค่าสัมบูรณ์ (ตามหน่วย)</option>
           </select>
         </div>
         <div>
-          <label className={FIELD_LABEL}>Tolerance Value</label>
+          <label className={FIELD_LABEL}>ค่าคลาดเคลื่อนที่ยอมรับได้</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder={payload.toleranceType === 'percent' ? '5' : '0.05'}
             value={payload.toleranceValue}
             onChange={(e) => onChange({ ...payload, toleranceValue: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Last Calibration Date</label>
+          <label className={FIELD_LABEL}>วันที่สอบเทียบล่าสุด</label>
           <input type="date" className={FIELD_INPUT}
             value={payload.lastCalibrationDate}
             onChange={(e) => onChange({ ...payload, lastCalibrationDate: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Next Due Date</label>
+          <label className={FIELD_LABEL}>กำหนดสอบเทียบครั้งถัดไป</label>
           <input type="date" className={FIELD_INPUT}
             value={payload.nextDueDate}
             onChange={(e) => onChange({ ...payload, nextDueDate: e.target.value })} />
@@ -4234,21 +4660,21 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Calculator className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">Calculated Specification</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์ค่าที่คำนวณ</h3>
       </div>
 
       <div>
-        <label className={FIELD_LABEL}>Formula <span className="text-red-500">*</span></label>
+        <label className={FIELD_LABEL}>สูตรคำนวณ <span className="text-red-500">*</span></label>
         <input className={cn(FIELD_INPUT, 'font-mono text-sm')}
           placeholder="(gross - tare) / batch_size * 100"
           value={payload.formula}
           onChange={(e) => onChange({ ...payload, formula: e.target.value })} />
-        <p className={FIELD_HELPER}>ตัวแปรในสูตรต้องตรงกับ name ของ Inputs ด้านล่าง — ตัวอย่าง: <code>Yield = output / input * 100</code>, <code>%LOD = (wet - dry) / wet * 100</code></p>
+        <p className={FIELD_HELPER}>ตัวแปรในสูตรต้องตรงกับชื่อตัวแปรด้านล่าง — ตัวอย่าง: <code>ผลผลิต = ผลได้ / ป้อนเข้า * 100</code>, <code>%ความชื้น = (ก่อนอบ - หลังอบ) / ก่อนอบ * 100</code></p>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className={FIELD_LABEL}>Inputs (ตัวแปรในสูตร)</label>
+          <label className={FIELD_LABEL}>ตัวแปรในสูตร</label>
           <button type="button" onClick={addInput}
             className="flex items-center gap-1 rounded-full bg-[#e8effc] px-2.5 py-1 text-xs font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]">
             <Plus className="w-3 h-3" /> เพิ่ม input
@@ -4263,32 +4689,32 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
             {payload.inputs.map((inp) => (
               <div key={inp.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end p-2 rounded-lg bg-white border border-slate-200">
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] text-slate-500">name (in formula)</label>
+                  <label className="text-[10px] text-slate-500">ชื่อตัวแปรในสูตร</label>
                   <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
                     placeholder="gross" value={inp.name}
                     onChange={(e) => updateInput(inp.id, { name: e.target.value })} />
                 </div>
                 <div className="sm:col-span-3">
-                  <label className="text-[10px] text-slate-500">source</label>
+                  <label className="text-[10px] text-slate-500">ที่มาของค่า</label>
                   <select className={cn(FIELD_INPUT, 'text-xs')}
                     value={inp.source}
                     onChange={(e) => updateInput(inp.id, { source: e.target.value as CalculatedInput['source'] })}>
-                    <option value="derived">From criteria code</option>
-                    <option value="this_step">From this step</option>
-                    <option value="constant">Constant</option>
+                    <option value="derived">จากรหัสเกณฑ์อื่น</option>
+                    <option value="this_step">จากขั้นตอนนี้</option>
+                    <option value="constant">ค่าคงที่</option>
                   </select>
                 </div>
                 <div className="sm:col-span-6">
                   {inp.source === 'constant' ? (
                     <>
-                      <label className="text-[10px] text-slate-500">constant value</label>
+                      <label className="text-[10px] text-slate-500">ค่าคงที่</label>
                       <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs font-mono')}
                         placeholder="100" value={inp.constantValue}
                         onChange={(e) => updateInput(inp.id, { constantValue: e.target.value })} />
                     </>
                   ) : (
                     <>
-                      <label className="text-[10px] text-slate-500">criteria code</label>
+                      <label className="text-[10px] text-slate-500">รหัสเกณฑ์</label>
                       <input className={cn(FIELD_INPUT, 'text-xs font-mono')}
                         placeholder="IPC-WV-001" value={inp.criteriaCode}
                         onChange={(e) => updateInput(inp.id, { criteriaCode: e.target.value })} />
@@ -4309,25 +4735,25 @@ function CalculatedSection({ payload, onChange }: { payload: CalculatedPayload; 
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div>
-          <label className={FIELD_LABEL}>Result Unit</label>
+          <label className={FIELD_LABEL}>หน่วยของผลลัพธ์</label>
           <input className={FIELD_INPUT} placeholder="%"
             value={payload.resultUnit}
             onChange={(e) => onChange({ ...payload, resultUnit: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Result Min</label>
+          <label className={FIELD_LABEL}>ผลลัพธ์ต่ำสุด</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="90"
             value={payload.resultMin}
             onChange={(e) => onChange({ ...payload, resultMin: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Result Max</label>
+          <label className={FIELD_LABEL}>ผลลัพธ์สูงสุด</label>
           <input type="number" step="any" className={FIELD_INPUT} placeholder="105"
             value={payload.resultMax}
             onChange={(e) => onChange({ ...payload, resultMax: e.target.value })} />
         </div>
         <div>
-          <label className={FIELD_LABEL}>Decimals</label>
+          <label className={FIELD_LABEL}>ทศนิยม</label>
           <input type="number" min={0} max={6} className={FIELD_INPUT}
             value={payload.displayDecimals}
             onChange={(e) => onChange({ ...payload, displayDecimals: e.target.value })} />
@@ -4359,7 +4785,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
         <Layers className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">Custom Multi-Field Specification</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์แบบกำหนดฟิลด์เอง</h3>
       </div>
 
       <div>
@@ -4380,23 +4806,23 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
               <div key={f.id} className="rounded-lg border border-slate-200 bg-white p-3">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-3">
-                    <label className="text-[10px] text-slate-500">Label</label>
+                    <label className="text-[10px] text-slate-500">ชื่อฟิลด์</label>
                     <input className={cn(FIELD_INPUT, 'text-xs')}
                       placeholder="ความหนา" value={f.label}
                       onChange={(e) => updateField(f.id, { label: e.target.value })} />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] text-slate-500">Type</label>
+                    <label className="text-[10px] text-slate-500">ชนิดข้อมูล</label>
                     <select className={cn(FIELD_INPUT, 'text-xs')}
                       value={f.fieldType}
                       onChange={(e) => updateField(f.id, { fieldType: e.target.value as CustomField['fieldType'] })}>
-                      <option value="number">Number</option>
-                      <option value="text">Text</option>
-                      <option value="select">Select</option>
+                      <option value="number">ตัวเลข</option>
+                      <option value="text">ข้อความ</option>
+                      <option value="select">ตัวเลือก</option>
                     </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] text-slate-500">Unit</label>
+                    <label className="text-[10px] text-slate-500">หน่วย</label>
                     <input className={cn(FIELD_INPUT, 'text-xs')}
                       placeholder="mm" value={f.unit}
                       onChange={(e) => updateField(f.id, { unit: e.target.value })} />
@@ -4404,7 +4830,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                   {f.fieldType === 'number' && (
                     <>
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-slate-500">Target</label>
+                        <label className="text-[10px] text-slate-500">ค่าเป้าหมาย</label>
                         <input type="number" step="any" className={cn(FIELD_INPUT, 'text-xs')}
                           value={f.target}
                           onChange={(e) => updateField(f.id, { target: e.target.value })} />
@@ -4419,9 +4845,9 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                   )}
                   {f.fieldType === 'select' && (
                     <div className="sm:col-span-4">
-                      <label className="text-[10px] text-slate-500">Options (comma-separated)</label>
+                      <label className="text-[10px] text-slate-500">ตัวเลือก (คั่นด้วยจุลภาค)</label>
                       <input className={cn(FIELD_INPUT, 'text-xs')}
-                        placeholder="opt1, opt2, opt3" value={f.options}
+                        placeholder="ตัวเลือก 1, ตัวเลือก 2, ตัวเลือก 3" value={f.options}
                         onChange={(e) => updateField(f.id, { options: e.target.value })} />
                     </div>
                   )}
@@ -4439,7 +4865,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
                     required
                   </label>
                   <input className={cn(FIELD_INPUT, 'text-xs flex-1 ml-3')}
-                    placeholder="note (optional)" value={f.note}
+                    placeholder="หมายเหตุ (ไม่บังคับ)" value={f.note}
                     onChange={(e) => updateField(f.id, { note: e.target.value })} />
                 </div>
               </div>
@@ -4449,7 +4875,7 @@ function CustomFieldsSection({ payload, onChange }: { payload: CustomMultiFieldP
       </div>
 
       <div>
-        <label className={FIELD_LABEL}>General Note</label>
+        <label className={FIELD_LABEL}>หมายเหตุทั่วไป</label>
         <textarea className={cn(FIELD_INPUT, 'min-h-[60px]')}
           placeholder="หมายเหตุทั่วไป"
           value={payload.generalNote}
@@ -4465,13 +4891,13 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์การตัดสินใจ Pass / Fail</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์การตัดสินผ่าน / ไม่ผ่าน</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-4 border border-emerald-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">✓</span>
-            <label className="text-sm font-semibold text-emerald-700">เกณฑ์ &quot;ผ่าน&quot; (PASS)</label>
+            <label className="text-sm font-semibold text-emerald-700">เกณฑ์ &quot;ผ่าน&quot;</label>
           </div>
           <textarea
             className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
@@ -4483,7 +4909,7 @@ function PassFailSection({ payload, onChange }: { payload: PassFailPayload; onCh
         <div className="bg-white rounded-xl p-4 border border-red-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">✕</span>
-            <label className="text-sm font-semibold text-red-700">เกณฑ์ &quot;ไม่ผ่าน&quot; (FAIL)</label>
+            <label className="text-sm font-semibold text-red-700">เกณฑ์ &quot;ไม่ผ่าน&quot;</label>
           </div>
           <textarea
             className={cn(FIELD_INPUT, 'min-h-[80px] resize-none')}
@@ -4503,7 +4929,7 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
     <div className="sm:col-span-2 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-4">
         <Eye className="w-4 h-4 text-[#6b7280]" />
-        <h3 className="text-sm font-semibold text-black">เกณฑ์การตรวจด้วยสายตา (Visual Inspection)</h3>
+        <h3 className="text-sm font-semibold text-black">เกณฑ์การตรวจด้วยสายตา</h3>
       </div>
       <div className="mb-4">
         <label className={FIELD_LABEL}>คำอธิบายลักษณะที่ยอมรับ <span className="text-red-500">*</span></label>
@@ -4515,7 +4941,7 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
         />
       </div>
       <div className="mb-4">
-        <label className={FIELD_LABEL}>Checklist รายการที่ต้องตรวจ</label>
+        <label className={FIELD_LABEL}>รายการที่ต้องตรวจ</label>
         <div className="space-y-2">
           {payload.checklist.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2">
@@ -4550,16 +4976,173 @@ function VisualSection({ payload, onChange }: { payload: VisualPayload; onChange
           </button>
         </div>
       </div>
-      <div>
-        <label className={FIELD_LABEL}>รูปอ้างอิง (Reference Image)</label>
-        <input
-          className={FIELD_INPUT}
-          placeholder="URL หรือ path รูปภาพมาตรฐาน"
-          value={payload.referenceImage}
-          onChange={(e) => onChange({ ...payload, referenceImage: e.target.value })}
-        />
-        <p className={FIELD_HELPER}>รูปตัวอย่างที่ operator ใช้เปรียบเทียบ</p>
-      </div>
+      <ImageUploadField
+        label="รูปอ้างอิง"
+        helper="รูปตัวอย่างที่ผู้ปฏิบัติงานใช้เปรียบเทียบตอนตรวจ"
+        testId="visual-reference-image"
+        value={payload.referenceImage}
+        onChange={(url) => onChange({ ...payload, referenceImage: url })}
+      />
+    </div>
+  );
+}
+
+/**
+ * An image on a criterion — picked from the machine, not typed as a URL.
+ *
+ * "ลักษณะภายนอก" is judged by comparing what is in the operator's hand to a
+ * picture of what it should look like, so the picture is the criterion. Asking
+ * the author for a URL meant the picture had to already live somewhere, which
+ * in practice meant most criteria had none.
+ *
+ * A URL that is already stored still displays and can still be replaced, so
+ * criteria written before this keep working.
+ *
+ * NOTE: it posts to /api/uploads/coa-logo, an endpoint that already exists and
+ * already validates image types and size. Its name and its folder say logos,
+ * which is wrong for a QC reference image — the right fix is a route of its
+ * own, which is a backend change this work is not allowed to make.
+ */
+function ImageUploadField({
+  label,
+  helper,
+  testId,
+  value,
+  onChange,
+}: {
+  label: string;
+  helper?: string;
+  testId: string;
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  const upload = async (file: File) => {
+    setError(null);
+    if (!file.type.startsWith('image/')) {
+      setError('เลือกได้เฉพาะไฟล์รูปภาพ');
+      return;
+    }
+    // The endpoint refuses anything larger; saying so here saves a round trip
+    // and a less helpful message.
+    if (file.size > 5 * 1024 * 1024) {
+      setError('ไฟล์ใหญ่เกิน 5 MB');
+      return;
+    }
+    setBusy(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/uploads/coa-logo', { method: 'POST', body });
+      const json = await res.json();
+      if (!json?.success || !json?.data?.path) {
+        throw new Error(json?.error || 'อัปโหลดไม่สำเร็จ');
+      }
+      onChange(json.data.path);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className={FIELD_LABEL}>{label}</label>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        data-testid={`${testId}-input`}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          // Cleared so picking the same file twice in a row still fires.
+          e.target.value = '';
+          if (file) void upload(file);
+        }}
+      />
+
+      {value ? (
+        <div
+          data-testid={`${testId}-preview`}
+          className="flex items-center gap-3 rounded-[12px] border border-[#e0e4ea] bg-white p-2.5"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={value}
+            alt={label}
+            className="h-16 w-16 shrink-0 rounded-[8px] border border-[#eef0f3] object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12px] text-[#495057]" title={value}>
+              {value.split('/').pop()}
+            </p>
+            <div className="mt-1.5 flex gap-2">
+              <button
+                type="button"
+                data-testid={`${testId}-replace`}
+                onClick={() => inputRef.current?.click()}
+                className="rounded-full bg-[#e8effc] px-2.5 py-1 text-[11px] font-medium text-[#3559b0] transition hover:bg-[#dbe6fb]"
+              >
+                เปลี่ยนรูป
+              </button>
+              <button
+                type="button"
+                data-testid={`${testId}-clear`}
+                onClick={() => onChange('')}
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium text-[#9aa3ad] transition hover:bg-black/5 hover:text-[#495057]"
+              >
+                เอารูปออก
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          data-testid={`${testId}-drop`}
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) void upload(file);
+          }}
+          className={cn(
+            'flex flex-col items-center justify-center gap-1.5 rounded-[12px] px-4 py-6',
+            'border-[1.5px] border-dashed transition',
+            dragging
+              ? 'border-[#3559b0] bg-[#f4f8fe]'
+              : 'border-[#d4d9e0] bg-[#fbfcfd] hover:border-[#adb5bd]',
+            busy && 'cursor-wait opacity-60',
+          )}
+        >
+          <Upload className="h-4 w-4 text-[#9aa3ad]" />
+          <span className="text-[12px] font-medium text-[#6b7684]">
+            {busy ? 'กำลังอัปโหลด…' : 'เลือกไฟล์รูป หรือลากไฟล์มาวาง'}
+          </span>
+          <span className="text-[10px] text-[#bfbfbf]">PNG · JPG · WEBP · ไม่เกิน 5 MB</span>
+        </button>
+      )}
+
+      {error && (
+        <p data-testid={`${testId}-error`} className="text-[11px] font-medium text-[#e32727]">
+          {error}
+        </p>
+      )}
+      {helper && <p className={FIELD_HELPER}>{helper}</p>}
     </div>
   );
 }
@@ -4574,20 +5157,20 @@ function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
         <div>
-          <label className={FIELD_LABEL}>รูปแบบที่คาดหวัง (Format)</label>
+          <label className={FIELD_LABEL}>รูปแบบที่คาดหวัง</label>
           <input
             className={FIELD_INPUT}
-            placeholder="เช่น Lot YYYY-MM-DD-NNN"
+            placeholder="เช่น ล็อต ปปปป-ดด-วว-ลำดับ"
             value={payload.format}
             onChange={(e) => onChange({ ...payload, format: e.target.value })}
           />
-          <p className={FIELD_HELPER}>รูปแบบ / pattern ของข้อความที่ต้องบันทึก</p>
+          <p className={FIELD_HELPER}>รูปแบบข้อความที่ต้องบันทึก</p>
         </div>
         <div>
-          <label className={FIELD_LABEL}>ตัวอย่าง (Example)</label>
+          <label className={FIELD_LABEL}>ตัวอย่าง</label>
           <input
             className={FIELD_INPUT}
-            placeholder="เช่น Lot 2025-11-25-001"
+            placeholder="เช่น ล็อต 2025-11-25-001"
             value={payload.example}
             onChange={(e) => onChange({ ...payload, example: e.target.value })}
           />
@@ -4598,7 +5181,7 @@ function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p
             <span className={cn('relative w-10 h-6 rounded-full transition-colors', payload.required ? 'bg-emerald-500' : 'bg-slate-300')}>
               <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform', payload.required ? 'translate-x-4' : 'translate-x-0')} />
             </span>
-            <span className="text-sm font-medium text-slate-700">บังคับให้กรอก (Required)</span>
+            <span className="text-sm font-medium text-slate-700">บังคับให้กรอก</span>
             <input type="checkbox" className="sr-only" checked={payload.required} onChange={(e) => onChange({ ...payload, required: e.target.checked })} />
           </label>
         </div>
@@ -4618,7 +5201,7 @@ function TextSection({ payload, onChange }: { payload: TextPayload; onChange: (p
 const DASH = 'border-[3px] border-dashed';
 
 /**
- * What each On Fail choice means, in one place — the stepper node, its rail
+ * What each เมื่อไม่ผ่าน choice means, in one place — the stepper node, its rail
  * segment and the button below it all read from this so they cannot drift.
  */
 const ON_FAIL_META: Record<
@@ -4628,19 +5211,19 @@ const ON_FAIL_META: Record<
   next_stage: {
     icon: ArrowDown,
     color: '#d0631c',
-    label: 'ไม่ผ่าน → ทดสอบ Stage ถัดไป',
+    label: 'ไม่ผ่าน → ทดสอบขั้นถัดไป',
     button: 'bg-[#fff8e6] ring-2 ring-[#d0631c] text-[#d0631c]',
   },
   reject_batch: {
     icon: X,
     color: '#c0362c',
-    label: 'ไม่ผ่าน → Reject Batch',
+    label: 'ไม่ผ่าน → ปฏิเสธรุ่นผลิต',
     button: 'bg-[#fbeceb] ring-2 ring-[#c0362c] text-[#c0362c]',
   },
   deviation: {
     icon: TriangleAlert,
     color: '#c2410c',
-    label: 'ไม่ผ่าน → บันทึก Deviation',
+    label: 'ไม่ผ่าน → บันทึกความเบี่ยงเบน',
     button: 'bg-[#fff7ed] ring-2 ring-[#c2410c] text-[#c2410c]',
   },
 };
@@ -4681,9 +5264,11 @@ interface StageCardProps {
   isLast: boolean;
   stage: AcceptanceStage;
   onChange: (patch: Partial<AcceptanceStage>) => void;
+  /** What one sample is called under the chosen sampling plan. */
+  unitWord: string;
 }
 
-function StageCard({ idx, isLast, stage, onChange }: StageCardProps) {
+function StageCard({ idx, isLast, stage, onChange, unitWord }: StageCardProps) {
   const math = calcStageAcceptance(stage);
 
   return (
@@ -4697,10 +5282,13 @@ function StageCard({ idx, isLast, stage, onChange }: StageCardProps) {
     >
       <div className="flex flex-col gap-6 p-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <SoftLabel label="Sample Size">
+          {/* The only English label left in this panel; its neighbour reads
+              เกณฑ์การยอมรับ, and one Thai field beside one English one for the
+              same kind of number reads as an oversight, which it was. */}
+          <SoftLabel label="จำนวนตัวอย่าง">
             <NumberInput
               className={SOFT_INPUT}
-              ariaLabel={`Sample Size — Stage ${idx + 1}`}
+              ariaLabel={`จำนวนตัวอย่าง — Stage ${idx + 1}`}
               min={1}
               value={stage.sampleSize}
               onChange={(v) => onChange({ sampleSize: v ?? 1 })}
@@ -4728,7 +5316,7 @@ function StageCard({ idx, isLast, stage, onChange }: StageCardProps) {
             icon={<User className="h-4 w-4" />}
             label="ทดสอบ"
             value={math.sampleSize}
-            unit="ชิ้น"
+            unit={unitWord}
             color="#5682e9"
           />
           <AcceptanceStat
@@ -4752,25 +5340,25 @@ function StageCard({ idx, isLast, stage, onChange }: StageCardProps) {
         </div>
 
         <div className="flex flex-col gap-4">
-          <p className="text-[13px] font-semibold text-slate-700">เมื่อ Stage นี้ไม่ผ่าน (On Fail)</p>
+          <p className="text-[13px] font-semibold text-slate-700">เมื่อขั้นนี้ไม่ผ่าน</p>
           <div className="flex flex-col gap-6 sm:flex-row">
             <OnFailButton
               active={stage.onFail === 'next_stage'}
               disabled={isLast}
               onClick={() => onChange({ onFail: 'next_stage' })}
-              label="ทดสอบ Stage ถัดไป"
+              label="ทดสอบขั้นถัดไป"
               activeStyle={ON_FAIL_META.next_stage.button}
             />
             <OnFailButton
               active={stage.onFail === 'reject_batch'}
               onClick={() => onChange({ onFail: 'reject_batch' })}
-              label="Reject Batch"
+              label="ปฏิเสธรุ่นผลิต"
               activeStyle={ON_FAIL_META.reject_batch.button}
             />
             <OnFailButton
               active={stage.onFail === 'deviation'}
               onClick={() => onChange({ onFail: 'deviation' })}
-              label="บันทึก Deviation"
+              label="บันทึกความเบี่ยงเบน"
               activeStyle={ON_FAIL_META.deviation.button}
             />
           </div>
@@ -4797,21 +5385,21 @@ function StageCard({ idx, isLast, stage, onChange }: StageCardProps) {
               </span>
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="Type" value="Quality / IPC Failure" />
-              <DevField label="Severity" value="Minor → Investigate" />
+              <DevField label="ประเภท" value="คุณภาพ / IPC ไม่ผ่าน" />
+              <DevField label="ระดับความรุนแรง" value="เล็กน้อย → ต้องสอบสวน" />
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="Source" value={`Stage ${idx + 1}`} />
-              <DevField label="Status" value="Pending Investigation" valueColor="text-[#fc9709]" />
+              <DevField label="ที่มา" value={`ขั้นที่ ${idx + 1}`} />
+              <DevField label="สถานะ" value="รอการสอบสวน" valueColor="text-[#fc9709]" />
             </div>
             <div className="flex flex-col gap-3 text-[11px] sm:flex-row sm:gap-6">
-              <DevField label="Assignee" value="QA Manager" />
-              <DevField label="SLA" value="24 ชม." />
+              <DevField label="ผู้รับผิดชอบ" value="ผู้จัดการฝ่ายประกันคุณภาพ" />
+              <DevField label="กำหนดเวลา" value="24 ชม." />
             </div>
           </div>
           <div className="border-t-[1.5px] border-[#ffdeb0] px-6 py-4">
             <p className="text-xs font-medium text-[#c2410c]">
-              Batch จะถูก HOLD รอ QA ตัดสินใจ — Accept with justification, Rework, หรือ Reject
+              รุ่นผลิตจะถูกกักไว้ รอฝ่ายประกันคุณภาพตัดสิน — ยอมรับพร้อมเหตุผล · แก้ไขใหม่ · หรือปฏิเสธ
             </p>
           </div>
         </div>
@@ -4907,12 +5495,15 @@ function AcceptanceStep({
   sampleSize,
   allowedFail,
   tolerancePercent,
+  unitWord,
   onFail,
 }: {
   index: number;
   sampleSize: number;
   allowedFail: number;
   tolerancePercent: number;
+  /** What one sample is called under the chosen sampling plan. */
+  unitWord: string;
   /** Present only for multi-stage; drives the dashed outline. */
   onFail?: AcceptanceStage['onFail'];
 }) {
@@ -4933,11 +5524,11 @@ function AcceptanceStep({
         <p className="truncate text-[13px] font-semibold">
           <span className="font-normal text-[#bfbfbf]">สุ่ม </span>
           <span className="text-[#80b45f]">{sampleSize}</span>
-          <span className="font-normal text-[#bfbfbf]"> ชิ้น · เสียได้ </span>
+          <span className="font-normal text-[#bfbfbf]"> {unitWord} · เสียได้ </span>
           <span className="text-[#f84f4f]">{allowedFail}</span>
         </p>
         <p className="text-[11px]">
-          <span className="text-[#bfbfbf]">tolerance : </span>
+          <span className="text-[#bfbfbf]">ค่าที่ยอมได้ : </span>
           <span className="font-bold text-[#80b45f]">{tolerancePercent}%</span>
           {onFail && (
             <span className="text-[#bfbfbf]"> · {ON_FAIL_META[onFail].label.replace('ไม่ผ่าน → ', 'ไม่ผ่าน → ')}</span>
@@ -4983,9 +5574,20 @@ interface LivePreviewProps {
   stages: AcceptanceStage[];
   specPayload: SpecPayload | null;
   stage: StageValue;
+  /** Row names from the sampling plan, when it names the points it draws from. */
+  pointLabels?: string[];
+  /** Events switched on for this criterion, for the preview's corner badge. */
+  eventTags?: string[];
+  /** Boxes the criterion named, in place of the one-per-sample grid. */
+  fixedResultFields?: { labels: string[]; caption?: string };
+  /** What one sample is called under the chosen plan — ชิ้น, or จุด. */
+  unitWord: string;
+  /** What the interval counts, for a plan that counts something else. */
+  samplingUnit: string;
 }
 
-function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload, stage }: LivePreviewProps) {
+function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload, stage, pointLabels, unitWord, samplingUnit, eventTags, fixedResultFields }: LivePreviewProps) {
+  const cadence = cadenceForSamplingMethod(formData.testMethod);
   /*
    * With no type picked there is nothing to preview.
    *
@@ -5025,42 +5627,43 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
         stages={stages}
         specPayload={specPayload}
         stage={stage}
+        pointLabels={pointLabels}
+        eventTags={eventTags}
+        fixedResultFields={fixedResultFields}
       />
 
       {/* ── ลำดับการยอมรับ — Figma node 79:10366 ────────────────
           One outlined row per stage, numbered, with the two figures the
-          operator is held to picked out in colour. */}
-      <div className={SIDE_CARD} data-testid="acceptance-flow-card">
-        <div className="p-4 pb-0">
-          <h4 className="text-sm font-semibold text-black">ลำดับการยอมรับ</h4>
-        </div>
+          operator is held to picked out in colour.
 
-        <div className="flex flex-col gap-3 p-4">
-          {multiStageEnabled && stages.length > 0 ? (
-            stages.map((s, i) => (
+          Stage 1 is left out: the card above is stage 1, drawn box for box,
+          and repeating it here as a one-line summary said the same thing twice
+          while making the card look like it listed the whole plan. What is left
+          is what the preview cannot show — the rounds that only happen if the
+          first one fails. With no such rounds there is nothing to list, so the
+          card does not appear at all. */}
+      {multiStageEnabled && stages.length > 1 && (
+        <div className={SIDE_CARD} data-testid="acceptance-flow-card">
+          <div className="flex flex-col gap-1 p-4 pb-0">
+            <h4 className="text-sm font-semibold text-black">ถ้าขั้นที่ 1 ไม่ผ่าน</h4>
+            <p className="text-[11px] text-[#bfbfbf]">ขั้นที่ 1 คือหน้าจอบันทึกผลด้านบน</p>
+          </div>
+
+          <div className="flex flex-col gap-3 p-4">
+            {stages.slice(1).map((st, i) => (
               <AcceptanceStep
-                key={i}
-                index={i}
-                sampleSize={calcStageAcceptance(s).sampleSize}
-                allowedFail={calcStageAcceptance(s).allowedFail}
-                tolerancePercent={s.tolerancePercent}
-                onFail={s.onFail}
+                key={i + 1}
+                index={i + 1}
+                sampleSize={calcStageAcceptance(st).sampleSize}
+                allowedFail={calcStageAcceptance(st).allowedFail}
+                tolerancePercent={st.tolerancePercent}
+                unitWord={unitWord}
+                onFail={st.onFail}
               />
-            ))
-          ) : acceptanceMath ? (
-            <AcceptanceStep
-              index={0}
-              sampleSize={acceptanceMath.sampleSize}
-              allowedFail={acceptanceMath.allowedFail}
-              tolerancePercent={formData.tolerancePercent ?? 0}
-            />
-          ) : (
-            <div className={cn(DASH, 'rounded-[16px] border-[#e1e4e8] px-3 py-4 text-center text-[13px] text-[#bfbfbf]')}>
-              ยังไม่ได้กำหนดแผนการสุ่ม
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── สรุปผล — Figma node 79:10605 ───────────────────────── */}
       <div className={SIDE_CARD} data-testid="summary-card">
@@ -5069,25 +5672,102 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
         </div>
 
         <div className="flex flex-col gap-3 p-4">
+          {/* With several stages the one merged figure was unreadable: "สุ่ม
+              สูงสุด 12 จุด" under a four-point plan is three rounds of four,
+              not twelve places to sample, and nothing on screen said which.
+              Each stage gets its own line instead, with the running total
+              beside it — that is the number that matters for planning how much
+              material a full chain consumes. */}
+          {/* Under a lot-driven plan the summary used to print the sample
+              size the criterion still happened to hold — a number the preview
+              is not using and no batch ever will. It reports what the preview
+              actually shows instead: the boxes, and where the sample count
+              comes from. */}
+          {fixedResultFields ? (
+            <>
+              <div className="flex items-stretch gap-3">
+                <SummaryTile
+                  label="ช่องกรอกผล"
+                  value={String(fixedResultFields.labels.length)}
+                  unit="ช่อง"
+                  color="#5682e9"
+                />
+                <SummaryTile
+                  label="จำนวนตัวอย่าง"
+                  value="ตามยอดผลิต"
+                  unit=""
+                  color="#fc9709"
+                />
+              </div>
+              <p
+                data-testid="summary-lot-driven-note"
+                className="text-center text-[11px] leading-relaxed text-[#9aa3ad]"
+              >
+                จำนวนตัวอย่างคำนวณตอนบันทึกผล จากยอดผลิตของแต่ละรุ่น
+              </p>
+            </>
+          ) : multiStageEnabled && stages.length > 0 ? (
+            <div data-testid="summary-per-stage" className="overflow-hidden rounded-[16px] bg-[#fbfbfb]">
+              <div className="grid grid-cols-[36px_1fr_1fr_1fr] gap-1 px-3 pt-2.5 text-[10px] font-medium text-black/60">
+                <span>ขั้น</span>
+                <span className="text-right">สุ่ม</span>
+                <span className="text-right">รวมสะสม</span>
+                <span className="text-right">เสียได้</span>
+              </div>
+              <div className="flex flex-col divide-y divide-[#eef0f3] px-3 pb-1">
+                {stages.map((st, i) => {
+                  const math = calcStageAcceptance(st);
+                  const running = totalStageSamples(stages.slice(0, i + 1));
+                  return (
+                    <div
+                      key={i}
+                      data-testid={`summary-stage-${i}`}
+                      className="grid grid-cols-[36px_1fr_1fr_1fr] items-baseline gap-1 py-2 tabular-nums"
+                    >
+                      <span className="text-[13px] font-semibold text-black">{i + 1}</span>
+                      <span className="text-right text-[13px] font-bold text-[#5682e9]">
+                        {math.sampleSize}
+                        <span className="ml-0.5 text-[10px] font-normal text-black/40">{unitWord}</span>
+                      </span>
+                      <span className="text-right text-[13px] font-bold text-[#fc9709]">
+                        {running}
+                        <span className="ml-0.5 text-[10px] font-normal text-black/40">{unitWord}</span>
+                      </span>
+                      <span className="text-right text-[13px] font-bold text-[#f84f4f]">
+                        {math.allowedFail}
+                        <span className="ml-0.5 text-[10px] font-normal text-black/40">
+                          {st.tolerancePercent}%
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex items-stretch gap-3">
-            <SummaryTile
-              label="จำนวนขั้น"
-              value={String(multiStageEnabled ? stages.length : 1)}
-              unit="ขั้น"
-              color="#5682e9"
-            />
-            <SummaryTile
-              label="สุ่มสูงสุด"
-              value={String(multiStageEnabled ? totalStageSamples(stages) : (formData.sampleSize ?? 0))}
-              unit="ชิ้น"
-              color="#fc9709"
-            />
-            <SummaryTile
-              label="รอบการตรวจ"
-              value={String(formData.checkIntervalMinutes ?? 30)}
-              unit="นาที"
-              color="#27ae60"
-            />
+            {!multiStageEnabled && !fixedResultFields && (
+              <SummaryTile
+                label="จำนวนตัวอย่าง"
+                value={String(formData.sampleSize ?? 0)}
+                unit={unitWord}
+                color="#fc9709"
+              />
+            )}
+            {/* A per-batch plan has no interval — the form shows no box for one,
+                and this tile used to print the column's leftover default, so the
+                summary stated a rhythm the plan never set. A plan that counts
+                something other than minutes gets its own word for the same
+                reason: "ทุก 30 เม็ด" was being reported as "30 นาที". */}
+            {cadence.mode !== 'per_batch' && (
+              <SummaryTile
+                label="รอบการตรวจ"
+                value={String(formData.checkIntervalMinutes ?? 30)}
+                unit={cadence.mode === 'interval' ? (samplingUnit || 'หน่วย') : 'นาที'}
+                color="#27ae60"
+              />
+            )}
           </div>
 
           {/* Full width of its own: the method is a phrase, not a number, and

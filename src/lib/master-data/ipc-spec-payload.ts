@@ -13,6 +13,8 @@
  * silently falls back to a legacy mapping so existing data still renders.
  */
 
+import { cadenceForSamplingMethod } from '@/lib/master-data/ipc-test-catalog';
+
 // ─── Shared extras (apply to every criteria type) ──────────────────
 
 export interface SopStepRef {
@@ -65,12 +67,46 @@ export interface SharedSpecExtras {
    * stays in the checkIntervalMinutes column.
    */
   samplingUnit: string;
+  /**
+   * The points a per-batch sampling plan draws from, for methods that let the
+   * author set them (Stratified).
+   *
+   * Empty means "the method's own draft list" — the form falls back to it
+   * rather than storing a copy, so a criterion saved before this existed still
+   * reads correctly, and a later change to the draft reaches it.
+   */
+  samplingPoints: SamplingPoint[];
+  /**
+   * Result boxes for a √n + 1 plan.
+   *
+   * The plan draws units from the batch — 201 of them on a 40,000-unit lot —
+   * but the test is not run on all of them. The plant takes a couple of grams
+   * off that sample and gets a handful of readings out of it, and those are
+   * what get written down. Three is the usual; the author adds more when their
+   * SOP asks for more.
+   *
+   * Empty means the three defaults, so a criterion saved before this existed
+   * still reads correctly.
+   */
+  sqrtResultFields: string[];
   sopStepRef: SopStepRef;
   triggers: Triggers;
   derivedCalcs: DerivedCalc[];
 }
 
 export type StageValue = 'raw_material' | 'ipc' | 'fg_release';
+
+/**
+ * One point in a per-batch sampling plan.
+ *
+ * `on` is kept rather than deleting an unused point: a plan that samples the
+ * top and bottom of a drum but not the middle is a decision worth reading back
+ * later, and it reads better as a switched-off point than as an absence.
+ */
+export interface SamplingPoint {
+  label: string;
+  on: boolean;
+}
 
 export const STAGE_OPTIONS: { value: StageValue; titleEn: string; titleTh: string }[] = [
   { value: 'raw_material', titleEn: 'Raw Material', titleTh: 'วัตถุดิบ' },
@@ -126,7 +162,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'line_clearance',
     stages: ['ipc'],
-    label: 'ก่อนเริ่มผลิต / Line Clearance',
+    label: 'ก่อนเริ่มผลิต / เคลียร์ไลน์',
     desc: 'ตรวจความพร้อมก่อนเดินเครื่อง',
     triggers: ['milestone'],
     milestoneIds: ['batch_start'],
@@ -141,7 +177,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'lot_change',
     stages: ['raw_material', 'ipc'],
-    label: 'หลังเปลี่ยน lot วัตถุดิบ',
+    label: 'หลังเปลี่ยนล็อตวัตถุดิบ',
     desc: 'ยืนยันคุณภาพหลังสลับล็อต',
     triggers: ['event'],
     eventIds: ['lot_change'],
@@ -149,7 +185,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'changeover',
     stages: ['ipc'],
-    label: 'หลัง changeover / ปรับตั้งเครื่อง',
+    label: 'หลังเปลี่ยนรุ่น / ปรับตั้งเครื่อง',
     desc: 'ตรวจหลังเปลี่ยนรุ่นหรือปรับพารามิเตอร์',
     triggers: ['event'],
     eventIds: ['changeover', 'param'],
@@ -165,7 +201,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'validation',
     stages: ['ipc', 'fg_release'],
-    label: 'ทวนสอบกระบวนการ (Process Validation)',
+    label: 'ทวนสอบกระบวนการผลิต',
     desc: 'เก็บข้อมูลถี่กว่าปกติเพื่อพิสูจน์กระบวนการ',
     triggers: ['time', 'milestone'],
     milestoneIds: ['batch_start', 'batch_mid', 'batch_end'],
@@ -173,7 +209,7 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
   {
     value: 'investigation',
     stages: ['raw_material', 'ipc', 'fg_release'],
-    label: 'สอบสวนผลผิดปกติ (OOS)',
+    label: 'สอบสวนผลผิดปกติ',
     desc: 'ตรวจเพิ่มเมื่อผลหลุดเกณฑ์',
     triggers: ['event'],
   },
@@ -204,19 +240,19 @@ export function triggersForContexts(values: string[]): Set<TriggerKey> {
 }
 
 export const MILESTONE_DEFAULTS: TriggerOption[] = [
-  { id: 'batch_start', label: 'เริ่ม batch', on: false },
-  { id: 'batch_mid', label: 'กลาง batch', on: false },
-  { id: 'batch_end', label: 'ก่อนปิด batch', on: false },
-  { id: 'pre_compress', label: 'ก่อน compression', on: false },
-  { id: 'post_coat', label: 'หลัง coating', on: false },
+  { id: 'batch_start', label: 'เริ่มรุ่นผลิต', on: false },
+  { id: 'batch_mid', label: 'กลางรุ่นผลิต', on: false },
+  { id: 'batch_end', label: 'ก่อนปิดรุ่นผลิต', on: false },
+  { id: 'pre_compress', label: 'ก่อนตอกเม็ด', on: false },
+  { id: 'post_coat', label: 'หลังเคลือบ', on: false },
 ];
 
 export const EVENT_DEFAULTS: TriggerOption[] = [
-  { id: 'changeover', label: 'หลัง changeover', on: false },
-  { id: 'lot_change', label: 'หลังเปลี่ยน lot วัตถุดิบ', on: false },
-  { id: 'cleaning', label: 'หลัง equipment cleaning', on: false },
-  { id: 'param', label: 'หลัง parameter change', on: false },
-  { id: 'maintenance', label: 'หลัง maintenance', on: false },
+  { id: 'changeover', label: 'หลังเปลี่ยนรุ่น', on: false },
+  { id: 'lot_change', label: 'หลังเปลี่ยนล็อตวัตถุดิบ', on: false },
+  { id: 'cleaning', label: 'หลังล้างเครื่อง', on: false },
+  { id: 'param', label: 'หลังปรับค่าเครื่อง', on: false },
+  { id: 'maintenance', label: 'หลังซ่อมบำรุง', on: false },
 ];
 
 export function defaultSharedExtras(): SharedSpecExtras {
@@ -224,6 +260,8 @@ export function defaultSharedExtras(): SharedSpecExtras {
     stage: 'ipc',
     useContext: [],
     samplingUnit: '',
+    samplingPoints: [],
+    sqrtResultFields: [],
     sopStepRef: { sopCode: '', sopVersion: '', stepNumber: '', stepDescription: '', link: '' },
     triggers: {
       time: { on: false, every: '' },
@@ -278,10 +316,71 @@ export function parseSharedExtras(raw: unknown): SharedSpecExtras {
     stage: parseStage(obj.stage),
     useContext,
     samplingUnit: typeof obj.samplingUnit === 'string' ? obj.samplingUnit : '',
+    samplingPoints: parseSamplingPoints(obj.samplingPoints),
+    sqrtResultFields: Array.isArray(obj.sqrtResultFields)
+      ? (obj.sqrtResultFields as unknown[])
+          .filter((x): x is string => typeof x === 'string')
+          .filter((x) => x.trim() !== '')
+      : [],
     sopStepRef,
     triggers,
     derivedCalcs,
   };
+}
+
+/**
+ * The point list a criterion actually samples from.
+ *
+ * Stored points win; an empty list means the author never touched the method's
+ * draft, so the draft is what the screen shows. Methods that do not hand their
+ * points to the author always report their own.
+ */
+/** What a √n + 1 plan offers before the author touches it. */
+export const SQRT_RESULT_FIELD_DEFAULTS = ['ผลที่ 1', 'ผลที่ 2', 'ผลที่ 3'];
+
+/** The result boxes a √n + 1 plan actually asks for. */
+export function effectiveSqrtResultFields(stored: string[]): string[] {
+  return stored.length > 0 ? stored : [...SQRT_RESULT_FIELD_DEFAULTS];
+}
+
+export function effectiveSamplingPoints(
+  method: string | null | undefined,
+  stored: SamplingPoint[],
+): SamplingPoint[] {
+  const cadence = cadenceForSamplingMethod(method);
+  const draft = () => cadence.points.map((label) => ({ label, on: true }));
+  if (!cadence.editablePoints) return draft();
+  return stored.length > 0 ? stored : draft();
+}
+
+/**
+ * How many samples the sampling plan itself dictates, or null when the plan
+ * does not dictate one and the author has to say.
+ *
+ * Stratified is the case that dictates: a plan drawing from four strata takes
+ * four samples, and asking for a sample size on top of that invites the two to
+ * disagree — a plan naming three points beside a box reading 10 says nothing
+ * an operator can carry out.
+ */
+export function pointDrivenSampleSize(
+  method: string | null | undefined,
+  stored: SamplingPoint[],
+): number | null {
+  if (!cadenceForSamplingMethod(method).editablePoints) return null;
+  return effectiveSamplingPoints(method, stored).filter((pt) => pt.on).length;
+}
+
+function parseSamplingPoints(raw: unknown): SamplingPoint[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(isObject)
+    .map((o) => ({
+      label: typeof o.label === 'string' ? o.label : '',
+      // Absent reads as on: a point someone bothered to write down is part of
+      // the plan unless it was explicitly switched off.
+      on: o.on !== false,
+    }))
+    .filter((o) => o.label.trim() !== '');
 }
 
 function parseTriggers(raw: unknown): Triggers {
