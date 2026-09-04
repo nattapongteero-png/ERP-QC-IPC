@@ -426,25 +426,25 @@ export function dosageFormOptionsForStage(
  * Standard unit options for dropdown.
  * Each entry: value used in DB + label shown to operator.
  */
-export const UNIT_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'mg', label: 'มิลลิกรัม (mg)' },
-  { value: 'g', label: 'กรัม (g)' },
-  { value: 'kg', label: 'กิโลกรัม (kg)' },
-  { value: 'mcg', label: 'ไมโครกรัม (mcg)' },
-  { value: 'mm', label: 'มิลลิเมตร (mm)' },
-  { value: 'cm', label: 'เซนติเมตร (cm)' },
-  { value: 'mL', label: 'มิลลิลิตร (mL)' },
-  { value: 'L', label: 'ลิตร (L)' },
-  { value: '%', label: 'เปอร์เซ็นต์ (%)' },
-  { value: 'ppm', label: 'ส่วนในล้านส่วน (ppm)' },
-  { value: 'min', label: 'นาที (min)' },
-  { value: 'sec', label: 'วินาที (sec)' },
-  { value: '°C', label: 'องศาเซลเซียส (°C)' },
-  { value: 'N', label: 'นิวตัน (N)' },
-  { value: 'cP', label: 'เซนติพอยส์ (cP)' },
-  { value: 'g/mL', label: 'กรัม/มิลลิลิตร (g/mL)' },
-  { value: 'cfu/g', label: 'โคโลนีต่อกรัม (cfu/g)' },
-  { value: 'cfu/mL', label: 'โคโลนีต่อมิลลิลิตร (cfu/mL)' },
+export const UNIT_OPTIONS: Array<{ value: string; label: string; labelEn: string }> = [
+  { value: 'mg', label: 'มิลลิกรัม (mg)', labelEn: 'Milligram (mg)' },
+  { value: 'g', label: 'กรัม (g)', labelEn: 'Gram (g)' },
+  { value: 'kg', label: 'กิโลกรัม (kg)', labelEn: 'Kilogram (kg)' },
+  { value: 'mcg', label: 'ไมโครกรัม (mcg)', labelEn: 'Microgram (mcg)' },
+  { value: 'mm', label: 'มิลลิเมตร (mm)', labelEn: 'Millimetre (mm)' },
+  { value: 'cm', label: 'เซนติเมตร (cm)', labelEn: 'Centimetre (cm)' },
+  { value: 'mL', label: 'มิลลิลิตร (mL)', labelEn: 'Millilitre (mL)' },
+  { value: 'L', label: 'ลิตร (L)', labelEn: 'Litre (L)' },
+  { value: '%', label: 'เปอร์เซ็นต์ (%)', labelEn: 'Percent (%)' },
+  { value: 'ppm', label: 'ส่วนในล้านส่วน (ppm)', labelEn: 'Parts per million (ppm)' },
+  { value: 'min', label: 'นาที (min)', labelEn: 'Minute (min)' },
+  { value: 'sec', label: 'วินาที (sec)', labelEn: 'Second (sec)' },
+  { value: '°C', label: 'องศาเซลเซียส (°C)', labelEn: 'Degree Celsius (°C)' },
+  { value: 'N', label: 'นิวตัน (N)', labelEn: 'Newton (N)' },
+  { value: 'cP', label: 'เซนติพอยส์ (cP)', labelEn: 'Centipoise (cP)' },
+  { value: 'g/mL', label: 'กรัม/มิลลิลิตร (g/mL)', labelEn: 'Gram per millilitre (g/mL)' },
+  { value: 'cfu/g', label: 'โคโลนีต่อกรัม (cfu/g)', labelEn: 'Colony-forming units per gram (cfu/g)' },
+  { value: 'cfu/mL', label: 'โคโลนีต่อมิลลิลิตร (cfu/mL)', labelEn: 'Colony-forming units per millilitre (cfu/mL)' },
 ];
 
 // ════════════════ DOSAGE FORM → UNIT SCOPE ════════════════
@@ -577,36 +577,36 @@ export function adaptUnitToDosageForm(
 /**
  * Standard dosage forms for Herbal ERP — covers conventional + Thai herbal.
  */
-export const DOSAGE_FORM_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'capsule', label: 'แคปซูล' },
-  { value: 'tablet', label: 'เม็ด' },
-  { value: 'powder', label: 'ผง' },
-  { value: 'liquid', label: 'ของเหลว' },
-  { value: 'syrup', label: 'ยาน้ำเชื่อม' },
-  { value: 'tincture', label: 'ยาดอง/สารสกัดแอลกอฮอล์' },
-  { value: 'decoction', label: 'ยาต้ม' },
-  { value: 'cream', label: 'ครีม' },
-  { value: 'ointment', label: 'ขี้ผึ้ง' },
-  { value: 'balm', label: 'ยาหม่อง' },
-  { value: 'oil', label: 'น้ำมัน' },
-  { value: 'gel', label: 'เจล' },
-  { value: 'lotion', label: 'โลชั่น' },
-  { value: 'pill', label: 'ลูกกลอน' },
-  { value: 'tea_bag', label: 'ชาชง' },
-  { value: 'patch', label: 'แผ่นแปะ' },
-  { value: 'suppository', label: 'ยาเหน็บ' },
-  { value: 'spray', label: 'สเปรย์' },
-  { value: 'other', label: 'อื่นๆ' },
+export const DOSAGE_FORM_OPTIONS: Array<{ value: string; label: string; labelEn: string }> = [
+  { value: 'capsule', label: 'แคปซูล', labelEn: 'Capsule' },
+  { value: 'tablet', label: 'เม็ด', labelEn: 'Tablet' },
+  { value: 'powder', label: 'ผง', labelEn: 'Powder' },
+  { value: 'liquid', label: 'ของเหลว', labelEn: 'Liquid' },
+  { value: 'syrup', label: 'ยาน้ำเชื่อม', labelEn: 'Syrup' },
+  { value: 'tincture', label: 'ยาดอง/สารสกัดแอลกอฮอล์', labelEn: 'Tincture' },
+  { value: 'decoction', label: 'ยาต้ม', labelEn: 'Decoction' },
+  { value: 'cream', label: 'ครีม', labelEn: 'Cream' },
+  { value: 'ointment', label: 'ขี้ผึ้ง', labelEn: 'Ointment' },
+  { value: 'balm', label: 'ยาหม่อง', labelEn: 'Balm' },
+  { value: 'oil', label: 'น้ำมัน', labelEn: 'Oil' },
+  { value: 'gel', label: 'เจล', labelEn: 'Gel' },
+  { value: 'lotion', label: 'โลชั่น', labelEn: 'Lotion' },
+  { value: 'pill', label: 'ลูกกลอน', labelEn: 'Pill / Bolus' },
+  { value: 'tea_bag', label: 'ชาชง', labelEn: 'Tea bag' },
+  { value: 'patch', label: 'แผ่นแปะ', labelEn: 'Patch' },
+  { value: 'suppository', label: 'ยาเหน็บ', labelEn: 'Suppository' },
+  { value: 'spray', label: 'สเปรย์', labelEn: 'Spray' },
+  { value: 'other', label: 'อื่นๆ', labelEn: 'Other' },
 ];
 
 /**
  * Sampling method options used to communicate how operators draw samples.
  */
-export const SAMPLING_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'random', label: 'สุ่มทั่วไป — เหมาะกับรุ่นที่เป็นเนื้อเดียวกัน' },
-  { value: 'systematic', label: 'สุ่มตามลำดับ — ทุก N หน่วยที่ผลิต' },
-  { value: 'stratified', label: 'สุ่มแบ่งชั้น — ระบุตามจุด' },
-  { value: 'square_root', label: '√n + 1 — ตามมาตรฐานเภสัชกรรม' },
+export const SAMPLING_METHOD_OPTIONS: Array<{ value: string; label: string; labelEn: string }> = [
+  { value: 'random', label: 'สุ่มทั่วไป — เหมาะกับรุ่นที่เป็นเนื้อเดียวกัน', labelEn: 'Random — for a uniform batch' },
+  { value: 'systematic', label: 'สุ่มตามลำดับ — ทุก N หน่วยที่ผลิต', labelEn: 'Systematic — every Nth unit produced' },
+  { value: 'stratified', label: 'สุ่มแบ่งชั้น — ระบุตามจุด', labelEn: 'Stratified — points named by the SOP' },
+  { value: 'square_root', label: '√n + 1 — ตามมาตรฐานเภสัชกรรม', labelEn: '√n + 1 — pharmacopoeial rule' },
 ];
 
 /**
@@ -704,13 +704,18 @@ export function cadenceForSamplingMethod(
 
 export const CRITERIA_TYPE_META: Record<CriteriaType, {
   label: string;
+  /** The same name in English, for when the screen is read in English. */
+  labelEn: string;
   desc: string;
+  descEn: string;
   bgColor: string;
   textColor: string;
 }> = {
   numeric: {
     label: 'Numeric',
+    labelEn: 'Numeric',
     desc: 'วัดเป็นตัวเลข เทียบกับค่าต่ำสุด/สูงสุด',
+    descEn: 'A number judged against a low and a high limit',
     bgColor: 'bg-emerald-50 border-emerald-200',
     textColor: 'text-emerald-800',
   },
@@ -719,58 +724,76 @@ export const CRITERIA_TYPE_META: Record<CriteriaType, {
     // ceiling — see the spec list and the QC entry screen, both of which
     // render "≤ 1000 mg" for exactly the criteria this type produces.
     label: '≤ Maximum value',
+    labelEn: '≤ Maximum value',
     desc: 'วัดเป็นตัวเลข ต้องไม่เกินค่าที่กำหนด',
+    descEn: 'A number that must not go above the limit',
     bgColor: 'bg-emerald-50 border-emerald-200',
     textColor: 'text-emerald-800',
   },
   pass_fail: {
     label: 'Pass / Fail',
+    labelEn: 'Pass / Fail',
     desc: 'บันทึกผลเป็น ผ่าน หรือ ไม่ผ่าน',
+    descEn: 'Judged as pass or fail, nothing in between',
     bgColor: 'bg-blue-50 border-blue-200',
     textColor: 'text-blue-800',
-  },
+},
   visual: {
     label: 'Visual',
+    labelEn: 'Visual',
     desc: 'ตรวจด้วยสายตาตามรายการที่กำหนด',
+    descEn: 'Inspected by eye against a named list',
     bgColor: 'bg-amber-50 border-amber-200',
     textColor: 'text-amber-800',
   },
   text: {
     label: 'Text',
+    labelEn: 'Text',
     desc: 'บันทึกเป็นข้อความอิสระ',
+    descEn: 'A value written out, such as a lot number',
     bgColor: 'bg-slate-50 border-slate-200',
     textColor: 'text-slate-800',
   },
   multi_point: {
     label: 'Multi-Point',
+    labelEn: 'Multi-point',
     desc: 'วัดหลายจุดต่อรุ่น แล้วสรุปรวม (ค่าเฉลี่ย / %RSD / ผ่านทุกจุด)',
+    descEn: 'Several points per batch, then summarised (mean / %RSD / all-pass)',
     bgColor: 'bg-teal-50 border-teal-200',
     textColor: 'text-teal-800',
-  },
+},
   tare: {
     label: 'น้ำหนักภาชนะ',
+    labelEn: 'Tare',
     desc: 'เก็บน้ำหนักภาชนะเปล่า ให้เกณฑ์อื่นเรียกไปหักออกจากน้ำหนักรวม',
+    descEn: 'Records an empty container weight for other criteria to subtract',
     bgColor: 'bg-cyan-50 border-cyan-200',
     textColor: 'text-cyan-800',
-  },
+},
   calibration: {
     label: 'Calibration',
+    labelEn: 'Calibration',
     desc: 'เทียบสอบเครื่องมือกับค่ามาตรฐานก่อนเริ่มผลิต',
+    descEn: 'Checks an instrument against a standard before production',
     bgColor: 'bg-purple-50 border-purple-200',
     textColor: 'text-purple-800',
   },
   calculated: {
     label: 'Calculated',
+    labelEn: 'Calculated',
     desc: 'คำนวณจากเกณฑ์อื่น เช่น ผลผลิตที่ได้ หรือ %ความชื้น',
+    descEn: 'Worked out from other criteria, such as yield or loss on drying',
     bgColor: 'bg-indigo-50 border-indigo-200',
     textColor: 'text-indigo-800',
   },
   custom_multi_field: {
     label: 'Custom Multi-Field',
+    labelEn: 'Multi-field',
     desc: 'กรอกหลายช่องพร้อมกัน ผสมชนิดข้อมูลได้',
+    descEn: 'Several fields at once, mixing kinds of value',
     bgColor: 'bg-rose-50 border-rose-200',
     textColor: 'text-rose-800',
-  },
+},
 };
 
 /**

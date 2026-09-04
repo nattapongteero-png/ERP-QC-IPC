@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ResponsivePageHeader } from '@/components/shared';
@@ -771,6 +771,7 @@ function StageBasicsPanel({
   testOptions,
 }: StageBasicsPanelProps) {
   const theme = STAGE_THEME[stage];
+  const inEnglish = useLocale() === 'en';
   // Raw material is crude drug — it has no dosage form yet, and the picker only
   // offers powder/other there, so asking for a "รูปแบบยา" contradicts itself.
   const productForm =
@@ -820,7 +821,7 @@ function StageBasicsPanel({
                   key={opt.value}
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`ขั้นตอน: ${opt.titleTh}`}
+                  aria-label={`${inEnglish ? 'Stage' : 'ขั้นตอน'}: ${inEnglish ? opt.titleEn : opt.titleTh}`}
                   onClick={() => onStageChange(opt.value)}
                   // 42px — the height of the pickers in the next column, so
                   // the whole panel sits on one rhythm. That is a single line
@@ -830,7 +831,7 @@ function StageBasicsPanel({
                   // and the Thai one hidden in a tooltip, which put English on
                   // a Thai screen and hid the readable name behind a hover no
                   // touch device has.
-                  title={opt.titleEn}
+                  title={inEnglish ? opt.titleTh : opt.titleEn}
                   className={cn(
                     'flex h-[42px] items-center gap-2.5 rounded-[12px] px-3 text-left',
                     'shadow-[-2px_2px_8px_rgba(0,0,0,0.1)] outline-none transition-colors',
@@ -851,7 +852,7 @@ function StageBasicsPanel({
                     />
                   )}
                   <span className="truncate text-[13px] font-semibold leading-tight text-black">
-                    {opt.titleTh}
+                    {inEnglish ? opt.titleEn : opt.titleTh}
                   </span>
                 </button>
               );
@@ -1007,6 +1008,15 @@ export function IPCCriteriaForm({ mode, id }: Props) {
 // ────────────────────────────────────────────────────────────────────
 function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: Partial<IPCCriteria> }) {
   const t = useTranslations('masterData.ipcCriteria');
+  /**
+   * Option lists carry both names — `label` in Thai, `labelEn` in English —
+   * rather than being rekeyed into the locale files. Every other screen that
+   * reads `label` keeps working untouched, which a rekey would have broken.
+   */
+  const locale = useLocale();
+  const inEnglish = locale === 'en';
+  const optionLabel = <T extends { label?: string; labelEn?: string }>(o: T) =>
+    (inEnglish && o.labelEn) || o.label;
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -1342,9 +1352,15 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
   const activeEventLabels = React.useMemo(() => {
     const { on, options } = sharedExtras.triggers.event;
     if (!on) return undefined;
-    const labels = options.filter((o) => o.on).map((o) => o.label ?? o.id);
+    const labels = options
+      .filter((o) => o.on)
+      .map((o) => (inEnglish && o.labelEn) || o.label || o.id);
     return labels.length > 0 ? labels : undefined;
-  }, [sharedExtras.triggers.event]);
+    // Reads the locale directly rather than through optionLabel: that closure
+    // is new on every render, so listing it here would recompute constantly,
+    // and leaving it out would freeze the badge in whichever language it was
+    // first built in.
+  }, [sharedExtras.triggers.event, inEnglish]);
 
   const stageCount = multiStageEnabled ? stages.length : 1;
 
@@ -1984,7 +2000,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300',
                 )}
               >
-                {opt.label ?? opt.id}
+                {optionLabel(opt) ?? opt.id}
               </button>
             ))}
           </div>
@@ -2017,7 +2033,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300',
                 )}
               >
-                {opt.label ?? opt.id}
+                {optionLabel(opt) ?? opt.id}
               </button>
             ))}
           </div>
@@ -2385,9 +2401,9 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                           active ? 'text-[#1f4e9c]' : 'text-black',
                         )}
                       >
-                        {opt.label}
+                        {optionLabel(opt)}
                       </span>
-                      <span className="text-[11px] leading-tight text-[#bfbfbf]">{opt.desc}</span>
+                      <span className="text-[11px] leading-tight text-[#bfbfbf]">{(inEnglish && opt.descEn) || opt.desc}</span>
                     </span>
                   </button>
                 );
@@ -2438,8 +2454,8 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                             className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 border-[#d9d9d9]"
                           />
                           <span className="flex min-w-0 flex-col gap-1">
-                            <span className="text-[13px] font-semibold text-black">{opt.label}</span>
-                            <span className="text-[11px] leading-tight text-[#bfbfbf]">{opt.desc}</span>
+                            <span className="text-[13px] font-semibold text-black">{optionLabel(opt)}</span>
+                            <span className="text-[11px] leading-tight text-[#bfbfbf]">{(inEnglish && opt.descEn) || opt.desc}</span>
                           </span>
                         </button>
                       ))}
@@ -2539,7 +2555,7 @@ function IPCCriteriaFormInner({ mode, id, initialData }: Props & { initialData: 
                     });
                     if (before !== after) setSharedExtras((prev) => ({ ...prev, samplingUnit: '' }));
                   }}
-                  options={SAMPLING_METHOD_OPTIONS}
+                  options={SAMPLING_METHOD_OPTIONS.map((o) => ({ value: o.value, label: optionLabel(o) ?? o.value }))}
                   placeholder="เลือกวิธีสุ่ม"
                 />
               </div>
@@ -5588,6 +5604,10 @@ interface LivePreviewProps {
 
 function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptanceMath, multiStageEnabled, stages, specPayload, stage, pointLabels, unitWord, samplingUnit, eventTags, fixedResultFields }: LivePreviewProps) {
   const cadence = cadenceForSamplingMethod(formData.testMethod);
+  // Its own read: this panel is a sibling of the form, not a child.
+  const previewLocale = useLocale();
+  const method = SAMPLING_METHOD_OPTIONS.find((m) => m.value === formData.testMethod);
+  const methodLabel = method && ((previewLocale === 'en' && method.labelEn) || method.label);
   /*
    * With no type picked there is nothing to preview.
    *
@@ -5775,7 +5795,7 @@ function LivePreviewPanel({ formData, criteriaType, calculatedMinMax, acceptance
           <div className="flex flex-col items-center gap-1.5 rounded-[16px] bg-[#fbfbfb] px-3 py-2.5">
             <span className="text-[10px] font-medium text-black/60">วิธีสุ่ม</span>
             <span className="max-w-full truncate text-base font-bold text-[#5682e9]">
-              {SAMPLING_METHOD_OPTIONS.find((m) => m.value === formData.testMethod)?.label.split(' —')[0] ||
+              {methodLabel?.split(' —')[0] ||
                 '—'}
             </span>
           </div>

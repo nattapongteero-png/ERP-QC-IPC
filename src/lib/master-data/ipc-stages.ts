@@ -22,13 +22,20 @@ export interface AcceptanceStage {
 }
 
 const ON_FAIL_LABEL: Record<OnFailAction, string> = {
-  next_stage: 'ไปยัง Stage ถัดไป',
+  next_stage: 'ไปยังขั้นถัดไป',
   reject_batch: 'ปฏิเสธรุ่นผลิต',
-  deviation: 'บันทึก Deviation',
+  deviation: 'บันทึกความเบี่ยงเบน',
 };
 
-export function getOnFailLabel(action: OnFailAction): string {
-  return ON_FAIL_LABEL[action] ?? action;
+const ON_FAIL_LABEL_EN: Record<OnFailAction, string> = {
+  next_stage: 'Go to the next stage',
+  reject_batch: 'Reject the batch',
+  deviation: 'Open a deviation',
+};
+
+export function getOnFailLabel(action: OnFailAction, locale: 'th' | 'en' = 'th'): string {
+  const table = locale === 'en' ? ON_FAIL_LABEL_EN : ON_FAIL_LABEL;
+  return table[action] ?? action;
 }
 
 /**

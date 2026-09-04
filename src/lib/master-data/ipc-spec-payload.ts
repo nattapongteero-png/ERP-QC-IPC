@@ -27,6 +27,8 @@ export interface SopStepRef {
 
 export interface TriggerOption {
   id: string;
+  /** The option's name in English; the Thai one is `label`. */
+  labelEn?: string;
   label?: string;
   on: boolean;
 }
@@ -124,8 +126,12 @@ export type TriggerKey = 'time' | 'quantity' | 'milestone' | 'event' | 'oncePerB
 export interface UseContextOption {
   value: string;
   label: string;
+  /** The same name in English, for when the screen is read in English. */
+  labelEn: string;
   /** One line on the chip explaining when this context applies. */
   desc: string;
+  /** The same line in English. */
+  descEn: string;
   /**
    * QC stages this context belongs to. Receiving a raw material and releasing
    * a finished batch are different jobs, and offering all eight everywhere
@@ -156,14 +162,22 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'incoming_material',
     stages: ['raw_material'],
     label: 'รับวัตถุดิบเข้า',
+
+    labelEn: 'Incoming material',
     desc: 'ตรวจวัตถุดิบก่อนรับเข้าคลัง',
+
+    descEn: 'Check a raw material before it enters the store',
     triggers: ['oncePerBatch'],
   },
   {
     value: 'line_clearance',
     stages: ['ipc'],
     label: 'ก่อนเริ่มผลิต / เคลียร์ไลน์',
+
+    labelEn: 'Before production / line clearance',
     desc: 'ตรวจความพร้อมก่อนเดินเครื่อง',
+
+    descEn: 'Check the line is ready before it starts',
     triggers: ['milestone'],
     milestoneIds: ['batch_start'],
   },
@@ -171,14 +185,22 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'routine_ipc',
     stages: ['ipc'],
     label: 'ระหว่างผลิต รอบปกติ',
+
+    labelEn: 'Routine in-process check',
     desc: 'สุ่มตรวจตามรอบตลอดการผลิต',
+
+    descEn: 'Sampled on a rhythm through the run',
     triggers: ['time', 'quantity'],
   },
   {
     value: 'lot_change',
     stages: ['raw_material', 'ipc'],
     label: 'หลังเปลี่ยนล็อตวัตถุดิบ',
+
+    labelEn: 'After a raw material lot change',
     desc: 'ยืนยันคุณภาพหลังสลับล็อต',
+
+    descEn: 'Confirms quality after a lot change',
     triggers: ['event'],
     eventIds: ['lot_change'],
   },
@@ -186,7 +208,11 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'changeover',
     stages: ['ipc'],
     label: 'หลังเปลี่ยนรุ่น / ปรับตั้งเครื่อง',
+
+    labelEn: 'After a changeover or machine set-up',
     desc: 'ตรวจหลังเปลี่ยนรุ่นหรือปรับพารามิเตอร์',
+
+    descEn: 'Checked after a changeover or a parameter change',
     triggers: ['event'],
     eventIds: ['changeover', 'param'],
   },
@@ -194,7 +220,11 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'release',
     stages: ['fg_release'],
     label: 'ก่อนปิดรุ่น / ปล่อยผ่าน',
+
+    labelEn: 'Before batch close / release',
     desc: 'ตรวจสรุปก่อนปล่อยผลิตภัณฑ์',
+
+    descEn: 'The closing check before the product is released',
     triggers: ['milestone', 'oncePerBatch'],
     milestoneIds: ['batch_end'],
   },
@@ -202,7 +232,11 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'validation',
     stages: ['ipc', 'fg_release'],
     label: 'ทวนสอบกระบวนการผลิต',
+
+    labelEn: 'Process validation',
     desc: 'เก็บข้อมูลถี่กว่าปกติเพื่อพิสูจน์กระบวนการ',
+
+    descEn: 'Sampled more often than usual, to prove the process',
     triggers: ['time', 'milestone'],
     milestoneIds: ['batch_start', 'batch_mid', 'batch_end'],
   },
@@ -210,7 +244,11 @@ export const USE_CONTEXT_OPTIONS: UseContextOption[] = [
     value: 'investigation',
     stages: ['raw_material', 'ipc', 'fg_release'],
     label: 'สอบสวนผลผิดปกติ',
+
+    labelEn: 'Out-of-specification investigation',
     desc: 'ตรวจเพิ่มเมื่อผลหลุดเกณฑ์',
+
+    descEn: 'Extra checks once a result falls outside the specification',
     triggers: ['event'],
   },
 ];
@@ -240,19 +278,19 @@ export function triggersForContexts(values: string[]): Set<TriggerKey> {
 }
 
 export const MILESTONE_DEFAULTS: TriggerOption[] = [
-  { id: 'batch_start', label: 'เริ่มรุ่นผลิต', on: false },
-  { id: 'batch_mid', label: 'กลางรุ่นผลิต', on: false },
-  { id: 'batch_end', label: 'ก่อนปิดรุ่นผลิต', on: false },
-  { id: 'pre_compress', label: 'ก่อนตอกเม็ด', on: false },
-  { id: 'post_coat', label: 'หลังเคลือบ', on: false },
+  { id: 'batch_start', label: 'เริ่มรุ่นผลิต', labelEn: 'Batch start', on: false },
+  { id: 'batch_mid', label: 'กลางรุ่นผลิต', labelEn: 'Mid batch', on: false },
+  { id: 'batch_end', label: 'ก่อนปิดรุ่นผลิต', labelEn: 'Before batch close', on: false },
+  { id: 'pre_compress', label: 'ก่อนตอกเม็ด', labelEn: 'Before compression', on: false },
+  { id: 'post_coat', label: 'หลังเคลือบ', labelEn: 'After coating', on: false },
 ];
 
 export const EVENT_DEFAULTS: TriggerOption[] = [
-  { id: 'changeover', label: 'หลังเปลี่ยนรุ่น', on: false },
-  { id: 'lot_change', label: 'หลังเปลี่ยนล็อตวัตถุดิบ', on: false },
-  { id: 'cleaning', label: 'หลังล้างเครื่อง', on: false },
-  { id: 'param', label: 'หลังปรับค่าเครื่อง', on: false },
-  { id: 'maintenance', label: 'หลังซ่อมบำรุง', on: false },
+  { id: 'changeover', label: 'หลังเปลี่ยนรุ่น', labelEn: 'After changeover', on: false },
+  { id: 'lot_change', label: 'หลังเปลี่ยนล็อตวัตถุดิบ', labelEn: 'After a raw material lot change', on: false },
+  { id: 'cleaning', label: 'หลังล้างเครื่อง', labelEn: 'After equipment cleaning', on: false },
+  { id: 'param', label: 'หลังปรับค่าเครื่อง', labelEn: 'After a parameter change', on: false },
+  { id: 'maintenance', label: 'หลังซ่อมบำรุง', labelEn: 'After maintenance', on: false },
 ];
 
 export function defaultSharedExtras(): SharedSpecExtras {
