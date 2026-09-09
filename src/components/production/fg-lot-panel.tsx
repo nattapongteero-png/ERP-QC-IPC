@@ -2,15 +2,16 @@
 
 import { useState, Fragment } from 'react';
 import type { ReactNode } from 'react';
-import { DxButton } from '@/components/ui/dx-button';
+import { Package, Pencil } from 'lucide-react';
 import { DxTextBox } from '@/components/ui/dx-text-box';
 import { DxDateBox, parseStringToDate } from '@/components/ui/dx-date-box';
+import { SOFT_PRIMARY_BTN, SOFT_SECONDARY_BTN, SOFT_WARN } from '@/components/shared/soft-form';
 import { formatNumber } from '@/lib/utils/number-format';
 
 /**
- * The three identifiers the finished-goods lot will carry, shown on the card
- * where that lot is actually created, so a wrong one is caught before it is
- * printed onto a label rather than after.
+ * The three identifiers the finished-goods lot will carry, shown on the
+ * packaging screen so a wrong one is caught before it is printed onto a label
+ * rather than after.
  *
  * None of it is typed in: the lot number is the work order's own batch number,
  * the manufacturing date is the day production actually started, and the expiry
@@ -20,6 +21,10 @@ import { formatNumber } from '@/lib/utils/number-format';
  * A wrong value can be corrected here — production output already accepts an
  * MFD and an expiry override, and this is where someone would notice one is
  * needed. The correction is not yet persisted; the panel says so.
+ *
+ * Styling follows the step sections above it — a grey caption row over a
+ * #f9fafb panel, pill actions — rather than inventing a third look for the
+ * same screen.
  */
 export interface FgLotSource {
   batchNumber?: string | null;
@@ -59,30 +64,32 @@ function mfdSourceLabel(wo: FgLotSource): string {
 }
 
 function LotField({
-  label, value, caption, edited,
+  label, value, caption, missing, edited,
 }: {
   label: string;
   value: string;
   caption: ReactNode;
+  missing?: boolean;
   edited?: boolean;
 }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] text-[#9aa3ad]">{label}</div>
-      <div
-        className={
-          'mt-0.5 font-mono text-[14px] font-semibold ' +
-          (value === '—' ? 'text-[#c2410c]' : 'text-slate-900')
-        }
-      >
-        {value}
+      <div className="text-[11px] text-[#bfbfbf]">{label}</div>
+      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+        <span
+          className={
+            'text-[13px] font-medium ' + (missing ? 'text-[#c2410c]' : 'font-mono text-slate-900')
+          }
+        >
+          {value}
+        </span>
         {edited ? (
-          <span className="ml-1.5 rounded bg-[#fff4e6] px-1 py-0.5 font-sans text-[10px] font-medium text-[#c2410c]">
+          <span className="rounded-full bg-[#fff4e6] px-2 py-0.5 text-[10px] font-medium text-[#c2410c]">
             แก้ไขแล้ว
           </span>
         ) : null}
       </div>
-      <div className="mt-0.5 text-[11px] leading-snug text-[#9aa3ad]">{caption}</div>
+      <div className="mt-0.5 text-[12px] leading-relaxed text-slate-500">{caption}</div>
     </div>
   );
 }
@@ -123,11 +130,13 @@ export function FgLotPanel({ workOrder }: { workOrder: FgLotSource }) {
     : 'สินค้านี้ยังไม่ได้ตั้งอายุการเก็บ จึงคำนวณวันหมดอายุไม่ได้';
 
   return (
-    <div className="mt-3 border-t pt-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="mt-4 border-t border-[#eef0f2] pt-4">
+      {/* Caption row, the same one the step sections on this screen use. */}
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] font-semibold text-slate-700">ข้อมูลล็อตสินค้าสำเร็จรูป</span>
-          <span className="rounded-full bg-[#e8effc] px-2 py-0.5 text-[10px] font-medium text-[#3559b0]">
+          <Package className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-[11px] font-medium text-[#bfbfbf]">ข้อมูลล็อตสินค้าสำเร็จรูป</span>
+          <span className="rounded-full bg-[#eef4fd] px-2 py-0.5 text-[10px] font-medium text-[#2f6fd0]">
             ระบบคำนวณให้
           </span>
           {anyChanged ? (
@@ -142,38 +151,145 @@ export function FgLotPanel({ workOrder }: { workOrder: FgLotSource }) {
               <button
                 type="button"
                 onClick={() => setOverride(null)}
-                className="text-[12px] text-[#6b7684] underline-offset-2 hover:underline"
+                className="text-[12px] text-[#bfbfbf] transition hover:text-[#2f6fd0]"
               >
                 คืนค่าที่ระบบคำนวณ
               </button>
             ) : null}
-            <DxButton text="แก้ไข" icon="edit" stylingMode="outlined" onClick={openEditor} />
+            <button
+              type="button"
+              onClick={openEditor}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0]"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              แก้ไข
+            </button>
           </div>
         ) : null}
       </div>
 
-      {!editing ? (
-        <div className="mt-2.5 grid gap-3 sm:grid-cols-3">
-          <LotField
-            label="เลขล็อต"
-            value={shown.lot || '—'}
-            caption="ใช้เลขแบทช์ของใบสั่งผลิตนี้"
-            edited={changed('lot')}
-          />
-          <LotField
-            label="วันผลิต (MFD)"
-            value={showDate(shown.mfd)}
-            caption={changed('mfd') ? 'กำหนดเอง' : mfdSourceLabel(workOrder)}
-            edited={changed('mfd')}
-          />
-          <LotField
-            label="วันหมดอายุ (EXP)"
-            value={showDate(shown.exp)}
-            caption={changed('exp') ? 'กำหนดเอง' : expiryCaption}
-            edited={changed('exp')}
-          />
-        </div>
-      ) : null}
+      <div className="rounded-[12px] bg-[#f9fafb] p-3">
+        {!editing ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <LotField
+              label="เลขล็อต"
+              value={shown.lot || '—'}
+              missing={!shown.lot}
+              caption="ใช้เลขแบทช์ของใบสั่งผลิตนี้"
+              edited={changed('lot')}
+            />
+            <LotField
+              label="วันผลิต (MFD)"
+              value={showDate(shown.mfd)}
+              missing={!shown.mfd}
+              caption={changed('mfd') ? 'กำหนดเอง' : mfdSourceLabel(workOrder)}
+              edited={changed('mfd')}
+            />
+            <LotField
+              label="วันหมดอายุ (EXP)"
+              value={showDate(shown.exp)}
+              missing={!shown.exp}
+              caption={changed('exp') ? 'กำหนดเอง' : expiryCaption}
+              edited={changed('exp')}
+            />
+          </div>
+        ) : (
+          <div className="fg-lot-fields space-y-3">
+            {/* The DevExtreme editors draw their own outlined box. Scoped here
+                so they wear the pale filled field the criteria screen
+                introduced, rather than a second field style on one screen. */}
+            <style>{`
+              /* !important because the app's own DevExtreme theme sets these
+                 on the same class and would otherwise win. */
+              .fg-lot-fields .dx-texteditor {
+                background: #f1f3f5 !important;
+                border: none !important;
+                border-radius: 10px !important;
+                box-shadow: none !important;
+              }
+              /* The filled variant paints its own underline on focus/hover. */
+              .fg-lot-fields .dx-texteditor::before,
+              .fg-lot-fields .dx-texteditor::after {
+                display: none;
+              }
+              .fg-lot-fields .dx-texteditor.dx-state-focused {
+                box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+              }
+              .fg-lot-fields .dx-texteditor-input {
+                background: transparent;
+                padding: 10px 12px;
+                min-height: 0;
+                font-size: 14px;
+                color: #0f172a;
+              }
+              .fg-lot-fields .dx-placeholder::before { padding: 10px 12px; color: #bfbfbf; }
+            `}</style>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <span className="text-[11px] text-[#bfbfbf]">เลขล็อต</span>
+                <div className="mt-1">
+                  <DxTextBox
+                    value={draft.lot}
+                    onValueChange={(v) => setDraft((d) => ({ ...d, lot: v ?? '' }))}
+                    labelMode="hidden"
+                  />
+                </div>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#bfbfbf]">วันผลิต (MFD)</span>
+                <div className="mt-1">
+                  <DxDateBox
+                    value={draft.mfd}
+                    labelMode="hidden"
+                    onValueChange={(v) =>
+                      setDraft((d) => ({
+                        ...d,
+                        mfd: v ?? '',
+                        // Expiry follows the manufacturing date unless it was
+                        // set by hand — otherwise correcting the MFD silently
+                        // leaves an expiry that no longer belongs to it.
+                        exp:
+                          d.exp === system.exp || d.exp === addDays(d.mfd, shelfLife)
+                            ? (addDays(v ?? '', shelfLife) ?? d.exp)
+                            : d.exp,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#bfbfbf]">วันหมดอายุ (EXP)</span>
+                <div className="mt-1">
+                  <DxDateBox
+                    value={draft.exp}
+                    labelMode="hidden"
+                    min={parseStringToDate(draft.mfd) ?? undefined}
+                    onValueChange={(v) => setDraft((d) => ({ ...d, exp: v ?? '' }))}
+                  />
+                </div>
+              </div>
+            </div>
+            <p className={SOFT_WARN}>
+              การแก้ไขนี้ยังไม่ถูกบันทึกลงระบบ — แสดงบนหน้าจอนี้เท่านั้น และจะหายเมื่อโหลดหน้าใหม่
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={SOFT_PRIMARY_BTN}
+                onClick={() => {
+                  setOverride(draft);
+                  setEditing(false);
+                }}
+              >
+                ใช้ค่านี้
+              </button>
+              <button type="button" className={SOFT_SECONDARY_BTN} onClick={() => setEditing(false)}>
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* MOCKUP: what the expiry would come out as, worked out on screen from
           this work order's own manufacturing date. Shown only while the product
@@ -181,96 +297,31 @@ export function FgLotPanel({ workOrder }: { workOrder: FgLotSource }) {
           date with nothing behind it does not belong on a batch record, and an
           example clearly labelled as one is not that date. Nothing is saved. */}
       {!editing && !shelfLife && shown.mfd ? (
-        <div className="mt-2.5 rounded-[10px] border border-[#cfe0f7] bg-[#f4f8fe] px-3 py-2">
+        <div className="mt-2 rounded-[12px] border border-[#cfe0f7] bg-[#f4f8fe] p-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="rounded bg-[#fff4e6] px-1.5 py-0.5 text-[10px] font-bold text-[#c2410c]">
+            <span className="rounded-full bg-[#fff4e6] px-2 py-0.5 text-[10px] font-bold text-[#c2410c]">
               MOCKUP
             </span>
-            <span className="text-[11px] text-[#6b7684]">
+            <span className="text-[12px] text-slate-500">
               ตัวอย่าง — ถ้าตั้งอายุการเก็บของสินค้าไว้ วันหมดอายุจะออกมาแบบนี้
             </span>
           </div>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {[365, 730, 1095].map((days, i) => (
               <Fragment key={days}>
                 {i > 0 ? <span className="text-[#d5d8dc]">·</span> : null}
-                <span className="text-[11px] text-[#6b7684]">
+                <span className="text-[12px] text-slate-500">
                   {formatNumber(days)} วัน →{' '}
-                  <span className="font-mono text-[12px] font-semibold text-[#3559b0]">
+                  <span className="font-mono text-[13px] font-medium text-[#2f6fd0]">
                     {showDate(addDays(shown.mfd, days))}
                   </span>
                 </span>
               </Fragment>
             ))}
           </div>
-          <div className="mt-1 text-[10px] leading-snug text-[#9aa3ad]">
+          <div className="mt-1 text-[11px] leading-relaxed text-[#bfbfbf]">
             คิดจากวันผลิตของใบสั่งผลิตนี้ · ยังไม่บันทึกลงระบบ ·
             ตั้งอายุการเก็บจริงได้ที่ ข้อมูลหลัก › สินค้า › อายุการเก็บ (วัน)
-          </div>
-        </div>
-      ) : null}
-
-      {editing ? (
-        <div className="mt-2.5 space-y-2.5">
-          <div className="grid gap-2.5 sm:grid-cols-3">
-            <div>
-              <span className="text-[11px] text-[#9aa3ad]">เลขล็อต</span>
-              <div className="mt-1">
-                <DxTextBox
-                  value={draft.lot}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, lot: v ?? '' }))}
-                  labelMode="hidden"
-                />
-              </div>
-            </div>
-            <div>
-              <span className="text-[11px] text-[#9aa3ad]">วันผลิต (MFD)</span>
-              <div className="mt-1">
-                <DxDateBox
-                  value={draft.mfd}
-                  labelMode="hidden"
-                  onValueChange={(v) =>
-                    setDraft((d) => ({
-                      ...d,
-                      mfd: v ?? '',
-                      // Expiry follows the manufacturing date unless it was set
-                      // by hand — otherwise correcting the MFD silently leaves
-                      // an expiry that no longer belongs to it.
-                      exp:
-                        d.exp === system.exp || d.exp === addDays(d.mfd, shelfLife)
-                          ? (addDays(v ?? '', shelfLife) ?? d.exp)
-                          : d.exp,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <span className="text-[11px] text-[#9aa3ad]">วันหมดอายุ (EXP)</span>
-              <div className="mt-1">
-                <DxDateBox
-                  value={draft.exp}
-                  labelMode="hidden"
-                  min={parseStringToDate(draft.mfd) ?? undefined}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, exp: v ?? '' }))}
-                />
-              </div>
-            </div>
-          </div>
-          <p className="text-[11px] leading-relaxed text-[#c2410c]">
-            การแก้ไขนี้ยังไม่ถูกบันทึกลงระบบ — แสดงบนหน้าจอนี้เท่านั้น และจะหายเมื่อโหลดหน้าใหม่
-          </p>
-          <div className="flex items-center gap-2">
-            <DxButton
-              text="ใช้ค่านี้"
-              type="default"
-              stylingMode="contained"
-              onClick={() => {
-                setOverride(draft);
-                setEditing(false);
-              }}
-            />
-            <DxButton text="ยกเลิก" stylingMode="outlined" onClick={() => setEditing(false)} />
           </div>
         </div>
       ) : null}
