@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Package, Pencil } from 'lucide-react';
 import { DxTextBox } from '@/components/ui/dx-text-box';
@@ -291,40 +291,6 @@ export function FgLotPanel({ workOrder }: { workOrder: FgLotSource }) {
         )}
       </div>
 
-      {/* MOCKUP: what the expiry would come out as, worked out on screen from
-          this work order's own manufacturing date. Shown only while the product
-          carries no shelf life — the real field above stays blank, because a
-          date with nothing behind it does not belong on a batch record, and an
-          example clearly labelled as one is not that date. Nothing is saved. */}
-      {!editing && !shelfLife && shown.mfd ? (
-        <div className="mt-2 rounded-[12px] border border-[#cfe0f7] bg-[#f4f8fe] p-3">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="rounded-full bg-[#fff4e6] px-2 py-0.5 text-[10px] font-bold text-[#c2410c]">
-              MOCKUP
-            </span>
-            <span className="text-[12px] text-slate-500">
-              ตัวอย่าง — ถ้าตั้งอายุการเก็บของสินค้าไว้ วันหมดอายุจะออกมาแบบนี้
-            </span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {[365, 730, 1095].map((days, i) => (
-              <Fragment key={days}>
-                {i > 0 ? <span className="text-[#d5d8dc]">·</span> : null}
-                <span className="text-[12px] text-slate-500">
-                  {formatNumber(days)} วัน →{' '}
-                  <span className="font-mono text-[13px] font-medium text-[#2f6fd0]">
-                    {showDate(addDays(shown.mfd, days))}
-                  </span>
-                </span>
-              </Fragment>
-            ))}
-          </div>
-          <div className="mt-1 text-[11px] leading-relaxed text-[#bfbfbf]">
-            คิดจากวันผลิตของใบสั่งผลิตนี้ · ยังไม่บันทึกลงระบบ ·
-            ตั้งอายุการเก็บจริงได้ที่ ข้อมูลหลัก › สินค้า › อายุการเก็บ (วัน)
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
