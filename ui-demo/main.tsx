@@ -64,9 +64,12 @@ const ROUTE_MAP: { match: RegExp; page: PageId }[] = [
 function Demo() {
   const [page, setPage] = React.useState<PageId>('wo-sop');
 
-  const go = React.useCallback((id: PageId) => {
+  // `href` lets a link keep its own query — the SOP screen picks its phase out
+  // of ?phase=, so arriving from the packaging card has to land on packaging,
+  // not on the unfiltered list.
+  const go = React.useCallback((id: PageId, href?: string) => {
     setPage(id);
-    setDemoPath(PAGES.find((p) => p.id === id)!.path);
+    setDemoPath(href ?? PAGES.find((p) => p.id === id)!.path);
   }, []);
 
   // Links rendered by the real components (sidebar, breadcrumbs, back buttons)
@@ -76,7 +79,7 @@ function Demo() {
     setDemoNavigate((href) => {
       const hit = ROUTE_MAP.find((r) => r.match.test(href));
       if (!hit) return false;
-      go(hit.page);
+      go(hit.page, href);
       return true;
     });
   }, [go]);

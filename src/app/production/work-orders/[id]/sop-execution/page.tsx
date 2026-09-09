@@ -28,6 +28,7 @@ import { DxButton } from '@/components/ui/dx-button';
 import { DxPopup } from '@/components/ui/dx-popup';
 import { DxTextArea } from '@/components/ui/dx-text-area';
 import { DxNumberBox } from '@/components/ui/dx-number-box';
+import { FgLotPanel } from '@/components/production/fg-lot-panel';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -185,6 +186,13 @@ interface WorkOrderBasic {
   batchNumber: string;
   productName: string;
   status: string;
+  // The finished-goods lot's dates, already projected by /detail — the same MFD
+  // priority and the same expiry helper production output uses.
+  productShelfLifeDays?: number | null;
+  projectedMfd?: string | null;
+  projectedExpiry?: string | null;
+  actualStartDate?: string | null;
+  plannedStartDate?: string | null;
 }
 
 // The recorded state of an IPC criterion, in the soft pill language the rest
@@ -1499,6 +1507,11 @@ export default function SOPExecutionPage() {
               <span>{Math.round(completedPct)}% completed</span>
             </div>
           </div>
+
+          {/* Packaging is where the label goes on, so the lot's identifiers are
+              checked on the packaging screen — by the people who are about to
+              print them, not by everyone who passes through. */}
+          {phaseFilter === 'packaging' ? <FgLotPanel workOrder={workOrder} /> : null}
         </div>
       </div>
 
