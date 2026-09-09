@@ -1705,32 +1705,37 @@ export default function WorkOrderDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between no-print">
-          <div>
-            <div className="flex items-center gap-3">
-              <DxButton
-                text={t('workOrderDetail.header.back')}
-                icon="back"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => router.push('/production/work-orders')}
-              />
-              <h1 className="text-2xl font-bold text-gray-900">{t('workOrderDetail.header.title', { woNumber: workOrder.woNumber })}</h1>
+        {/* Wraps rather than squeezes: on a phone the row used to clip the back
+            button's own label down to a letter and push the status badge off
+            the right edge. */}
+        <div className="flex flex-wrap items-start justify-between gap-3 no-print">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="shrink-0">
+                <DxButton
+                  text={t('workOrderDetail.header.back')}
+                  icon="back"
+                  type="normal"
+                  stylingMode="outlined"
+                  onClick={() => router.push('/production/work-orders')}
+                />
+              </span>
+              <h1 className="min-w-0 break-words text-xl font-bold text-gray-900 sm:text-2xl">{t('workOrderDetail.header.title', { woNumber: workOrder.woNumber })}</h1>
               <Badge variant={getStatusVariant(workOrder.status)}>
                 {getStatusLabel(workOrder.status)}
               </Badge>
             </div>
-            <p className="text-gray-600 mt-1">
+            <p className="mt-1 break-words text-gray-600">
               {t('workOrderDetail.header.batch', { batch: workOrder.batchNumber || 'N/A' })}
               {workOrder.bomCode && (
-                <span className="ml-3">
+                <span className="ml-0 block sm:ml-3 sm:inline">
                   · BOM: <span className="font-mono font-semibold text-emerald-700">{workOrder.bomCode}</span>
                   {workOrder.bomVersion && <span className="text-xs text-gray-500 ml-1">v{workOrder.bomVersion}</span>}
                 </span>
               )}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Line Clearance moved into per-card buttons inside ExecutionDashboard
                 (cleaning / sop-execution / material-weighing cards). Each card
                 gates its own start with a phase-scoped clearance, replacing the

@@ -1621,8 +1621,12 @@ export default function SOPExecutionPage() {
                           <StatusIcon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
+                          {/* The badges keep their full width, so on a phone
+                              they left the title about sixty pixels and it came
+                              out one character per line. Below sm they sit under
+                              the title instead of beside it. */}
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                            <div className="min-w-0 sm:flex-1">
                             <span className="block text-base font-semibold tracking-tight text-slate-900 break-words md:text-lg">
                               {/* Renumber from 1 within the filtered view —
                                   e.g. global seq 2 + 5 in pre_production
@@ -1640,7 +1644,7 @@ export default function SOPExecutionPage() {
                             )}
                             </div>
 
-                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:max-w-[45%]">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[45%] sm:shrink-0 sm:justify-end">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusPillClasses}`}>
                                 {statusInfo.label}
                               </span>
