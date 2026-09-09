@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRealtimeTopic } from '@/hooks/use-realtime-topic';
 import BOMConfigReferencePanel from '@/components/production/BOMConfigReferencePanel';
+import { FgLotPanel, type FgLotSource } from '@/components/production/fg-lot-panel';
 import { Card, CardContent } from '@/components/ui/card';
 import { DxButton } from '@/components/ui/dx-button';
 import { DxLoadIndicator } from '@/components/ui/dx-load-indicator';
@@ -289,6 +290,19 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
   // we trusted the cache the dashboard would show pre-record state for up to
   // a minute. refetchOnWindowFocus catches Alt-Tab back from another tab.
   // Realtime events still cover the "two users open at once" case below.
+  // Lot number, MFD and expiry for the finished-goods card. Same endpoint and
+  // same cache key the other work order screens read, so nothing is fetched
+  // twice and the figures cannot drift apart.
+  const { data: woDetail } = useQuery<FgLotSource | undefined>({
+    queryKey: ['work-order', workOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/production/work-orders/${workOrderId}/detail`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.data?.workOrder as FgLotSource | undefined;
+    },
+  });
+
   const { data: summary, isLoading } = useQuery<ExecutionSummary>({
     queryKey: ['wo-execution-summary', workOrderId],
     queryFn: async () => {
@@ -1143,6 +1157,19 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                           </div>
                         </div>
                       )}
+                      {/* Packaging is where the label goes on, so the lot's
+                          identifiers are checked on the packaging card — before
+                          they are printed, not after. The card is wrapped in a
+                          <Link>; without stopping the click the panel's own
+                          buttons would navigate away instead. */}
+                      {section.id === 'sop-execution-packaging' && woDetail ? (
+                        <div
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          role="presentation"
+                        >
+                          <FgLotPanel workOrder={woDetail} />
+                        </div>
+                      ) : null}
                     </CardContent>
                   </Card>
                 );
