@@ -12,6 +12,7 @@ import TestPanelsAdminPage from '@/app/quality/test-panels/page';
 import WorkOrderExecutionPage from '@/app/production/work-orders/[id]/execution/page';
 import SopExecutionPage from '@/app/production/work-orders/[id]/sop-execution/page';
 import IPCPage from '@/app/production/work-orders/[id]/ipc/page';
+import WorkOrderDetailPage from '@/app/production/work-orders/[id]/page';
 import QcEntryListPage from '@/app/quality/qc-entry/page';
 import QcSampleDetailPage from '@/app/quality/qc-entry/[id]/page';
 import { setDemoPath, setDemoNavigate } from './shims/next-navigation';
@@ -23,7 +24,9 @@ installMockApi();
 // No retries: a demo should surface a broken mock immediately, not after 3 goes.
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-type PageId = 'criteria' | 'panels' | 'wo-exec' | 'wo-ipc' | 'wo-sop' | 'qc-list' | 'qc-sample';
+type PageId =
+  | 'criteria' | 'panels' | 'wo-exec' | 'wo-ipc' | 'wo-sop'
+  | 'wo-ebmr' | 'qc-list' | 'qc-sample';
 
 /**
  * The screens on offer.
@@ -36,6 +39,9 @@ const PAGES: { id: PageId; label: string; path: string }[] = [
   { id: 'wo-sop', label: 'SOP Execution', path: '/production/work-orders/142/sop-execution' },
   { id: 'wo-ipc', label: 'IPC — บันทึกผล', path: '/production/work-orders/142/ipc' },
   { id: 'wo-exec', label: 'ใบสั่งผลิต — ดำเนินการผลิต', path: '/production/work-orders/142/execution' },
+  // ?tab=ebmr because the screen picks its opening tab out of the query, and a
+  // reviewer sent here is coming for the batch record, not the overview.
+  { id: 'wo-ebmr', label: 'ใบสั่งผลิต — eBMR', path: '/production/work-orders/142?tab=ebmr' },
   { id: 'qc-sample', label: 'บันทึกผล QC', path: '/quality/qc-entry/4' },
   { id: 'qc-list', label: 'รายการตัวอย่าง QC', path: '/quality/qc-entry' },
   { id: 'criteria', label: 'สร้างเกณฑ์ QC / IPC', path: '/master-data/ipc-criteria/new' },
@@ -47,7 +53,8 @@ const ROUTE_MAP: { match: RegExp; page: PageId }[] = [
   { match: /sop-execution/, page: 'wo-sop' },
   { match: /\/ipc(\?|$)/, page: 'wo-ipc' },
   { match: /\/execution(\?|$)/, page: 'wo-exec' },
-  { match: /\/work-orders\/\d+(\?|$)/, page: 'wo-exec' },
+  { match: /\/work-orders\/\d+\?tab=ebmr/, page: 'wo-ebmr' },
+  { match: /\/work-orders\/\d+(\?|$)/, page: 'wo-ebmr' },
   { match: /qc-entry\/\d+/, page: 'qc-sample' },
   { match: /qc-entry/, page: 'qc-list' },
   { match: /ipc-criteria/, page: 'criteria' },
@@ -88,6 +95,11 @@ function Demo() {
           {page === 'wo-ipc' && (
             <div className="w-full overflow-y-auto">
               <IPCPage />
+            </div>
+          )}
+          {page === 'wo-ebmr' && (
+            <div className="w-full overflow-y-auto">
+              <WorkOrderDetailPage />
             </div>
           )}
           {page === 'wo-sop' && (

@@ -39,7 +39,19 @@ export interface PanelRowFormState {
 export interface PanelRowOption {
   id: number;
   label: string;
+  /** Item type (วัตถุดิบ / บรรจุภัณฑ์ / …), used only to narrow the list. */
+  productType?: string | null;
+  /** The product's own category, so the category picker can follow it. */
+  productCategory?: string | null;
+  /** On criteria: the QC stage it was written for. */
+  stage?: string | null;
 }
+
+/** See the note on the criteria list inside the dialog. */
+const STAGE_OF_ITEM_TYPE: Record<string, string> = {
+  raw_material: 'raw_material',
+  finished_goods: 'fg_release',
+};
 
 export interface PanelRowDialogSoftProps {
   form: PanelRowFormState;
@@ -48,6 +60,9 @@ export interface PanelRowDialogSoftProps {
   productItems: PanelRowOption[];
   /** Distinct categories found on the products. */
   productCategories: { value: string; label: string }[];
+  /** Item types to narrow the product list by — the same five the item form
+   *  offers, limited to the ones some product actually carries. */
+  productTypes: { value: string; label: string }[];
   /** Already narrowed to the criteria a QC sample can be tested against. */
   criteriaItems: PanelRowOption[];
   /** Product records, for naming the target in the read-back. */
@@ -112,6 +127,7 @@ export function PanelRowDialogSoft({
   onChange,
   productItems,
   productCategories,
+  productTypes,
   criteriaItems,
   products,
   submitting,
@@ -119,6 +135,80 @@ export function PanelRowDialogSoft({
   onSubmit,
 }: PanelRowDialogSoftProps) {
   const t = useTranslations('quality');
+
+  /**
+   * The QC stage each item type is sampled at.
+   *
+   * A raw material is tested on the way in; a finished batch is tested on the
+   * way out. Offering a release test on a herb delivery, or an identity test on
+   * a packed batch, is a panel nobody can execute — so the criteria list
+   * follows whatever the target above says.
+   *
+   * The three types with no single answer — packaging, work in progress and
+   * consumables — are left unmapped on purpose rather than guessed at, and
+   * simply see everything.
+   */
+  // Narrowing only — deliberately not part of `form`, since it decides what the
+  // person can see, not what the row will mean once saved.
+  const [productFilter, setProductFilter] = React.useState('');
+
+  const filteredProducts = React.useMemo(
+    () =>
+      productFilter ? productItems.filter((p) => p.productType === productFilter) : productItems,
+    [productItems, productFilter],
+  );
+
+  /** The chosen product's type, else whatever the filter above is set to. */
+  const activeType =
+    productItems.find((p) => p.id === form.productId)?.productType ?? productFilter ?? '';
+
+  /**
+   * Categories that belong to the target, not every category in the plant.
+   * With a product chosen the field is a fallback the row will never reach, so
+   * it simply follows that product; with only a type chosen it offers the
+   * categories found under it.
+   */
+  const filteredCategories = React.useMemo(() => {
+    const chosen = productItems.find((p) => p.id === form.productId);
+    if (chosen?.productCategory) {
+      return productCategories.filter((c) => c.value === chosen.productCategory);
+    }
+    if (!activeType) return productCategories;
+    const within = new Set(
+      productItems.filter((p) => p.productType === activeType).map((p) => p.productCategory),
+    );
+    const narrowed = productCategories.filter((c) => within.has(c.value));
+    // A type whose products carry no category at all would leave an empty
+    // picker; the full list is more use than none.
+    return narrowed.length > 0 ? narrowed : productCategories;
+  }, [productItems, productCategories, form.productId, activeType]);
+
+  /** Criteria written for the stage this target is sampled at. */
+  const stageWanted = STAGE_OF_ITEM_TYPE[activeType] ?? null;
+  const filteredCriteria = React.useMemo(() => {
+    if (!stageWanted) return criteriaItems;
+    // A criterion saved before stages existed has none recorded, and is kept
+    // rather than hidden — it may well still be the right test.
+    return criteriaItems.filter((c) => !c.stage || c.stage === stageWanted);
+  }, [criteriaItems, stageWanted]);
+
+  // Opening the dialog on a row that already names a product should show that
+  // product, so the filter starts on whichever type it belongs to.
+  React.useEffect(() => {
+    const chosen = productItems.find((p) => p.id === form.productId);
+    setProductFilter(chosen?.productType ?? '');
+    // Only when the dialog is pointed at a different row.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.id]);
+
+  // A product left selected under a filter that excludes it would be invisible
+  // but still saved, so narrowing past it clears the choice.
+  React.useEffect(() => {
+    if (form.productId == null) return;
+    if (filteredProducts.some((p) => p.id === form.productId)) return;
+    onChange({ ...form, productId: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredProducts]);
 
   /**
    * What this row will match, in one sentence. Product beats category when
@@ -182,16 +272,38 @@ export function PanelRowDialogSoft({
           </p>
         </div>
 
-        <label className="flex flex-col gap-2">
-          <span className={SOFT_LABEL}>{t('testPanels.dialog.productLabel')}</span>
-          <SearchableSelect
-            testId="panel-product"
-            value={form.productId == null ? '' : String(form.productId)}
-            onChange={(v) => onChange({ ...form, productId: v ? Number(v) : null })}
-            options={productItems.map((o) => ({ value: String(o.id), label: o.label }))}
-            placeholder={t('testPanels.dialog.productLabel')}
-          />
-        </label>
+        {/* Product type narrows the list beside it and is not saved with the
+            row — a plant carries thousands of items, and scrolling all of them
+            to find one is the whole reason this control is here. It sits in the
+            same row so the pair reads as filter-then-pick. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <span className={SOFT_LABEL}>{t('testPanels.dialog.productFilterLabel')}</span>
+            <SearchableSelect
+              testId="panel-product-filter"
+              value={productFilter}
+              onChange={setProductFilter}
+              options={[
+                { value: '', label: t('testPanels.dialog.productFilterAll') },
+                ...productTypes,
+              ]}
+              placeholder={t('testPanels.dialog.productFilterPlaceholder')}
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className={SOFT_LABEL}>{t('testPanels.dialog.productLabel')}</span>
+            <SearchableSelect
+              testId="panel-product"
+              value={form.productId == null ? '' : String(form.productId)}
+              onChange={(v) => onChange({ ...form, productId: v ? Number(v) : null })}
+              options={filteredProducts.map((o) => ({ value: String(o.id), label: o.label }))}
+              placeholder={t('testPanels.dialog.productLabel')}
+            />
+            {filteredProducts.length === 0 && (
+              <span className={SOFT_HELPER}>{t('testPanels.dialog.productNoneInFilter')}</span>
+            )}
+          </label>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-2">
@@ -200,7 +312,7 @@ export function PanelRowDialogSoft({
               testId="panel-category"
               value={form.productCategory}
               onChange={(v) => onChange({ ...form, productCategory: v })}
-              options={productCategories}
+              options={filteredCategories}
               placeholder={t('testPanels.dialog.categoryLabel')}
             />
           </label>
@@ -245,11 +357,21 @@ export function PanelRowDialogSoft({
                 if (!v || form.criteriaIds.includes(id)) return;
                 onChange({ ...form, criteriaIds: [...form.criteriaIds, id] });
               }}
-              options={criteriaItems
+              options={filteredCriteria
                 .filter((c) => !form.criteriaIds.includes(c.id))
                 .map((c) => ({ value: String(c.id), label: c.label }))}
               placeholder={t('testPanels.dialog.criteriaAddPlaceholder')}
             />
+
+            {/* The list above is shorter than the full set, so it says so —
+                a picker that silently hides options reads as missing data. */}
+            {stageWanted && (
+              <p className={SOFT_HELPER}>
+                {t('testPanels.dialog.criteriaStageHint', {
+                  stage: t(`testPanels.dialog.stage.${stageWanted}`),
+                })}
+              </p>
+            )}
 
             {form.criteriaIds.length === 0 ? (
               <p className={SOFT_WARN}>

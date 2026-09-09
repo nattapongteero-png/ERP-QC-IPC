@@ -937,8 +937,8 @@
         "print": "พิมพ์",
         "addTest": "เพิ่มการทดสอบ",
         "startTesting": "เริ่มทดสอบ",
-        "submitReview": "ส่งทบทวน",
-        "approve": "อนุมัติ",
+        "submitReview": "ส่งผลการทดสอบ",
+        "approve": "อนุมัติผลการทดสอบ",
         "release": "ปล่อยใช้งาน",
         "reject": "ปฏิเสธ",
         "generateNewCoa": "ออก COA ใหม่ (Generate new COA)",
@@ -946,7 +946,9 @@
         "viewCoa": "ดู COA",
         "cancel": "ยกเลิก",
         "save": "บันทึก",
-        "saving": "กำลังบันทึก..."
+        "saving": "กำลังบันทึก...",
+        "applyPanel": "ดึงชุดการทดสอบ",
+        "retest": "ขอตรวจซ้ำ"
       },
       "stepper": {
         "title": "สถานะการดำเนินงาน",
@@ -1032,12 +1034,14 @@
         "closedBy": "ปิดโดย"
       },
       "applyPanelDialog": {
-        "noPanel": "ไม่มี test panel ที่กำหนดสำหรับสินค้านี้ — ไปสร้างที่",
-        "selectPrompt": "เลือก panel-row ที่จะ apply เข้าสู่ตัวอย่างนี้",
-        "multiHint": "(เลือกได้หลายรายการ)",
-        "tagPlaceholder": "เลือก panel",
-        "selectedCount": "เลือกแล้ว {count} panel — ระบบจะ apply ทุก panel เข้าตัวอย่างนี้",
-        "applying": "กำลัง apply..."
+        "noPanel": "ยังไม่ได้ตั้งชุดการทดสอบสำหรับสินค้านี้ — ไปตั้งได้ที่",
+        "selectPrompt": "เลือกชุดการทดสอบที่จะดึงเข้าตัวอย่างนี้",
+        "multiHint": "(เลือกได้หลายชุด)",
+        "tagPlaceholder": "เลือกชุดการทดสอบ",
+        "selectedCount": "เลือกแล้ว {count} ชุด — ระบบจะดึงหัวข้อทดสอบจากทุกชุดเข้าตัวอย่างนี้",
+        "applying": "กำลังดึง...",
+        "title": "ดึงชุดการทดสอบ",
+        "confirm": "ดึงเข้ารายการ"
       },
       "addTestDialog": {
         "title": "เพิ่มการทดสอบ",
@@ -1113,8 +1117,10 @@
         "statusChangeSuccess": "เปลี่ยนสถานะแล้ว",
         "statusChangeFailed": "เปลี่ยนสถานะไม่สำเร็จ",
         "coaSuccess": "ออก COA สำเร็จ",
-        "coaFailed": "ออก COA ล้มเหลว"
-      }
+        "coaFailed": "ออก COA ล้มเหลว",
+        "retestSuccess": "ส่งกลับให้ตรวจซ้ำแล้ว"
+      },
+      "retestReasonPrompt": "ระบุเหตุผลที่ขอให้ตรวจซ้ำ"
     }
   },
   "qcInspections": {
@@ -1247,6 +1253,10 @@
       "addTitle": "เพิ่ม panel-row",
       "hint": "กำหนดสินค้า <em>หรือ</em> หมวดหมู่อย่างน้อย 1 อย่าง — หากกรอกทั้งคู่ ระบบจะ match สินค้าก่อน",
       "productLabel": "สินค้า (เฉพาะเจาะจง)",
+      "productFilterLabel": "กรองตามประเภทสินค้า",
+      "productFilterPlaceholder": "ทุกประเภท",
+      "productFilterAll": "ทุกประเภท",
+      "productNoneInFilter": "ไม่มีสินค้าในประเภทนี้",
       "categoryLabel": "หมวดหมู่ (fallback)",
       "categoryManualLabel": "หรือพิมพ์หมวดเอง",
       "criteriaMultiLabel": "เกณฑ์ (QC criteria) — เลือกได้หลายรายการ",
@@ -1269,7 +1279,12 @@
       "targetBoth": "ใช้กับสินค้า {name} (ระบุสินค้าไว้ ระบบจะไม่ใช้หมวดหมู่)",
       "targetNone": "ยังไม่ได้เลือก — ต้องระบุสินค้า หรือ หมวดหมู่ อย่างน้อย 1 อย่าง",
       "requiredHint": "ทำเครื่องหมายว่าเกณฑ์นี้เป็นรายการบังคับของชุดทดสอบ (ยังไม่มีการบังคับในระบบ)",
-      "activeHint": "ปิดไว้ = แถวนี้ยังอยู่ แต่จะไม่ถูกดึงไปใส่ให้ตัวอย่างที่เปิดใหม่"
+      "activeHint": "ปิดไว้ = แถวนี้ยังอยู่ แต่จะไม่ถูกดึงไปใส่ให้ตัวอย่างที่เปิดใหม่",
+      "criteriaStageHint": "แสดงเฉพาะเกณฑ์สำหรับ{stage} ตามเป้าหมายที่เลือกไว้ด้านบน",
+      "stage": {
+        "raw_material": "การตรวจรับวัตถุดิบ",
+        "fg_release": "การปล่อยผ่านสินค้าสำเร็จรูป"
+      }
     }
   },
   "testCatalog": {

@@ -42,7 +42,17 @@ interface ProductOption {
   code: string;
   nameTh: string;
   category?: string | null;
+  /** raw_material | packaging | wip | finished_goods | consumable */
+  type?: string | null;
 }
+
+/**
+ * The item types the item form offers, in the order it offers them. Used to
+ * narrow the product picker in the panel-row dialog — a plant's item list runs
+ * to thousands, and the type is how anyone actually thinks about which part of
+ * it they are in.
+ */
+const ITEM_TYPE_ORDER = ['raw_material', 'packaging', 'wip', 'finished_goods', 'consumable'];
 
 interface CriteriaOption {
   id: number;
@@ -124,6 +134,8 @@ const EMPTY_FORM: FormState = {
 export default function TestPanelsAdminPage() {
   const toast = useToast();
   const t = useTranslations('quality');
+  // Item-type labels live with the item form that defines them.
+  const ti = useTranslations('inventory');
 
   const [rows, setRows] = useState<TestPanelRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +195,10 @@ export default function TestPanelsAdminPage() {
       products.map((p) => ({
         id: p.id,
         label: `${p.code} — ${p.nameTh}`,
+        // Carried through so the dialog can narrow the list by item type,
+        // and follow the chosen product when offering categories.
+        productType: p.type ?? null,
+        productCategory: p.category ?? null,
       })),
     [products],
   );
@@ -207,9 +223,31 @@ export default function TestPanelsAdminPage() {
         .map((c) => ({
           id: c.id,
           label: `${c.code} — ${c.nameTh || c.name}`,
+          // The dialog narrows further, to the stage the chosen target is
+          // sampled at.
+          stage: stageOfCriteria(c.specification),
         })),
     [criteria],
   );
+
+  /**
+   * Only the types some product carries: offering one with nothing behind it
+   * gives a picker that empties itself, which reads as a fault.
+   *
+   * A value the item form does not know about is still listed, under its raw
+   * name — those products exist, and dropping the type would make them
+   * unreachable through the filter.
+   */
+  const productTypes = useMemo(() => {
+    const present = new Set<string>();
+    for (const p of products) if (p.type) present.add(p.type);
+    const known = ITEM_TYPE_ORDER.filter((k) => present.has(k));
+    const rest = Array.from(present).filter((k) => !ITEM_TYPE_ORDER.includes(k)).sort();
+    return [...known, ...rest].map((value) => ({
+      value,
+      label: ti.has(`itemForm.types.${value}`) ? ti(`itemForm.types.${value}`) : value,
+    }));
+  }, [products, ti]);
 
   const productCategories = useMemo(() => {
     const set = new Set<string>();
@@ -594,6 +632,7 @@ export default function TestPanelsAdminPage() {
           onChange={setForm}
           productItems={productItems}
           productCategories={productCategories}
+          productTypes={productTypes}
           criteriaItems={criteriaItems}
           products={products}
           submitting={submitting}

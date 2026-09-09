@@ -140,6 +140,10 @@ export function installMockApi() {
       switch (woHit[1]) {
         case 'detail':
           return json(FIXTURES.detail);
+        // Not the {success, data} envelope the others use — the banner reads
+        // `materialIds` straight off the body, and crashes on the envelope.
+        case 'blocked-phases':
+          return json({ materialIds: [] });
         case 'execution-summary':
           return json(FIXTURES.executionSummary);
         case 'sop-execution':
@@ -154,6 +158,29 @@ export function installMockApi() {
           return json({ success: true, data: [] });
       }
     }
+    // Three lists the work order detail screen asks for on the way in. Nothing
+    // in the eBMR document reads them, but an unanswered call falls through to
+    // a real network request that a static host answers with its own 404 page —
+    // so the screen would sit in its loading state.
+    if (
+      url.includes('/api/quality/deviations') ||
+      url.includes('/api/quality/specs') ||
+      url.includes('/api/inventory/lots')
+    ) {
+      return json({ success: true, data: [] });
+    }
+
+    // Two more the work order detail screen calls on its way in. Unanswered,
+    // they reach the network and a static host returns its own 404 page.
+    if (url.includes('/api/master-data/production-rooms')) {
+      return json({ success: true, data: [] });
+    }
+    if (url.includes('/api/material-withdrawal/')) {
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (method !== 'GET') return json({ success: true, data: {} });
+      return json({ success: true, data: { requests: [], total: 0 } });
+    }
+
     if (url.includes('/api/quality/test-panels')) {
       const method = (init?.method ?? 'GET').toUpperCase();
       if (method === 'POST') {

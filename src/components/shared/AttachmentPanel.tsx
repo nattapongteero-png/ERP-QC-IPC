@@ -134,13 +134,20 @@ export function AttachmentPanel({
     : '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv';
 
   return (
-    <div className="border rounded-lg bg-white" data-testid={`${testIdBase}-panel`}>
-      <div className="flex items-center justify-between p-3 border-b bg-gray-50 rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <Paperclip className="w-4 h-4 text-gray-600" />
-          <span className="font-medium text-sm">{title}</span>
-          <span className="text-xs text-gray-500">({items.length})</span>
-        </div>
+    <div
+      className="rounded-[16px] bg-[#f9fafb] p-3"
+      data-testid={`${testIdBase}-panel`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#bfbfbf]">
+          <Paperclip className="h-3.5 w-3.5" />
+          {title}
+          {items.length > 0 && (
+            <span className="rounded-md bg-[#e8effc] px-1.5 py-0.5 text-[10px] font-semibold text-[#3559b0]">
+              {items.length}
+            </span>
+          )}
+        </span>
         {!readOnly && (
           <>
             <input
@@ -155,52 +162,59 @@ export function AttachmentPanel({
               data-testid={`${testIdBase}-input`}
             />
             <button
-              className="text-sm bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700 flex items-center gap-1 disabled:opacity-50"
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#e1e4e8] bg-white px-3.5 py-1.5 text-[12px] font-medium text-slate-700 transition hover:border-[#9db9e8] hover:text-[#2f6fd0] disabled:opacity-50"
               disabled={uploading}
               onClick={() => fileInput.current?.click()}
               data-testid={`${testIdBase}-upload`}
             >
-              <Upload className="w-3 h-3" /> {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
+              <Upload className="h-3.5 w-3.5" />
+              {uploading ? 'กำลังอัปโหลด…' : 'อัปโหลด'}
             </button>
           </>
         )}
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-500 text-sm py-4">โหลด...</div>
+        <p className="py-3 text-center text-[12px] text-slate-400">กำลังโหลด…</p>
       ) : items.length === 0 ? (
-        <div className="text-center text-gray-400 text-sm py-4">ยังไม่มีไฟล์แนบ</div>
+        /* No empty box drawn around nothing: the line says it, and a bordered
+           panel containing one sentence read as a control that had failed. */
+        <p className="py-3 text-center text-[12px] text-slate-400">ยังไม่มีไฟล์แนบ</p>
       ) : (
-        <ul className="divide-y">
+        <ul className="mt-2 flex flex-col gap-1.5">
           {items.map((it) => {
             const isImage = it.mimeType?.startsWith('image/');
             return (
               <li
                 key={it.id}
-                className="flex items-center justify-between p-2 hover:bg-gray-50"
+                className="flex items-center justify-between gap-2 rounded-[12px] bg-white px-3 py-2"
                 data-testid={`${testIdBase}-item-${it.id}`}
               >
                 <a
                   href={`/api/attachments/${it.id}/download?inline=1`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-blue-700 hover:underline truncate"
+                  className="flex min-w-0 items-center gap-2 text-[13px] text-slate-700 transition hover:text-[#2f6fd0]"
                 >
                   {isImage ? (
-                    <ImageIcon className="w-4 h-4 flex-shrink-0" />
+                    <ImageIcon className="h-4 w-4 flex-shrink-0 text-slate-400" />
                   ) : (
-                    <FileText className="w-4 h-4 flex-shrink-0" />
+                    <FileText className="h-4 w-4 flex-shrink-0 text-slate-400" />
                   )}
                   <span className="truncate">{it.fileName}</span>
-                  <span className="text-xs text-gray-500">{fmtBytes(it.fileSize)}</span>
+                  <span className="flex-none text-[11px] text-[#bfbfbf]">
+                    {fmtBytes(it.fileSize)}
+                  </span>
                 </a>
                 {!readOnly && (
                   <button
+                    type="button"
                     onClick={() => void remove(it.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
+                    className="flex-none rounded-full p-1.5 text-slate-400 transition hover:bg-[#fbeceb] hover:text-[#c0362c]"
                     aria-label="ลบ"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </li>

@@ -17,23 +17,58 @@ export interface DxDataGridColumn {
   [key: string]: unknown;
 }
 
+/**
+ * A real DevExtreme grid can be configured two ways: a `columns` prop, or
+ * `<Column>` children. The work order screens use the prop; the item-search
+ * dialog uses children. These render nothing themselves — they are read back
+ * off the children below — and the rest are configuration the plain table has
+ * no equivalent for.
+ */
+export function DxColumn(_props: DxDataGridColumn): null {
+  return null;
+}
+DxColumn.isDxColumn = true as const;
+
+export function DxSelection(_props: { mode?: string; [key: string]: unknown }): null {
+  return null;
+}
+export function DxScrolling(_props: { mode?: string; [key: string]: unknown }): null {
+  return null;
+}
+export function DxPaging(_props: { pageSize?: number; [key: string]: unknown }): null {
+  return null;
+}
+
+function columnsFromChildren(children: React.ReactNode): DxDataGridColumn[] {
+  const found: DxDataGridColumn[] = [];
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child) && (child.type as { isDxColumn?: boolean })?.isDxColumn) {
+      found.push(child.props as DxDataGridColumn);
+    }
+  });
+  return found;
+}
+
 export function DxDataGrid({
   dataSource = [],
-  columns = [],
+  columns,
+  children,
   onRowClick,
 }: {
   dataSource?: Record<string, unknown>[];
   columns?: DxDataGridColumn[];
+  children?: React.ReactNode;
   keyExpr?: string;
   onRowClick?: (e: { data: Record<string, unknown> }) => void;
   [key: string]: unknown;
 }) {
+  const cols = columns?.length ? columns : columnsFromChildren(children);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-[#fbfbfb] text-left">
-            {columns.map((c, i) => (
+            {cols.map((c, i) => (
               <th
                 key={i}
                 style={{ width: c.width }}
@@ -51,7 +86,7 @@ export function DxDataGrid({
               onClick={() => onRowClick?.({ data: row })}
               className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50"
             >
-              {columns.map((c, i) => (
+              {cols.map((c, i) => (
                 <td key={i} className="px-3 py-2.5 align-middle text-slate-800">
                   {c.cellRender
                     ? c.cellRender({ data: row, value: c.dataField ? row[c.dataField] : undefined })

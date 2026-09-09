@@ -285,7 +285,7 @@ export default function EnvironmentalMonitoringPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
-      toast.success('อัปเดตสำเร็จ', 'แก้ไขข้อมูลสภาวะแวดล้อมเรียบร้อย');
+      toast.success('อัปเดตสำเร็จ', 'แก้ไขค่าสภาพแวดล้อมเรียบร้อย');
       setShowAddDialog(false);
       setEditingLogId(null);
       setFormData({ roomId: undefined, temperature: 25, humidity: 50, notes: '' });
@@ -305,7 +305,7 @@ export default function EnvironmentalMonitoringPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wo-environmental-logs', workOrderId, currentPhase] });
-      toast.success('ลบสำเร็จ', 'ลบข้อมูลสภาวะแวดล้อมเรียบร้อย');
+      toast.success('ลบสำเร็จ', 'ลบค่าสภาพแวดล้อมเรียบร้อย');
     },
     onError: (error: Error) => toast.error('Error', error.message),
   });
@@ -379,7 +379,7 @@ export default function EnvironmentalMonitoringPage() {
     <div className="flex flex-col gap-5 p-4 md:p-6 w-full max-w-full overflow-hidden box-border">
       {/* Header */}
       <ResponsivePageHeader
-        title="การเฝ้าระวังสภาพแวดล้อม"
+        title="การตรวจวัดสภาพแวดล้อม"
         subtitle={`${workOrder.woNumber} | แบทช์: ${workOrder.batchNumber}${workOrder.bomCode ? ` | BOM: ${workOrder.bomCode}${workOrder.bomVersion ? ` v${workOrder.bomVersion}` : ''}` : ''}`}
         icon={Thermometer}
         iconBgColor="bg-teal-100"
@@ -389,7 +389,7 @@ export default function EnvironmentalMonitoringPage() {
           { label: 'ใบสั่งผลิต', href: '/production/work-orders' },
           { label: workOrder.woNumber, href: `/production/work-orders/${workOrderId}` },
           { label: 'การดำเนินการผลิต', href: `/production/work-orders/${workOrderId}?tab=execution` },
-          { label: 'การเฝ้าระวังสภาพแวดล้อม' },
+          { label: 'การตรวจวัดสภาพแวดล้อม' },
         ]}
         actions={
           <div className="flex gap-2">
@@ -507,7 +507,7 @@ export default function EnvironmentalMonitoringPage() {
       <DxPopup
         visible={showAddDialog}
         onHiding={() => { setShowAddDialog(false); setEditingLogId(null); }}
-        title={editingLogId ? 'แก้ไขข้อมูลสภาวะแวดล้อม' : 'บันทึกค่าสภาพแวดล้อม'}
+        title={editingLogId ? 'แก้ไขค่าสภาพแวดล้อม' : 'บันทึกค่าสภาพแวดล้อม'}
         width={500}
         height="auto"
         showCloseButton

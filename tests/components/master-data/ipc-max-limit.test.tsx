@@ -34,7 +34,9 @@ describe('max_limit payload', () => {
 
   it('is a type the rest of the app knows about', () => {
     expect(CRITERIA_TYPE_META.max_limit).toBeDefined();
-    expect(CRITERIA_TYPE_META.max_limit.label).toBe('Max Limit');
+    // The symbol the rest of the app prints for a ceiling-only spec — the
+    // spec list and the QC entry screen both render "≤ 1000 mg".
+    expect(CRITERIA_TYPE_META.max_limit.label).toBe('≤ Maximum value');
   });
 });
 

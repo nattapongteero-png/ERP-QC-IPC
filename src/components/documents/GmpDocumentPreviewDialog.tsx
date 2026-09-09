@@ -63,34 +63,49 @@ export function GmpDocumentPreviewDialog({ documentId, visible, onClose }: GmpDo
   }, [visible, documentId]);
 
   return (
+    <>
+      <style>{`
+        .doc-preview-popup .dx-overlay-content { border-radius: 24px; }
+        .doc-preview-popup .dx-popup-title { border-bottom-color: #f1f3f5 !important; }
+        .doc-preview-popup .dx-overlay-content:focus,
+        .doc-preview-popup .dx-overlay-content:focus-visible,
+        .doc-preview-popup .dx-overlay-content.dx-state-focused {
+          outline: none !important;
+          box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28) !important;
+        }
+      `}</style>
     <Popup
+      wrapperAttr={{ class: 'doc-preview-popup' }}
       visible={visible}
       onHiding={onClose}
       showCloseButton
       title={info ? `${info.documentNumber} — ${info.title}` : 'ดูเอกสาร'}
-      width="80vw"
+      width="min(920px, 92vw)"
       height="85vh"
     >
-      <div className="h-full overflow-auto p-1">
+      <div className="-m-6 flex h-[calc(100%+3rem)] flex-col overflow-hidden bg-[#f5f6f8] p-6">
         {loading && (
-          <div className="h-full flex items-center justify-center text-gray-500">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" /> กำลังโหลดเอกสาร…
+          <div className="flex h-full items-center justify-center text-[13px] text-slate-500">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> กำลังโหลดเอกสาร…
           </div>
         )}
         {error && (
-          <div className="h-full flex items-center justify-center text-amber-700">
-            <AlertCircle className="w-5 h-5 mr-2" /> {error}
+          <div className="flex h-full items-center justify-center gap-2 text-[13px] text-[#b45309]">
+            <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
         {!loading && !error && info && (
-          <DocumentViewer
-            fileUrl={`/api/documents/versions/${info.versionId}/download?inline=1`}
-            fileName={info.fileName}
-            className="h-full"
-          />
+          <div className="h-full overflow-hidden rounded-[16px] bg-white">
+            <DocumentViewer
+              fileUrl={`/api/documents/versions/${info.versionId}/download?inline=1`}
+              fileName={info.fileName}
+              className="h-full"
+            />
+          </div>
         )}
       </div>
     </Popup>
+    </>
   );
 }
 

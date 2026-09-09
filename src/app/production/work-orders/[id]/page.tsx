@@ -2266,6 +2266,111 @@ export default function WorkOrderDetailPage() {
               </CardContent>
             </Card>
 
+            {/* Production Summary — audit gap #1: Bulk Yield + Loss breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('workOrderDetail.ebmr.productionSummary')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.plannedQty')}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {formatNumber(ebmr.plannedQty)} {ebmr.productUnit || ''}
+                    </p>
+                  </div>
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.bulkOutput')}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.bulkOutputQty != null
+                        ? <>{formatNumber(ebmr.bulkOutputQty)} {ebmr.productUnit || ''}</>
+                        : '-'}
+                    </p>
+                    {ebmr.bulkYieldPercent != null && (
+                      <p className={`text-xs mt-0.5 ${ebmr.bulkYieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {t('workOrderDetail.ebmr.bulkYield', { percent: formatNumber(ebmr.bulkYieldPercent, 2) })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.finishedOutput')}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.finishedOutputQty != null
+                        ? <>{formatNumber(ebmr.finishedOutputQty)} {ebmr.productUnit || ''}</>
+                        : (ebmr.actualQty != null ? formatNumber(ebmr.actualQty) : '-')}
+                    </p>
+                    {ebmr.yieldPercent != null && (
+                      <p className={`text-xs mt-0.5 ${ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {t('workOrderDetail.ebmr.finalYield', { percent: formatNumber(ebmr.yieldPercent, 2) })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="border p-3 rounded-lg text-center">
+                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.productionTime')}</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Loss breakdown */}
+                {(ebmr.totalLossQty != null || ebmr.packagingLossQty != null) && (
+                  <div className="mt-3 border rounded-lg bg-amber-50/40 p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-1">{t('workOrderDetail.ebmr.lossBreakdown')}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                      {ebmr.packagingLossQty != null && (
+                        <div>
+                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.packagingLoss')}</p>
+                          <p className="font-semibold text-gray-900">
+                            {formatNumber(ebmr.packagingLossQty)} {ebmr.productUnit || ''}
+                            {ebmr.packagingLossPercent != null && (
+                              <span className="text-xs text-amber-600 ml-1">
+                                ({formatNumber(ebmr.packagingLossPercent, 2)}%)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      {ebmr.totalLossQty != null && (
+                        <div>
+                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.totalLoss')}</p>
+                          <p className="font-semibold text-gray-900">
+                            {formatNumber(ebmr.totalLossQty)} {ebmr.productUnit || ''}
+                            {ebmr.totalLossPercent != null && (
+                              <span className="text-xs text-amber-600 ml-1">
+                                ({formatNumber(ebmr.totalLossPercent, 2)}%)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('workOrderDetail.ebmr.productionTimeline')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border p-3 rounded-lg">
+                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.planned')}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-' })}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-' })}</p>
+                  </div>
+                  <div className="border p-3 rounded-lg">
+                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.actual')}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-' })}</p>
+                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-' })}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* ════════ eBMR GMP Sections 2–6 (Formula / Requisition / Personnel / Health / Gowning) ════════ */}
 
             {/* (2) สูตรที่ใช้ในการผลิต — Formula / BOM */}
@@ -2450,112 +2555,8 @@ export default function WorkOrderDetailPage() {
               </CardContent>
             </Card>
 
-            {/* ════════ Section 7: การบันทึกการผลิต (run overview + execution records by phase) ════════ */}
+            {/* ════════ Section 7: การบันทึกการผลิต (execution records by phase) ════════ */}
 
-            {/* Production Summary — audit gap #1: Bulk Yield + Loss breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('workOrderDetail.ebmr.productionSummary')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.plannedQty')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {formatNumber(ebmr.plannedQty)} {ebmr.productUnit || ''}
-                    </p>
-                  </div>
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.bulkOutput')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {ebmr.bulkOutputQty != null
-                        ? <>{formatNumber(ebmr.bulkOutputQty)} {ebmr.productUnit || ''}</>
-                        : '-'}
-                    </p>
-                    {ebmr.bulkYieldPercent != null && (
-                      <p className={`text-xs mt-0.5 ${ebmr.bulkYieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {t('workOrderDetail.ebmr.bulkYield', { percent: formatNumber(ebmr.bulkYieldPercent, 2) })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.finishedOutput')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {ebmr.finishedOutputQty != null
-                        ? <>{formatNumber(ebmr.finishedOutputQty)} {ebmr.productUnit || ''}</>
-                        : (ebmr.actualQty != null ? formatNumber(ebmr.actualQty) : '-')}
-                    </p>
-                    {ebmr.yieldPercent != null && (
-                      <p className={`text-xs mt-0.5 ${ebmr.yieldPercent >= 95 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {t('workOrderDetail.ebmr.finalYield', { percent: formatNumber(ebmr.yieldPercent, 2) })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="border p-3 rounded-lg text-center">
-                    <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.productionTime')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {ebmr.productionTimeHours ? `${ebmr.productionTimeHours}h` : '-'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Loss breakdown */}
-                {(ebmr.totalLossQty != null || ebmr.packagingLossQty != null) && (
-                  <div className="mt-3 border rounded-lg bg-amber-50/40 p-3">
-                    <p className="text-xs font-semibold text-amber-700 mb-1">{t('workOrderDetail.ebmr.lossBreakdown')}</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                      {ebmr.packagingLossQty != null && (
-                        <div>
-                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.packagingLoss')}</p>
-                          <p className="font-semibold text-gray-900">
-                            {formatNumber(ebmr.packagingLossQty)} {ebmr.productUnit || ''}
-                            {ebmr.packagingLossPercent != null && (
-                              <span className="text-xs text-amber-600 ml-1">
-                                ({formatNumber(ebmr.packagingLossPercent, 2)}%)
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      )}
-                      {ebmr.totalLossQty != null && (
-                        <div>
-                          <p className="text-xs text-gray-500">{t('workOrderDetail.ebmr.totalLoss')}</p>
-                          <p className="font-semibold text-gray-900">
-                            {formatNumber(ebmr.totalLossQty)} {ebmr.productUnit || ''}
-                            {ebmr.totalLossPercent != null && (
-                              <span className="text-xs text-amber-600 ml-1">
-                                ({formatNumber(ebmr.totalLossPercent, 2)}%)
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('workOrderDetail.ebmr.productionTimeline')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="border p-3 rounded-lg">
-                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.planned')}</p>
-                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.plannedStart ? new Date(ebmr.timeline.plannedStart).toLocaleString('th-TH') : '-' })}</p>
-                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.plannedEnd ? new Date(ebmr.timeline.plannedEnd).toLocaleString('th-TH') : '-' })}</p>
-                  </div>
-                  <div className="border p-3 rounded-lg">
-                    <p className="text-sm text-gray-500 font-medium">{t('workOrderDetail.ebmr.actual')}</p>
-                    <p className="text-gray-900">{t('workOrderDetail.ebmr.start', { value: ebmr.timeline.actualStart ? new Date(ebmr.timeline.actualStart).toLocaleString('th-TH') : '-' })}</p>
-                    <p className="text-gray-900">{t('workOrderDetail.ebmr.end', { value: ebmr.timeline.actualEnd ? new Date(ebmr.timeline.actualEnd).toLocaleString('th-TH') : '-' })}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* ════════ Production Records grouped by phase ════════ */}
             {renderPhaseGroups()}

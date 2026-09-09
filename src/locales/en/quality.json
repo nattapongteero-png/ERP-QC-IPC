@@ -937,8 +937,8 @@
         "print": "Print",
         "addTest": "Add test",
         "startTesting": "Start testing",
-        "submitReview": "Submit for review",
-        "approve": "Approve",
+        "submitReview": "Submit results",
+        "approve": "Approve results",
         "release": "Release",
         "reject": "Reject",
         "generateNewCoa": "Generate new COA",
@@ -946,7 +946,9 @@
         "viewCoa": "View COA",
         "cancel": "Cancel",
         "save": "Save",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "applyPanel": "Apply test panel",
+        "retest": "Request re-test"
       },
       "stepper": {
         "title": "Workflow status",
@@ -1033,11 +1035,13 @@
       },
       "applyPanelDialog": {
         "noPanel": "No test panel configured for this product — create one at",
-        "selectPrompt": "Select panel-rows to apply to this sample",
+        "selectPrompt": "Select the test panels to pull into this sample",
         "multiHint": "(multiple allowed)",
-        "tagPlaceholder": "Select panel",
-        "selectedCount": "Selected {count} panel(s) — the system will apply every panel to this sample",
-        "applying": "Applying..."
+        "tagPlaceholder": "Select a panel",
+        "selectedCount": "Selected {count} panel(s) — every test in them is pulled into this sample",
+        "applying": "Applying...",
+        "title": "Apply test panel",
+        "confirm": "Pull in"
       },
       "addTestDialog": {
         "title": "Add test",
@@ -1113,8 +1117,10 @@
         "statusChangeSuccess": "Status changed",
         "statusChangeFailed": "Status change failed",
         "coaSuccess": "COA generated successfully",
-        "coaFailed": "COA generation failed"
-      }
+        "coaFailed": "COA generation failed",
+        "retestSuccess": "Sent back for re-testing"
+      },
+      "retestReasonPrompt": "Reason for requesting a re-test"
     }
   },
   "qcInspections": {
@@ -1247,6 +1253,10 @@
       "addTitle": "Add panel-row",
       "hint": "Specify a product <em>or</em> at least one category — if both are filled, the system matches the product first",
       "productLabel": "Product (specific)",
+      "productFilterLabel": "Filter by product type",
+      "productFilterPlaceholder": "All types",
+      "productFilterAll": "All types",
+      "productNoneInFilter": "No products in this type",
       "categoryLabel": "Category (fallback)",
       "categoryManualLabel": "Or type a category",
       "criteriaMultiLabel": "Criteria (QC criteria) — select multiple",
@@ -1269,7 +1279,12 @@
       "targetBoth": "Applies to product {name} (a product is set, so the category is ignored)",
       "targetNone": "Nothing chosen yet — set a product or a category",
       "requiredHint": "Marks this criterion as mandatory in the panel (not enforced anywhere yet)",
-      "activeHint": "Off = the row stays, but new samples will not pick it up"
+      "activeHint": "Off = the row stays, but new samples will not pick it up",
+      "criteriaStageHint": "Showing criteria for {stage} only, following the target selected above",
+      "stage": {
+        "raw_material": "incoming raw material",
+        "fg_release": "finished goods release"
+      }
     }
   },
   "testCatalog": {
