@@ -1067,12 +1067,18 @@ export function ExecutionDashboard({ workOrderId }: ExecutionDashboardProps) {
                 }
 
                 const lockInfo = isSectionLocked(section.id);
+                // A card carrying the lot's identifiers has something to read
+                // whether or not its own step is open yet — checking the number
+                // early is the whole point — and opacity cannot be undone by a
+                // child, so the dimming has to be skipped for the card, not the
+                // panel.
+                const carriesLotPanel = section.id === 'sop-execution-packaging' && !!woDetail;
                 // When locked but Line Clearance is still actionable, keep the
                 // card readable (no opacity dimming) so the call-to-action
                 // button doesn't look disabled. The lock icon + reason banner
                 // remain as the visual lock signal.
                 const cardClass = lockInfo.locked
-                  ? (lockInfo.allowClearance ? 'border-amber-200' : 'opacity-50')
+                  ? (lockInfo.allowClearance || carriesLotPanel ? 'border-amber-200' : 'opacity-50')
                   : 'hover:shadow-md cursor-pointer';
                 const cardContent = (
                   <Card className={`h-full transition-shadow ${cardClass}`}>
