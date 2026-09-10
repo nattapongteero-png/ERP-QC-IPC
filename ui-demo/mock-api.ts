@@ -65,6 +65,129 @@ const TEST_PANELS: Record<string, unknown>[] = [
 ];
 let nextPanelId = 100;
 
+/**
+ * The SOP steps, as a copy the demo is allowed to change.
+ *
+ * Everything else here answers from a frozen capture, which is right for a
+ * screen you only read. The SOP screen is one you *work*: start a step, record
+ * it, have someone else verify it. Answering "ok" to those without moving
+ * anything leaves the reviewer clicking a button that visibly does nothing, so
+ * this one endpoint keeps state for the length of the visit. Reloading the page
+ * puts it back to the captured run.
+ */
+const SOP_STEPS: Record<string, unknown>[] = JSON.parse(
+  JSON.stringify((FIXTURES.sopExecution as { data: unknown[] }).data),
+) as Record<string, unknown>[];
+
+/** Who the demo is acting as. GMP forbids verifying your own work, so the
+ *  demo carries two people and a switch — see main.tsx. */
+export const DEMO_PEOPLE = [
+  { id: 1, name: 'สมชาย ผลิตดี', role: 'ผู้ปฏิบัติงาน' },
+  { id: 3, name: 'QC Manager', role: 'ผู้ตรวจสอบ' },
+] as const;
+
+let actingId: number = DEMO_PEOPLE[0].id;
+const actingListeners = new Set<() => void>();
+export function setDemoActor(id: number) {
+  if (id === actingId) return;
+  actingId = id;
+  actingListeners.forEach((fn) => fn());
+}
+export function getDemoActor() {
+  return DEMO_PEOPLE.find((p) => p.id === actingId) ?? DEMO_PEOPLE[0];
+}
+export function subscribeDemoActor(fn: () => void) {
+  actingListeners.add(fn);
+  return () => actingListeners.delete(fn);
+}
+
+const nowIso = () => new Date().toISOString();
+let nextTestId = 9000;
+
+function applySopAction(body: Record<string, unknown>, method: string) {
+  const step = SOP_STEPS.find((s) => s.id === Number(body.executionId));
+  if (!step) return { success: true, data: {} };
+  const actor = getDemoActor();
+
+  // PATCH is the verify call; it carries no action of its own.
+  const action = method === 'PATCH' ? 'verify' : String(body.action ?? '');
+  switch (action) {
+    case 'start':
+      step.status = 'in_progress';
+      step.startedAt = nowIso();
+      step.operatorId = actor.id;
+      step.operatorName = actor.name;
+      break;
+    case 'complete':
+      step.status = 'completed';
+      step.isCompleted = true;
+      step.completedAt = nowIso();
+      step.operatorId = step.operatorId ?? actor.id;
+      step.operatorName = step.operatorName ?? actor.name;
+      if (body.actualParameters !== undefined) step.actualParameters = body.actualParameters;
+      if (body.notes !== undefined) step.notes = body.notes;
+      break;
+    case 'verify':
+      step.status = 'verified';
+      step.verifiedAt = nowIso();
+      step.verifierId = actor.id;
+      step.verifierName = actor.name;
+      break;
+    case 'record_ipc': {
+      // The screen will not let a step close until its IPC criteria carry a
+      // result, so acknowledging this without recording anything leaves the
+      // reviewer stuck at "ต้องกรอก IPC" with no way forward.
+      //
+      // The verdict is not invented: pass/fail criteria are read straight off
+      // what was ticked, and a numeric one is judged against the min/max the
+      // captured criterion already carries.
+      const results = (body.ipcResults ?? []) as Array<{
+        criteriaId: number;
+        numericValues?: (number | null)[];
+        sampleResults?: (string | null)[];
+        textValue?: string;
+      }>;
+      const linked = (step.linkedIPC ?? []) as Record<string, unknown>[];
+      for (const r of results) {
+        const c = linked.find((l) => Number(l.criteriaId) === Number(r.criteriaId));
+        if (!c) continue;
+        const samples: Record<string, unknown>[] = [];
+        let verdict: 'pass' | 'fail' = 'pass';
+        const fail = () => { verdict = 'fail'; };
+
+        if (r.sampleResults) {
+          r.sampleResults.forEach((v, i) => {
+            samples.push({ sampleNumber: i + 1, testRound: 1, numericValue: null, textValue: null, result: v });
+            if (v === 'fail') fail();
+          });
+        } else if (r.numericValues) {
+          const min = c.minValue as number | null;
+          const max = c.maxValue as number | null;
+          r.numericValues.forEach((v, i) => {
+            const bad = v == null || (min != null && v < min) || (max != null && v > max);
+            samples.push({ sampleNumber: i + 1, testRound: 1, numericValue: v, textValue: null, result: bad ? 'fail' : 'pass' });
+            if (bad) fail();
+          });
+        } else if (r.textValue !== undefined) {
+          samples.push({ sampleNumber: 1, testRound: 1, numericValue: null, textValue: r.textValue, result: 'pass' });
+        }
+
+        nextTestId += 1;
+        c.recordedTestId = nextTestId;
+        c.recordedStatus = verdict;
+        c.recordedSamples = samples;
+        c.recordedTestedByName = actor.name;
+        c.recordedTestDate = nowIso();
+      }
+      break;
+    }
+    default:
+      // add_ipc_round, confirm_substeps — acknowledged, not modelled.
+      break;
+  }
+  return { success: true, data: step };
+}
+
 const json = (body: unknown) =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 
@@ -76,9 +199,19 @@ export function installMockApi() {
     // The shell's own calls — a session so MainLayout renders, and an empty
     // notification list so the bell draws without a badge.
     if (url.includes('/api/auth/session')) {
+      // Whoever the demo bar is currently acting as — the SOP screen compares
+      // this id against a step's operator to enforce GMP dual control.
+      const actor = getDemoActor();
       return json({
         success: true,
-        data: { user: { id: 1, name: 'สมชาย ผลิตดี', email: 'production@herbal-erp.com', role: 'admin' } },
+        data: {
+          user: {
+            id: actor.id,
+            name: actor.name,
+            email: actor.id === 3 ? 'qc@herbal-erp.com' : 'production@herbal-erp.com',
+            role: 'admin',
+          },
+        },
       });
     }
     if (url.includes('/api/notifications')) {
@@ -136,7 +269,13 @@ export function installMockApi() {
     const woHit = url.match(/\/api\/production\/work-orders\/\d+\/([a-z-]+)/);
     if (woHit) {
       const method = (init?.method ?? 'GET').toUpperCase();
-      if (method !== 'GET') return json({ success: true, data: {} });
+      if (method !== 'GET') {
+        if (woHit[1] === 'sop-execution') {
+          const sent = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+          return json(applySopAction(sent, method));
+        }
+        return json({ success: true, data: {} });
+      }
       switch (woHit[1]) {
         case 'detail':
           return json(FIXTURES.detail);
@@ -147,7 +286,7 @@ export function installMockApi() {
         case 'execution-summary':
           return json(FIXTURES.executionSummary);
         case 'sop-execution':
-          return json(FIXTURES.sopExecution);
+          return json({ success: true, data: SOP_STEPS });
         case 'bom-config':
           return json(FIXTURES.bomConfig);
         case 'ipc':

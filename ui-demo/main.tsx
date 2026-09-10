@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/toast';
 import { MainLayout } from '@/components/layout/main-layout';
 import { IPCCriteriaForm } from '@/components/master-data/IPCCriteriaForm';
@@ -16,7 +16,13 @@ import WorkOrderDetailPage from '@/app/production/work-orders/[id]/page';
 import QcEntryListPage from '@/app/quality/qc-entry/page';
 import QcSampleDetailPage from '@/app/quality/qc-entry/[id]/page';
 import { setDemoPath, setDemoNavigate } from './shims/next-navigation';
-import { installMockApi } from './mock-api';
+import {
+  installMockApi,
+  DEMO_PEOPLE,
+  setDemoActor,
+  getDemoActor,
+  subscribeDemoActor,
+} from './mock-api';
 import './styles.css';
 
 installMockApi();
@@ -60,6 +66,42 @@ const ROUTE_MAP: { match: RegExp; page: PageId }[] = [
   { match: /ipc-criteria/, page: 'criteria' },
   { match: /test-panels/, page: 'panels' },
 ];
+
+/**
+ * Who the demo is acting as.
+ *
+ * GMP forbids signing off your own work, and the SOP screen enforces it — with
+ * one fixed person the verify button is correctly refused and a reviewer is
+ * left staring at a button that will not work. Switching here is how they get
+ * to be the second person and finish the flow.
+ */
+function ActorSwitch() {
+  const queryClient = useQueryClient();
+  const actor = React.useSyncExternalStore(subscribeDemoActor, getDemoActor, getDemoActor);
+  return (
+    <div className="flex items-center gap-1 rounded-full bg-slate-100 p-0.5">
+      {DEMO_PEOPLE.map((p) => (
+        <button
+          type="button"
+          key={p.id}
+          title={p.name}
+          onClick={() => {
+            setDemoActor(p.id);
+            // The session is cached for five minutes; without this the screen
+            // keeps comparing against the person who just stopped acting.
+            queryClient.invalidateQueries({ queryKey: ['auth-session'] });
+          }}
+          className={
+            'rounded-full px-2.5 py-1 text-[11px] font-medium transition ' +
+            (p.id === actor.id ? 'bg-white text-[#2f6fd0] shadow-sm' : 'text-slate-500')
+          }
+        >
+          {p.role}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Demo() {
   const [page, setPage] = React.useState<PageId>('wo-sop');
@@ -138,6 +180,7 @@ function Demo() {
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
             DEMO
           </span>
+          <ActorSwitch />
           {PAGES.map((p) => (
             <button
               type="button"
